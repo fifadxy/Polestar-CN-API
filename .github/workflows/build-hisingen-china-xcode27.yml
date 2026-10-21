@@ -227,7 +227,7 @@ jobs:
           echo "== China web-sign-in privacy boundary =="
           PATCH="Sources/Hisingen/App/ChinaPolestarRegionController.swift"
           ! grep -Eq "evaluateJavaScript|httpCookieStore|document\.cookie|WKScriptMessageHandler" "$PATCH"
-          grep -F "WKWebsiteDataStore.default()" "$PATCH"
+          grep -F "config.websiteDataStore = .default()" "$PATCH"
 
           echo "== Official China login endpoint reachability =="
           status="$(curl -L -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 25 'https://www.polestar.cn/zh-cn/auth/login/' || true)"

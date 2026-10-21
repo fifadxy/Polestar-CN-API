@@ -13,7 +13,7 @@ jobs:
   build:
     name: Build Hisingen China
     runs-on: xcode-27
-    timeout-minutes: 45
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -189,7 +189,8 @@ jobs:
 
           rm -rf .build
           swift package resolve
-          NOTARIZE=never make app
+          echo "Building app bundle with CI-safe ad-hoc signing (IDENTITY=-)"
+          NOTARIZE=never make app IDENTITY=-
           test -d releases/Hisingen.app
 
       - name: Package
@@ -199,7 +200,8 @@ jobs:
           DIST="$RUNNER_TEMP/dist"
           mkdir -p "$DIST"
           cp -R "$RUNNER_TEMP/Hisingen/releases/Hisingen.app" "$DIST/Hisingen China.app"
-          codesign --force --deep --sign - "$DIST/Hisingen China.app"
+          echo "Re-signing copied bundle ad-hoc for artifact delivery"
+          /usr/bin/codesign --force --deep --sign - "$DIST/Hisingen China.app"
           codesign --verify --deep --strict --verbose=2 "$DIST/Hisingen China.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
             "$DIST/Hisingen China.app" "$DIST/Hisingen-China.app.zip"

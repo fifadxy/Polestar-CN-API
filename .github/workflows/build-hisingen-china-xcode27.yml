@@ -193,6 +193,70 @@ jobs:
           NOTARIZE=never make app IDENTITY=-
           test -d releases/Hisingen.app
 
+      - name: Smoke test app on hosted macOS
+        working-directory: ${{ runner.temp }}/Hisingen
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="releases/Hisingen.app"
+          BIN="$APP/Contents/MacOS/Hisingen"
+          PLIST="$APP/Contents/Info.plist"
+
+          echo "== Bundle metadata =="
+          test -d "$APP"
+          test -x "$BIN"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")" = "io.kheirallah.hisingen"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")" = "2.0.10"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PLIST")" = "15.0"
+
+          echo "== Architecture and framework linkage =="
+          file "$BIN"
+          lipo -info "$BIN"
+          test -d "$APP/Contents/Frameworks/Sparkle.framework"
+          otool -L "$BIN" | grep -F "Sparkle.framework"
+
+          echo "== Signature integrity =="
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          echo "== Global and China integration markers =="
+          strings "$BIN" | grep -F "https://polestarid.eu.polestar.com"
+          strings "$BIN" | grep -F "https://www.polestar.cn/zh-cn/auth/login/"
+          strings "$BIN" | grep -F "Polestar Sign-In Region"
+          strings "$BIN" | grep -F "China Polestar ID · Official Web Sign-In"
+
+          echo "== China web-sign-in privacy boundary =="
+          PATCH="Sources/Hisingen/App/ChinaPolestarRegionController.swift"
+          ! grep -Eq "evaluateJavaScript|httpCookieStore|document\.cookie|WKScriptMessageHandler" "$PATCH"
+          grep -F "WKWebsiteDataStore.default()" "$PATCH"
+
+          echo "== Official China login endpoint reachability =="
+          status="$(curl -L -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 25 'https://www.polestar.cn/zh-cn/auth/login/' || true)"
+          echo "China login HTTP status: $status"
+          case "$status" in
+            2*|3*|4*) ;;
+            *) echo "China login endpoint did not return an HTTP response" >&2; exit 1 ;;
+          esac
+
+          echo "== Process launch smoke test =="
+          rm -f "$RUNNER_TEMP/hisingen-launch.log"
+          "$BIN" >"$RUNNER_TEMP/hisingen-launch.log" 2>&1 &
+          pid=$!
+          sleep 12
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "Hisingen remained alive for 12 seconds (launch smoke test passed)."
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 2
+            kill -KILL "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+          else
+            echo "Hisingen exited during launch smoke test." >&2
+            cat "$RUNNER_TEMP/hisingen-launch.log" >&2 || true
+            exit 1
+          fi
+
+          echo "== Runtime log tail =="
+          tail -n 80 "$RUNNER_TEMP/hisingen-launch.log" || true
+
       - name: Package
         shell: bash
         run: |

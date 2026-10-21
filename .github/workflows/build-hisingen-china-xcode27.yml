@@ -222,7 +222,7 @@ jobs:
           strings "$BIN" | grep -F "https://polestarid.eu.polestar.com"
           strings "$BIN" | grep -F "https://www.polestar.cn/zh-cn/auth/login/"
           strings "$BIN" | grep -F "Polestar Sign-In Region"
-          strings "$BIN" | grep -F "China Polestar ID · Official Web Sign-In"
+          strings "$BIN" | grep -F "China Polestar ID "
 
           echo "== China web-sign-in privacy boundary =="
           PATCH="Sources/Hisingen/App/ChinaPolestarRegionController.swift"

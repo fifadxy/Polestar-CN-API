@@ -240,12 +240,11 @@ enum ChinaPolestarDiagnostics {
             for await result in group {
                 results.append(result)
             }
+            let rank = Dictionary(
+                uniqueKeysWithValues: endpoints.enumerated().map { ($0.element.label, $0.offset) }
+            )
             return results.sorted {
-                guard let left = endpoints.firstIndex(where: { $0.label == $0.label }),
-                      let right = endpoints.firstIndex(where: { $0.label == $1.label }) else {
-                    return $0.label < $1.label
-                }
-                return left < right
+                (rank[$0.label] ?? Int.max) < (rank[$1.label] ?? Int.max)
             }
         }
     }

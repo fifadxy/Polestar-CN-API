@@ -26,6 +26,17 @@ HOST = "127.0.0.1"
 PORT = 28765
 PACKAGE = "com.polestar.china.android"
 
+# App model presence is not proof that the car just reported a fresh reading.
+# A timestamp older than 10 minutes (or missing/implausibly future) is Cached.
+MAX_FRESH_AGE_MS = 10 * 60 * 1000
+MAX_CLOCK_SKEW_MS = 2 * 60 * 1000
+ALLOWED_BATTERY_FIELDS = {
+    "reportedAtMs", "percentage", "rangeKm", "rangeMi",
+    "estimatedChargingTimeMinutes", "averageConsumption", "chargingState",
+    "chargingPowerWatts", "chargingCurrentAmps", "chargingVoltageVolts",
+    "chargingType", "chargerPowerStatus",
+}
+
 _state_lock = threading.Lock()
 _state = {
     "version": 1,
@@ -34,7 +45,7 @@ _state = {
     "battery": None,
     "exterior": None,
     "odometerKm": None,
-    "source": "Android App Live",
+    "source": "Cached",
 }
 
 FRIDA_JS = r"""
@@ -109,10 +120,35 @@ def _copy_state():
     with _state_lock:
         return json.loads(json.dumps(_state))
 
+def _battery_is_recent(battery, now_ms=None):
+    """Use only the vehicle-reported timestamp, never the bridge fetch time."""
+    if not isinstance(battery, dict):
+        return False
+    reported = battery.get("reportedAtMs")
+    if reported is None or isinstance(reported, bool):
+        return False
+    try:
+        reported_ms = int(reported)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if now_ms is None:
+        now_ms = int(time.time() * 1000)
+    age_ms = now_ms - reported_ms
+    return -MAX_CLOCK_SKEW_MS <= age_ms <= MAX_FRESH_AGE_MS
+
 def _update_battery(battery):
+    # Explicit allow-list: future versions of the model cannot accidentally export
+    # arbitrary fields that might contain user identifiers or session material.
+    safe_battery = (
+        {key: value for key, value in battery.items() if key in ALLOWED_BATTERY_FIELDS}
+        if isinstance(battery, dict) else None
+    )
     with _state_lock:
-        _state["battery"] = battery
-        _state["session"]["ready"] = battery is not None
+        _state["battery"] = safe_battery
+        _state["session"]["ready"] = safe_battery is not None
+        _state["source"] = (
+            "Android App Live" if _battery_is_recent(safe_battery) else "Cached"
+        )
 
 def _frida_worker():
     try:
@@ -191,6 +227,8 @@ class Handler(BaseHTTPRequestHandler):
                 "batteryAvailable": current["battery"] is not None,
                 "exteriorAvailable": current["exterior"] is not None,
                 "odometerAvailable": current["odometerKm"] is not None,
+                "snapshotSource": current["source"],
+                "vehicleReportedAtMs": (current["battery"] or {}).get("reportedAtMs"),
             })
             return
         if self.path == "/v1/state":

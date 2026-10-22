@@ -44,6 +44,7 @@ enum ChinaPolestarRuntime {
     nonisolated static let regionKey = "hisingen.polestar.signInRegion"
     nonisolated static let chooserVersionKey = "hisingen.polestar.regionChooserVersion"
     nonisolated static let chooserVersion = 1
+    nonisolated static let globalVehicleBackupKey = "hisingen.polestar.globalVehicleBeforeChina"
     nonisolated static let bridgeURL = URL(string: "http://127.0.0.1:28765")!
 
     nonisolated static var currentRegion: ChinaPolestarRegion {
@@ -85,8 +86,20 @@ enum ChinaPolestarRuntime {
 
     @MainActor
     static func setRegion(_ region: ChinaPolestarRegion, notify: Bool = true) {
-        guard currentRegion != region || UserDefaults.standard.object(forKey: regionKey) == nil else {
+        let previous = currentRegion
+        guard previous != region || UserDefaults.standard.object(forKey: regionKey) == nil else {
             return
+        }
+        // Original Hisingen uses one Polestar vehicle preference. The Android bridge
+        // exposes an opaque China ID; keep it from replacing the Global selection.
+        // Vehicle preferences remain local to the user's Mac; never written to Git/logs.
+        if previous == .global && region == .mainlandChina {
+            UserDefaults.standard.set(
+                PreferencesStore.shared.vin(for: .polestar), forKey: globalVehicleBackupKey
+            )
+        } else if previous == .mainlandChina && region == .global,
+                  let original = UserDefaults.standard.string(forKey: globalVehicleBackupKey) {
+            PreferencesStore.shared.setVin(original, for: .polestar)
         }
         UserDefaults.standard.set(region.rawValue, forKey: regionKey)
         if notify {
@@ -700,8 +713,8 @@ struct ChinaPolestarAccountView: View {
                     Text("Polestar China")
                         .hisType(.body, weight: .semibold)
                     Text(bridgeReachable
-                         ? "Android official-app bridge detected · read-only vehicle session available"
-                         : "Official web sign-in is available; start the Android app bridge for vehicle data")
+                         ? "Official Android app snapshot available · read-only bridge"
+                         : "Official website sign-in available; start Android app bridge for vehicle status")
                         .hisType(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -789,7 +802,10 @@ struct ChinaPolestarSettingsCard: View {
                         .hisType(.caption, weight: .medium)
                         .foregroundStyle(HisingenTheme.semanticGood)
                 } else {
-                    ChinaPolestarAccountView(onSettingsChanged: onSettingsChanged)
+                    Text("China account sign-in is shown in the original Account section below. Vehicle API is a separate read-only Android bridge until native China session mapping is verified.")
+                        .hisType(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Button {
                         isRunningDiagnostics = true

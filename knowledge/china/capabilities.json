@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "updated": "2026-10-22",
+  "baselines": {
+    "hisingen": "v2.0.10",
+    "china_android": "com.polestar.china.android 4.25.0-262",
+    "preview": "0.18.0"
+  },
+  "definitions": {
+    "BRIDGE_ONLY": "Reads a signed-in Android application model; no direct Mac China API",
+    "MAPPING_REQUIRED": "CN credentials, method, response or entitlement not authenticated end-to-end",
+    "DISABLED": "No CN remote execution",
+    "NOT_APPLICABLE": "EU/Global-only mechanism does not imply CN coverage"
+  },
+  "capabilities": [
+    {
+      "name": "user_login",
+      "global": "OIDC Polestar ID",
+      "china": "official web sign-in",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "command_login",
+      "global": "command-client OAuth",
+      "china": "unknown token audience",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "data_act",
+      "global": "EU Data Portal M2M",
+      "china": "no proven analog",
+      "cn_status": "NOT_APPLICABLE"
+    },
+    {
+      "name": "augmented",
+      "global": "consumer + EU M2M",
+      "china": "no verified CN M2M",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "vehicle_discovery",
+      "global": "getConsumerCarsV2",
+      "china": "opaque single bridge identifier",
+      "cn_status": "BRIDGE_ONLY"
+    },
+    {
+      "name": "c3_discovery",
+      "global": "cnepmob.volvocars.com",
+      "china": "cnepmob.volvocars.com.cn",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "pccs_chronos",
+      "global": "api.pccs-prod.plstr.io",
+      "china": "api.pccs-prod.origin.polestar.cn",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "battery_soc",
+      "global": "C3 battery",
+      "china": "ChargeStatusResponseModel cliif",
+      "cn_status": "BRIDGE_ONLY"
+    },
+    {
+      "name": "range",
+      "global": "C3/GraphQL battery",
+      "china": "clicatch/cliclass",
+      "cn_status": "BRIDGE_ONLY"
+    },
+    {
+      "name": "charging",
+      "global": "C3 battery",
+      "china": "model charging state and charging time",
+      "cn_status": "BRIDGE_ONLY"
+    },
+    {
+      "name": "exterior",
+      "global": "C3 exterior",
+      "china": "controller observed, response not mapped",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "availability",
+      "global": "C3 availability",
+      "china": "state not mapped",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "odometer",
+      "global": "C3 odometer",
+      "china": "state not mapped",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "health",
+      "global": "C3 health",
+      "china": "state not mapped",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "climate_read",
+      "global": "C3 parking climatization",
+      "china": "state not mapped",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "live_stream",
+      "global": "C3 live gRPC",
+      "china": "5s app-object bridge polling",
+      "cn_status": "BRIDGE_ONLY"
+    },
+    {
+      "name": "target_soc",
+      "global": "PCCS TargetSoc",
+      "china": "proto known but method/auth unknown",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "amp_limit",
+      "global": "PCCS AmpLimit",
+      "china": "method/auth unknown",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "charge_timer",
+      "global": "PCCS GlobalChargeTimer",
+      "china": "method/auth unknown",
+      "cn_status": "MAPPING_REQUIRED"
+    },
+    {
+      "name": "lock_unlock",
+      "global": "C3 Invocation",
+      "china": "not verified",
+      "cn_status": "DISABLED"
+    },
+    {
+      "name": "remote_climate",
+      "global": "C3 Invocation",
+      "china": "not verified",
+      "cn_status": "DISABLED"
+    },
+    {
+      "name": "remote_windows_tailgate",
+      "global": "C3 Invocation",
+      "china": "not verified",
+      "cn_status": "DISABLED"
+    },
+    {
+      "name": "charge_override",
+      "global": "PCCS writes",
+      "china": "not verified",
+      "cn_status": "DISABLED"
+    },
+    {
+      "name": "ota",
+      "global": "C3 OTA Scheduler",
+      "china": "not verified",
+      "cn_status": "DISABLED"
+    }
+  ],
+  "china_endpoints": [
+    {
+      "role": "official_login",
+      "address": "https://www.polestar.cn/zh-cn/auth/login/",
+      "evidence": "official"
+    },
+    {
+      "role": "c3_discovery",
+      "address": "https://cnepmob.volvocars.com.cn",
+      "evidence": "observed"
+    },
+    {
+      "role": "c3_token_related",
+      "address": "cepmobtoken.prod.c3.volvocars.com.cn",
+      "evidence": "host only"
+    },
+    {
+      "role": "c3_lbs_related",
+      "address": "cepmob.lbs.prod.c3.volvocars.com.cn",
+      "evidence": "host only"
+    },
+    {
+      "role": "c3_signature_related",
+      "address": "cepmobsig.prod.c3.volvocars.com.cn",
+      "evidence": "host only"
+    },
+    {
+      "role": "pccs",
+      "address": "https://api.pccs-prod.origin.polestar.cn",
+      "evidence": "observed"
+    }
+  ]
+}

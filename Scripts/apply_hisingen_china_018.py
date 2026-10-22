@@ -247,7 +247,13 @@ replace_once(
         setFleet([], activeVIN: nil)
         switchActiveBrand(to: .polestar, force: true)
         if ChinaPolestarRuntime.currentRegion == .mainlandChina {
+            // switchActiveBrand reloads the shared Polestar cache. The China provider
+            // cannot display Global VIN/SOC during the interim between region choice
+            // and the first verified China bridge state.
             sessionValid = false
+            latest = nil
+            lastError = nil
+            setFleet([], activeVIN: nil)
         }
         context?.sessionStateDidChange()
         resumeStoredSession()

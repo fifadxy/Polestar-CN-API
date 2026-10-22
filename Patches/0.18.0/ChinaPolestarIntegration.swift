@@ -39,25 +39,27 @@ extension Notification.Name {
         Notification.Name("io.kheirallah.hisingen.cnpreview.region-did-change")
 }
 
-@MainActor
 enum ChinaPolestarRuntime {
-    static let patchVersion = "0.18.0"
-    static let regionKey = "hisingen.polestar.signInRegion"
-    static let chooserVersionKey = "hisingen.polestar.regionChooserVersion"
-    static let chooserVersion = 1
-    static let bridgeURL = URL(string: "http://127.0.0.1:28765")!
+    nonisolated static let patchVersion = "0.18.0"
+    nonisolated static let regionKey = "hisingen.polestar.signInRegion"
+    nonisolated static let chooserVersionKey = "hisingen.polestar.regionChooserVersion"
+    nonisolated static let chooserVersion = 1
+    nonisolated static let bridgeURL = URL(string: "http://127.0.0.1:28765")!
 
+    @MainActor
     static var currentRegion: ChinaPolestarRegion {
         let raw = UserDefaults.standard.string(forKey: regionKey)
         return raw == ChinaPolestarRegion.mainlandChina.rawValue ? .mainlandChina : .global
     }
 
+    @MainActor
     static func install() {
         // 0.17.0 wrote a default Global region automatically. Do not treat that write as
         // explicit consent: chooserVersion is new in 0.18.0 so upgrading users still see
         // the requested first-launch region choice exactly once.
     }
 
+    @MainActor
     static func ensureInitialRegionSelection() {
         if ProcessInfo.processInfo.environment["HISINGEN_CI_SMOKE"] == "1" {
             if UserDefaults.standard.object(forKey: regionKey) == nil {
@@ -82,6 +84,7 @@ enum ChinaPolestarRuntime {
         UserDefaults.standard.set(chooserVersion, forKey: chooserVersionKey)
     }
 
+    @MainActor
     static func setRegion(_ region: ChinaPolestarRegion, notify: Bool = true) {
         guard currentRegion != region || UserDefaults.standard.object(forKey: regionKey) == nil else {
             return
@@ -92,15 +95,18 @@ enum ChinaPolestarRuntime {
         }
     }
 
+    @MainActor
     static func enforcePreviewUpdatePolicy(_ preferences: PreferencesStore) {
         preferences.automaticallyChecksForUpdates = false
         preferences.automaticallyDownloadsUpdates = false
     }
 
+    @MainActor
     static func openChinaWebSignIn() {
         ChinaPolestarWebSignInWindow.shared.open()
     }
 
+    @MainActor
     static func presentUpdatePolicyNotice() {
         let alert = NSAlert()
         alert.messageText = "Updates are disabled in Hisingen China Preview"
@@ -415,7 +421,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         }
     }
 
-    private func makeVehicleState(
+    nonisolated private func makeVehicleState(
         _ envelope: ChinaBridgeEnvelope,
         vehicle: ChinaBridgeEnvelope.Vehicle
     ) -> VehicleState {
@@ -497,7 +503,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         )
     }
 
-    private func makeBatteryExtras(_ battery: ChinaBridgeEnvelope.Battery) -> GrpcBatteryExtras {
+    nonisolated private func makeBatteryExtras(_ battery: ChinaBridgeEnvelope.Battery) -> GrpcBatteryExtras {
         let date = battery.reportedAtMs.map { Date(timeIntervalSince1970: Double($0) / 1000.0) }
         return GrpcBatteryExtras(
             reportedAt: date,
@@ -523,7 +529,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         )
     }
 
-    private func makeExterior(_ exterior: ChinaBridgeEnvelope.Exterior) -> ExteriorSnapshot {
+    nonisolated private func makeExterior(_ exterior: ChinaBridgeEnvelope.Exterior) -> ExteriorSnapshot {
         let openings = (exterior.openings ?? [:]).compactMap { key, value -> OpeningReading? in
             guard let opening = mapOpening(key) else { return nil }
             return OpeningReading(opening: opening, state: mapOpeningState(value))
@@ -538,7 +544,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         )
     }
 
-    private func mapChargingState(_ raw: String?) -> ChargingState {
+    nonisolated private func mapChargingState(_ raw: String?) -> ChargingState {
         let value = (raw ?? "").uppercased()
         if value.contains("UNPLUGGED") || value.contains("NOPOWER") || value.contains("NO_POWER") {
             return .idle
@@ -551,7 +557,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         return ChargingState(apiValue: raw)
     }
 
-    private func mapConnection(_ raw: String?) -> ChargerConnection {
+    nonisolated private func mapConnection(_ raw: String?) -> ChargerConnection {
         let value = (raw ?? "").uppercased()
         if value.contains("UNPLUGGED") || value.contains("DISCONNECT") { return .disconnected }
         if value.contains("FAULT") || value.contains("ERROR") { return .fault }
@@ -559,7 +565,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         return .unknown
     }
 
-    private func mapChargingType(_ raw: String?) -> ChargingType {
+    nonisolated private func mapChargingType(_ raw: String?) -> ChargingType {
         let value = (raw ?? "").uppercased()
         if value.contains("DC") { return .dc }
         if value.contains("AC") { return .ac }
@@ -568,7 +574,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         return .unknown
     }
 
-    private func mapPowerState(_ raw: String?) -> ChargerPowerState {
+    nonisolated private func mapPowerState(_ raw: String?) -> ChargerPowerState {
         let value = (raw ?? "").uppercased()
         if value.contains("NOPOWER") || value.contains("NO_POWER") { return .noPower }
         if value.contains("PROVID") { return .providingPower }
@@ -578,7 +584,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         return .unknown
     }
 
-    private func mapOpening(_ raw: String) -> VehicleOpening? {
+    nonisolated private func mapOpening(_ raw: String) -> VehicleOpening? {
         switch raw.lowercased() {
         case "frontleftdoor": return .frontLeftDoor
         case "frontrightdoor": return .frontRightDoor
@@ -596,7 +602,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         }
     }
 
-    private func mapOpeningState(_ raw: String) -> OpeningState {
+    nonisolated private func mapOpeningState(_ raw: String) -> OpeningState {
         switch raw.lowercased() {
         case "closed": return .closed
         case "open": return .open

@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 import WebKit
 
-// Hisingen China Preview 0.18.0
+// Hisingen China Preview 0.18.1
 //
 // Region and provider rules:
 // - Global uses the original Hisingen Polestar provider without modification.
@@ -40,7 +40,7 @@ extension Notification.Name {
 }
 
 enum ChinaPolestarRuntime {
-    nonisolated static let patchVersion = "0.18.0"
+    nonisolated static let patchVersion = "0.18.1"
     nonisolated static let regionKey = "hisingen.polestar.signInRegion"
     nonisolated static let chooserVersionKey = "hisingen.polestar.regionChooserVersion"
     nonisolated static let chooserVersion = 1
@@ -54,7 +54,7 @@ enum ChinaPolestarRuntime {
     @MainActor
     static func install() {
         // 0.17.0 wrote a default Global region automatically. Do not treat that write as
-        // explicit consent: chooserVersion is new in 0.18.0 so upgrading users still see
+        // explicit consent: chooserVersion is new in 0.18.1 so upgrading users still see
         // the requested first-launch region choice exactly once.
     }
 
@@ -839,7 +839,7 @@ struct ChinaPreviewUpdatesCard: View {
                     Label("Update channel", systemImage: "shippingbox.fill")
                         .hisType(.body, weight: .medium)
                     Spacer()
-                    Text("Polestar-CN-API · Preview 0.18.0")
+                    Text("Polestar-CN-API · Preview 0.18.1")
                         .hisType(.caption, weight: .semibold)
                         .foregroundStyle(HisingenTheme.accent)
                 }

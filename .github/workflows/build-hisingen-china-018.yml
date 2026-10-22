@@ -93,6 +93,15 @@ jobs:
           print("China bridge mock contract passed.")
           PY
 
+      - name: Validate China API knowledge and bridge safety invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Tools/china_bridge/test_contract.py
+          grep -F "Global C3 discovery" knowledge/china/FEATURE_MATRIX.md
+          grep -F "Global PCCS/Chronos" knowledge/china/FEATURE_MATRIX.md
+          grep -F "command-client" knowledge/china/ARCHITECTURE_AUTH.md
+
       - name: Build release app
         working-directory: ${{ runner.temp }}/Hisingen
         shell: bash
@@ -161,6 +170,8 @@ jobs:
           grep -F 'let parent = NSMenuItem(title: "Polestar Region"' "$PATCH"
           grep -F 'ChinaPolestarRuntime.setRegion(.mainlandChina)' "$PATCH"
           grep -F 'ChinaPolestarRuntime.setRegion(.global)' "$PATCH"
+          grep -F 'Switch Polestar Region: China / Global' Sources/Hisingen/UI/Shell/HisingenContentView.swift
+          grep -F 'selectedPolestarRegion == "mainlandChina" ? "App Poll"' Sources/Hisingen/UI/Shell/HisingenContentView.swift
 
           echo "== Global + China coexistence =="
           strings "$BIN" | grep -F "https://polestarid.eu.polestar.com"
@@ -171,6 +182,8 @@ jobs:
           echo "== China provider gates =="
           grep -F 'actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming' "$PATCH"
           grep -F 'throw ChinaPolestarProviderError.readOnlyPreview' "$PATCH"
+          grep -F 'availability: .unknown' "$PATCH"
+          grep -F 'envelope.source != .androidAppLive || !isFresh' "$PATCH"
           grep -F 'if ChinaPolestarRuntime.currentRegion == .mainlandChina'             Sources/Hisingen/Services/Coordination/ProviderCommandCatalog.swift
 
           echo "== Privacy boundary =="

@@ -98,6 +98,64 @@ replace_once(
     "Account form live region updates"
 )
 
+# 3b) The app is a menu-bar utility. The native application menu may not be visible
+# while LSUIElement is active; put an ALWAYS accessible region switch in the popover
+# footer too (including when the user already has an active Global session).
+popover = ROOT / "Sources/Hisingen/UI/Shell/HisingenContentView.swift"
+replace_once(
+    popover,
+    """    @AppStorage("his_appearanceMode") private var storedAppearanceMode: String = AppearanceMode.system.rawValue""",
+    """    @AppStorage("his_appearanceMode") private var storedAppearanceMode: String = AppearanceMode.system.rawValue
+    @AppStorage("hisingen.polestar.signInRegion") private var selectedPolestarRegion: String = "global" """.rstrip(),
+    "Popover active region display"
+)
+replace_once(
+    popover,
+    """    private var footerBar: some View {
+        HStack(spacing: 8) {
+            if garageStates.count > 1 || cars.count > 1 || otherBrandResumable {""",
+    """    private var footerBar: some View {
+        HStack(spacing: 8) {
+            if preferences.activeBrand == .polestar {
+                Menu {
+                    Button {
+                        ChinaPolestarRuntime.setRegion(.mainlandChina)
+                    } label: {
+                        Label("China", systemImage: selectedPolestarRegion == "mainlandChina" ? "checkmark.circle.fill" : "globe.asia.australia")
+                    }
+                    Button {
+                        ChinaPolestarRuntime.setRegion(.global)
+                    } label: {
+                        Label("Global", systemImage: selectedPolestarRegion == "global" ? "checkmark.circle.fill" : "globe")
+                    }
+                } label: {
+                    Label(selectedPolestarRegion == "mainlandChina" ? "China" : "Global",
+                          systemImage: "globe.asia.australia.fill")
+                        .hisType(.micro, weight: .semibold)
+                }
+                .menuStyle(.borderlessButton)
+                .help("Switch Polestar Region: China / Global")
+            }
+            if garageStates.count > 1 || cars.count > 1 || otherBrandResumable {""",
+    "Popover footer region switch"
+)
+replace_once(
+    popover,
+    """                    Text(L10n.text("Live"))
+                }
+                .hisType(.micro, weight: .semibold)
+                .foregroundStyle(HisingenTheme.semanticGood)
+                .help(L10n.text("Connected to the Polestar server stream. Battery and exterior changes are applied as the provider sends them; scheduled polling remains as a reliability fallback."))""",
+    """                    Text(selectedPolestarRegion == "mainlandChina" ? "App Poll" : L10n.text("Live"))
+                }
+                .hisType(.micro, weight: .semibold)
+                .foregroundStyle(HisingenTheme.semanticGood)
+                .help(selectedPolestarRegion == "mainlandChina"
+                      ? "Reading the local official Android app snapshot; this is not a direct China C3 server stream."
+                      : L10n.text("Connected to the Polestar server stream. Battery and exterior changes are applied as the provider sends them; scheduled polling remains as a reliability fallback."))""",
+    "Accurate local-bridge stream label"
+)
+
 # 4) Provider registry: region-aware China provider.
 registry = ROOT / "Sources/Hisingen/Services/Refresh/ProviderRegistry.swift"
 replace_once(

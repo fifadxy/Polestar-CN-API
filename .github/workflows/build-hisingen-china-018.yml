@@ -54,6 +54,24 @@ jobs:
           grep -F 'ChinaPolestarAccountView' "$SRC/Sources/Hisingen/UI/Settings/AccountCredentialsForm.swift"
           grep -F 'actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming' "$SRC/Sources/Hisingen/App/ChinaPolestarIntegration.swift"
 
+      - name: Preserve original Global Polestar API implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/Hisingen"
+          # China integration is allowed to route providers, not modify original
+          # Global authentication/telemetry/command implementation files.
+          git diff --exit-code HEAD -- \
+            Sources/Hisingen/Services/API/PolestarAPI.swift \
+            Sources/Hisingen/Services/API/PolestarAPI+Authentication.swift \
+            Sources/Hisingen/Services/API/PolestarAPI+Telemetry.swift \
+            Sources/Hisingen/Services/API/PolestarAPI+Commands.swift \
+            Sources/Hisingen/Services/API/PolestarGRPC.swift \
+            Sources/Hisingen/Services/API/PolestarGRPCRemote.swift \
+            Sources/Hisingen/Services/API/PolestarDataPortalAPI.swift
+          grep -F 'case .dataPortal:' Sources/Hisingen/Services/Refresh/ProviderRegistry.swift
+          grep -F 'case .augmented:' Sources/Hisingen/Services/Refresh/ProviderRegistry.swift
+
       - name: Validate read-only Android bridge fixture
         shell: bash
         run: |
@@ -230,12 +248,14 @@ jobs:
 
           cp Tools/china_bridge/polestar_china_bridge.py "$DIST/"
           cp Tools/china_bridge/start_china_bridge.command "$DIST/"
-          chmod +x "$DIST/start_china_bridge.command"
+          cp Scripts/install_hisingen_china_018.command "$DIST/"
+          chmod +x "$DIST/start_china_bridge.command" "$DIST/install_hisingen_china_018.command"
 
           cd "$DIST"
           shasum -a 256 Hisingen-China-0.18.0.app.zip > SHA256SUMS.txt
           shasum -a 256 polestar_china_bridge.py >> SHA256SUMS.txt
           shasum -a 256 start_china_bridge.command >> SHA256SUMS.txt
+          shasum -a 256 install_hisingen_china_018.command >> SHA256SUMS.txt
 
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
@@ -245,6 +265,7 @@ jobs:
             ${{ runner.temp }}/dist/Hisingen-China-0.18.0.app.zip
             ${{ runner.temp }}/dist/polestar_china_bridge.py
             ${{ runner.temp }}/dist/start_china_bridge.command
+            ${{ runner.temp }}/dist/install_hisingen_china_018.command
             ${{ runner.temp }}/dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14

@@ -46,8 +46,7 @@ enum ChinaPolestarRuntime {
     nonisolated static let chooserVersion = 1
     nonisolated static let bridgeURL = URL(string: "http://127.0.0.1:28765")!
 
-    @MainActor
-    static var currentRegion: ChinaPolestarRegion {
+    nonisolated static var currentRegion: ChinaPolestarRegion {
         let raw = UserDefaults.standard.string(forKey: regionKey)
         return raw == ChinaPolestarRegion.mainlandChina.rawValue ? .mainlandChina : .global
     }

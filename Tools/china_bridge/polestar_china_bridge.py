@@ -40,6 +40,21 @@ _state = {
 FRIDA_JS = r"""
 'use strict';
 
+function getField(o, name) {
+    if (!o) return null;
+    var c = o.getClass();
+    while (c) {
+        try {
+            var f = c.getDeclaredField(name);
+            f.setAccessible(true);
+            return f.get(o);
+        } catch (_) {
+            try { c = c.getSuperclass(); } catch (_) { c = null; }
+        }
+    }
+    return null;
+}
+
 function boxedNumber(v) {
     if (v === null || v === undefined) return null;
     try { return Number(v.toString()); } catch (_) { return null; }
@@ -60,16 +75,16 @@ rpc.exports = {
                         onMatch: function (instance) {
                             if (found !== null) return;
                             try {
-                                var model = instance.clicase.value;
+                                var model = getField(instance, 'clicase');
                                 if (!model) return;
                                 var text = model.toString();
                                 found = {
-                                    reportedAtMs: boxedNumber(model.clido.value),
-                                    percentage: boxedNumber(model.cliif.value),
-                                    rangeKm: boxedNumber(model.clicatch.value),
-                                    rangeMi: boxedNumber(model.cliclass.value),
-                                    estimatedChargingTimeMinutes: boxedNumber(model.clifor.value),
-                                    averageConsumption: boxedNumber(model.cliint.value),
+                                    reportedAtMs: boxedNumber(getField(model, 'clido')),
+                                    percentage: boxedNumber(getField(model, 'cliif')),
+                                    rangeKm: boxedNumber(getField(model, 'clicatch')),
+                                    rangeMi: boxedNumber(getField(model, 'cliclass')),
+                                    estimatedChargingTimeMinutes: boxedNumber(getField(model, 'clifor')),
+                                    averageConsumption: boxedNumber(getField(model, 'cliint')),
                                     chargingState: parseToken(text, 'batteryChargingState'),
                                     chargingPowerWatts: null,
                                     chargingCurrentAmps: null,
@@ -111,10 +126,18 @@ def _frida_worker():
         try:
             device = frida.get_usb_device(timeout=5)
             pid = None
-            for proc in device.enumerate_processes():
-                if proc.name == PACKAGE:
-                    pid = proc.pid
-                    break
+            try:
+                for app in device.enumerate_applications():
+                    if getattr(app, "identifier", None) == PACKAGE and getattr(app, "pid", 0):
+                        pid = app.pid
+                        break
+            except Exception:
+                pass
+            if pid is None:
+                for proc in device.enumerate_processes():
+                    if proc.name == PACKAGE:
+                        pid = proc.pid
+                        break
             if pid is None:
                 print("[bridge] official Polestar China app is not running; retrying...")
                 _update_battery(None)

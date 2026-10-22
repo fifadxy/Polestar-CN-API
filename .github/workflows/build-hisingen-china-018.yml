@@ -1,0 +1,297 @@
+name: Build Hisingen China 0.18.0
+
+on:
+  push:
+    branches:
+      - "chatgpt/hisingen-china-build-0.18.0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hisingen-china-018-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + primary smoke test
+    runs-on: xcode-27
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Xcode 27 toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+          xcrun --sdk macosx --show-sdk-path
+
+      - name: Clone upstream Hisingen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.0.10 \
+            https://github.com/NicolasKheirallah/Hisingen.git \
+            "$RUNNER_TEMP/Hisingen"
+
+      - name: Apply China 0.18.0 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          HISINGEN_SRC="$RUNNER_TEMP/Hisingen" \
+            python3 Scripts/apply_hisingen_china_018.py
+
+          SRC="$RUNNER_TEMP/Hisingen"
+          grep -F 'Select Polestar Region' "$SRC/Sources/Hisingen/App/ChinaPolestarIntegration.swift"
+          grep -F 'ChinaPolestarRegionMenuController.shared.install()' "$SRC/Sources/Hisingen/App/AppDelegate.swift"
+          grep -F 'polestarRegionDidChange()' "$SRC/Sources/Hisingen/Services/Refresh/VehicleSessionController.swift"
+          grep -F 'ChinaPolestarAccountView' "$SRC/Sources/Hisingen/UI/Settings/AccountCredentialsForm.swift"
+          grep -F 'actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming' "$SRC/Sources/Hisingen/App/ChinaPolestarIntegration.swift"
+
+      - name: Validate read-only Android bridge fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Tools/china_bridge/polestar_china_bridge.py --mock >"$RUNNER_TEMP/china-bridge.log" 2>&1 &
+          bridge_pid=$!
+          trap 'kill "$bridge_pid" 2>/dev/null || true' EXIT
+          sleep 2
+
+          curl -fsS http://127.0.0.1:28765/v1/status | tee "$RUNNER_TEMP/bridge-status.json"
+          curl -fsS http://127.0.0.1:28765/v1/state | tee "$RUNNER_TEMP/bridge-state.json"
+
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"])
+          status = json.loads((root / "bridge-status.json").read_text())
+          state = json.loads((root / "bridge-state.json").read_text())
+
+          assert status["ready"] is True
+          assert status["batteryAvailable"] is True
+          assert state["version"] == 1
+          assert state["session"]["ready"] is True
+          assert state["battery"]["percentage"] == 72.0
+          assert state["battery"]["rangeKm"] == 300
+          assert state["source"] == "Android App Live"
+
+          serialized = json.dumps(state).lower()
+          forbidden = [
+              "access_token", "refresh_token", "authorization",
+              "cookie", "phone", "sms", "digital_key", "latitude", "longitude"
+          ]
+          for key in forbidden:
+              assert key not in serialized, key
+
+          print("China bridge mock contract passed.")
+          PY
+
+      - name: Build release app
+        working-directory: ${{ runner.temp }}/Hisingen
+        shell: bash
+        env:
+          NOTARIZE: never
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("Sources/Hisingen/UI/Controls/AccessControlsCard.swift")
+          s = p.read_text(encoding="utf-8")
+          old = '''        switch state.exteriorStatus?.isLocked {
+          case true: return "lock.open.fill"
+          case false: return "lock.fill"
+          case nil: return "questionmark.circle"
+          }'''
+          new = '''        switch state.exteriorStatus?.isLocked {
+          case .some(true): return "lock.open.fill"
+          case .some(false): return "lock.fill"
+          case .none: return "questionmark.circle"
+          }'''
+          if old in s:
+              p.write_text(s.replace(old, new, 1), encoding="utf-8")
+              print("Patched Optional Bool switch")
+          else:
+              print("Optional Bool switch already compatible")
+          PY
+
+          rm -rf .build
+          swift package resolve
+          NOTARIZE=never make app IDENTITY=-
+          test -d releases/Hisingen.app
+
+      - name: Primary macOS smoke test
+        working-directory: ${{ runner.temp }}/Hisingen
+        shell: bash
+        env:
+          HISINGEN_CI_SMOKE: "1"
+        run: |
+          set -euo pipefail
+          APP="releases/Hisingen.app"
+          BIN="$APP/Contents/MacOS/Hisingen"
+          PLIST="$APP/Contents/Info.plist"
+          PATCH="Sources/Hisingen/App/ChinaPolestarIntegration.swift"
+
+          echo "== Bundle metadata =="
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")" = "io.kheirallah.hisingen"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST")" = "Hisingen China"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$PLIST")" = "0.18.0"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PLIST")" = "15.0"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :SUEnableAutomaticChecks' "$PLIST")" = "false"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :SUAutomaticallyUpdate' "$PLIST")" = "false"
+
+          echo "== Architecture / frameworks / signature =="
+          file "$BIN"
+          lipo -info "$BIN"
+          test -d "$APP/Contents/Frameworks/Sparkle.framework"
+          otool -L "$BIN" | grep -F "Sparkle.framework"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          echo "== Region UX and runtime switching =="
+          grep -F 'alert.messageText = "Select Polestar Region"' "$PATCH"
+          grep -F 'alert.addButton(withTitle: "China")' "$PATCH"
+          grep -F 'alert.addButton(withTitle: "Global")' "$PATCH"
+          grep -F 'let parent = NSMenuItem(title: "Polestar Region"' "$PATCH"
+          grep -F 'ChinaPolestarRuntime.setRegion(.mainlandChina)' "$PATCH"
+          grep -F 'ChinaPolestarRuntime.setRegion(.global)' "$PATCH"
+
+          echo "== Global + China coexistence =="
+          strings "$BIN" | grep -F "https://polestarid.eu.polestar.com"
+          strings "$BIN" | grep -F "https://www.polestar.cn/zh-cn/auth/login/"
+          grep -F 'ChinaPolestarAccountView' "$PATCH"
+          grep -F 'Android App Live' "$PATCH"
+
+          echo "== China provider gates =="
+          grep -F 'actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming' "$PATCH"
+          grep -F 'throw ChinaPolestarProviderError.readOnlyPreview' "$PATCH"
+          grep -F 'if ChinaPolestarRuntime.currentRegion == .mainlandChina'             Sources/Hisingen/Services/Coordination/ProviderCommandCatalog.swift
+
+          echo "== Privacy boundary =="
+          ! grep -Eq 'evaluateJavaScript|httpCookieStore|document\.cookie|WKScriptMessageHandler' "$PATCH"
+          ! grep -Eq 'globle_access_token|globle_refresh_token|key_token|key_refresh_token' "$PATCH"
+
+          echo "== Official China login reachability =="
+          status="$(curl -L -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 25 'https://www.polestar.cn/zh-cn/auth/login/' || true)"
+          echo "China login HTTP status: $status"
+          case "$status" in
+            2*|3*|4*) ;;
+            *) echo "China login endpoint did not return HTTP" >&2; exit 1 ;;
+          esac
+
+          echo "== Process launch =="
+          "$BIN" >"$RUNNER_TEMP/hisingen-018.log" 2>&1 &
+          pid=$!
+          sleep 12
+          if ! kill -0 "$pid" 2>/dev/null; then
+            echo "App exited during smoke test" >&2
+            cat "$RUNNER_TEMP/hisingen-018.log" >&2 || true
+            exit 1
+          fi
+          echo "App remained alive for 12 seconds."
+          kill -TERM "$pid" 2>/dev/null || true
+          sleep 2
+          kill -KILL "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true
+          tail -n 80 "$RUNNER_TEMP/hisingen-018.log" || true
+
+      - name: Package preview artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIST="$RUNNER_TEMP/dist"
+          mkdir -p "$DIST"
+          cp -R "$RUNNER_TEMP/Hisingen/releases/Hisingen.app" "$DIST/Hisingen China.app"
+
+          /usr/bin/codesign --force --deep --sign - "$DIST/Hisingen China.app"
+          codesign --verify --deep --strict --verbose=2 "$DIST/Hisingen China.app"
+
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
+            "$DIST/Hisingen China.app" "$DIST/Hisingen-China-0.18.0.app.zip"
+
+          cp Tools/china_bridge/polestar_china_bridge.py "$DIST/"
+          cp Tools/china_bridge/start_china_bridge.command "$DIST/"
+          chmod +x "$DIST/start_china_bridge.command"
+
+          cd "$DIST"
+          shasum -a 256 Hisingen-China-0.18.0.app.zip > SHA256SUMS.txt
+          shasum -a 256 polestar_china_bridge.py >> SHA256SUMS.txt
+          shasum -a 256 start_china_bridge.command >> SHA256SUMS.txt
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hisingen-China-0.18.0-macOS
+          path: |
+            ${{ runner.temp }}/dist/Hisingen-China-0.18.0.app.zip
+            ${{ runner.temp }}/dist/polestar_china_bridge.py
+            ${{ runner.temp }}/dist/start_china_bridge.command
+            ${{ runner.temp }}/dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  compatibility:
+    name: Compatibility smoke · ${{ matrix.os }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-15
+          - macos-26
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Hisingen-China-0.18.0-macOS
+          path: ${{ runner.temp }}/artifact
+
+      - name: Verify and launch packaged app
+        shell: bash
+        env:
+          HISINGEN_CI_SMOKE: "1"
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -m
+
+          mkdir -p "$RUNNER_TEMP/app"
+          /usr/bin/ditto -x -k \
+            "$RUNNER_TEMP/artifact/Hisingen-China-0.18.0.app.zip" \
+            "$RUNNER_TEMP/app"
+
+          APP="$RUNNER_TEMP/app/Hisingen China.app"
+          BIN="$APP/Contents/MacOS/Hisingen"
+          PLIST="$APP/Contents/Info.plist"
+
+          test -d "$APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$PLIST")" = "0.18.0"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          arch="$(uname -m)"
+          if [ "$arch" != "arm64" ]; then
+            echo "Runner is $arch; signature validation passed but ARM64 launch is skipped."
+            exit 0
+          fi
+
+          "$BIN" >"$RUNNER_TEMP/compat.log" 2>&1 &
+          pid=$!
+          sleep 10
+          if ! kill -0 "$pid" 2>/dev/null; then
+            echo "App exited on ${{ matrix.os }}" >&2
+            cat "$RUNNER_TEMP/compat.log" >&2 || true
+            exit 1
+          fi
+          echo "Runtime launch passed on ${{ matrix.os }}."
+          kill -TERM "$pid" 2>/dev/null || true
+          sleep 1
+          kill -KILL "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true

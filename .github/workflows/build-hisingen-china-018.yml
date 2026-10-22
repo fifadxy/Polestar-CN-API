@@ -1,16 +1,16 @@
-name: Build Hisingen China 0.18.0
+name: Build Hisingen China 0.18.1
 
 on:
   push:
     branches:
-      - "chatgpt/hisingen-china-build-0.18.0"
+      - "chatgpt/hisingen-china-build-0.18.1"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: hisingen-china-018-${{ github.ref }}
+  group: hisingen-china-0181-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,7 +40,7 @@ jobs:
             https://github.com/NicolasKheirallah/Hisingen.git \
             "$RUNNER_TEMP/Hisingen"
 
-      - name: Apply China 0.18.0 patch
+      - name: Apply China 0.18.1 patch
         shell: bash
         run: |
           set -euo pipefail
@@ -142,7 +142,7 @@ jobs:
           echo "== Bundle metadata =="
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")" = "io.kheirallah.hisingen"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST")" = "Hisingen China"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$PLIST")" = "0.18.0"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$PLIST")" = "0.18.1"
           test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PLIST")" = "15.0"
           test "$(/usr/libexec/PlistBuddy -c 'Print :SUEnableAutomaticChecks' "$PLIST")" = "false"
           test "$(/usr/libexec/PlistBuddy -c 'Print :SUAutomaticallyUpdate' "$PLIST")" = "false"
@@ -213,25 +213,31 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$DIST/Hisingen China.app"
 
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
-            "$DIST/Hisingen China.app" "$DIST/Hisingen-China-0.18.0.app.zip"
+            "$DIST/Hisingen China.app" "$DIST/Hisingen-China-0.18.1.app.zip"
 
           cp Tools/china_bridge/polestar_china_bridge.py "$DIST/"
           cp Tools/china_bridge/start_china_bridge.command "$DIST/"
-          chmod +x "$DIST/start_china_bridge.command"
+          cp Tools/china_bridge/china_bridge_doctor.command "$DIST/"
+          cp Tools/china_bridge/README.md "$DIST/README-China-Bridge.md"
+          chmod +x "$DIST/start_china_bridge.command" "$DIST/china_bridge_doctor.command"
 
           cd "$DIST"
-          shasum -a 256 Hisingen-China-0.18.0.app.zip > SHA256SUMS.txt
+          shasum -a 256 Hisingen-China-0.18.1.app.zip > SHA256SUMS.txt
           shasum -a 256 polestar_china_bridge.py >> SHA256SUMS.txt
           shasum -a 256 start_china_bridge.command >> SHA256SUMS.txt
+          shasum -a 256 china_bridge_doctor.command >> SHA256SUMS.txt
+          shasum -a 256 README-China-Bridge.md >> SHA256SUMS.txt
 
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Hisingen-China-0.18.0-macOS
+          name: Hisingen-China-0.18.1-macOS
           path: |
-            ${{ runner.temp }}/dist/Hisingen-China-0.18.0.app.zip
+            ${{ runner.temp }}/dist/Hisingen-China-0.18.1.app.zip
             ${{ runner.temp }}/dist/polestar_china_bridge.py
             ${{ runner.temp }}/dist/start_china_bridge.command
+            ${{ runner.temp }}/dist/china_bridge_doctor.command
+            ${{ runner.temp }}/dist/README-China-Bridge.md
             ${{ runner.temp }}/dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 14
@@ -251,7 +257,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Hisingen-China-0.18.0-macOS
+          name: Hisingen-China-0.18.1-macOS
           path: ${{ runner.temp }}/artifact
 
       - name: Verify and launch packaged app
@@ -265,7 +271,7 @@ jobs:
 
           mkdir -p "$RUNNER_TEMP/app"
           /usr/bin/ditto -x -k \
-            "$RUNNER_TEMP/artifact/Hisingen-China-0.18.0.app.zip" \
+            "$RUNNER_TEMP/artifact/Hisingen-China-0.18.1.app.zip" \
             "$RUNNER_TEMP/app"
 
           APP="$RUNNER_TEMP/app/Hisingen China.app"
@@ -273,7 +279,7 @@ jobs:
           PLIST="$APP/Contents/Info.plist"
 
           test -d "$APP"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$PLIST")" = "0.18.0"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$PLIST")" = "0.18.1"
           codesign --verify --deep --strict --verbose=2 "$APP"
 
           arch="$(uname -m)"

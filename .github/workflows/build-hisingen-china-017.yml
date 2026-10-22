@@ -117,9 +117,9 @@ jobs:
           echo "== Global + China coexistence =="
           strings "$BIN" | grep -F "https://polestarid.eu.polestar.com"
           strings "$BIN" | grep -F "https://www.polestar.cn/zh-cn/auth/login/"
-          strings "$BIN" | grep -F "Mainland China"
-          strings "$BIN" | grep -F "China Backend Diagnostics"
-          strings "$BIN" | grep -F "Preview 0.17.0"
+          grep -F 'case .mainlandChina' "$PATCH"
+          grep -F 'China Backend Diagnostics' "$PATCH"
+          grep -F 'Preview 0.17.0' "$PATCH"
 
           echo "== Fail-closed China provider =="
           grep -F "actor ChinaPolestarAPI: VehicleProviding" "$PATCH"

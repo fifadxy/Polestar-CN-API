@@ -116,11 +116,18 @@ enum ChinaPolestarRuntime {
     }
 
     static func bridgeReachable() async -> Bool {
+        struct BridgeStatus: Decodable {
+            let ready: Bool
+            let batteryAvailable: Bool
+        }
         do {
             var request = URLRequest(url: bridgeURL.appendingPathComponent("v1/status"))
             request.timeoutInterval = 2
-            let (_, response) = try await URLSession.shared.data(for: request)
-            return (response as? HTTPURLResponse).map { (200..<500).contains($0.statusCode) } ?? false
+            request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return false }
+            let status = try JSONDecoder().decode(BridgeStatus.self, from: data)
+            return status.ready && status.batteryAvailable
         } catch {
             return false
         }
@@ -348,7 +355,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
     func identitySnapshot(for vin: String, features: FeatureSelection) async -> VehicleIdentitySnapshot? {
         guard let car = knownCars.first(where: { $0.vin == vin }) else { return nil }
         return VehicleIdentitySnapshot(
-            availability: .available,
+            availability: .unknown,
             modelName: car.modelName,
             modelYear: car.modelYear,
             vin: car.vin,
@@ -378,14 +385,16 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
     ) async throws -> AsyncThrowingStream<VehicleLiveUpdate, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
-                continuation.yield(.connected(activeTransportStreams: 1))
+                // Local Android snapshot polling, not a direct China C3 gRPC stream.
+                continuation.yield(.connected(activeTransportStreams: 0))
                 do {
                     while !Task.isCancelled {
                         let envelope = try await self.fetchEnvelope()
-                        if let battery = envelope.battery {
+                        // Do not push old Android memory as if it were a fresh live frame.
+                        if envelope.source != .cache, let battery = envelope.battery {
                             continuation.yield(.battery(self.makeBatteryExtras(battery)))
                         }
-                        if let exterior = envelope.exterior {
+                        if envelope.source != .cache, let exterior = envelope.exterior {
                             let snapshot = self.makeExterior(exterior)
                             continuation.yield(.exterior(snapshot, reportedAt: snapshot.reportedAt))
                         }
@@ -442,7 +451,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
             dates[.locks] = exteriorDate
             dates[.openings] = exteriorDate
         }
-        if envelope.odometerKm != nil { dates[.odometer] = now }
+        // No verified China odometer report timestamp; never attribute it to "now".
 
         let battery = envelope.battery
         let chargingState = mapChargingState(battery?.chargingState)
@@ -472,16 +481,20 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         )
 
         let identity = VehicleIdentitySnapshot(
-            availability: .available,
-            availabilityReportedAt: batteryDate ?? now,
+            availability: .unknown,
+            availabilityReportedAt: nil,
             modelName: vehicle.modelName,
             modelYear: vehicle.modelYear,
             vin: vehicle.id,
             accountMarket: "CN"
         )
 
+        let reportedDate = batteryDate ?? exteriorDate
+        let reportedAge = reportedDate.map { now.timeIntervalSince($0) }
+        let isFresh = reportedAge.map { $0 >= -120 && $0 <= 600 } ?? false
+
         let freshness = SnapshotFreshness(
-            isCached: envelope.source == .cache,
+            isCached: envelope.source != .androidAppLive || !isFresh,
             fetchedAt: now,
             vehicleReportedAt: batteryDate ?? exteriorDate,
             readingDates: dates,

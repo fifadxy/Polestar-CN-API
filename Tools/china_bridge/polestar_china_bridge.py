@@ -34,7 +34,7 @@ _state = {
     "battery": None,
     "exterior": None,
     "odometerKm": None,
-    "source": "androidAppLive",
+    "source": "Android App Live",
 }
 
 FRIDA_JS = r"""

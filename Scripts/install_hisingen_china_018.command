@@ -2,15 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_ZIP="$SCRIPT_DIR/Hisingen-China-0.18.0.app.zip"
+APP_ZIP="$SCRIPT_DIR/Hisingen-China-0.18.1.app.zip"
 BRIDGE_PY="$SCRIPT_DIR/polestar_china_bridge.py"
-BRIDGE_START="$SCRIPT_DIR/start_china_bridge.command"
+BRIDGE_START="$SCRIPT_DIR/start_china_bridge.command"\nBRIDGE_DOCTOR="$SCRIPT_DIR/china_bridge_doctor.command"\nBRIDGE_README="$SCRIPT_DIR/README-China-Bridge.md"
 TARGET="/Applications/Hisingen China.app"
 BRIDGE_DIR="$HOME/Library/Application Support/Hisingen China/Bridge"
 WORKDIR="$(mktemp -d /tmp/hisingen-cn018.XXXXXX)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-test -f "$APP_ZIP" || { echo "ERROR: Hisingen-China-0.18.0.app.zip not found."; exit 1; }
+test -f "$APP_ZIP" || { echo "ERROR: Hisingen-China-0.18.1.app.zip not found."; exit 1; }
 
 if [ -f "$SCRIPT_DIR/SHA256SUMS.txt" ]; then
   (
@@ -25,7 +25,7 @@ test -d "$APP" || { echo "ERROR: Hisingen China.app missing."; exit 1; }
 
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
 PATCH_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :HisingenChinaPatchVersion' "$APP/Contents/Info.plist")"
-test "$PATCH_VERSION" = "0.18.0" || { echo "ERROR: unexpected China patch $PATCH_VERSION"; exit 1; }
+test "$PATCH_VERSION" = "0.18.1" || { echo "ERROR: unexpected China patch $PATCH_VERSION"; exit 1; }
 
 pkill -x Hisingen 2>/dev/null || true
 

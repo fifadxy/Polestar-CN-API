@@ -323,10 +323,10 @@ with plist_path.open("rb") as fh:
     info = plistlib.load(fh)
 info["SUEnableAutomaticChecks"] = False
 info["SUAutomaticallyUpdate"] = False
-info["HisingenChinaPatchVersion"] = "0.18.0"
+info["HisingenChinaPatchVersion"] = "0.18.1"
 info["CFBundleDisplayName"] = "Hisingen China"
 with plist_path.open("wb") as fh:
     plistlib.dump(info, fh, sort_keys=False)
 print("[ok] Info.plist China 0.18.0 metadata")
 
-print("Hisingen China Preview 0.18.0 patch applied.")
+print("Hisingen China Preview 0.18.1 patch applied.")

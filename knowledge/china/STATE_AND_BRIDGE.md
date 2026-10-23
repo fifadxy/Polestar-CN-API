@@ -1,6 +1,8 @@
-# Vehicle-state chain, fields, provenance and Android read-only bridge
+# Historical vehicle-state research and Android read-only bridge
 
-**Last updated:** 2026-10-22. Verified device: official China Android app `4.25.0-262`, installed package `com.polestar.china.android`. Frida framework version `17.24.3`.
+**Last updated:** 2026-10-23. Verified device: official China Android app `4.25.0-262`, installed package `com.polestar.china.android`. Frida framework version `17.24.3`.
+
+> This file preserves 0.18 research evidence and the retired Bridge design. Hisingen China 0.19.0 uses the independent native Mac session documented in [NATIVE_MAC_SESSION](NATIVE_MAC_SESSION.md); the Mac artifact does not package or use this bridge.
 
 ## 1. Observed battery flow on the official China App
 
@@ -62,7 +64,7 @@ Introspected `ClimatizationStartRequest` has invocation/start and some temperatu
 
 ## 5. Mac local read-only bridge architecture
 
-Current experimental read-only path:
+Historical 0.18 experimental read-only path:
 
 ```text
 Signed-in official Android app on your rooted phone

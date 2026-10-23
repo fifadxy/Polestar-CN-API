@@ -1,6 +1,6 @@
 # Network endpoints, transports and RPC inventory
 
-This file is a **reference map**, not a list of working authenticated CN endpoints. Updated 2026-10-22. Upstream Hisingen tag v2.0.10; official CN Android 4.25.0-262.
+This file is a **reference map**, not a claim of successful real-account authorization. Updated 2026-10-23. Upstream Hisingen tag v2.0.10; official CN Android 4.25.0-262; native Mac preview 0.19.0.
 
 ## A. Global endpoints verified in upstream Hisingen
 
@@ -44,49 +44,51 @@ The M2M route has `POST /token` and `GET /v1/vehicles`; read-only telemetry fami
 
 | Service | Host/address | Evidence scope | CN state |
 | --- | --- | --- | --- |
-| Official China web login | `https://www.polestar.cn/zh-cn/auth/login/` | Official website login page | VERIFIED website URL; vehicle token exchange UNKNOWN |
-| C3 static/discovery | `https://cnepmob.volvocars.com.cn` | China app C3 static path | OBSERVED / API session MAPPING_REQUIRED |
-| C3 token-related | `cepmobtoken.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY, exact RPC/credential UNKNOWN |
+| Account gateway | `https://gw.app.polestar-auto.com` | Official app phone/SMS, login and global-refresh routes | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
+| User center | `https://uc.app.polestar-auto.com/oauth/token` | Official app local refresh route | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
+| Official China web login | `https://www.polestar.cn/zh-cn/auth/login/` | Official website login page | VERIFIED website URL; not used by native 0.19 |
+| C3 static/discovery | `https://cnepmob.volvocars.com.cn` | China app C3 static path | Mac IMPLEMENTED_UNVERIFIED |
+| Vehicle discovery REST | `https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car` | Official app linked-car service and fields | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | C3 LBS-related | `cepmob.lbs.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY |
 | C3 signature-related | `cepmobsig.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY |
-| PCCS China | `https://api.pccs-prod.origin.polestar.cn` | China app/backend configuration | OBSERVED, method-level auth MAPPING_REQUIRED |
+| PCCS China | `https://api.pccs-prod.origin.polestar.cn` | China app/backend configuration | Mac read paths IMPLEMENTED_UNVERIFIED |
 | App package | `com.polestar.china.android` | Version 4.25.0-262 | VERIFIED application identifier |
 
 **Do not** substitute `.cn` for `.com` automatically. Global and China may use different issuer, audience, discovery, certificate and service capability requirements.
 
 ## C. Global C3 read RPC → China mapping
 
-Paths below are source-backed Hisingen Global service paths. China columns mean mapping **not yet verified** unless otherwise stated.
+Paths below are source-backed Hisingen service paths. In 0.19 they are wired to the China roots but remain **IMPLEMENTED_UNVERIFIED** until a real account and vehicle confirm each response.
 
 | Global gRPC method | Data domain | China evidence | Status for direct China Mac API |
 | --- | --- | --- | --- |
-| `/services.vehiclestates.battery.BatteryService/GetLatestBattery` | Battery latest | C3BatteryController call chain observed | MAPPING_REQUIRED |
-| `/services.vehiclestates.battery.BatteryService/GetBattery` | Battery current/live | China Android C3 live model observed | MAPPING_REQUIRED |
-| `/services.vehiclestates.exterior.ExteriorService/GetLatestExterior` | Locks/doors/windows | C3ExteriorController observed | MAPPING_REQUIRED |
-| `/services.vehiclestates.exterior.ExteriorService/GetExterior` | Exterior stream | China Stage12 C3 live observer >0 | MAPPING_REQUIRED |
-| `/services.vehiclestates.availability.AvailabilityService/GetLatestAvailability` | Vehicle availability | Limited app capability evidence | MAPPING_REQUIRED |
-| `/services.vehiclestates.health.HealthService/GetHealth` | Health | No end-to-end CN semantic mapping | MAPPING_REQUIRED |
-| `/services.vehiclestates.odometer.OdometerService/GetOdometer` | Odometer | No end-to-end CN field mapping | MAPPING_REQUIRED |
+| `/services.vehiclestates.battery.BatteryService/GetLatestBattery` | Battery latest | C3BatteryController call chain observed | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.battery.BatteryService/GetBattery` | Battery current/live | China Android C3 live model observed | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.exterior.ExteriorService/GetLatestExterior` | Locks/doors/windows | C3ExteriorController observed | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.exterior.ExteriorService/GetExterior` | Exterior stream | China Stage12 C3 live observer >0 | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.availability.AvailabilityService/GetLatestAvailability` | Vehicle availability | Limited app capability evidence | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.health.HealthService/GetHealth` | Health | No end-to-end CN semantic mapping | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.odometer.OdometerService/GetOdometer` | Odometer | No end-to-end CN field mapping | IMPLEMENTED_UNVERIFIED |
 | `/services.vehiclestates.dashboard.DashboardService/GetLatestDashboard` | Dashboard | No CN method test | MAPPING_REQUIRED |
-| `/services.vehiclestates.parkingclimatization.ParkingClimatizationService/GetLatestParkingClimatization` | Climate state | CarInformation capabilities partially observed | MAPPING_REQUIRED |
+| `/services.vehiclestates.parkingclimatization.ParkingClimatizationService/GetLatestParkingClimatization` | Climate state | CarInformation capabilities partially observed | IMPLEMENTED_UNVERIFIED |
 | `/services.vehiclestates.precleaning.PreCleaningService/GetPreCleaning` | Precleaning | No CN method test | MAPPING_REQUIRED |
 | `/services.vehiclestates.precleaning.PreCleaningService/GetLatestPreCleaning` | Precleaning latest | No CN method test | MAPPING_REQUIRED |
-| `/services.vehiclestates.airquality.AirQualityService/GetLatestAirQuality` | Air quality | No CN method test | MAPPING_REQUIRED |
-| `/services.vehiclestates.airquality.AirQualityService/GetAirQuality` | Air quality stream | No CN method test | MAPPING_REQUIRED |
-| `/services.vehiclestates.location.LocationService/GetLatestLocation` | Location | LBS host observed, no field exchange documented | MAPPING_REQUIRED |
-| `/services.vehiclestates.location.LocationService/GetLocation` | Location current | Not verified | MAPPING_REQUIRED |
-| `/services.vehiclestates.weather.WeatherService/GetLatestWeather` | Weather | Not verified | MAPPING_REQUIRED |
+| `/services.vehiclestates.airquality.AirQualityService/GetLatestAirQuality` | Air quality | No CN method test | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.airquality.AirQualityService/GetAirQuality` | Air quality stream | No CN method test | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.location.LocationService/GetLatestLocation` | Location | LBS host observed, no field exchange documented | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.location.LocationService/GetLocation` | Location current | Not verified | IMPLEMENTED_UNVERIFIED |
+| `/services.vehiclestates.weather.WeatherService/GetLatestWeather` | Weather | Not verified | IMPLEMENTED_UNVERIFIED |
 
 ## D. Global PCCS Chronos → China mapping
 
 | Global gRPC method | Semantics | China status |
 | --- | --- | --- |
-| `/pccs.chronos.services.v1.TargetSocService/GetTargetSoc` | Read target SOC | MAPPING_REQUIRED |
-| `/pccs.chronos.services.v1.AmpLimitService/GetAmpLimit` | Read current limit | MAPPING_REQUIRED |
-| `/pccs.chronos.services.v2.GlobalChargeTimerService/GetGlobalChargeTimerStream` | Read charge schedule | MAPPING_REQUIRED |
-| `/pccs.chronos.services.v1.ChargeLocationService/GetChargeLocations` | Charging locations | MAPPING_REQUIRED |
-| `/pccs.chronos.services.v1.ParkingClimateTimerService/GetTimers` | Climate timers | MAPPING_REQUIRED |
-| `/pccs.chronos.services.v1.LocationService/GetLocation` | Fallback location | MAPPING_REQUIRED |
+| `/pccs.chronos.services.v1.TargetSocService/GetTargetSoc` | Read target SOC | IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.AmpLimitService/GetAmpLimit` | Read current limit | IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v2.GlobalChargeTimerService/GetGlobalChargeTimerStream` | Read charge schedule | IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.ChargeLocationService/GetChargeLocations` | Charging locations | IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.ParkingClimateTimerService/GetTimers` | Climate timers | IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.LocationService/GetLocation` | Fallback location | IMPLEMENTED_UNVERIFIED |
 
 China proto introspection has observed `com.volvocars.conncar.digitaltwin.chronos.proto.messages.targetsoc.v1.SetTargetSocRequest` with `batteryChargeTargetLevel_`, `chargeTargetLevelSettingType_`, and `request_` fields. This **does not** prove an authenticated China `SetTargetSoc` RPC is supported or permitted.
 

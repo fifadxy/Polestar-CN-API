@@ -2,6 +2,30 @@
 
 This is a living log. Entries describe **what was learned or changed**, the source/verification level, and remaining evidence gaps. Never paste raw auth records or private vehicle identifiers.
 
+## 2026-10-23 — KB version 1.1 / Hisingen China Native Mac 0.19.0
+
+### Source-verified protocol
+
+- Recorded the official China Android 4.25.0 phone-code and phone-login request contracts.
+- Recorded separate local and nested `globleToken` families, local/global refresh routes, client headers and Alibaba challenge code `2002016`.
+- Recorded `GET /car-information/car` and its linked-vehicle metadata fields.
+- Confirmed the China C3 discovery and PCCS roots used by the official client.
+
+### Native Mac implementation
+
+- Replaced the current Mac runtime's 0.18 Bridge path with native `ChinaPolestarSession` and `ChinaPolestarAPI` actors.
+- Added a dedicated data-protection Keychain item, expiry-aware single-flight refresh, native vehicle discovery, read-only C3/PCCS telemetry projection and C3 live streams.
+- Kept Global Hisingen endpoint defaults and account implementation intact; China chooses separate injected roots and a separate VIN preference.
+- Rebuilt the account and region controls from original Hisingen cards, theme tokens and typography.
+- Added source contract tests, no-Bridge artifact gates, Xcode build/launch smoke tests and macOS 15/26 packaged-app checks.
+- Kept all China remote vehicle mutations disabled in both UI capability discovery and provider execution.
+
+### Verification boundary
+
+- Authentication routes and payloads are SOURCE_VERIFIED from the official app and IMPLEMENTED_UNVERIFIED on Mac.
+- CI can prove compilation, launch, isolation and packaging. It cannot prove a real SMS login, linked-vehicle authorization or correct live vehicle values.
+- No real credentials, tokens, phone number, VIN or location were used or stored in this change.
+
 ## 2026-10-22 — KB version 1.0 / Hisingen China Preview 0.18.0
 
 ### Documented

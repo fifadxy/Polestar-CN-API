@@ -1,6 +1,6 @@
 # Architecture, login, and token families
 
-**Baseline:** upstream Hisingen tag `v2.0.10`; official China Android app `com.polestar.china.android`, version `4.25.0-262`. Last reviewed 2026-10-22.
+**Baseline:** upstream Hisingen tag `v2.0.10`; official China Android app `com.polestar.china.android`, version `4.25.0-262`; native Mac preview `0.19.0`. Last reviewed 2026-10-23.
 
 ## 1. Global / upstream Hisingen
 
@@ -39,20 +39,23 @@ The Global user path, EU Data Portal mode, and Augmented mode are original upstr
 
 ```text
 Official China Polestar Account
-  ├─ www.polestar.cn/zh-cn/auth/login/
-  │   └─ Website session in browser/WKWebView
-  │       └─ NOT an established macOS China vehicle API session
-  └─ Official China Android app
-      ├─ CN account/mobile sign-in (SMS/verification when required)
-      ├─ app-private token/session families
-      ├─ C3 Connected Car Digital Twin runtime
-      ├─ PCCS backend
-      └─ VOCMO secondary/fallback path
+  ├─ gw.app.polestar-auto.com
+  │   ├─ phone/SMS code
+  │   ├─ local + globleToken login
+  │   └─ global-token refresh
+  ├─ uc.app.polestar-auto.com
+  │   └─ local-token refresh
+  ├─ cepmobtoken.prod.c3.volvocars.com.cn
+  │   └─ linked vehicles
+  ├─ cnepmob.volvocars.com.cn
+  │   └─ C3 discovery and state
+  └─ api.pccs-prod.origin.polestar.cn
+      └─ PCCS reads
 ```
 
-### Observed Android token **preference keys** (names only)
+### Source-verified token families
 
-The following are exact local preference-key labels observed during source/runtime investigation:
+The official client exposes a local account token family and a nested, misspelled `globleToken` family. It also contains these local preference-key labels:
 
 ```text
 globle_access_token
@@ -62,18 +65,18 @@ key_token
 key_refresh_token
 ```
 
-The `globle` spelling belongs to the official App. Its exact OAuth audience, entitlement, issuer, refresh semantics, and relation to `key_*` remain **MAPPING_REQUIRED**. Observing a preference key does not establish that a particular value can be used with any host. These names are **not** real token values.
+The `globle` spelling belongs to the official App. Exact phone-login and refresh routes are SOURCE_VERIFIED; successful entitlement for an independent Mac remains IMPLEMENTED_UNVERIFIED. Observing a key never authorizes using a value with an unrelated host. These names are **not** real token values.
 
-No session/cookie/token extraction is part of the Hisingen China web sign-in UI; credentials and any SMS verification remain entirely on the official site.
+Hisingen 0.19 performs the phone/SMS exchange directly over TLS and stores the resulting China session in a dedicated macOS Keychain item. It does not extract cookies/tokens from a website or Android process.
 
 ### China application session vs website session
 
 | Concept | Established | Not yet established |
 | --- | --- | --- |
-| Official website sign-in | Official login web page opens with persistent WKWebsiteDataStore | Vehicle API entitlement or token exchange |
-| Signed-in Android app | Own app may read C3 state; runtime battery model verified | Native Mac gRPC authorization |
-| Mac local read-only bridge | Can observe permitted Android model state on the user's connected device | Direct China C3/PCCS login, multi-car discovery |
-| Direct China Mac API | Proposed dedicated `ChinaPolestarAPI` | Official auth flow, token audience, refresh and C3 discovery negotiation |
+| Official client source | Phone/SMS, refresh and vehicle-list protocol contracts | Independent Mac entitlement and live values |
+| Signed-in Android app | Own app may read C3 state; runtime battery model verified | Native Mac authorization |
+| Historical 0.18 bridge | Read-only Android-model transport | Not packaged or used in 0.19 |
+| Native China Mac API | Dedicated session, Keychain, vehicle discovery and read-only C3/PCCS implementation | Redacted real-account/vehicle end-to-end proof |
 
 Never re-use Global user/command grants or EU M2M credentials as China vehicle grants without explicit, reproducible verification.
 
@@ -82,15 +85,16 @@ Never re-use Global user/command grants or EU M2M credentials as China vehicle g
 ```text
 Select Polestar Region
   China  -> original AccountCredentialsForm displays ChinaPolestarAccountView
-         -> ChinaPolestarAPI (currently read-only local Android bridge)
-         -> VehicleState with provider timestamp/freshness
+         -> ChinaPolestarSession (dedicated Keychain)
+         -> ChinaPolestarAPI (native HTTP + C3/PCCS)
+         -> VehicleState with source timestamps/freshness
   Global -> original Polestar ID / Data Portal / Augmented selector
          -> Global original provider, C3, PCCS and original controls
 
 Volvo -> upstream unchanged
 ```
 
-The 0.18.0 region chooser is displayed once for existing/upgrading installs using a chooser-version flag, even if 0.17 wrote Global as the implicit default. The native application menu and Settings permit region switches. The active Polestar session coordinator must stop and rebuild against the correct provider when region changes; displaying the region label alone is not sufficient.
+The region chooser is displayed once per chooser version. The native application menu, menu-bar popover and Settings permit region switches. The active Polestar session coordinator stops and rebuilds against the correct provider; China and Global VIN preferences and Keychain sessions remain separate.
 
 **Security boundary:** China commands remain fail-closed in both provider execution and UI command catalog. Neither a command capability flag nor a successful HTTP HEAD probe enables write commands.
 
@@ -111,6 +115,7 @@ This repository must not circumvent authentication, disable TLS validation, or s
 
 - Hisingen `Sources/Hisingen/Services/API/PolestarAPI+Authentication.swift`, `PolestarAPI.swift`, `PolestarGRPC.swift`, `PolestarDataPortalAPI.swift`, `PolestarGRPCRemote.swift`, `ProviderRegistry.swift`.
 - China Android 4.25.0-262: passive Stage 3 battery object read and Stage 12 C3/PCCS/VOCMO introspection.
-- China 0.18.0 implementation: `Patches/0.18.0/ChinaPolestarIntegration.swift`, `Tools/china_bridge`.
-- All China host and token findings are limited to observed structure; official documentation may differ.
+- China 0.19.0 implementation: `Patches/0.19.0`, `Scripts/apply_hisingen_china_019.py`.
+- China 0.18.0 Bridge implementation remains historical reference only.
+- Source-verified contracts may still change in a later official application version; every upgrade needs revalidation.
 

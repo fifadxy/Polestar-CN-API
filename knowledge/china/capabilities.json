@@ -1,13 +1,15 @@
 {
   "schema": 1,
-  "updated": "2026-10-22",
+  "updated": "2026-10-23",
   "baselines": {
     "hisingen": "v2.0.10",
     "china_android": "com.polestar.china.android 4.25.0-262",
-    "preview": "0.18.0"
+    "preview": "0.19.0-native-mac"
   },
   "definitions": {
     "BRIDGE_ONLY": "Reads a signed-in Android application model; no direct Mac China API",
+    "SOURCE_VERIFIED": "Exact protocol contract observed in the official China application",
+    "IMPLEMENTED_UNVERIFIED": "Native Mac implementation exists but has no redacted real-account/vehicle proof",
     "MAPPING_REQUIRED": "CN credentials, method, response or entitlement not authenticated end-to-end",
     "DISABLED": "No CN remote execution",
     "NOT_APPLICABLE": "EU/Global-only mechanism does not imply CN coverage"
@@ -16,8 +18,8 @@
     {
       "name": "user_login",
       "global": "OIDC Polestar ID",
-      "china": "official web sign-in",
-      "cn_status": "MAPPING_REQUIRED"
+      "china": "phone + SMS gateway protocol",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "command_login",
@@ -40,92 +42,92 @@
     {
       "name": "vehicle_discovery",
       "global": "getConsumerCarsV2",
-      "china": "opaque single bridge identifier",
-      "cn_status": "BRIDGE_ONLY"
+      "china": "GET car-information/car",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "c3_discovery",
       "global": "cnepmob.volvocars.com",
       "china": "cnepmob.volvocars.com.cn",
-      "cn_status": "MAPPING_REQUIRED"
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "pccs_chronos",
       "global": "api.pccs-prod.plstr.io",
       "china": "api.pccs-prod.origin.polestar.cn",
-      "cn_status": "MAPPING_REQUIRED"
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "battery_soc",
       "global": "C3 battery",
-      "china": "ChargeStatusResponseModel cliif",
-      "cn_status": "BRIDGE_ONLY"
+      "china": "native C3 battery parser",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "range",
       "global": "C3/GraphQL battery",
-      "china": "clicatch/cliclass",
-      "cn_status": "BRIDGE_ONLY"
+      "china": "native C3 range projection",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "charging",
       "global": "C3 battery",
-      "china": "model charging state and charging time",
-      "cn_status": "BRIDGE_ONLY"
+      "china": "native C3 charging projection",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "exterior",
       "global": "C3 exterior",
-      "china": "controller observed, response not mapped",
-      "cn_status": "MAPPING_REQUIRED"
+      "china": "native C3 exterior parser",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "availability",
       "global": "C3 availability",
       "china": "state not mapped",
-      "cn_status": "MAPPING_REQUIRED"
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "odometer",
       "global": "C3 odometer",
       "china": "state not mapped",
-      "cn_status": "MAPPING_REQUIRED"
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "health",
       "global": "C3 health",
       "china": "state not mapped",
-      "cn_status": "MAPPING_REQUIRED"
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "climate_read",
       "global": "C3 parking climatization",
       "china": "state not mapped",
-      "cn_status": "MAPPING_REQUIRED"
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "live_stream",
       "global": "C3 live gRPC",
-      "china": "5s app-object bridge polling",
-      "cn_status": "BRIDGE_ONLY"
+      "china": "native C3 battery/exterior streams",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "target_soc",
       "global": "PCCS TargetSoc",
-      "china": "proto known but method/auth unknown",
-      "cn_status": "MAPPING_REQUIRED"
+      "china": "native PCCS read path",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "amp_limit",
       "global": "PCCS AmpLimit",
-      "china": "method/auth unknown",
-      "cn_status": "MAPPING_REQUIRED"
+      "china": "native PCCS read path",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "charge_timer",
       "global": "PCCS GlobalChargeTimer",
-      "china": "method/auth unknown",
-      "cn_status": "MAPPING_REQUIRED"
+      "china": "native PCCS read path",
+      "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
       "name": "lock_unlock",
@@ -160,6 +162,16 @@
   ],
   "china_endpoints": [
     {
+      "role": "account_gateway",
+      "address": "https://gw.app.polestar-auto.com",
+      "evidence": "official app source"
+    },
+    {
+      "role": "local_token_refresh",
+      "address": "https://uc.app.polestar-auto.com/oauth/token",
+      "evidence": "official app source"
+    },
+    {
       "role": "official_login",
       "address": "https://www.polestar.cn/zh-cn/auth/login/",
       "evidence": "official"
@@ -171,8 +183,8 @@
     },
     {
       "role": "c3_token_related",
-      "address": "cepmobtoken.prod.c3.volvocars.com.cn",
-      "evidence": "host only"
+      "address": "https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car",
+      "evidence": "official app source"
     },
     {
       "role": "c3_lbs_related",

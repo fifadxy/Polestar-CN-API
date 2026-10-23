@@ -17,7 +17,8 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         grpc = PolestarGRPC(
             defaultsSuiteName: "io.kheirallah.hisingen.polestar-cn.grpc",
             discoveryURL: URL(string: "https://cnepmob.volvocars.com.cn")!,
-            pccsURL: URL(string: "https://api.pccs-prod.origin.polestar.cn")!
+            pccsURL: URL(string: "https://api.pccs-prod.origin.polestar.cn")!,
+            sendsAuthorizationForDiscovery: false
         )
     }
 
@@ -180,17 +181,21 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
     }
 
     private func applyCars(_ discovered: [ChinaPolestarCar]) {
-        carDetails = Dictionary(uniqueKeysWithValues: discovered.map { ($0.vin, $0) })
-        knownCars = discovered.map { car in
-            let title = car.modelName?.isEmpty == false ? car.modelName! : "Polestar"
-            return CarSummary(
+        var uniqueDetails: [String: ChinaPolestarCar] = [:]
+        var summaries: [CarSummary] = []
+        for car in discovered where uniqueDetails[car.vin] == nil {
+            uniqueDetails[car.vin] = car
+            let title = car.modelName.flatMap { $0.isEmpty ? nil : $0 } ?? "Polestar"
+            summaries.append(CarSummary(
                 vin: car.vin,
                 title: title,
                 modelName: car.modelName,
                 modelYear: car.modelYear,
                 registrationNo: car.registrationPlate
-            )
+            ))
         }
+        carDetails = uniqueDetails
+        knownCars = summaries
     }
 
     private func globalAccessToken(forceRefresh: Bool = false) async throws -> String {
@@ -212,10 +217,21 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
 
         let task = Task<ChinaPolestarSession, Error> {
             var refreshed = current
+            var refreshedLocalToken = false
             if refreshed.localExpiresAt.timeIntervalSinceNow <= refreshMargin {
                 refreshed = try await self.transport.refreshLocalSession(refreshed)
+                refreshedLocalToken = true
             }
-            refreshed = try await self.transport.refreshGlobalSession(refreshed)
+            do {
+                refreshed = try await self.transport.refreshGlobalSession(refreshed)
+            } catch let error as PolestarError {
+                guard !refreshedLocalToken,
+                      case .authenticationRequired = error else { throw error }
+                // The gateway can reject a still-unexpired local token after server-side
+                // revocation. Refresh it once, then retry the global token exchange.
+                refreshed = try await self.transport.refreshLocalSession(refreshed)
+                refreshed = try await self.transport.refreshGlobalSession(refreshed)
+            }
             try ChinaPolestarSessionStore.save(refreshed)
             return refreshed
         }
@@ -246,15 +262,23 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         let needsSoftware = features.contains(.softwareUpdates)
         let needsSchedules = features.contains(.chargingSchedule)
         let needsClimate = features.contains(.climateStatus)
+        let details = carDetails[vin]
+        let supportsTargetSoc = details?.supportsTargetChargeLevelSetting == true
+        let supportsAmpLimit =
+            details?.supportsGlobalChargeAmperageLimitSetting == true
+        let supportsChargeTimer = details?.supportsGlobalChargeTimer == true
+        let supportsChargeLocations = details?.supportsChargeLocations == true
+        let supportsClimateTimers =
+            details?.supportsParkingClimatizationTimerSettings == true
 
         async let batteryTask = grpc.fetchBattery(vin: vin, accessToken: token)
         async let availabilityTask: GrpcAvailabilityReport? = Self.optional(true) {
             Optional(try await self.grpc.fetchAvailabilityReport(vin: vin, accessToken: token))
         }
-        async let targetTask: Int? = Self.optional(needsCharging) {
+        async let targetTask: Int? = Self.optional(needsCharging && supportsTargetSoc) {
             try await self.grpc.fetchTargetSoc(vin: vin, accessToken: token)
         }
-        async let ampTask: Int? = Self.optional(needsCharging) {
+        async let ampTask: Int? = Self.optional(needsCharging && supportsAmpLimit) {
             try await self.grpc.fetchAmpLimit(vin: vin, accessToken: token)
         }
         async let exteriorTask: ExteriorSnapshot? = Self.optional(needsExterior) {
@@ -269,16 +293,22 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         async let softwareTask: VehicleSoftwareInfo? = Self.optional(needsSoftware) {
             try await self.grpc.fetchSoftware(vin: vin, accessToken: token, locale: "en")
         }
-        async let schedulesTask: [VehicleSchedule]? = Self.optional(needsSchedules) {
+        async let schedulesTask: [VehicleSchedule]? = Self.optional(
+            needsSchedules && (supportsChargeTimer || supportsChargeLocations)
+        ) {
             Optional(try await self.grpc.fetchChargingSchedules(vin: vin, accessToken: token))
         }
-        async let locationsTask: [ChargeLocationSnapshot]? = Self.optional(needsSchedules) {
+        async let locationsTask: [ChargeLocationSnapshot]? = Self.optional(
+            needsSchedules && supportsChargeLocations
+        ) {
             Optional(try await self.grpc.fetchChargeLocations(vin: vin, accessToken: token))
         }
         async let climateTask: VehicleClimateStatus? = Self.optional(needsClimate) {
             try await self.grpc.fetchClimate(vin: vin, accessToken: token)
         }
-        async let climateTimersTask: [VehicleSchedule]? = Self.optional(needsClimate) {
+        async let climateTimersTask: [VehicleSchedule]? = Self.optional(
+            needsClimate && supportsClimateTimers
+        ) {
             Optional(try await self.grpc.fetchClimateTimers(vin: vin, accessToken: token))
         }
         async let connectivityTask: VehicleConnectivity? = Self.optional(
@@ -319,7 +349,6 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         let weather = await weatherTask
         let ota = await otaTask
 
-        let details = carDetails[vin]
         let now = Date()
         var readingDates: [VehicleReading: Date] = [:]
         if let date = battery.reportedAt {

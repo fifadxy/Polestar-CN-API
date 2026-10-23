@@ -40,6 +40,18 @@ class NativeMacContractTests(unittest.TestCase):
         self.assertIn("throw PolestarError.authenticationRequired(.noStoredSession)", API)
         self.assertIn('copy_patch("ChinaPolestarWebSignInWindow.swift"', APPLY)
 
+    def test_redacted_web_diagnostics(self):
+        self.assertIn("web_to_vehicle_grant=NOT_IMPLEMENTED", WEB)
+        self.assertIn("vehicle_api_auth=NOT_VERIFIED", WEB)
+        self.assertIn("last_http_status=", WEB)
+        self.assertIn("lastSafeHost", WEB)
+        self.assertIn("lastHTTPStatus", WEB)
+        self.assertIn("复制脱敏登录诊断", VIEWS)
+        self.assertIn("NSPasteboard.general", VIEWS)
+        for dangerous in ["url.absoluteString", "navigationResponse.response.allHeaderFields",
+                          "httpCookieStore", "evaluateJavaScript", "document.cookie"]:
+            self.assertNotIn(dangerous, WEB)
+
     def test_website_cannot_impersonate_vehicle_session(self):
         for term in ["httpCookieStore", "evaluateJavaScript", "document.cookie",
                      "kSecValueData", "ChinaPolestarSessionStore.save",

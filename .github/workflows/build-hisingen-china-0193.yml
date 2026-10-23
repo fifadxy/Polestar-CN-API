@@ -38,6 +38,8 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s Tests -p 'test_native_mac_contract_0193.py' -v
           python3 -m py_compile Scripts/apply_hisingen_china_0193.py
+          bash -n Tools/auth_probe/setup_root_frida_mac.sh Tools/auth_probe/collect_device_info.sh Tools/auth_probe/capture_metadata_mac.sh
+          if command -v node >/dev/null 2>&1; then node --check Tools/auth_probe/okhttp_metadata_only.js; fi
 
           NATIVE="Patches/0.19.3"
           ! grep -R -E '127\.0\.0\.1|28765|ChinaBridge|httpCookieStore|evaluateJavaScript|document\.cookie' "$NATIVE"

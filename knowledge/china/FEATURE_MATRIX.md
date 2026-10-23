@@ -10,9 +10,9 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 | Polestar command-client grant | GLOBAL-IMPLEMENTED | CN `key_*` local names observed; audience unknown | MAPPING_REQUIRED | Authorized issuer/client/scope/refresh verification |
 | EU Data Portal (Data Act) | GLOBAL-IMPLEMENTED | No CN EU M2M equivalence established | NOT_APPLICABLE as CN substitute | Identify separate supported CN data API |
 | Augmented (consumer + M2M) | GLOBAL-IMPLEMENTED | No compatible CN M2M path | MAPPING_REQUIRED | Define valid CN merge after state sources verified |
-| Vehicle discovery | GLOBAL-IMPLEMENTED | `GET car-information/car` and response fields SOURCE-VERIFIED | Native multi-vehicle decoder; IMPLEMENTED-UNVERIFIED | Authorized real-account list and selection |
-| C3 discovery | GLOBAL-IMPLEMENTED | China discovery root observed | China root injected into native Hisingen C3 actor; IMPLEMENTED-UNVERIFIED | Authenticated discovery response and token audience |
-| PCCS/Chronos | GLOBAL-IMPLEMENTED | China PCCS root and Proto found | China root injected; read methods IMPLEMENTED-UNVERIFIED | Authorized method-by-method reads |
+| Vehicle discovery | GLOBAL-IMPLEMENTED | `GET car-information/car`, metadata and capability fields SOURCE-VERIFIED | Native multi-vehicle decoder accepts empty/wrapped lists, VIN aliases and duplicate rows; IMPLEMENTED-UNVERIFIED | Authorized real-account list and selection |
+| C3 discovery | GLOBAL-IMPLEMENTED | Public China v1/v2 discovery document observed | China root injected; discovery deliberately omits Authorization while Global retains it; IMPLEMENTED-UNVERIFIED | Real telemetry authorization after host resolution |
+| PCCS/Chronos | GLOBAL-IMPLEMENTED | China root, Proto families and official car capability fields found | China root injected; optional reads gated by per-vehicle capabilities; IMPLEMENTED-UNVERIFIED | Authorized method-by-method reads by vehicle |
 | Battery SOC | GLOBAL-IMPLEMENTED | Android C3 model and 2021 P2 wire mapping observed | Native latest-battery parser; IMPLEMENTED-UNVERIFIED | Same-minute official-app comparison |
 | Estimated range (km/mi) | GLOBAL-IMPLEMENTED | `clicatch` / `cliclass` and C3 mapping observed | Native C3 projection; IMPLEMENTED-UNVERIFIED | Units and model-year coverage |
 | Charging state/time/consumption | GLOBAL-IMPLEMENTED | China battery model fields observed | Native C3 projection; IMPLEMENTED-UNVERIFIED | Charging/unplugged/error fixtures |
@@ -20,11 +20,11 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 | Availability / online | GLOBAL-IMPLEMENTED | China C3 family observed | Native optional read; IMPLEMENTED-UNVERIFIED | Real response and unknown-state behavior |
 | Odometer | GLOBAL-IMPLEMENTED | C3 vehicle-state family in official client | Native optional read; IMPLEMENTED-UNVERIFIED | Timestamp and unit comparison |
 | Health & maintenance | GLOBAL-IMPLEMENTED | C3 vehicle-state family in official client | Native optional read; IMPLEMENTED-UNVERIFIED | Real response semantics |
-| Climate state and timers | GLOBAL-IMPLEMENTED | Max runtime 30 observed; direct-start settings false | Native optional C3/PCCS reads; IMPLEMENTED-UNVERIFIED | Real state and timer reads |
+| Climate state and timers | GLOBAL-IMPLEMENTED | Max runtime 30 and `supportsParkingClimatizationTimerSettings` observed | Native C3 state plus capability-gated PCCS timer read; IMPLEMENTED-UNVERIFIED | Real state and timer reads |
 | Live C3 gRPC stream | GLOBAL-IMPLEMENTED | Android app C3 live observed | Native Hisingen C3 battery/exterior streams; IMPLEMENTED-UNVERIFIED | Tokenized stream, reconnect, timestamps |
-| Target charge SOC | GLOBAL-IMPLEMENTED | CN Chronos target SOC proto exists | Native read only; IMPLEMENTED-UNVERIFIED | Authorized response; write disabled |
-| Charging amp limit | GLOBAL-IMPLEMENTED | CN PCCS host and service family observed | Native read only; IMPLEMENTED-UNVERIFIED | Authorized response and model limits |
-| Global charging timer | GLOBAL-IMPLEMENTED | Chronos service family observed | Native read only; IMPLEMENTED-UNVERIFIED | Authorized response semantics |
+| Target charge SOC | GLOBAL-IMPLEMENTED | CN Chronos proto and `supportsTargetChargeLevelSetting` observed | Capability-gated native read only; IMPLEMENTED-UNVERIFIED | Authorized response; write disabled |
+| Charging amp limit | GLOBAL-IMPLEMENTED | CN PCCS service and `supportsGlobalChargeAmperageLimitSetting` observed | Capability-gated native read only; IMPLEMENTED-UNVERIFIED | Authorized response and vehicle limits |
+| Global charging timer | GLOBAL-IMPLEMENTED | Chronos service and `supportsGlobalChargeTimer` observed | Capability-gated native read only; IMPLEMENTED-UNVERIFIED | Authorized response semantics |
 | Climate start/stop | GLOBAL-IMPLEMENTED | CN request class observed | DISABLED | Explicit end-to-end permission and vehicle confirmation |
 | Remote lock/unlock | GLOBAL-IMPLEMENTED | CN exterior controller has method identifiers | DISABLED | Explicit end-to-end permission and vehicle confirmation |
 | Windows/tailgate/honk/flash | GLOBAL-IMPLEMENTED | Methods/capability indicators observed | DISABLED | Command-specific mapped request and test |
@@ -42,7 +42,7 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 | China selected on first real launch | Static UI wiring; interactive dialog requires GUI test | Visual first-start verification |
 | China/Global menu + Settings switching | Static selection + rebuild logic checks | Manual GUI switch with provider state isolation |
 | Native phone/SMS, refresh and vehicle-list contract | YES, source/static | Real consenting account |
-| Separate China Keychain and no Bridge runtime | YES | Sign-in/sign-out persistence check |
+| Separate China Keychain and no Bridge source/runtime | YES | Sign-in/sign-out persistence check |
 | China direct C3/PCCS token exchanges | Compiles and source-checked | Approved real authentication integration |
 | Native C3 live stream | Compiles and launch-tested | Real vehicle values, timestamps and reconnect |
 | China remote commands | DELIBERATELY DISABLED | Later separate permissioned vehicle test |
@@ -59,5 +59,5 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 
 ## Known current limitations
 
-0.19.0 tests prove source contracts, compilation, App Bundle integrity, process launch, Global source isolation and absence of a Bridge runtime in the artifact. They do **not** establish that SMS login, token refresh or China C3/PCCS succeeds with a real account/vehicle. China remote commands remain disabled.
+0.19.0 tests prove source contracts, compilation, App Bundle integrity, process launch, Global source isolation and absence of Bridge source or runtime in the branch and artifact. They do **not** establish that SMS login, token refresh or China C3/PCCS succeeds with a real account/vehicle. China remote commands remain disabled.
 

@@ -1,16 +1,43 @@
 import AppKit
+import Combine
 import Foundation
 import WebKit
 
 // Official China WEBSITE sign-in only. No verified website-to-C3 token grant exists.
 // Do not inspect passwords, cookies, verification codes, page JS or tokens.
 @MainActor
-final class ChinaPolestarWebSignInWindow: NSObject, WKUIDelegate, WKNavigationDelegate, NSWindowDelegate {
+final class ChinaPolestarWebSignInWindow: NSObject, ObservableObject, WKUIDelegate, WKNavigationDelegate, NSWindowDelegate {
     static let shared = ChinaPolestarWebSignInWindow()
     static let officialLoginURL = URL(string: "https://www.polestar.cn/zh-cn/auth/login/")!
 
     private var window: NSWindow?
     private var webView: WKWebView?
+
+    @Published private(set) var lastStep = "尚未打开网页"
+    @Published private(set) var lastSafeHost = "—"
+    @Published private(set) var lastHTTPStatus: Int?
+
+    /// No URL path, query string, callback code, cookies, tokens, or device identifiers.
+    var redactedReport: String {
+        [
+            "patch=0.19.3",
+            "web_source=polestar_china_official",
+            "web_state=" + lastStep,
+            "last_host=" + lastSafeHost,
+            "last_http_status=" + (lastHTTPStatus.map { String($0) } ?? "unknown"),
+            "web_to_vehicle_grant=NOT_IMPLEMENTED",
+            "vehicle_api_auth=NOT_VERIFIED",
+            "legacy_sms_api=DISABLED"
+        ].joined(separator: "\n")
+    }
+
+    private func updateSafeHost(_ url: URL?) {
+        guard let host = url?.host?.lowercased() else { return }
+        let allowed = ["polestar.cn", "polestar-auto.com", "polestar.com", "volvocars.com.cn"]
+        lastSafeHost = allowed.contains {
+            host == $0 || host.hasSuffix("." + $0)
+        } ? host : "other-https-host"
+    }
 
     func open() {
         if let window {
@@ -18,6 +45,9 @@ final class ChinaPolestarWebSignInWindow: NSObject, WKUIDelegate, WKNavigationDe
             NSApp.activate(ignoringOtherApps: true)
             return
         }
+        lastStep = "正在打开中国区官网"
+        lastHTTPStatus = nil
+        lastSafeHost = "www.polestar.cn"
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
         let web = WKWebView(frame: NSRect(x: 0, y: 0, width: 760, height: 820), configuration: config)
@@ -42,6 +72,27 @@ final class ChinaPolestarWebSignInWindow: NSObject, WKUIDelegate, WKNavigationDe
         web.load(URLRequest(url: Self.officialLoginURL))
     }
 
+    // Response metadata only: never retain the URL that could contain an OAuth code.
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void) {
+        guard webView === self.webView else {
+            decisionHandler(.cancel)
+            return
+        }
+        updateSafeHost(navigationResponse.response.url)
+        if let response = navigationResponse.response as? HTTPURLResponse {
+            lastHTTPStatus = response.statusCode
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard webView === self.webView else { return }
+        updateSafeHost(webView.url)
+        lastStep = "网页已加载；是否登录成功请在官方页面确认"
+    }
+
     func webView(_ webView: WKWebView,
                  createWebViewWith configuration: WKWebViewConfiguration,
                  for navigationAction: WKNavigationAction,
@@ -60,6 +111,7 @@ final class ChinaPolestarWebSignInWindow: NSObject, WKUIDelegate, WKNavigationDe
                  didFailProvisionalNavigation navigation: WKNavigation!,
                  withError error: Error) {
         guard (error as NSError).code != NSURLErrorCancelled, let window else { return }
+        lastStep = "网页加载失败；可使用默认浏览器"
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = "中国区登录网页无法加载"

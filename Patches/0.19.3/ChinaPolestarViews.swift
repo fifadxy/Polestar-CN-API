@@ -74,6 +74,7 @@ enum ChinaPolestarDiagnostics {
 @MainActor
 struct ChinaPolestarAccountView: View {
     let onSettingsChanged: (SettingsChange) -> Void
+    @ObservedObject private var webSignIn = ChinaPolestarWebSignInWindow.shared
 
     @State private var hasSession = ChinaPolestarSessionStore.hasStoredSession
     @State private var maskedPhone: String?
@@ -103,6 +104,30 @@ struct ChinaPolestarAccountView: View {
                     NSWorkspace.shared.open(ChinaPolestarWebSignInWindow.officialLoginURL)
                 } label: {
                     Label("在浏览器打开", systemImage: "arrow.up.right.square")
+                }
+                .controlSize(.small)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("网页登录诊断（仅记录非敏感状态）")
+                    .hisType(.caption, weight: .semibold)
+                Text(webSignIn.lastStep)
+                    .hisType(.caption)
+                    .foregroundStyle(.secondary)
+                Text("当前网站：\(webSignIn.lastSafeHost)")
+                    .hisType(.micro)
+                    .foregroundStyle(.secondary)
+                if let status = webSignIn.lastHTTPStatus {
+                    Text("HTTP 状态码：\(status)")
+                        .hisType(.micro)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(webSignIn.redactedReport, forType: .string)
+                } label: {
+                    Label("复制脱敏登录诊断", systemImage: "doc.on.doc")
                 }
                 .controlSize(.small)
             }

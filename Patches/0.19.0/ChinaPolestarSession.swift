@@ -24,6 +24,16 @@ struct ChinaPolestarCar: Sendable, Equatable {
     let registrationPlate: String?
     let structureWeek: String?
     let consumerSoftwareVersion: String?
+
+    // These flags come from car-information. The official China client decodes the same
+    // fields and defaults absent values to false, so PCCS reads are selected per vehicle
+    // capability instead of being guessed from a marketing model name.
+    let supportsChargingFunctions: Bool
+    let supportsGlobalChargeAmperageLimitSetting: Bool
+    let supportsTargetChargeLevelSetting: Bool
+    let supportsGlobalChargeTimer: Bool
+    let supportsChargeLocations: Bool
+    let supportsParkingClimatizationTimerSettings: Bool
 }
 
 struct ChinaPolestarAccountStatus: Sendable {
@@ -221,6 +231,13 @@ struct ChinaPolestarHTTPTransport: Sendable {
             if response.statusCode == 429 { throw ChinaPolestarSignInError.throttled }
             throw ChinaPolestarSignInError.rejected(Self.gatewayMessage(in: data))
         }
+        if Self.gatewayCode(in: data) == 2_002_016 {
+            throw ChinaPolestarSignInError.captchaRequired
+        }
+        if let gatewayCode = Self.gatewayCode(in: data),
+           gatewayCode != 0 && gatewayCode != 200 {
+            throw ChinaPolestarSignInError.rejected(Self.gatewayMessage(in: data))
+        }
         let payload = try Self.decodeLoginPayload(data, requiresGlobal: true)
         guard let global = payload.global else {
             throw PolestarError.incompatibleAPI(operation: "China phone sign-in")
@@ -264,7 +281,11 @@ struct ChinaPolestarHTTPTransport: Sendable {
         guard (200..<300).contains(response.statusCode) else {
             throw Self.httpError(response.statusCode, operation: "China local token refresh")
         }
-        let payload = try Self.decodeLoginPayload(data, requiresGlobal: false)
+        let payload = try Self.decodeLoginPayload(
+            data,
+            requiresGlobal: false,
+            fallbackRefreshToken: current.localRefreshToken
+        )
         var updated = current
         updated.localAccessToken = payload.accessToken
         updated.localRefreshToken = payload.refreshToken
@@ -293,7 +314,11 @@ struct ChinaPolestarHTTPTransport: Sendable {
         guard (200..<300).contains(response.statusCode) else {
             throw Self.httpError(response.statusCode, operation: "China global token refresh")
         }
-        let global = try Self.decodeGlobalPayload(data)
+        let global = try Self.decodeGlobalPayload(
+            data,
+            fallbackRefreshToken: current.globalRefreshToken,
+            fallbackIDToken: current.globalIDToken
+        )
         var updated = current
         updated.globalAccessToken = global.accessToken
         updated.globalRefreshToken = global.refreshToken
@@ -376,7 +401,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
     }
 
     private static func httpError(_ status: Int, operation: String) -> PolestarError {
-        if status == 400 || status == 401 || status == 403 {
+        if status == 401 || status == 403 {
             return .authenticationRequired(.expiredSession)
         }
         return PolestarError.httpFailure(
@@ -388,12 +413,18 @@ struct ChinaPolestarHTTPTransport: Sendable {
 
     private static func decodeLoginPayload(
         _ data: Data,
-        requiresGlobal: Bool
+        requiresGlobal: Bool,
+        fallbackRefreshToken: String? = nil
     ) throws -> LoginPayload {
         let root = try dictionaryPayload(data)
-        guard let access = string(root, keys: ["accessToken", "access_token"]),
-              let refresh = string(root, keys: ["refreshToken", "refresh_token"]) else {
+        guard let access = string(root, keys: ["accessToken", "access_token"]) else {
             throw PolestarError.incompatibleAPI(operation: "China token response")
+        }
+        let refresh = string(root, keys: ["refreshToken", "refresh_token"])
+            ?? fallbackRefreshToken
+            ?? ""
+        guard !refresh.isEmpty else {
+            throw PolestarError.incompatibleAPI(operation: "China refresh token response")
         }
         let global = dictionary(root["globleToken"] ?? root["globle_token"] ?? root["globalToken"])
             .flatMap(decodeGlobalDictionary)
@@ -411,22 +442,37 @@ struct ChinaPolestarHTTPTransport: Sendable {
         )
     }
 
-    private static func decodeGlobalPayload(_ data: Data) throws -> GlobalPayload {
+    private static func decodeGlobalPayload(
+        _ data: Data,
+        fallbackRefreshToken: String,
+        fallbackIDToken: String
+    ) throws -> GlobalPayload {
         let root = try dictionaryPayload(data)
         let candidate = dictionary(root["globleToken"] ?? root["globle_token"] ?? root["globalToken"]) ?? root
-        guard let global = decodeGlobalDictionary(candidate) else {
+        guard let global = decodeGlobalDictionary(
+            candidate,
+            fallbackRefreshToken: fallbackRefreshToken,
+            fallbackIDToken: fallbackIDToken
+        ) else {
             throw PolestarError.incompatibleAPI(operation: "China global token refresh")
         }
         return global
     }
 
-    private static func decodeGlobalDictionary(_ root: [String: Any]) -> GlobalPayload? {
-        guard let access = string(root, keys: ["accessToken", "access_token"]),
-              let refresh = string(root, keys: ["refreshToken", "refresh_token"]) else { return nil }
+    private static func decodeGlobalDictionary(
+        _ root: [String: Any],
+        fallbackRefreshToken: String? = nil,
+        fallbackIDToken: String? = nil
+    ) -> GlobalPayload? {
+        guard let access = string(root, keys: ["accessToken", "access_token"]) else { return nil }
+        let refresh = string(root, keys: ["refreshToken", "refresh_token"])
+            ?? fallbackRefreshToken
+            ?? ""
+        guard !refresh.isEmpty else { return nil }
         return GlobalPayload(
             accessToken: access,
             refreshToken: refresh,
-            idToken: string(root, keys: ["idToken", "id_token"]) ?? "",
+            idToken: string(root, keys: ["idToken", "id_token"]) ?? fallbackIDToken ?? "",
             tokenType: string(root, keys: ["tokenType", "token_type"]) ?? "Bearer",
             expiresIn: integer(root, keys: ["expiresIn", "expires_in"]) ?? 3_600
         )
@@ -438,28 +484,63 @@ struct ChinaPolestarHTTPTransport: Sendable {
         if let direct = object as? [[String: Any]] {
             rows = direct
         } else if let root = object as? [String: Any],
-                  let nested = carRows(root["data"]) ?? carRows(root["result"]) ?? carRows(root["cars"]) {
+                  let nested = carRows(root["data"]) ?? carRows(root["result"])
+                    ?? carRows(root["cars"]) ?? carRows(root["vehicles"]) {
             rows = nested
         } else {
             throw PolestarError.incompatibleAPI(operation: "China vehicle discovery")
         }
-        let cars = rows.compactMap { row -> ChinaPolestarCar? in
-            guard let vin = string(row, "vin")?.trimmingCharacters(in: .whitespacesAndNewlines),
+        return rows.compactMap { row -> ChinaPolestarCar? in
+            let nested = dictionary(row["carInformation"])
+                ?? dictionary(row["vehicle"])
+                ?? dictionary(row["car"])
+                ?? [:]
+            let car = row.merging(nested) { _, nestedValue in nestedValue }
+            guard let vin = string(
+                car,
+                keys: ["vin", "vinCode", "vehicleIdentificationNumber"]
+            )?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !vin.isEmpty else { return nil }
+
+            let maximumLocations = integer(car, keys: ["chargingMaxNumberOfLocations"]) ?? 0
+            let supportsChargeLocations =
+                boolean(car, keys: ["supportsChargeLocationsChargeAmperageLimitSetting"])
+                || boolean(car, keys: ["supportsChargeLocationsChargeTimerMinChargeLevelSetting"])
+                || boolean(car, keys: ["supportsChargeLocationsDepartureTime"])
+                || maximumLocations > 0
+
             return ChinaPolestarCar(
                 vin: vin.uppercased(),
-                market: string(row, "market"),
-                modelName: string(row, "modelName"),
-                modelYear: string(row, "modelYear"),
-                registrationPlate: string(row, "registrationPlate"),
-                structureWeek: string(row, "structureWeek") ?? integer(row, "structureWeek").map { String($0) },
-                consumerSoftwareVersion: string(row, "consumerSoftwareVersion")
+                market: string(car, keys: ["market", "countryCode"]),
+                modelName: string(car, keys: ["modelName", "vehicleTypeName", "model"]),
+                modelYear: string(car, keys: ["modelYear", "year"]),
+                registrationPlate: string(car, keys: ["registrationPlate", "licensePlate"]),
+                structureWeek: string(car, keys: ["structureWeek"])
+                    ?? integer(car, keys: ["structureWeek"]).map(String.init),
+                consumerSoftwareVersion: string(
+                    car,
+                    keys: ["consumerSoftwareVersion", "softwareVersion"]
+                ),
+                supportsChargingFunctions: boolean(car, keys: ["supportsChargingFunctions"]),
+                supportsGlobalChargeAmperageLimitSetting: boolean(
+                    car,
+                    keys: ["supportsGlobalChargeAmperageLimitSetting"]
+                ),
+                supportsTargetChargeLevelSetting: boolean(
+                    car,
+                    keys: ["supportsTargetChargeLevelSetting"]
+                ),
+                supportsGlobalChargeTimer: boolean(
+                    car,
+                    keys: ["supportsGlobalChargeTimer"]
+                ),
+                supportsChargeLocations: supportsChargeLocations,
+                supportsParkingClimatizationTimerSettings: boolean(
+                    car,
+                    keys: ["supportsParkingClimatizationTimerSettings"]
+                )
             )
         }
-        guard !cars.isEmpty else {
-            throw PolestarError.invalidResponse(operation: "China vehicle discovery")
-        }
-        return cars
     }
 
     private static func dictionaryPayload(_ data: Data) throws -> [String: Any] {
@@ -483,8 +564,8 @@ struct ChinaPolestarHTTPTransport: Sendable {
     private static func carRows(_ value: Any?) -> [[String: Any]]? {
         if let rows = value as? [[String: Any]] { return rows }
         guard let container = value as? [String: Any] else { return nil }
-        for key in ["cars", "list", "content", "result"] {
-            if let rows = container[key] as? [[String: Any]] { return rows }
+        for key in ["cars", "vehicles", "list", "content", "result", "data"] {
+            if let rows = carRows(container[key]) { return rows }
         }
         return nil
     }
@@ -513,6 +594,21 @@ struct ChinaPolestarHTTPTransport: Sendable {
             if let value = integer(root, key) { return value }
         }
         return nil
+    }
+
+    private static func boolean(_ root: [String: Any], keys: [String]) -> Bool {
+        for key in keys {
+            if let value = root[key] as? Bool { return value }
+            if let value = root[key] as? NSNumber { return value.boolValue }
+            if let value = root[key] as? String {
+                switch value.lowercased() {
+                case "true", "1", "yes": return true
+                case "false", "0", "no": return false
+                default: continue
+                }
+            }
+        }
+        return false
     }
 
     private static func gatewayCode(in data: Data) -> Int? {

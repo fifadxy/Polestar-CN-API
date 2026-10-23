@@ -71,6 +71,7 @@ class NativeMacContractTests(unittest.TestCase):
 
     def test_no_local_bridge_or_web_cookie_path(self):
         corpus = "\n".join([SESSION, API, RUNTIME, VIEWS])
+        self.assertFalse((ROOT / "Tools" / "china_bridge").exists())
         forbidden = [
             "127.0.0.1",
             "28765",
@@ -90,6 +91,36 @@ class NativeMacContractTests(unittest.TestCase):
         self.assertIn("grpc.fetchOdometer", API)
         self.assertIn("grpc.liveUpdates", API)
 
+    def test_china_discovery_is_public_but_global_default_is_unchanged(self):
+        self.assertIn("sendsAuthorizationForDiscovery: false", API)
+        self.assertIn("sendsAuthorizationForDiscovery: Bool = true", APPLY)
+        self.assertIn("if sendsAuthorizationForDiscovery", APPLY)
+
+    def test_vehicle_discovery_accepts_real_world_shapes(self):
+        for value in [
+            '"vinCode"',
+            '"vehicleIdentificationNumber"',
+            '"vehicles"',
+            '"licensePlate"',
+            "return rows.compactMap",
+        ]:
+            self.assertIn(value, SESSION)
+        self.assertNotIn("guard !cars.isEmpty", SESSION)
+        self.assertNotIn("Dictionary(uniqueKeysWithValues:", API)
+
+    def test_pccs_reads_follow_vehicle_capabilities(self):
+        for value in [
+            "supportsGlobalChargeAmperageLimitSetting",
+            "supportsTargetChargeLevelSetting",
+            "supportsGlobalChargeTimer",
+            "supportsChargeLocations",
+            "supportsParkingClimatizationTimerSettings",
+        ]:
+            self.assertIn(value, SESSION)
+            self.assertIn(value, API)
+        self.assertIn("needsCharging && supportsTargetSoc", API)
+        self.assertIn("needsCharging && supportsAmpLimit", API)
+
     def test_remote_commands_fail_closed(self):
         self.assertRegex(
             API,
@@ -97,6 +128,13 @@ class NativeMacContractTests(unittest.TestCase):
         )
         self.assertIn("ChinaPolestarRuntime.currentRegion == .mainlandChina", APPLY)
         self.assertIn("return false", APPLY)
+
+    def test_refresh_preserves_rotating_token_fallbacks(self):
+        self.assertIn("fallbackRefreshToken: current.localRefreshToken", SESSION)
+        self.assertIn("fallbackRefreshToken: current.globalRefreshToken", SESSION)
+        self.assertIn("fallbackIDToken: current.globalIDToken", SESSION)
+        self.assertNotIn("status == 400 || status == 401", SESSION)
+        self.assertIn("refreshedLocalToken", API)
 
     def test_global_defaults_are_preserved(self):
         self.assertIn(

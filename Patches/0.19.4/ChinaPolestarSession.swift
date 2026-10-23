@@ -140,6 +140,65 @@ enum ChinaPolestarSessionStore {
     }
 }
 
+enum ChinaPolestarProtocolMaterialError: Error, LocalizedError, Sendable {
+    case missing
+    case invalid
+
+    var errorDescription: String? {
+        switch self {
+        case .missing:
+            return "缺少中国区网关协议材料。请先运行安装包内的本地 DEX 导入工具；工具只写入 macOS 钥匙串，不显示或上传材料内容。"
+        case .invalid:
+            return "中国区网关协议材料格式无效，请重新从你自己的官方 Android App DEX 导入。"
+        }
+    }
+}
+
+/// Protocol-level mobile-client material is intentionally not embedded in source or the app bundle.
+/// It can be provisioned locally from the user's own official Android installation and is kept in
+/// a separate macOS Keychain item. It is not an account password, OTP, access token or refresh token.
+enum ChinaPolestarProtocolMaterialStore {
+    nonisolated static let service = "io.kheirallah.hisingen.polestar-cn.protocol"
+    nonisolated static let account = "gateway-client-material-v1"
+
+    nonisolated static var hasStoredMaterial: Bool {
+        var query = baseQuery
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    static func loadRequired() throws -> String {
+        var query = baseQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { throw ChinaPolestarProtocolMaterialError.missing }
+        if status == errSecInteractionRequired { throw KeychainError.interactionRequired }
+        guard status == errSecSuccess, let data = result as? Data,
+              let value = String(data: data, encoding: .utf8),
+              isValid(value)
+        else {
+            throw ChinaPolestarProtocolMaterialError.invalid
+        }
+        return value
+    }
+
+    private nonisolated static var baseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+    }
+
+    private nonisolated static func isValid(_ value: String) -> Bool {
+        value.count == 32 && value.allSatisfy { character in
+            character.isNumber || ("A"..."F").contains(String(character))
+        }
+    }
+}
+
 struct ChinaPolestarHTTPTransport: Sendable {
     private struct LoginPayload: Sendable {
         let accessToken: String
@@ -163,9 +222,6 @@ struct ChinaPolestarHTTPTransport: Sendable {
     private static let userCenter = URL(string: "https://uc.app.polestar-auto.com")!
     private static let c3REST = URL(string: "https://cepmobtoken.prod.c3.volvocars.com.cn")!
     private static let clientID = "polestar-app-android"
-    // Public mobile-client protocol value embedded in the official China APK. It is not a
-    // user credential and is never written to Keychain or logs.
-    private static let mobileClientSecret = "385798256D8247E9B7E2E93BF2741517"
     private static let protocolVersion = "4.25.0"
     private static let maximumResponseBytes = 2_000_000
 
@@ -181,19 +237,19 @@ struct ChinaPolestarHTTPTransport: Sendable {
 
     func requestVerificationCode(
         phone: String,
-        challenge: ChinaPolestarChallengePayload? = nil
+        challenge: ChinaPolestarChallengePayload
     ) async throws {
         let normalized = try Self.normalizedPhone(phone)
         let body: [String: Any] = [
             "principal": normalized,
             "aliScene": "ic_login_h5",
-            "aliSessionId": challenge?.sessionID ?? NSNull(),
-            "aliSign": challenge?.signature ?? NSNull(),
-            "aliToken": challenge?.token ?? NSNull(),
+            "aliSessionId": challenge.sessionID,
+            "aliSign": challenge.signature,
+            "aliToken": challenge.token,
             "clientId": Self.clientID,
             "type": "SIGNIN_BY_PHONE"
         ]
-        let request = Self.jsonRequest(
+        let request = try Self.jsonRequest(
             url: Self.gateway.appendingPathComponent("user/api/v1/credcode/send"),
             body: body
         )
@@ -222,7 +278,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
             "credential": cleanCode,
             "autocrt": true
         ]
-        let request = Self.jsonRequest(
+        let request = try Self.jsonRequest(
             url: Self.gateway.appendingPathComponent("user/api/v2/oauth/login/phone"),
             body: body
         )
@@ -260,15 +316,16 @@ struct ChinaPolestarHTTPTransport: Sendable {
             url: Self.userCenter.appendingPathComponent("oauth/token"),
             resolvingAgainstBaseURL: false
         )!
+        let protocolMaterial = try ChinaPolestarProtocolMaterialStore.loadRequired()
         components.queryItems = [
             URLQueryItem(name: "grant_type", value: "refresh_token"),
             URLQueryItem(name: "client_id", value: Self.clientID),
-            URLQueryItem(name: "client_secret", value: Self.mobileClientSecret),
+            URLQueryItem(name: "client_secret", value: protocolMaterial),
             URLQueryItem(name: "refresh_token", value: current.localRefreshToken)
         ]
         var request = URLRequest(url: components.url!)
         request.httpMethod = "POST"
-        Self.addClientHeaders(to: &request)
+        Self.addServiceHeaders(to: &request)
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await data(for: request)
         guard (200..<300).contains(response.statusCode) else {
@@ -291,7 +348,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
         guard !current.globalRefreshToken.isEmpty else {
             throw PolestarError.authenticationRequired(.expiredSession)
         }
-        var request = Self.jsonRequest(
+        var request = try Self.jsonRequest(
             url: Self.gateway.appendingPathComponent("user/api/v2/oauth/refresh-global-token"),
             body: ["refreshToken": current.globalRefreshToken]
         )
@@ -320,7 +377,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
             url: Self.c3REST.appendingPathComponent("car-information/car")
         )
         request.httpMethod = "GET"
-        Self.addClientHeaders(to: &request)
+        Self.addServiceHeaders(to: &request)
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("Hisingen-China/0.19.4 macOS", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -369,24 +426,25 @@ struct ChinaPolestarHTTPTransport: Sendable {
         }
     }
 
-    private static func jsonRequest(url: URL, body: [String: Any]) -> URLRequest {
-        let finalURL = signedGatewayURL(url)
+    private static func jsonRequest(url: URL, body: [String: Any]) throws -> URLRequest {
+        let finalURL = try signedGatewayURL(url)
         var request = URLRequest(url: finalURL)
         request.httpMethod = "POST"
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        addClientHeaders(to: &request)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         return request
     }
 
     /// Mirrors the common-parameter envelope observed in the official China Android client.
     /// Hisingen uses a new pseudonymous identifier generated on this Mac; no Android device
     /// identifier is copied or imported.
-    private static func signedGatewayURL(_ url: URL) -> URL {
+    private static func signedGatewayURL(_ url: URL) throws -> URL {
         guard let host = url.host?.lowercased(),
               host == "gw.app.polestar-auto.com" || host == "gwo.app.polestar-auto.com",
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         else { return url }
 
+        let protocolMaterial = try ChinaPolestarProtocolMaterialStore.loadRequired()
         let values: [(String, String)] = [
             ("appId", clientID),
             ("timestamp", String(Int64(Date().timeIntervalSince1970 * 1000))),
@@ -403,7 +461,9 @@ struct ChinaPolestarHTTPTransport: Sendable {
         items.append(contentsOf: values.map { URLQueryItem(name: $0.0, value: $0.1) })
         components.queryItems = items
 
-        guard let encoded = components.percentEncodedQuery else { return url }
+        guard let encoded = components.percentEncodedQuery else {
+            throw PolestarError.invalidResponse(operation: "China gateway common parameters")
+        }
         let pairs: [(String, String)] = encoded.split(separator: "&").map { raw in
             let parts = raw.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             return (String(parts[0]), parts.count == 2 ? String(parts[1]) : "")
@@ -412,13 +472,16 @@ struct ChinaPolestarHTTPTransport: Sendable {
             .sorted { lhs, rhs in lhs.0 < rhs.0 }
             .map { "\($0.0)=\($0.1)" }
             .joined(separator: "&")
-        let signSource = mobileClientSecret + canonical + mobileClientSecret
+        let signSource = protocolMaterial + canonical + protocolMaterial
         let digest = Insecure.MD5.hash(data: Data(signSource.utf8))
         let signature = digest.map { String(format: "%02x", $0) }.joined()
 
         items.append(URLQueryItem(name: "sign", value: signature))
         components.queryItems = items
-        return components.url ?? url
+        guard let signed = components.url else {
+            throw PolestarError.invalidResponse(operation: "China signed gateway URL")
+        }
+        return signed
     }
 
     private static let deviceIDDefaultsKey = "hisingen.polestar.china.protocolDeviceID"
@@ -428,7 +491,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
            !value.isEmpty {
             return value
         }
-        let value = UUID().uuidString
+        let value = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
         UserDefaults.standard.set(value, forKey: deviceIDDefaultsKey)
         return value
     }
@@ -440,9 +503,10 @@ struct ChinaPolestarHTTPTransport: Sendable {
         return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
     }
 
-    private static func addClientHeaders(to request: inout URLRequest) {
+    /// The Android common interceptor only adds these client headers outside the GW/GWO
+    /// gateway branch. Ordinary account gateway calls receive the signed query envelope instead.
+    private static func addServiceHeaders(to request: inout URLRequest) {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(protocolVersion, forHTTPHeaderField: "version")
         request.setValue(protocolVersion, forHTTPHeaderField: "Version")
         request.setValue("Android", forHTTPHeaderField: "Device")
         request.setValue(deviceModel, forHTTPHeaderField: "X-User-Agent")

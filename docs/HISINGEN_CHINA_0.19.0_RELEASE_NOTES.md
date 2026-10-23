@@ -4,7 +4,7 @@ Hisingen China 0.19.0 is based on upstream Hisingen `v2.0.10` (build 28). This r
 
 ## What changed
 
-- Native mainland China phone + SMS sign-in inside Hisingen Settings.
+- Native mainland China phone + SMS sign-in inside Hisingen Settings. A signed-in account can run **Verify Session** to exercise Keychain restore, token refresh and vehicle discovery without issuing a vehicle command.
 - China credentials and both China token families are stored in a dedicated macOS Keychain item.
 - Local-token and global-token refresh are independent of Hisingen's Global Polestar session. Refresh responses may retain the existing refresh and ID tokens when the service rotates only the access token.
 - Linked vehicles are discovered through the China `car-information/car` service. Empty accounts, response wrappers, common VIN aliases and duplicate VIN rows are handled safely.

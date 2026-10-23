@@ -27,7 +27,7 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
 
     func requestVerificationCode(
         phone: String,
-        challenge: ChinaPolestarChallengePayload? = nil
+        challenge: ChinaPolestarChallengePayload
     ) async throws {
         try await transport.requestVerificationCode(phone: phone, challenge: challenge)
     }
@@ -57,7 +57,9 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         preferredVIN: String?,
         features: FeatureSelection
     ) async throws {
-        _ = try await completePhoneSignIn(phone: email, code: password)
+        // China interactive SMS authentication is explicitly driven by ChinaPolestarAccountView.
+        // Never reinterpret a stored password field as a one-time verification code.
+        throw PolestarError.authenticationRequired(.noStoredSession)
     }
 
     func restoreSession(preferredVIN: String?, features: FeatureSelection) async throws {

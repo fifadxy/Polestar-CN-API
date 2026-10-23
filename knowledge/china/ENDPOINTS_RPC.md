@@ -47,7 +47,7 @@ The M2M route has `POST /token` and `GET /v1/vehicles`; read-only telemetry fami
 | Account gateway | `https://gw.app.polestar-auto.com` | Official app phone/SMS, login and global-refresh routes | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | User center | `https://uc.app.polestar-auto.com/oauth/token` | Official app local refresh route | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | Official China web login | `https://www.polestar.cn/zh-cn/auth/login/` | Official website login page | VERIFIED website URL; not used by native 0.19 |
-| C3 static/discovery | `https://cnepmob.volvocars.com.cn` | China app C3 static path | Mac IMPLEMENTED_UNVERIFIED |
+| C3 static/discovery | `https://cnepmob.volvocars.com.cn` | Public v1/v2 documents return the China C3 host and port | Transport verified without Authorization; telemetry IMPLEMENTED_UNVERIFIED |
 | Vehicle discovery REST | `https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car` | Official app linked-car service and fields | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | C3 LBS-related | `cepmob.lbs.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY |
 | C3 signature-related | `cepmobsig.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY |
@@ -81,14 +81,16 @@ Paths below are source-backed Hisingen service paths. In 0.19 they are wired to 
 
 ## D. Global PCCS Chronos → China mapping
 
-| Global gRPC method | Semantics | China status |
-| --- | --- | --- |
-| `/pccs.chronos.services.v1.TargetSocService/GetTargetSoc` | Read target SOC | IMPLEMENTED_UNVERIFIED |
-| `/pccs.chronos.services.v1.AmpLimitService/GetAmpLimit` | Read current limit | IMPLEMENTED_UNVERIFIED |
-| `/pccs.chronos.services.v2.GlobalChargeTimerService/GetGlobalChargeTimerStream` | Read charge schedule | IMPLEMENTED_UNVERIFIED |
-| `/pccs.chronos.services.v1.ChargeLocationService/GetChargeLocations` | Charging locations | IMPLEMENTED_UNVERIFIED |
-| `/pccs.chronos.services.v1.ParkingClimateTimerService/GetTimers` | Climate timers | IMPLEMENTED_UNVERIFIED |
-| `/pccs.chronos.services.v1.LocationService/GetLocation` | Fallback location | IMPLEMENTED_UNVERIFIED |
+| Global gRPC method | Semantics | Official China vehicle gate | China status |
+| --- | --- | --- | --- |
+| `/pccs.chronos.services.v1.TargetSocService/GetTargetSoc` | Read target SOC | `supportsTargetChargeLevelSetting` | Capability-gated; IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.AmpLimitService/GetAmpLimit` | Read current limit | `supportsGlobalChargeAmperageLimitSetting` | Capability-gated; IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v2.GlobalChargeTimerService/GetGlobalChargeTimerStream` | Read charge schedule | `supportsGlobalChargeTimer` | Capability-gated; IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.ChargeLocationService/GetChargeLocations` | Charging locations | charge-location support fields or a positive location limit | Capability-gated; IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.ParkingClimateTimerService/GetTimers` | Climate timers | `supportsParkingClimatizationTimerSettings` | Capability-gated; IMPLEMENTED_UNVERIFIED |
+| `/pccs.chronos.services.v1.LocationService/GetLocation` | Fallback location | No confirmed `car-information` gate | Optional read; IMPLEMENTED_UNVERIFIED |
+
+These gates are vehicle-specific. The official client defaults missing values to false, so Hisingen does not infer PCCS support from the strings “Polestar 2”, “Polestar 3” or “Polestar 4”. A static model-name mapping would be less precise than the backend capability contract.
 
 China proto introspection has observed `com.volvocars.conncar.digitaltwin.chronos.proto.messages.targetsoc.v1.SetTargetSocRequest` with `batteryChargeTargetLevel_`, `chargeTargetLevelSettingType_`, and `request_` fields. This **does not** prove an authenticated China `SetTargetSoc` RPC is supported or permitted.
 

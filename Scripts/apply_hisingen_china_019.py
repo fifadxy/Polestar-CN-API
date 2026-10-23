@@ -32,8 +32,9 @@ copy_patch("ChinaPolestarSession.swift", "Sources/Hisingen/Services/API/ChinaPol
 copy_patch("ChinaPolestarAPI.swift", "Sources/Hisingen/Services/API/ChinaPolestarAPI.swift")
 copy_patch("ChinaPolestarViews.swift", "Sources/Hisingen/UI/Settings/ChinaPolestarViews.swift")
 
-# PolestarGRPC remains the original implementation. Only its two service roots become
-# injectable so the China provider can select China hosts while Global keeps exact defaults.
+# PolestarGRPC remains the original implementation. Its service roots and discovery
+# authorization policy become injectable so China can use the public discovery document
+# without leaking a bearer token, while Global keeps its exact defaults.
 grpc = ROOT / "Sources/Hisingen/Services/API/PolestarGRPC.swift"
 replace_once(
     grpc,
@@ -49,17 +50,49 @@ replace_once(
 )
 replace_once(
     grpc,
+    '    private let pccsURL: URL\n',
+    '    private let pccsURL: URL\n    private let sendsAuthorizationForDiscovery: Bool\n',
+    "Configurable C3 discovery authorization",
+)
+replace_once(
+    grpc,
     """    init(defaultsSuiteName: String? = nil, session: URLSession? = nil,
          diagnosticLog: APIDiagnosticLogStore = .shared) {
         self.defaults = defaultsSuiteName.flatMap(UserDefaults.init(suiteName:)) ?? .standard""",
     """    init(defaultsSuiteName: String? = nil, session: URLSession? = nil,
          diagnosticLog: APIDiagnosticLogStore = .shared,
          discoveryURL: URL = URL(string: "https://cnepmob.volvocars.com")!,
-         pccsURL: URL = URL(string: "https://api.pccs-prod.plstr.io:443")!) {
+         pccsURL: URL = URL(string: "https://api.pccs-prod.plstr.io:443")!,
+         sendsAuthorizationForDiscovery: Bool = true) {
         self.discoveryURL = discoveryURL
         self.pccsURL = pccsURL
+        self.sendsAuthorizationForDiscovery = sendsAuthorizationForDiscovery
         self.defaults = defaultsSuiteName.flatMap(UserDefaults.init(suiteName:)) ?? .standard""",
     "PolestarGRPC endpoint injection with Global defaults",
+)
+
+# China C3 discovery is a public configuration document. Global retains the original
+# authenticated request by default; the China provider explicitly opts out.
+replace_once(
+    grpc,
+    """        let diagnosticLog = diagnosticLog
+        // Nothing may suspend between the single-flight check above and the assignment below.""",
+    """        let diagnosticLog = diagnosticLog
+        let sendsAuthorizationForDiscovery = sendsAuthorizationForDiscovery
+        // Nothing may suspend between the single-flight check above and the assignment below.""",
+    "C3 discovery authorization capture",
+)
+replace_once(
+    grpc,
+    """                request.setValue(attempt.accept, forHTTPHeaderField: "Accept")
+                request.setValue("Bearer \\(attempt.token)", forHTTPHeaderField: "Authorization")
+                do {""",
+    """                request.setValue(attempt.accept, forHTTPHeaderField: "Accept")
+                if sendsAuthorizationForDiscovery {
+                    request.setValue("Bearer \\(attempt.token)", forHTTPHeaderField: "Authorization")
+                }
+                do {""",
+    "C3 discovery authorization policy",
 )
 
 # Settings uses the same cards, theme tokens, type scale and account composition as Hisingen.

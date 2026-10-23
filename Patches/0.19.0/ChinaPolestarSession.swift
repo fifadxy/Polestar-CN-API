@@ -427,7 +427,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
             throw PolestarError.incompatibleAPI(operation: "China refresh token response")
         }
         let global = dictionary(root["globleToken"] ?? root["globle_token"] ?? root["globalToken"])
-            .flatMap(decodeGlobalDictionary)
+            .flatMap { decodeGlobalDictionary($0) }
         if requiresGlobal && global == nil {
             throw PolestarError.incompatibleAPI(operation: "China global token response")
         }

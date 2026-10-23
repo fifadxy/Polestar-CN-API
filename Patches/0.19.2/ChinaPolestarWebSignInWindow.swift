@@ -50,7 +50,7 @@ final class ChinaPolestarWebSignInWindow: NSObject, WKUIDelegate, WKNavigationDe
               let url = navigationAction.request.url else { return nil }
         if url.scheme?.lowercased() == "https" {
             webView.load(navigationAction.request)
-        } else if ["mailto", "tel"].contains(url.scheme?.lowercased() ?? "") {
+        } else if url.scheme?.lowercased() != "javascript" {
             NSWorkspace.shared.open(url)
         }
         return nil

@@ -83,6 +83,7 @@ struct ChinaPolestarAccountView: View {
     @State private var vehicleCount = 0
     @State private var notice: String?
     @State private var noticeIsError = false
+    @State private var hasProtocolMaterial = ChinaPolestarProtocolMaterialStore.hasStoredMaterial
 
     private var isBusy: Bool { isSendingCode || isSigningIn }
 
@@ -135,7 +136,10 @@ struct ChinaPolestarAccountView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .task { await reloadStatus() }
+        .task {
+            hasProtocolMaterial = ChinaPolestarProtocolMaterialStore.hasStoredMaterial
+            await reloadStatus()
+        }
     }
 
     private var sessionBanner: some View {
@@ -150,7 +154,7 @@ struct ChinaPolestarAccountView: View {
                     .frame(width: 10, height: 10)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(hasSession ? "已连接 · Polestar China" : "Not 已连接 · Polestar China")
+                Text(hasSession ? "已连接 · Polestar China" : "未连接 · Polestar China")
                     .hisType(.body, weight: .semibold)
                 if hasSession {
                     let account = maskedPhone ?? "Keychain session"
@@ -159,7 +163,7 @@ struct ChinaPolestarAccountView: View {
                         .hisType(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("Sign in with the phone number and 验证码 used by Polestar China.")
+                    Text("使用极星中国官方 App 相同的手机号 + 短信验证码链路登录。")
                         .hisType(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -177,6 +181,21 @@ struct ChinaPolestarAccountView: View {
 
     private var signInFields: some View {
         VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 7) {
+                Image(systemName: hasProtocolMaterial ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                    .foregroundStyle(hasProtocolMaterial ? HisingenTheme.semanticGood : HisingenTheme.semanticWarning)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hasProtocolMaterial ? "网关协议材料：已就绪" : "网关协议材料：未配置")
+                        .hisType(.caption, weight: .semibold)
+                    if !hasProtocolMaterial {
+                        Text("首次使用请运行安装包中的 provision_cn_protocol_material.py，从你自己的官方 Android DEX 本地导入；材料只进入 macOS 钥匙串，不会显示或上传。")
+                            .hisType(.micro)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 Text("中国大陆手机号")
                     .hisType(.caption, weight: .semibold)
@@ -195,7 +214,7 @@ struct ChinaPolestarAccountView: View {
                         }
                     }
                     .controlSize(.small)
-                    .disabled(isBusy || phone.filter(\.isNumber).count < 11)
+                    .disabled(isBusy || !hasProtocolMaterial || phone.filter(\.isNumber).count < 11)
                 }
             }
 
@@ -228,8 +247,33 @@ struct ChinaPolestarAccountView: View {
     }
 
     private func sendCode(challenge: ChinaPolestarChallengePayload? = nil) {
-        isSendingCode = true
         notice = nil
+        hasProtocolMaterial = ChinaPolestarProtocolMaterialStore.hasStoredMaterial
+        guard hasProtocolMaterial else {
+            notice = ChinaPolestarProtocolMaterialError.missing.localizedDescription
+            noticeIsError = true
+            return
+        }
+
+        // The official Android flow obtains sessionId/sig/token from the H5 slider first,
+        // then sends the verification-code request. Do not probe the gateway with null values.
+        guard let challenge else {
+            isSendingCode = true
+            notice = "请完成极星中国官方滑块验证。"
+            noticeIsError = false
+            ChinaPolestarChallengeWindow.shared.open { result in
+                guard let result else {
+                    isSendingCode = false
+                    notice = "滑块验证已取消。"
+                    noticeIsError = true
+                    return
+                }
+                sendCode(challenge: result)
+            }
+            return
+        }
+
+        isSendingCode = true
         Task {
             do {
                 try await ChinaPolestarAPI.shared.requestVerificationCode(
@@ -242,7 +286,7 @@ struct ChinaPolestarAccountView: View {
                 isSendingCode = false
             } catch ChinaPolestarSignInError.captchaRequired {
                 isSendingCode = false
-                notice = "需要完成官方滑块验证后才能发送验证码。"
+                notice = "验证已失效，请重新完成官方滑块验证。"
                 noticeIsError = false
                 ChinaPolestarChallengeWindow.shared.open { result in
                     guard let result else {

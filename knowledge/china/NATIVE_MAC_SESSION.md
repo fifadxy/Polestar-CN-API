@@ -17,7 +17,7 @@ China and Global are separate providers:
 | PCCS | `https://api.pccs-prod.origin.polestar.cn` | `https://api.pccs-prod.plstr.io:443` |
 | Remote commands | Disabled | Original Hisingen behavior |
 
-The Mac artifact does not require an Android device, ADB, Frida, a localhost listener or a companion process.
+The Mac artifact does not require an Android device, ADB, Frida, a localhost listener or a companion process. The retired Python Bridge source and launcher are not present on this branch.
 
 ## Authentication sequence
 
@@ -27,7 +27,8 @@ The Mac artifact does not require an Android device, ADB, Frida, a localhost lis
 4. Parse the local account token and the nested `globleToken` token family.
 5. Persist the session only in the dedicated macOS Keychain item.
 6. Discover linked vehicles with `GET https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car`.
-7. Supply the global token to China C3 discovery and the read-only telemetry client.
+7. Resolve the China C3 host from its public versioned discovery document without an authorization header.
+8. Supply the global token only to authenticated vehicle discovery and read-only telemetry calls.
 
 Observed request constants:
 
@@ -49,6 +50,8 @@ Observed request constants:
 - A five-minute margin refreshes before expiry.
 - JWT `exp` is used when available; otherwise the server `expiresIn` value is used.
 - One actor-owned refresh task prevents concurrent refresh fan-out.
+- If a refresh response rotates only the access token, the existing refresh token and ID token are preserved.
+- If the global exchange rejects an otherwise unexpired local token, the local token is refreshed once before retrying.
 - Tokens, SMS codes, authorization headers, phone numbers and full VINs are never written to diagnostics.
 
 The mobile-client secret is a protocol constant embedded in the distributed official application, not an end-user secret. Hisingen does not store it in Keychain or log it.
@@ -57,9 +60,11 @@ The mobile-client secret is a protocol constant embedded in the distributed offi
 
 The China provider reuses Hisingen's typed C3/PCCS parsers with injected China roots. Battery is the required core read. Optional feature reads fail independently and are marked unavailable rather than discarding a usable battery snapshot.
 
+The official China client decodes vehicle-level capability fields from `car-information`. Hisingen now uses the same fields to decide whether to call PCCS Target SOC, global amperage, charge timer/location and parking-climate timer reads. Missing fields default to unsupported, matching the official decoder. The model name remains display and diagnostic metadata; it is not used to invent a static P2/P3/P4 endpoint table.
+
 The implementation wires:
 
-- vehicle discovery and metadata;
+- vehicle discovery and metadata, including valid empty accounts, common wrappers and stable duplicate-VIN handling;
 - battery, range and charging state;
 - availability;
 - exterior state;
@@ -75,7 +80,7 @@ Compatibility of a named China service is still an end-to-end question. A compil
 ## Failure policy
 
 - Missing or expired credentials produce an authentication-required state.
-- A failed global-token request performs one refresh and retry.
+- An authentication failure on a vehicle request performs one token refresh and retry.
 - HTTP and response sizes are bounded; response bodies and tokens are not logged.
 - Alibaba challenge code `2002016` is surfaced as a blocking account-protection challenge.
 - Every China remote command returns `RemoteCommandError.unsupported`, while the command catalog hides the controls.

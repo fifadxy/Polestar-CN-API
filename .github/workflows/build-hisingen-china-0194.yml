@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s Tests -p 'test_native_mac_contract_0194.py' -v
-          python3 -m py_compile Scripts/apply_hisingen_china_0194.py
+          python3 -m py_compile Scripts/apply_hisingen_china_0194.py Tools/auth_probe/provision_cn_protocol_material.py
           bash -n Tools/auth_probe/setup_root_frida_mac.sh Tools/auth_probe/collect_device_info.sh Tools/auth_probe/capture_metadata_mac.sh
           if command -v node >/dev/null 2>&1; then node --check Tools/auth_probe/okhttp_metadata_only.js; fi
 
@@ -45,6 +45,8 @@ jobs:
           ! grep -R -E '127\.0\.0\.1|28765|ChinaBridge|httpCookieStore|evaluateJavaScript|document\.cookie' "$NATIVE"
           grep -F 'io.kheirallah.hisingen.polestar-cn' "$NATIVE/ChinaPolestarSession.swift"
           grep -F 'throw RemoteCommandError.unsupported' "$NATIVE/ChinaPolestarAPI.swift"
+          grep -F 'io.kheirallah.hisingen.polestar-cn.protocol' "$NATIVE/ChinaPolestarSession.swift"
+          ! grep -R -E '(^|[^0-9A-F])[0-9A-F]{32}([^0-9A-F]|$)' "$NATIVE"
 
       - name: Clone upstream Hisingen
         shell: bash
@@ -62,7 +64,7 @@ jobs:
           grep -F 'actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarAPI.swift"
           grep -F 'user/api/v2/oauth/login/phone' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarSession.swift"
           grep -F 'URLQueryItem(name: "sign", value: signature)' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarSession.swift"
-          grep -F 'https://account.app.polestar-auto.com/account-components/auth-slider/index.html' "$SRC/Sources/Hisingen/Services/Security/ChinaPolestarChallengeWindow.swift"
+          grep -F 'https://h5.app.polestar-auto.com/account-components/auth-slider/index.html' "$SRC/Sources/Hisingen/Services/Security/ChinaPolestarChallengeWindow.swift"
           grep -F 'https://polestarid.polestar.cn' "$SRC/Sources/Hisingen/Services/Security/ChinaPolestarWebSignInWindow.swift"
           grep -F 'appendingPathComponent("car-information/car")' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarSession.swift"
           grep -F 'https://cnepmob.volvocars.com.cn' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarAPI.swift"
@@ -155,7 +157,7 @@ jobs:
           grep -F 'if ChinaPolestarRuntime.currentRegion == .mainlandChina' Sources/Hisingen/Services/Coordination/ProviderCommandCatalog.swift
 
           strings "$BIN" >"$RUNNER_TEMP/hisingen-0194.strings"
-          for value in 'https://gw.app.polestar-auto.com' 'user/api/v2/oauth/login/phone' 'https://account.app.polestar-auto.com/account-components/auth-slider/index.html' 'https://polestarid.polestar.cn' 'car-information/car' 'https://cnepmob.volvocars.com.cn' 'https://api.pccs-prod.origin.polestar.cn' 'io.kheirallah.hisingen.polestar-cn' 'https://cnepmob.volvocars.com' 'https://api.pccs-prod.plstr.io:443'
+          for value in 'https://gw.app.polestar-auto.com' 'user/api/v2/oauth/login/phone' 'https://h5.app.polestar-auto.com/account-components/auth-slider/index.html' 'https://polestarid.polestar.cn' 'car-information/car' 'https://cnepmob.volvocars.com.cn' 'https://api.pccs-prod.origin.polestar.cn' 'io.kheirallah.hisingen.polestar-cn' 'https://cnepmob.volvocars.com' 'https://api.pccs-prod.plstr.io:443'
           do
             grep -F "$value" "$RUNNER_TEMP/hisingen-0194.strings"
           done
@@ -188,9 +190,10 @@ jobs:
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$DIST/Hisingen China.app" "$DIST/Hisingen-China-0.19.4-Native-Mac.app.zip"
           cp Scripts/install_hisingen_china_0194.command "$DIST/"
           cp docs/HISINGEN_CHINA_0.19.4_RELEASE_NOTES.md "$DIST/RELEASE_NOTES.md"
-          chmod +x "$DIST/install_hisingen_china_0194.command"
+          cp Tools/auth_probe/provision_cn_protocol_material.py "$DIST/"
+          chmod +x "$DIST/install_hisingen_china_0194.command" "$DIST/provision_cn_protocol_material.py"
           cd "$DIST"
-          shasum -a 256 Hisingen-China-0.19.4-Native-Mac.app.zip install_hisingen_china_0194.command RELEASE_NOTES.md > SHA256SUMS.txt
+          shasum -a 256 Hisingen-China-0.19.4-Native-Mac.app.zip install_hisingen_china_0194.command provision_cn_protocol_material.py RELEASE_NOTES.md > SHA256SUMS.txt
           test ! -e polestar_china_bridge.py
           test ! -e start_china_bridge.command
 
@@ -201,6 +204,7 @@ jobs:
           path: |
             ${{ runner.temp }}/dist/Hisingen-China-0.19.4-Native-Mac.app.zip
             ${{ runner.temp }}/dist/install_hisingen_china_0194.command
+            ${{ runner.temp }}/dist/provision_cn_protocol_material.py
             ${{ runner.temp }}/dist/RELEASE_NOTES.md
             ${{ runner.temp }}/dist/SHA256SUMS.txt
           if-no-files-found: error

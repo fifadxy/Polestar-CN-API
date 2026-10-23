@@ -6,14 +6,15 @@ Hisingen China 0.19.0 is based on upstream Hisingen `v2.0.10` (build 28). This r
 
 - Native mainland China phone + SMS sign-in inside Hisingen Settings.
 - China credentials and both China token families are stored in a dedicated macOS Keychain item.
-- Local-token and global-token refresh are independent of Hisingen's Global Polestar session.
-- Linked vehicles are discovered through the China `car-information/car` service.
-- The China provider injects the China C3 discovery and PCCS roots into Hisingen's existing Swift telemetry implementation.
+- Local-token and global-token refresh are independent of Hisingen's Global Polestar session. Refresh responses may retain the existing refresh and ID tokens when the service rotates only the access token.
+- Linked vehicles are discovered through the China `car-information/car` service. Empty accounts, response wrappers, common VIN aliases and duplicate VIN rows are handled safely.
+- The China provider injects the China C3 discovery and PCCS roots into Hisingen's existing Swift telemetry implementation. Public China C3 discovery does not receive an account bearer token.
+- PCCS target SOC, amperage, charging schedule/location and climate-timer reads are selected from the vehicle capability fields used by the official China client, not guessed from the model name.
 - Battery, range, charging, exterior, availability, odometer, health, software, climate, schedules, connectivity, air quality, location and weather reads are wired where the China backend exposes the compatible service.
 - Native C3 battery and exterior streams use Hisingen's existing stream engine.
 - First launch, the native app menu, the menu-bar popover and Settings all expose China / Global selection.
 - The Settings UI uses the original Hisingen card, typography, spacing, color and motion system.
-- The distributable contains only the Mac app, installer, release notes and checksums. It does not contain or start an Android bridge or localhost service.
+- The retired Python Bridge source and launcher have been removed from the Mac branch. The distributable contains only the Mac app, installer, release notes and checksums.
 
 ## Safety boundary
 
@@ -24,7 +25,7 @@ All China vehicle-changing operations remain disabled in both the capability cat
 | Area | 0.19.0 status |
 | --- | --- |
 | Source patch against Hisingen 2.0.10 | Automated |
-| Native Mac contract / no-Bridge checks | Automated |
+| Native Mac contract / no-Bridge checks | Automated, including repository source absence |
 | Xcode 27 compilation and app launch | GitHub Actions |
 | macOS 15 / macOS 26 packaged-app launch | GitHub Actions |
 | Global provider source isolation | Automated |

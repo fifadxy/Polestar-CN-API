@@ -49,5 +49,15 @@ echo
 echo "Installed: $TARGET"
 echo "China Patch: $PATCH_VERSION"
 echo
-echo "Sign in from Settings -> Accounts with your mainland China phone number and SMS code."
-echo "No Android app, localhost service, or companion process is required."
+if /usr/bin/security find-generic-password \
+  -s "io.kheirallah.hisingen.polestar-cn.protocol" \
+  -a "gateway-client-material-v1" >/dev/null 2>&1; then
+  echo "China gateway protocol material: configured in Keychain."
+else
+  echo "China gateway protocol material: NOT configured."
+  echo "Before first China login, run:"
+  echo "  python3 \"$SCRIPT_DIR/provision_cn_protocol_material.py\" /path/to/Polestar-China-Dex.zip"
+fi
+echo
+echo "Then sign in from Settings -> Accounts with your mainland China phone number and SMS code."
+echo "The rooted Android phone/DEX is used only for one-time local protocol provisioning; no Android bridge or companion process is required at runtime."

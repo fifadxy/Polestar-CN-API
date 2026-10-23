@@ -2,7 +2,7 @@
 
 Research and interoperability tooling for China-region Polestar vehicle data and the **Hisingen China** native macOS preview.
 
-> **Status (2026-10-23):** Hisingen China 0.19.0, based on upstream Hisingen v2.0.10. Mac now has an independent native China phone/SMS session, dedicated Keychain item, linked-vehicle discovery and China C3/PCCS read path. It is **not Bridge mode**. Real-account/vehicle end-to-end validation is still required, and China remote commands remain disabled.
+> **Status (2026-10-23):** Hisingen China 0.19.0, based on upstream Hisingen v2.0.10. Mac now has an independent native China phone/SMS session, dedicated Keychain item, linked-vehicle discovery and China C3/PCCS read path. China C3 discovery uses the public configuration document without a bearer header, and PCCS reads follow per-vehicle capability fields from `car-information`. The retired Python Bridge source has been removed from this branch. Real-account/vehicle end-to-end validation is still required, and China remote commands remain disabled.
 
 ## Start here
 

@@ -49,6 +49,17 @@ actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming {
         )
     }
 
+    /// Verifies the complete native China session chain without changing vehicle state:
+    /// Keychain restore, token refresh when required, and authenticated vehicle discovery.
+    func verifyStoredSession() async throws -> ChinaPolestarAccountStatus {
+        if accountSession == nil {
+            accountSession = try ChinaPolestarSessionStore.load()
+        }
+        guard accountSession != nil else { throw PolestarError.notConfigured }
+        try await loadCarsWithTokenRecovery()
+        return accountStatus()
+    }
+
     func authenticate(
         email: String,
         password: String,

@@ -121,6 +121,13 @@ class NativeMacContractTests(unittest.TestCase):
         self.assertIn("needsCharging && supportsTargetSoc", API)
         self.assertIn("needsCharging && supportsAmpLimit", API)
 
+    def test_native_session_verification_is_exposed(self):
+        self.assertIn("func verifyStoredSession()", API)
+        self.assertIn("try await loadCarsWithTokenRecovery()", API)
+        self.assertIn("ChinaPolestarAPI.shared.verifyStoredSession()", VIEWS)
+        self.assertIn("Session valid. No linked vehicles found.", VIEWS)
+        self.assertIn("Checks DNS, TLS and HTTP reachability only.", VIEWS)
+
     def test_remote_commands_fail_closed(self):
         self.assertRegex(
             API,

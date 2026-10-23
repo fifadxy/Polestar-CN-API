@@ -6,7 +6,7 @@ import WebKit
 final class ChinaPolestarChallengeWindow: NSObject, WKScriptMessageHandler, WKNavigationDelegate, NSWindowDelegate {
     static let shared = ChinaPolestarChallengeWindow()
     static let challengeURL = URL(
-        string: "https://account.app.polestar-auto.com/account-components/auth-slider/index.html"
+        string: "https://h5.app.polestar-auto.com/account-components/auth-slider/index.html"
     )!
 
     private var window: NSWindow?
@@ -74,26 +74,18 @@ final class ChinaPolestarChallengeWindow: NSObject, WKScriptMessageHandler, WKNa
         }
         guard let raw = body as? String else { return nil }
 
-        var candidates = [raw, raw.removingPercentEncoding ?? raw]
-        if let components = URLComponents(string: raw),
-           let value = components.queryItems?.first(where: { $0.name == "data" })?.value {
-            candidates.append(value)
-            candidates.append(value.removingPercentEncoding ?? value)
+        // The Android bridge first URL-decodes the message, then if "data=" is present
+        // takes the entire suffix after it before parsing JSON. Mirror that behavior exactly.
+        var decoded = raw.removingPercentEncoding ?? raw
+        if let range = decoded.range(of: "data=") {
+            decoded = String(decoded[range.upperBound...])
+            decoded = decoded.removingPercentEncoding ?? decoded
         }
-
-        for candidate in candidates {
-            var text = candidate
-            if let range = text.range(of: "data=") {
-                text = String(text[range.upperBound...].split(separator: "&", maxSplits: 1)[0])
-                text = text.removingPercentEncoding ?? text
-            }
-            guard let data = text.data(using: .utf8),
-                  let object = try? JSONSerialization.jsonObject(with: data)
-            else { continue }
-            if let dictionary = object as? [String: Any],
-               let result = challengePayload(from: dictionary) {
-                return result
-            }
+        guard let data = decoded.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data)
+        else { return nil }
+        if let dictionary = object as? [String: Any] {
+            return challengePayload(from: dictionary)
         }
         return nil
     }

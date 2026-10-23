@@ -94,12 +94,7 @@ enum ChinaPolestarSessionStore {
     }
 
     static func save(_ session: ChinaPolestarSession) throws {
-        let data: Data
-        do {
-            data = try JSONEncoder().encode(session)
-        } catch {
-            throw KeychainError.status(errSecEncode)
-        }
+        let data = try JSONEncoder().encode(session)
 
         let updateStatus = SecItemUpdate(
             baseQuery as CFDictionary,

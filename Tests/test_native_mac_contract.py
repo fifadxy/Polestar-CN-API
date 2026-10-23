@@ -54,6 +54,7 @@ class NativeMacContractTests(unittest.TestCase):
         self.assertIn('service = "io.kheirallah.hisingen.polestar-cn"', SESSION)
         self.assertIn('account = "native-session-v1"', SESSION)
         self.assertIn("kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly", SESSION)
+        self.assertNotIn("errSecEncode", SESSION)
         self.assertNotIn("polestar-refresh-token", SESSION)
         self.assertIn("signOutChinaSession", APPLY)
         self.assertIn("ChinaPolestarSessionStore.delete()", APPLY)

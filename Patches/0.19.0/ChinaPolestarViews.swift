@@ -78,13 +78,14 @@ struct ChinaPolestarAccountView: View {
     @State private var codeRequested = false
     @State private var isSendingCode = false
     @State private var isSigningIn = false
+    @State private var isVerifyingSession = false
     @State private var hasSession = ChinaPolestarSessionStore.hasStoredSession
     @State private var maskedPhone: String?
     @State private var vehicleCount = 0
     @State private var notice: String?
     @State private var noticeIsError = false
 
-    private var isBusy: Bool { isSendingCode || isSigningIn }
+    private var isBusy: Bool { isSendingCode || isSigningIn || isVerifyingSession }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -93,13 +94,17 @@ struct ChinaPolestarAccountView: View {
             if hasSession {
                 HStack(spacing: 8) {
                     Button {
-                        notice = nil
-                        onSettingsChanged(.credentials)
+                        verifySession()
                     } label: {
-                        Label("Refresh Session", systemImage: "arrow.clockwise")
+                        if isVerifyingSession {
+                            ProgressView().controlSize(.mini)
+                        } else {
+                            Label("Verify Session", systemImage: "checkmark.shield")
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                    .disabled(isBusy)
 
                     Button(role: .destructive) {
                         hasSession = false
@@ -256,7 +261,13 @@ struct ChinaPolestarAccountView: View {
                 verificationCode = ""
                 hasSession = true
                 vehicleCount = count
-                notice = count == 1 ? "Signed in and found 1 vehicle." : "Signed in and found \(count) vehicles."
+                if count == 0 {
+                    notice = "Signed in. No linked vehicles found."
+                } else {
+                    notice = count == 1
+                        ? "Signed in and found 1 vehicle."
+                        : "Signed in and found \(count) vehicles."
+                }
                 noticeIsError = false
                 await reloadStatus()
                 onSettingsChanged(.credentials)
@@ -266,6 +277,33 @@ struct ChinaPolestarAccountView: View {
                 await reloadStatus()
             }
             isSigningIn = false
+        }
+    }
+
+    private func verifySession() {
+        isVerifyingSession = true
+        notice = nil
+        Task {
+            do {
+                let status = try await ChinaPolestarAPI.shared.verifyStoredSession()
+                hasSession = status.signedIn
+                maskedPhone = status.maskedPhone
+                vehicleCount = status.vehicleCount
+                if status.vehicleCount == 0 {
+                    notice = "Session valid. No linked vehicles found."
+                } else {
+                    notice = status.vehicleCount == 1
+                        ? "Session valid. Found 1 vehicle."
+                        : "Session valid. Found \(status.vehicleCount) vehicles."
+                }
+                noticeIsError = false
+                onSettingsChanged(.credentials)
+            } catch {
+                notice = error.localizedDescription
+                noticeIsError = true
+                await reloadStatus()
+            }
+            isVerifyingSession = false
         }
     }
 
@@ -330,11 +368,16 @@ struct ChinaPolestarSettingsCard: View {
                         if isRunningDiagnostics {
                             ProgressView().controlSize(.mini)
                         } else {
-                            Label("Run China Backend Diagnostics", systemImage: "stethoscope")
+                            Label("Test China Network Routes", systemImage: "stethoscope")
                         }
                     }
                     .controlSize(.small)
                     .disabled(isRunningDiagnostics)
+
+                    Text("Checks DNS, TLS and HTTP reachability only. It does not validate SMS login, token authorization or a gRPC method.")
+                        .hisType(.micro)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if !diagnostics.isEmpty {
                         Divider().opacity(HisingenTheme.dividerOpacity)
@@ -349,7 +392,13 @@ struct ChinaPolestarSettingsCard: View {
                                 }
                                 Spacer()
                                 if let code = item.statusCode {
-                                    Text("HTTP \(code)").hisType(.micro).foregroundStyle(.secondary)
+                                    Text("Reached · HTTP \(code)")
+                                        .hisType(.micro)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("No response")
+                                        .hisType(.micro)
+                                        .foregroundStyle(HisingenTheme.semanticCritical)
                                 }
                                 if let milliseconds = item.latencyMilliseconds {
                                     Text("\(milliseconds) ms").hisType(.micro).foregroundStyle(.secondary)

@@ -59,6 +59,7 @@ jobs:
           SRC="$RUNNER_TEMP/Hisingen"
           grep -F 'actor ChinaPolestarAPI: VehicleProviding, VehicleLiveStreaming' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarAPI.swift"
           grep -F 'https://www.polestar.cn/zh-cn/auth/login/' "$SRC/Sources/Hisingen/Services/Security/ChinaPolestarWebSignInWindow.swift"
+          grep -F 'web_to_vehicle_grant=NOT_IMPLEMENTED' "$SRC/Sources/Hisingen/Services/Security/ChinaPolestarWebSignInWindow.swift"
           grep -F 'appendingPathComponent("car-information/car")' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarSession.swift"
           grep -F 'https://cnepmob.volvocars.com.cn' "$SRC/Sources/Hisingen/Services/API/ChinaPolestarAPI.swift"
           grep -F 'ChinaPolestarAccountView' "$SRC/Sources/Hisingen/UI/Settings/AccountCredentialsForm.swift"

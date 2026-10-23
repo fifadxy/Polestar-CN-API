@@ -13,6 +13,7 @@ VIEWS = (PATCH / "ChinaPolestarViews.swift").read_text(encoding="utf-8")
 APPLY = (ROOT / "Scripts" / "apply_hisingen_china_0194.py").read_text(encoding="utf-8")
 WEB = (PATCH / "ChinaPolestarWebSignInWindow.swift").read_text(encoding="utf-8")
 CHALLENGE = (PATCH / "ChinaPolestarChallengeWindow.swift").read_text(encoding="utf-8")
+PROVISION = (ROOT / "Tools" / "auth_probe" / "provision_cn_protocol_material.py").read_text(encoding="utf-8")
 
 
 class NativeMacContractTests(unittest.TestCase):
@@ -32,6 +33,9 @@ class NativeMacContractTests(unittest.TestCase):
             "user/api/v2/oauth/login/phone",
             '"principal": normalized',
             '"aliScene": "ic_login_h5"',
+            '"aliSessionId": challenge.sessionID',
+            '"aliSign": challenge.signature',
+            '"aliToken": challenge.token',
             '"clientId": Self.clientID',
             '"type": "SIGNIN_BY_PHONE"',
             '"phone": normalized',
@@ -46,28 +50,36 @@ class NativeMacContractTests(unittest.TestCase):
             '("clientType", "PHONE")',
             '("systemVer", systemVersion)',
             '("appVer", protocolVersion)',
-            'let signSource = mobileClientSecret + canonical + mobileClientSecret',
+            'let protocolMaterial = try ChinaPolestarProtocolMaterialStore.loadRequired()',
+            'let signSource = protocolMaterial + canonical + protocolMaterial',
             'Insecure.MD5.hash',
             'URLQueryItem(name: "sign", value: signature)',
-            'forHTTPHeaderField: "version"',
             'forHTTPHeaderField: "Version"',
             'forHTTPHeaderField: "Device"',
             'forHTTPHeaderField: "X-User-Agent"',
         ]:
             self.assertIn(value, SESSION)
+        self.assertNotIn("mobileClientSecret", SESSION)
+        self.assertIsNone(re.search(r'(?<![0-9A-F])[0-9A-F]{32}(?![0-9A-F])', SESSION))
+        self.assertNotIn('forHTTPHeaderField: "version"', SESSION)
+        self.assertIn('service = "io.kheirallah.hisingen.polestar-cn.protocol"', SESSION)
         self.assertIn("requestVerificationCode(", API)
         self.assertIn("completePhoneSignIn(", API)
         self.assertIn("获取验证码", VIEWS)
         self.assertIn("短信验证码", VIEWS)
+        self.assertIn("网关协议材料：已就绪", VIEWS)
+        self.assertIn("provision_cn_protocol_material.py", VIEWS)
 
     def test_official_interactive_challenge(self):
-        self.assertIn("https://account.app.polestar-auto.com/account-components/auth-slider/index.html", CHALLENGE)
+        self.assertIn("https://h5.app.polestar-auto.com/account-components/auth-slider/index.html", CHALLENGE)
         self.assertIn('controller.add(self, name: "chromium")', CHALLENGE)
         self.assertIn("window.webkit.messageHandlers.chromium.postMessage", CHALLENGE)
         for key in ["sessionId", "sig", "token"]:
             self.assertIn(f'dictionary["{key}"]', CHALLENGE)
         self.assertIn("websiteDataStore = .nonPersistent()", CHALLENGE)
         self.assertIn("ChinaPolestarChallengeWindow.shared.open", VIEWS)
+        self.assertIn("guard let challenge else", VIEWS)
+        self.assertIn("请完成极星中国官方滑块验证", VIEWS)
         for forbidden in ["document.cookie", "httpCookieStore", "evaluateJavaScript",
                           "print(", "logger.", "NSLog"]:
             self.assertNotIn(forbidden, CHALLENGE)
@@ -76,6 +88,13 @@ class NativeMacContractTests(unittest.TestCase):
         self.assertIn("https://polestarid.polestar.cn", WEB)
         self.assertNotIn("https://www.polestar.cn/zh-cn/auth/login/", WEB)
         self.assertIn("ADVANCED_DIAGNOSTIC_ONLY", WEB)
+
+    def test_local_protocol_material_provisioner(self):
+        self.assertIn("Lcom/polestar/base/utils/a1;", PROVISION)
+        self.assertIn("gateway-client-material-v1", PROVISION)
+        self.assertIn("value not displayed", PROVISION)
+        self.assertIn("security", PROVISION)
+        self.assertNotRegex(PROVISION, r'(?<![0-9A-F])[0-9A-F]{32}(?![0-9A-F])')
 
     def test_token_families_and_refresh(self):
         for value in [

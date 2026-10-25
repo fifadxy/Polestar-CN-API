@@ -1,0 +1,283 @@
+name: Build Hisingen China Xcode 27
+
+on:
+  push:
+    branches:
+      - "chatgpt/hisingen-china-build-0.16.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Hisingen China
+    runs-on: xcode-27
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Xcode 27 toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Developer directory: $(xcode-select -p)"
+          xcodebuild -version
+          swift --version
+          xcrun --sdk macosx --show-sdk-path
+
+      - name: Clone upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.0.10 \
+            https://github.com/NicolasKheirallah/Hisingen.git \
+            "$RUNNER_TEMP/Hisingen"
+
+      - name: Patch China region
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPDIR="$RUNNER_TEMP/Hisingen/Sources/Hisingen/App"
+
+          cat > "$APPDIR/ChinaPolestarRegionController.swift" <<'SWIFT'
+          import AppKit
+          import Foundation
+          import WebKit
+
+          @MainActor
+          final class ChinaPolestarRegionController: NSObject {
+              private static let shared = ChinaPolestarRegionController()
+              private static let defaultsKey = "hisingen.polestar.signInRegion"
+              private var window: NSWindow?
+              private var webView: WKWebView?
+
+              static func install() {
+                  if UserDefaults.standard.object(forKey: defaultsKey) == nil {
+                      UserDefaults.standard.set("global", forKey: defaultsKey)
+                  }
+                  shared.installMenuItem()
+              }
+
+              private func installMenuItem() {
+                  guard let appMenu = NSApp.mainMenu?.items.first?.submenu else { return }
+                  if appMenu.items.contains(where: { $0.title == "Polestar Sign-In Region…" }) {
+                      return
+                  }
+                  let item = NSMenuItem(
+                      title: "Polestar Sign-In Region…",
+                      action: #selector(showChooser(_:)),
+                      keyEquivalent: ""
+                  )
+                  item.target = self
+                  let settingsIndex = appMenu.items.firstIndex {
+                      ["Settings…", "Settings...", "Preferences…", "Preferences..."].contains($0.title)
+                  }
+                  appMenu.insertItem(item, at: settingsIndex.map { $0 + 1 } ?? 0)
+              }
+
+              @objc private func showChooser(_ sender: Any?) {
+                  let alert = NSAlert()
+                  alert.messageText = "Polestar Sign-In Region"
+                  alert.informativeText =
+                      "Global keeps Hisingen's original Polestar login. " +
+                      "China opens the official Polestar China website. " +
+                      "Website login does not verify a China vehicle API session."
+                  alert.addButton(withTitle: "Global Polestar ID")
+                  alert.addButton(withTitle: "China Polestar ID · Official Web Sign-In")
+                  alert.addButton(withTitle: "Cancel")
+
+                  switch alert.runModal() {
+                  case .alertFirstButtonReturn:
+                      UserDefaults.standard.set("global", forKey: Self.defaultsKey)
+                      openSettings()
+                  case .alertSecondButtonReturn:
+                      UserDefaults.standard.set("chinaOfficialWeb", forKey: Self.defaultsKey)
+                      openChinaWeb()
+                  default:
+                      break
+                  }
+              }
+
+              private func openSettings() {
+                  guard let root = NSApp.mainMenu else { return }
+                  for item in root.items {
+                      guard let submenu = item.submenu else { continue }
+                      if let settings = submenu.items.first(where: {
+                          ["Settings…", "Settings...", "Preferences…", "Preferences..."].contains($0.title)
+                      }), let action = settings.action {
+                          _ = NSApp.sendAction(action, to: settings.target, from: settings)
+                          return
+                      }
+                  }
+              }
+
+              private func openChinaWeb() {
+                  if let window {
+                      window.makeKeyAndOrderFront(nil)
+                      NSApp.activate(ignoringOtherApps: true)
+                      return
+                  }
+
+                  let config = WKWebViewConfiguration()
+                  config.websiteDataStore = .default()
+                  let web = WKWebView(frame: NSRect(x: 0, y: 0, width: 700, height: 820), configuration: config)
+                  web.load(URLRequest(url: URL(string: "https://www.polestar.cn/zh-cn/auth/login/")!))
+
+                  let newWindow = NSWindow(
+                      contentRect: NSRect(x: 0, y: 0, width: 700, height: 820),
+                      styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                      backing: .buffered,
+                      defer: false
+                  )
+                  newWindow.title = "China Polestar ID · Official Web Sign-In"
+                  newWindow.contentView = web
+                  newWindow.center()
+                  newWindow.isReleasedWhenClosed = false
+                  self.webView = web
+                  self.window = newWindow
+                  newWindow.makeKeyAndOrderFront(nil)
+                  NSApp.activate(ignoringOtherApps: true)
+              }
+          }
+          SWIFT
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          p = Path(os.environ["RUNNER_TEMP"]) / "Hisingen/Sources/Hisingen/App/AppDelegate.swift"
+          s = p.read_text(encoding="utf-8")
+          needle = "        mainMenuController.install()\n"
+          hook = needle + "        ChinaPolestarRegionController.install()\n"
+          if "ChinaPolestarRegionController.install()" not in s:
+              if needle not in s:
+                  raise SystemExit("launch hook not found")
+              p.write_text(s.replace(needle, hook, 1), encoding="utf-8")
+          PY
+
+      - name: Build
+        working-directory: ${{ runner.temp }}/Hisingen
+        shell: bash
+        env:
+          NOTARIZE: never
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("Sources/Hisingen/UI/Controls/AccessControlsCard.swift")
+          s = p.read_text(encoding="utf-8")
+          old = '''        switch state.exteriorStatus?.isLocked {
+          case true: return "lock.open.fill"
+          case false: return "lock.fill"
+          case nil: return "questionmark.circle"
+          }'''
+          new = '''        switch state.exteriorStatus?.isLocked {
+          case .some(true): return "lock.open.fill"
+          case .some(false): return "lock.fill"
+          case .none: return "questionmark.circle"
+          }'''
+          if old in s:
+              p.write_text(s.replace(old, new, 1), encoding="utf-8")
+              print("Patched Optional Bool switch for current Swift compiler")
+          else:
+              print("Optional Bool switch already compatible or source changed")
+          PY
+
+          rm -rf .build
+          swift package resolve
+          echo "Building app bundle with CI-safe ad-hoc signing (IDENTITY=-)"
+          NOTARIZE=never make app IDENTITY=-
+          test -d releases/Hisingen.app
+
+      - name: Smoke test app on hosted macOS
+        working-directory: ${{ runner.temp }}/Hisingen
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="releases/Hisingen.app"
+          BIN="$APP/Contents/MacOS/Hisingen"
+          PLIST="$APP/Contents/Info.plist"
+
+          echo "== Bundle metadata =="
+          test -d "$APP"
+          test -x "$BIN"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")" = "io.kheirallah.hisingen"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")" = "2.0.10"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PLIST")" = "15.0"
+
+          echo "== Architecture and framework linkage =="
+          file "$BIN"
+          lipo -info "$BIN"
+          test -d "$APP/Contents/Frameworks/Sparkle.framework"
+          otool -L "$BIN" | grep -F "Sparkle.framework"
+
+          echo "== Signature integrity =="
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          echo "== Global and China integration markers =="
+          strings "$BIN" | grep -F "https://polestarid.eu.polestar.com"
+          strings "$BIN" | grep -F "https://www.polestar.cn/zh-cn/auth/login/"
+          strings "$BIN" | grep -F "Polestar Sign-In Region"
+          strings "$BIN" | grep -F "China Polestar ID "
+
+          echo "== China web-sign-in privacy boundary =="
+          PATCH="Sources/Hisingen/App/ChinaPolestarRegionController.swift"
+          ! grep -Eq "evaluateJavaScript|httpCookieStore|document\.cookie|WKScriptMessageHandler" "$PATCH"
+          grep -F "config.websiteDataStore = .default()" "$PATCH"
+
+          echo "== Official China login endpoint reachability =="
+          status="$(curl -L -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 25 'https://www.polestar.cn/zh-cn/auth/login/' || true)"
+          echo "China login HTTP status: $status"
+          case "$status" in
+            2*|3*|4*) ;;
+            *) echo "China login endpoint did not return an HTTP response" >&2; exit 1 ;;
+          esac
+
+          echo "== Process launch smoke test =="
+          rm -f "$RUNNER_TEMP/hisingen-launch.log"
+          "$BIN" >"$RUNNER_TEMP/hisingen-launch.log" 2>&1 &
+          pid=$!
+          sleep 12
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "Hisingen remained alive for 12 seconds (launch smoke test passed)."
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 2
+            kill -KILL "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+          else
+            echo "Hisingen exited during launch smoke test." >&2
+            cat "$RUNNER_TEMP/hisingen-launch.log" >&2 || true
+            exit 1
+          fi
+
+          echo "== Runtime log tail =="
+          tail -n 80 "$RUNNER_TEMP/hisingen-launch.log" || true
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIST="$RUNNER_TEMP/dist"
+          mkdir -p "$DIST"
+          cp -R "$RUNNER_TEMP/Hisingen/releases/Hisingen.app" "$DIST/Hisingen China.app"
+          echo "Re-signing copied bundle ad-hoc for artifact delivery"
+          /usr/bin/codesign --force --deep --sign - "$DIST/Hisingen China.app"
+          codesign --verify --deep --strict --verbose=2 "$DIST/Hisingen China.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
+            "$DIST/Hisingen China.app" "$DIST/Hisingen-China.app.zip"
+          cd "$DIST"
+          shasum -a 256 Hisingen-China.app.zip > SHA256SUMS.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hisingen-China-macOS
+          path: |
+            ${{ runner.temp }}/dist/Hisingen-China.app.zip
+            ${{ runner.temp }}/dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7

@@ -48,8 +48,8 @@ Global 与 China 不是简单的“换域名”。
 | --- | --- | --- |
 | Polestar ID | 欧洲/Global OIDC | 中国 Polestar ID / 中国官网与中国 App 账户体系 |
 | 登录入口 | `polestarid.eu.polestar.com` OIDC | `www.polestar.cn/zh-cn/auth/login/`；官方 App 另有中国移动端登录流程 |
-| Hisingen 当前可用认证 | OIDC/PKCE + Refresh Token；另有 command-client 授权 | **当前仅集成 Official Web Sign-In UI；网页登录 ≠ 已取得车辆 API Token** |
-| 车辆发现 | `mystar-v2` GraphQL `getConsumerCarsV2`；可选 VDMS enrichment | 中国 App 自有车辆账户链路；本项目尚未验证网页会话可直接换取同等车辆列表 |
+| Hisingen 当前可用认证 | OIDC/PKCE + Refresh Token；另有 command-client 授权 | 官方移动端 Gateway 协议已静态还原；**Hisingen 当前仍只集成 Official Web Sign-In UI，尚未实现 native vehicle session** |
+| 车辆发现 | `mystar-v2` GraphQL `getConsumerCarsV2`；可选 VDMS enrichment | 先请求 China C3 discovery，再请求动态 `<c3.url>/car-information/car`；Hisingen 尚未实现 |
 | 主车辆状态 | GraphQL + C3 gRPC | **C3 gRPC 为已验证主路径** |
 | C3 discovery | `https://cnepmob.volvocars.com` | `https://cnepmob.volvocars.com.cn` |
 | PCCS | `https://api.pccs-prod.plstr.io:443` | `https://api.pccs-prod.origin.polestar.cn` |
@@ -65,6 +65,7 @@ Global 与 China 不是简单的“换域名”。
 2. **China 官网网页登录成功不能推导 C3/PCCS 车辆 API 已认证。**
 3. **EU Data Portal M2M Client ID/Secret 不能替代中国移动 App Token。**
 4. **Global C3/PCCS RPC 名称可作为中国区研究参考，但必须逐项验证权限、Host、Proto 与返回结构。**
+5. **China 车辆 REST/gRPC 使用登录响应中的 Global Access Token，不使用网页 Cookie、Local Access 或 Global ID Token。**
 
 ---
 
@@ -118,13 +119,16 @@ China Polestar account
         │               └── 当前不能视为 vehicle API session
         │
         └── Official China Android App
-                ├── app session token family
-                ├── C3 controller
-                │       └── Volvo Connected Car Digital Twin gRPC
-                │               ├── battery
-                │               ├── exterior
-                │               └── live/current state
-                ├── PCCS China
+                ├── official captcha slider
+                │       └── sessionId / sig / token
+                ├── gw.app.polestar-auto.com
+                │       └── phone/password login
+                │               ├── Local Access / Refresh / userUid
+                │               └── Global Access / Refresh / ID Token
+                ├── China C3 discovery (no bearer)
+                │       └── dynamic c3.url / grpcHost / grpcPort
+                ├── car-information + C3/PCCS
+                │       └── Bearer Global Access
                 └── VOCMO secondary path
 
 本项目 Hisingen China
@@ -552,27 +556,124 @@ China C3/PCCS vehicle API authenticated
 
 ## 9.2 中国 Android App Token 家族
 
-**VERIFIED — 已在中国官方 App 静态/运行时分析中确认这些本地 key 名存在**
+**VERIFIED（static）— Android 4.25.0-262 的 model、登录处理与持久化调用已经闭环**
 
 ```text
-globle_access_token
-globle_refresh_token
-globle_id_token
-key_token
-key_refresh_token
+LoginToken
+  ├── accessToken / refreshToken / expiresIn / userUid
+  └── globleToken
+       ├── accessToken / refreshToken / idToken
+       └── tokenType / expiresIn / userUid / userName
 ```
+
+phone/password/onetouch 的 `LoginToken` response schema 同时定义两组 Token；成功处理会保存外层 Local 数据，并在 `globleToken != null` 时保存 Global 数据。App 的本地 key 对应：
+
+```text
+Local:   key_token / key_refresh_token / key_token_expire_in
+Global:  globle_access_token / globle_refresh_token / globle_id_token / ...
+```
+
+职责边界：
+
+| Token | 已确认用途 |
+| --- | --- |
+| Local Access | Pscn Gateway bearer；同时发送 `psoneid: <Local userUid>` |
+| Local Refresh | `uc.app.polestar-auto.com/oauth/token` |
+| Global Access | 动态 `car-information`、C3 gRPC、PCCS bearer |
+| Global Refresh | Gateway `/user/api/v2/oauth/refresh-global-token` |
+| Global ID Token | Remote Car auth state/身份信息；不是车辆 REST/gRPC bearer |
 
 注意：
 
 1. 这里只记录**key 名称**，不记录真实 token；
 2. `globle` 是 App 内实际观察到的拼写，不在文档中自行纠正；
-3. 当前还不能仅根据名称断言每个 token 的最终 Audience；
-4. `key_token` / `key_refresh_token` 与 `globle_*` 的完整职责边界仍需后续动态验证；
-5. 真实 token、短信码、Cookie、Digital Key 私钥不得进入 Git。
+3. Audience 结论来自 interceptor/auth provider 调用链，不是仅根据 key 名猜测；
+4. 真实 token、短信码、Cookie、内置 client secret、Digital Key 私钥不得进入 Git。
 
 ## 9.3 中国登录方式
 
-官方中国 App 已观察到手机号/短信体系参与正常登录。
+官方中国 App 的手机号链路已经还原：
+
+```text
+官方 auth-slider H5
+  → sessionId / sig / token
+  → POST /user/api/v1/credcode/send
+  → POST /user/api/v2/oauth/login/phone
+  → LoginToken(Local + nested Global)
+```
+
+验证码发送 JSON：
+
+```text
+principal
+aliScene = ic_login_h5
+aliSessionId
+aliSign
+aliToken
+clientId = polestar-app-android
+type = SIGNIN_BY_PHONE
+```
+
+验证码登录 JSON：
+
+```text
+clientId = polestar-app-android
+phone
+credential
+autocrt = true
+```
+
+另有已确认的密码登录：
+
+```text
+POST /user/api/v2/oauth/login/password
+clientId / phone / password / autocrt
+```
+
+Retrofit interface 也声明了 `/user/api/v1/credcode/send/login`，但当前 `VerificationCodeLoginViewModel` 的已证明调用链使用 `/user/api/v1/credcode/send`，不能仅凭 endpoint 名称替换。
+
+## 9.4 Pscn Gateway 公共 Header
+
+对 `gw.app.polestar-auto.com`，官方 client 自动添加：
+
+```text
+Content-Type: application/json
+Version: 4.25.0
+Device: Android
+X-User-Agent: <Android Build.MODEL>
+```
+
+已有 Local Access 后再添加：
+
+```text
+Authorization: Bearer <Local Access>
+psoneid: <Local userUid>
+```
+
+Pscn Account Retrofit 的 OkHttp builder 没有 `SignInterceptor`。App 中另有一套带 `X-SIGNATURE`、`X-TIMESTAMP`、nonce 和设备头的 `baselinelibrary` client，但它不属于上述登录链。
+
+因此旧版本的“缺少公共参数”至少涉及正确 endpoint、滑块字段、JSON 字段和这组固定 header；服务器具体先拒绝哪一项仍需脱敏动态验证。
+
+## 9.5 Token 刷新
+
+Local refresh：
+
+```text
+POST https://uc.app.polestar-auto.com/oauth/token
+Content-Type: application/x-www-form-urlencoded
+Retrofit @QueryMap: grant_type / client_id / client_secret / refresh_token
+```
+
+Global refresh：
+
+```text
+POST https://gw.app.polestar-auto.com/user/api/v2/oauth/refresh-global-token
+Authorization: Bearer <Local Access>
+psoneid: <Local userUid>
+JSON: refreshToken = <Global Refresh>
+```
+
+Remote Car auth provider 在 Global Access 剩余有效期不超过 60 秒时刷新。
 
 本项目原则：
 
@@ -590,7 +691,12 @@ key_refresh_token
 | 功能 | China 地址 | 状态 |
 | --- | --- | --- |
 | 官方网页登录 | `https://www.polestar.cn/zh-cn/auth/login/` | VERIFIED |
-| C3 discovery / static | `https://cnepmob.volvocars.com.cn` | VERIFIED |
+| 官方滑块 | `https://h5.app.polestar-auto.com/account-components/auth-slider/index.html` | VERIFIED（static） |
+| Pscn Gateway | `https://gw.app.polestar-auto.com` | VERIFIED（static） |
+| Local OAuth refresh | `https://uc.app.polestar-auto.com/oauth/token` | VERIFIED（static） |
+| C3 discovery | `https://cnepmob.volvocars.com.cn` | VERIFIED（static）；请求本身不带 bearer |
+| C3 vehicle REST | discovery 返回的动态 `c3.url` | VERIFIED（static） |
+| C3 vehicle gRPC | discovery 返回的动态 `c3.grpcHost:c3.grpcPort` | VERIFIED（static） |
 | C3 token-related host | `cepmobtoken.prod.c3.volvocars.com.cn` | VERIFIED host observed；method mapping incomplete |
 | C3 LBS-related host | `cepmob.lbs.prod.c3.volvocars.com.cn` | VERIFIED host observed；method mapping incomplete |
 | C3 signature-related host | `cepmobsig.prod.c3.volvocars.com.cn` | VERIFIED host observed；method mapping incomplete |
@@ -603,7 +709,36 @@ key_refresh_token
 
 # 11. China：车辆状态获取链路
 
-## 11.1 Battery 实际运行链路
+## 11.1 Vehicle Discovery
+
+官方 Remote Car Service 是两阶段发现：
+
+```text
+GET https://cnepmob.volvocars.com.cn/
+Retrofit annotation: @GET(".")
+Accept: application/volvo.cloud.cnepmob.v1+json
+User-Agent: <RCS user agent>
+（该 discovery client 静态构造为 auth = null）
+        ↓
+response.c3.url / grpcHost / grpcPort / grpcKeepAliveTime
+response.c3Lbs.url / grpcHost / grpcPort / grpcKeepAliveTime
+        ↓
+GET <c3.url>/car-information/car
+Authorization: Bearer <Global Access>
+User-Agent: <RCS user agent>
+```
+
+按 VIN 的有限信息接口为：
+
+```text
+GET <c3.url>/car-information/car/{vin}
+```
+
+因此不能把 `https://cnepmob.volvocars.com.cn/car-information/car` 当成固定地址。`cnepmob` 负责环境发现，车辆列表 base URL 来自动态 `c3.url`。
+
+REST `TokenInterceptor` 与 gRPC `GrpcCredentials` 都调用同一个 Remote Car auth provider；该 provider 最终返回 fresh Global Access Token。
+
+## 11.2 Battery 实际运行链路
 
 **VERIFIED — 中国官方 App 运行时追踪**
 
@@ -648,7 +783,7 @@ range                180 km
 
 > **分析中国状态时必须区分 Live C3 model 与本地持久化缓存。**
 
-## 11.2 ChargeStatusResponseModel 已确认字段
+## 11.3 ChargeStatusResponseModel 已确认字段
 
 项目运行时分析确认以下字段承载：
 
@@ -704,7 +839,7 @@ guess current vehicle state
 
 | 数据 | Global Hisingen | China 已验证 | China Hisingen 当前状态 |
 | --- | --- | --- | --- |
-| 车辆列表 | Mystar `getConsumerCarsV2` + optional VDMS | 中国 App 自有账户链路 | NOT IMPLEMENTED |
+| 车辆列表 | Mystar `getConsumerCarsV2` + optional VDMS | dynamic `<c3.url>/car-information/car` + Global Access | NOT IMPLEMENTED |
 | SOC | GraphQL battery + C3 BatteryService | C3 battery live/current | MAPPING REQUIRED |
 | 续航 | GraphQL/C3 battery | `ChargeStatusResponseModel` 已确认 km/miles | MAPPING REQUIRED |
 | 充电状态 | C3 battery + GraphQL merge | C3 model 已确认 `Unplugged` 等状态 | MAPPING REQUIRED |
@@ -755,13 +890,13 @@ supportsParkingClimatizationDirectStartSettings = false
 
 | Token / Credential | Global | China | 是否可互换 |
 | --- | --- | --- | --- |
-| Polestar web/session access token | OIDC session，Mystar/C3/PCCS reads | 中国 App 存在 `globle_access_token` 类本地项 | **不可假设** |
-| Polestar web/session refresh token | Global Keychain session restore | `globle_refresh_token` 已观察 | **不可假设** |
-| ID token | Global 并非 Hisingen 车辆状态主授权核心 | `globle_id_token` 已观察 | 否 |
+| Polestar web/session access token | OIDC session，Mystar/C3/PCCS reads | `globle_access_token`；已确认供 car-information/C3/PCCS 使用 | **不可跨区域互换** |
+| Polestar web/session refresh token | Global Keychain session restore | `globle_refresh_token`；经 Pscn Gateway 刷新 | **不可跨区域互换** |
+| ID token | Global 并非 Hisingen 车辆状态主授权核心 | `globle_id_token`；不是车辆 REST/gRPC bearer | 否 |
 | Command access token | Global 独立 command audience | 中国区对应关系待验证 | MAPPING_REQUIRED |
 | Command refresh token | Global 独立 browser authorization 后持久化 | 中国区对应关系待验证 | MAPPING_REQUIRED |
-| `key_token` | NOT APPLICABLE / no direct same-name mapping | China App 已观察 | Unknown |
-| `key_refresh_token` | NOT APPLICABLE / no direct same-name mapping | China App 已观察 | Unknown |
+| `key_token` | NOT APPLICABLE / no direct same-name mapping | China Local Access；Pscn Gateway bearer | 否 |
+| `key_refresh_token` | NOT APPLICABLE / no direct same-name mapping | China Local Refresh；`uc.../oauth/token` | 否 |
 | EU Data Portal M2M access token | Client ID/Secret grant | 不是中国 App token | **否** |
 | Data Portal Client Secret | EU Data Act M2M | 中国 C3 登录不使用此机制 | **否** |
 | Public image API key | 非用户级静态 key | China 是否同资源策略未确认 | 不作为用户授权 |
@@ -784,18 +919,23 @@ supportsParkingClimatizationDirectStartSettings = false
 - WKWebView 使用持久 `WKWebsiteDataStore.default()`；
 - 不主动读取表单密码；
 - 不主动提取 Cookie；
-- 不把网页登录结果伪装成车辆 API 登录成功。
+- 不把网页登录结果伪装成车辆 API 登录成功；
+- 完整解析 Android 4.25.0-262 的 16 个 DEX；
+- 还原滑块 → SMS → phone/password login → Local/Global Token；
+- 还原 Local/Global refresh；
+- 确认动态 C3 discovery → car-information 两阶段车辆发现；
+- 确认 car-information/C3/PCCS 使用 Global Access Token。
 
 ## 尚未完成
 
-- China native vehicle API token exchange；
+- China native first-time login 的 macOS 实现；
 - China C3 authenticated session；
 - China 车辆列表；
 - China Hisingen SOC/续航实时显示；
 - China C3 live stream；
 - China PCCS method mapping；
 - China remote commands；
-- China token refresh lifecycle；
+- China token refresh lifecycle 的 macOS 实现与动态验证；
 - China session → macOS Keychain 的正式安全模型。
 
 ---
@@ -806,13 +946,13 @@ supportsParkingClimatizationDirectStartSettings = false
 
 ### P0 — Read-only 状态
 
-1. 获取合法、已验证的 China vehicle API session；
-2. 车辆发现；
-3. C3 discovery；
-4. Battery；
-5. Exterior；
-6. Availability；
-7. Odometer/Health；
+1. 官方 auth-slider WKWebView，只接收 `sessionId/sig/token`；
+2. `/credcode/send` + `/oauth/login/phone`；
+3. Local/Global Token 分区写入 Keychain；
+4. Local/Global refresh 与 session restore；
+5. C3 discovery；
+6. 动态 `<c3.url>/car-information/car`；
+7. Battery / Exterior / Availability / Odometer / Health；
 8. 统一映射到 Hisingen `VehicleState`。
 
 ### P1 — Live stream
@@ -942,6 +1082,7 @@ live C3     72 %
 | 日期 | 文档版本 | Hisingen 基线 | China App 基线 | 变更 |
 | --- | --- | --- | --- | --- |
 | 2026-10-21 | 1.0 | v2.0.10 | 4.25.0-262 | 首次建立 Global / China API、Token、Host、状态获取完整差异表 |
+| 2026-10-25 | 1.1 | v2.0.10 / China 0.19.3 设计基线 | 4.25.0-262 | 完成 16 DEX 认证、公共头、Token、动态车辆发现证据链；纠正 SMS endpoint 与固定 car-information 地址假设 |
 
 ---
 
@@ -983,6 +1124,8 @@ live C3     72 %
 2. **本项目对中国官方 Android App 的静态与动态验证**
    - package: `com.polestar.china.android`
    - version: `4.25.0-262`
+   - 16 个 DEX：Login ViewModel / PscnAccountRepo / Retrofit / OkHttp / Token model / Remote Car Service
+   - 认证与车辆发现完整证据链：`docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`
    - C3 controller / battery call chain
    - runtime ChargeStatusResponseModel
    - C3/PCCS China Host

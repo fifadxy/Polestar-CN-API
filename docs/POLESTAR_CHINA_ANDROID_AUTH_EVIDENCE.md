@@ -427,7 +427,7 @@ China PCCS 生产地址仍为：
 https://api.pccs-prod.origin.polestar.cn
 ```
 
-## 9. 对 0.19.4 的直接设计约束
+## 9. 对 0.19.5 的直接设计约束
 
 ### 9.1 建议模块边界
 
@@ -482,6 +482,6 @@ ChinaAuthorizationCoordinator
 | C3 discovery 无 bearer | VERIFIED（static） | Retrofit 构造显式传 `auth = null` |
 | 车辆列表使用 Global Access | VERIFIED（static） | REST interceptor → auth provider → fresh Global Access 闭环 |
 | 真实账号端到端登录 | NOT YET VERIFIED | 需要一次脱敏动态验证 |
-| Hisingen 0.19.4 实现 | BLOCKED BY SOURCE INPUT | 当前工作区只有 API 文档，没有 0.19.3 Mac 源码 |
+| Hisingen 0.19.5 静态实现 | IMPLEMENTED_UNVERIFIED | 已合并完整 0.19.4 骨架并按本证据修正登录、刷新和动态车辆发现；需真实账号验证 |
 
-静态分析阶段已经完成。下一阶段不是继续猜参数，而是取得 Hisingen China 0.19.3 源码，按上述边界实现 0.19.4，再做最小动态验证。
+静态分析与 0.19.5 合并实现已经完成。下一阶段不是继续猜参数，而是按 9.3 做最小脱敏动态验证；若需要代理对照，可使用 Reqable，但不得通过关闭 TLS 校验或记录敏感值来强行取证。

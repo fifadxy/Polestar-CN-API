@@ -1,6 +1,8 @@
 # Hisingen China – Rooted Android auth metadata kit
 
-Purpose: identify only **non-secret request structure** from the official China Android app on a device/account you own. The Mac 0.19.2 website flow does not provide a supported China C3 API grant; earlier direct SMS requests returned "缺少公共参数". We must NOT invent header signatures, extract credentials, bypass CAPTCHA, or replay app sessions.
+Purpose: identify only **non-secret request structure** from the official China Android app on a device/account you own. The capture tools must not invent header signatures, extract user credentials, bypass CAPTCHA, or replay app sessions.
+
+`provision_cn_oauth_secret.py` is a separate offline helper for 0.19.5. It locates only the distributed OAuth client constant used by the official local-token refresh method, never prints it, and on macOS writes it to the dedicated Hisingen China Keychain item. It does not read an account session, user password, SMS code, cookie, token, VIN or device identifier. Initial SMS login does not depend on this helper.
 
 ## Requirements
 
@@ -49,4 +51,4 @@ If the app uses a transport other than regular OkHttp, the probe prints "hook un
 
 ## Current status
 
-0.19.3 is a **diagnostic preview**, not an end-to-end China vehicle login fix. A proper implementation needs a supported/authorized China app grant and real-account end-to-end tests: callback → token issue/refresh → linked vehicle → C3 telemetry → restart/reconnect. Remote commands remain disabled.
+0.19.5 is an **integration candidate**, not a claim of end-to-end China vehicle authorization. Static contracts are implemented; real-account validation is still required for slider → SMS → token issue/refresh → public discovery → linked vehicle → C3/PCCS telemetry → restart/reconnect. Remote commands remain disabled.

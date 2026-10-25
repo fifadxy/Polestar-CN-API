@@ -1,6 +1,6 @@
 # Hisingen Global → China feature mapping and acceptance tests
 
-**Baseline:** Hisingen upstream `v2.0.10`, China Android `4.25.0-262`, native Mac Preview `0.19.0`. Updated 2026-10-23.
+**Baseline:** Hisingen upstream `v2.0.10`, China Android `4.25.0-262`, native Mac Preview `0.19.5`. Updated 2026-10-25.
 
 Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED** = exact official-client contract observed; **IMPLEMENTED-UNVERIFIED** = native Mac code exists but lacks a real-account/vehicle proof; **BRIDGE-ONLY** = historical 0.18 Android-process path; **MAPPING_REQUIRED** = direct method remains unmapped; **DISABLED** = intentionally not executable; **NOT_APPLICABLE** = an EU-only interface cannot be assumed in China.
 
@@ -10,8 +10,8 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 | Polestar command-client grant | GLOBAL-IMPLEMENTED | CN `key_*` local names observed; audience unknown | MAPPING_REQUIRED | Authorized issuer/client/scope/refresh verification |
 | EU Data Portal (Data Act) | GLOBAL-IMPLEMENTED | No CN EU M2M equivalence established | NOT_APPLICABLE as CN substitute | Identify separate supported CN data API |
 | Augmented (consumer + M2M) | GLOBAL-IMPLEMENTED | No compatible CN M2M path | MAPPING_REQUIRED | Define valid CN merge after state sources verified |
-| Vehicle discovery | GLOBAL-IMPLEMENTED | `GET car-information/car` and response fields SOURCE-VERIFIED | Native multi-vehicle decoder; IMPLEMENTED-UNVERIFIED | Authorized real-account list and selection |
-| C3 discovery | GLOBAL-IMPLEMENTED | China discovery root observed | China root injected into native Hisingen C3 actor; IMPLEMENTED-UNVERIFIED | Authenticated discovery response and token audience |
+| Vehicle discovery | GLOBAL-IMPLEMENTED | Public discovery → dynamic `<c3.url>/car-information/car` and response fields SOURCE-VERIFIED | Native multi-shape/vehicle decoder; IMPLEMENTED-UNVERIFIED | Authorized real-account list and selection |
+| C3 discovery | GLOBAL-IMPLEMENTED | China root and unauthenticated request SOURCE-VERIFIED | China root injected; bearer omitted only for China; IMPLEMENTED-UNVERIFIED | Production response and dynamic hosts |
 | PCCS/Chronos | GLOBAL-IMPLEMENTED | China PCCS root and Proto found | China root injected; read methods IMPLEMENTED-UNVERIFIED | Authorized method-by-method reads |
 | Battery SOC | GLOBAL-IMPLEMENTED | Android C3 model and 2021 P2 wire mapping observed | Native latest-battery parser; IMPLEMENTED-UNVERIFIED | Same-minute official-app comparison |
 | Estimated range (km/mi) | GLOBAL-IMPLEMENTED | `clicatch` / `cliclass` and C3 mapping observed | Native C3 projection; IMPLEMENTED-UNVERIFIED | Units and model-year coverage |
@@ -59,5 +59,5 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 
 ## Known current limitations
 
-0.19.0 tests prove source contracts, compilation, App Bundle integrity, process launch, Global source isolation and absence of a Bridge runtime in the artifact. They do **not** establish that SMS login, token refresh or China C3/PCCS succeeds with a real account/vehicle. China remote commands remain disabled.
+0.19.5 tests prove source contracts, patch application, App Bundle integrity, process launch, Global source isolation and absence of a Bridge runtime in the active tree/artifact. They do **not** establish that SMS login, token refresh or China C3/PCCS succeeds with a real account/vehicle. China remote commands remain disabled.
 

@@ -1,6 +1,6 @@
 # Native macOS China session
 
-Updated: 2026-10-23. Baseline: official China Android app `4.25.0-262`, Hisingen `v2.0.10`, Hisingen China `0.19.0`.
+Updated: 2026-10-25. Baseline: official China Android app `4.25.0-262`, Hisingen `v2.0.10`, Hisingen China `0.19.5`.
 
 This document records the source-backed native Mac implementation. It supersedes the Android bridge as the current Mac architecture, but it does not turn source inspection or CI compilation into a claim of successful real-account authentication.
 
@@ -22,12 +22,13 @@ The Mac artifact does not require an Android device, ADB, Frida, a localhost lis
 ## Authentication sequence
 
 1. Normalize the mainland mobile number to 11 digits.
-2. Request a code with `POST https://gw.app.polestar-auto.com/user/api/v1/credcode/send`.
-3. Exchange phone + code with `POST https://gw.app.polestar-auto.com/user/api/v2/oauth/login/phone`.
-4. Parse the local account token and the nested `globleToken` token family.
-5. Persist the session only in the dedicated macOS Keychain item.
-6. Discover linked vehicles with `GET https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car`.
-7. Supply the global token to China C3 discovery and the read-only telemetry client.
+2. Complete the official H5 slider and retain its `sessionId` / `sig` / `token` only for the current request.
+3. Request a code with `POST https://gw.app.polestar-auto.com/user/api/v1/credcode/send`.
+4. Exchange phone + code with `POST https://gw.app.polestar-auto.com/user/api/v2/oauth/login/phone`.
+5. Parse the local account token and the nested `globleToken` token family.
+6. Persist the session only in the dedicated macOS Keychain item.
+7. Read public China C3 discovery without a bearer token, then fetch linked vehicles from dynamic `<c3.url>/car-information/car` with Global access.
+8. Supply Global access to the read-only C3/PCCS telemetry client.
 
 Observed request constants:
 
@@ -46,12 +47,12 @@ Observed request constants:
 
 - Local refresh: `POST https://uc.app.polestar-auto.com/oauth/token` with the observed mobile-client query parameters.
 - Global refresh: `POST https://gw.app.polestar-auto.com/user/api/v2/oauth/refresh-global-token`.
-- A five-minute margin refreshes before expiry.
+- A 60-second margin refreshes before expiry, matching the official client threshold.
 - JWT `exp` is used when available; otherwise the server `expiresIn` value is used.
 - One actor-owned refresh task prevents concurrent refresh fan-out.
 - Tokens, SMS codes, authorization headers, phone numbers and full VINs are never written to diagnostics.
 
-The mobile-client secret is a protocol constant embedded in the distributed official application, not an end-user secret. Hisingen does not store it in Keychain or log it.
+The OAuth client secret required by local refresh is a client constant in the distributed official application, not an end-user secret. It is absent from source and the app bundle. The optional local DEX provisioner writes it without printing it to the separate Keychain item `io.kheirallah.hisingen.polestar-cn.oauth / local-refresh-client-secret-v1`. Initial SMS login does not use it.
 
 ## Vehicle reads
 

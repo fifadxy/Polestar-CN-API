@@ -15,8 +15,9 @@ Research and interoperability tooling for China-region Polestar vehicle data and
 - **Machine-readable mapping:** [knowledge/china/capabilities.json](knowledge/china/capabilities.json)
 - **Public/official references:** [knowledge/china/OFFICIAL_REFERENCES.md](knowledge/china/OFFICIAL_REFERENCES.md)
 - **Verified Android 4.25.0 authentication evidence:** [docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md](docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md)
+- **Branch inventory and 0.19.5 development entry:** [docs/BRANCH_INVENTORY_AND_0195_PLAN.md](docs/BRANCH_INVENTORY_AND_0195_PLAN.md)
 - [Global / China API comparison](docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md)
-- [Release notes](docs/)
+- [0.19.5 release notes](docs/HISINGEN_CHINA_0.19.5_RELEASE_NOTES.md)
 
 ## User experience
 
@@ -28,7 +29,7 @@ The native Mac provider wires vehicle discovery, C3/PCCS reads and live streams 
 
 ## Build
 
-Versioned GitHub Actions workflows pin Hisingen `v2.0.10`, apply the matching patch script, build on Xcode 27, verify the ad-hoc signature, check that the artifact contains no Bridge runtime, and launch the same packaged app on macOS 15/26 ARM64. The artifact is not Developer ID notarized.
+Start new work in `Patches/0.19.5` and validate it with `Tests/test_native_mac_contract_0195.py`. The matching workflow pins Hisingen `v2.0.10`, applies `Scripts/apply_hisingen_china_0195.py`, builds on Xcode 27, verifies the ad-hoc signature, checks that the artifact contains no Bridge runtime, and launches the same packaged app on macOS 15/26 ARM64. The artifact is not Developer ID notarized.
 
 **Do not store credentials, authorization headers, SMS codes, cookies, Digital Key material, full VIN, phone numbers or precise vehicle locations in this repository.**
 

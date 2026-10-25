@@ -1,6 +1,6 @@
 # Network endpoints, transports and RPC inventory
 
-This file is a **reference map**, not a claim of successful real-account authorization. Updated 2026-10-23. Upstream Hisingen tag v2.0.10; official CN Android 4.25.0-262; native Mac preview 0.19.0.
+This file is a **reference map**, not a claim of successful real-account authorization. Updated 2026-10-25. Upstream Hisingen tag v2.0.10; official CN Android 4.25.0-262; native Mac preview 0.19.5.
 
 ## A. Global endpoints verified in upstream Hisingen
 
@@ -47,8 +47,8 @@ The M2M route has `POST /token` and `GET /v1/vehicles`; read-only telemetry fami
 | Account gateway | `https://gw.app.polestar-auto.com` | Official app phone/SMS, login and global-refresh routes | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | User center | `https://uc.app.polestar-auto.com/oauth/token` | Official app local refresh route | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | Official China web login | `https://www.polestar.cn/zh-cn/auth/login/` | Official website login page | VERIFIED website URL; not used by native 0.19 |
-| C3 static/discovery | `https://cnepmob.volvocars.com.cn` | China app C3 static path | Mac IMPLEMENTED_UNVERIFIED |
-| Vehicle discovery REST | `https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car` | Official app linked-car service and fields | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
+| C3 discovery | `GET https://cnepmob.volvocars.com.cn/` | Public discovery document; returns `c3` and `c3Lbs` URL/gRPC options | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
+| Vehicle discovery REST | dynamic `<c3.url>/car-information/car` | Official app linked-car service and fields; Global access bearer | SOURCE_VERIFIED; Mac IMPLEMENTED_UNVERIFIED |
 | C3 LBS-related | `cepmob.lbs.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY |
 | C3 signature-related | `cepmobsig.prod.c3.volvocars.com.cn` | Runtime host | OBSERVED_HOST_ONLY |
 | PCCS China | `https://api.pccs-prod.origin.polestar.cn` | China app/backend configuration | Mac read paths IMPLEMENTED_UNVERIFIED |

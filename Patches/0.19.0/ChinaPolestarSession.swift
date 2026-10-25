@@ -158,7 +158,7 @@ struct ChinaPolestarHTTPTransport: Sendable {
     private static let clientID = "polestar-app-android"
     // Public mobile-client protocol value embedded in the official China APK. It is not a
     // user credential and is never written to Keychain or logs.
-    private static let mobileClientSecret = "385798256D8247E9B7E2E93BF2741517"
+    private static let mobileClientSecret = "<redacted>"
     private static let protocolVersion = "4.25.0"
     private static let maximumResponseBytes = 2_000_000
 

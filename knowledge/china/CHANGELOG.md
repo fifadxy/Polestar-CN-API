@@ -2,6 +2,25 @@
 
 This is a living log. Entries describe **what was learned or changed**, the source/verification level, and remaining evidence gaps. Never paste raw auth records or private vehicle identifiers.
 
+## 2026-10-25 — KB version 1.2 / Hisingen China Native Mac 0.19.5
+
+### Full Android evidence and branch consolidation
+
+- Analyzed all 16 DEX files from official China Android 4.25.0-262 and recorded the end-to-end static evidence chain.
+- Merged the complete 0.19.4 product history into `integrate/hisingen-china-0.19.5`; selectively ported validated hardening from the divergent 0.19.0 line instead of overwriting newer files.
+- Corrected SMS to `/user/api/v1/credcode/send` and removed the unsupported signed-query/MD5/common-parameter implementation. The Pscn account client uses the verified `Content-Type`, `Version`, `Device` and `X-User-Agent` headers.
+- Limited locally provisioned OAuth material to `uc.../oauth/token` refresh. Initial SMS login no longer depends on it.
+- Implemented public China C3 discovery followed by dynamic `<c3.url>/car-information/car` with Global access; removed the fixed REST base and Local `psoneid` header.
+- Added rotating-token fallbacks, stored-session verification, multi-shape vehicle decoding, VIN de-duplication and capability-gated PCCS reads.
+- Removed the retired `Tools/china_bridge` runtime tree and added a single 0.19.5 development/build/test entry point.
+- Redacted the legacy embedded OAuth constant from the current 0.19.0–0.19.3 archive files. Existing remote Git history was not rewritten; the old value must be treated as public and rotated server-side.
+
+### Verification boundary
+
+- Offline tests and DEX extraction validate implementation contracts without publishing the OAuth client secret.
+- Real slider, SMS, token, discovery, vehicle and telemetry behavior remains IMPLEMENTED_UNVERIFIED until a redacted consenting-account run succeeds.
+- China remote commands remain disabled.
+
 ## 2026-10-23 — KB version 1.1 / Hisingen China Native Mac 0.19.0
 
 ### Source-verified protocol

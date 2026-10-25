@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-23. Verified device: official China Android app `4.25.0-262`, installed package `com.polestar.china.android`. Frida framework version `17.24.3`.
 
-> This file preserves 0.18 research evidence and the retired Bridge design. Hisingen China 0.19.0 uses the independent native Mac session documented in [NATIVE_MAC_SESSION](NATIVE_MAC_SESSION.md); the Mac artifact does not package or use this bridge.
+> This file preserves 0.18 research evidence and the retired Bridge design. Hisingen China 0.19.5 uses the independent native Mac session documented in [NATIVE_MAC_SESSION](NATIVE_MAC_SESSION.md); the active source tree and Mac artifact do not package or use this bridge.
 
 ## 1. Observed battery flow on the official China App
 

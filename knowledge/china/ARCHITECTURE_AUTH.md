@@ -1,6 +1,6 @@
 # Architecture, login, and token families
 
-**Baseline:** upstream Hisingen tag `v2.0.10`; official China Android app `com.polestar.china.android`, version `4.25.0-262`; native Mac preview `0.19.0`. Last reviewed 2026-10-23.
+**Baseline:** upstream Hisingen tag `v2.0.10`; official China Android app `com.polestar.china.android`, version `4.25.0-262`; native Mac preview `0.19.5`. Last reviewed 2026-10-25.
 
 ## 1. Global / upstream Hisingen
 
@@ -45,10 +45,10 @@ Official China Polestar Account
   │   └─ global-token refresh
   ├─ uc.app.polestar-auto.com
   │   └─ local-token refresh
-  ├─ cepmobtoken.prod.c3.volvocars.com.cn
-  │   └─ linked vehicles
   ├─ cnepmob.volvocars.com.cn
-  │   └─ C3 discovery and state
+  │   └─ public C3 discovery
+  ├─ dynamic c3.url
+  │   └─ linked vehicles with Global access
   └─ api.pccs-prod.origin.polestar.cn
       └─ PCCS reads
 ```
@@ -67,7 +67,7 @@ key_refresh_token
 
 The `globle` spelling belongs to the official App. Exact phone-login and refresh routes are SOURCE_VERIFIED; successful entitlement for an independent Mac remains IMPLEMENTED_UNVERIFIED. Observing a key never authorizes using a value with an unrelated host. These names are **not** real token values.
 
-Hisingen 0.19 performs the phone/SMS exchange directly over TLS and stores the resulting China session in a dedicated macOS Keychain item. It does not extract cookies/tokens from a website or Android process.
+Hisingen 0.19.5 performs the phone/SMS exchange directly over TLS and stores the resulting China session in a dedicated macOS Keychain item. It does not extract cookies/tokens from a website or Android process. The optional DEX helper provisions only the OAuth client constant needed for future local-token refresh; it never imports a user session.
 
 ### China application session vs website session
 
@@ -115,7 +115,8 @@ This repository must not circumvent authentication, disable TLS validation, or s
 
 - Hisingen `Sources/Hisingen/Services/API/PolestarAPI+Authentication.swift`, `PolestarAPI.swift`, `PolestarGRPC.swift`, `PolestarDataPortalAPI.swift`, `PolestarGRPCRemote.swift`, `ProviderRegistry.swift`.
 - China Android 4.25.0-262: passive Stage 3 battery object read and Stage 12 C3/PCCS/VOCMO introspection.
-- China 0.19.0 implementation: `Patches/0.19.0`, `Scripts/apply_hisingen_china_019.py`.
+- Current China 0.19.5 implementation: `Patches/0.19.5`, `Scripts/apply_hisingen_china_0195.py`.
+- Complete Android authentication evidence: `docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`.
 - China 0.18.0 Bridge implementation remains historical reference only.
 - Source-verified contracts may still change in a later official application version; every upgrade needs revalidation.
 

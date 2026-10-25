@@ -1,22 +1,22 @@
 # AI handoff: what another agent needs to continue Polestar China integration
 
-Read this document before editing the project. Updated 2026-10-23.
+Read this document before editing the project. Updated 2026-10-25.
 
 ## Project, branches and sources
 
 - User repository: `https://github.com/fifadxy/Polestar-CN-API`.
-- Active native Mac branch: `chatgpt/hisingen-china-native-0.19.0`. Android/APK work belongs on a different future branch. Do not modify `main` unless the user explicitly requests it.
+- Active integration branch: `integrate/hisingen-china-0.19.5`. See `docs/BRANCH_INVENTORY_AND_0195_PLAN.md` before merging another historical branch.
 - Upstream native macOS project: `https://github.com/NicolasKheirallah/Hisingen`, pinned `v2.0.10`.
-- Native source patch: `Patches/0.19.0/{ChinaPolestarRuntime,ChinaPolestarSession,ChinaPolestarAPI,ChinaPolestarViews}.swift`.
-- Deterministic patch application: `Scripts/apply_hisingen_china_019.py`.
-- Build automation: `.github/workflows/build-hisingen-china-019.yml`, Xcode 27, ad-hoc signature, macOS 15 + 26 ARM64 runtime smoke tests.
-- `Tools/china_bridge` is 0.18 historical material. The 0.19 workflow does not validate, copy, start or package it.
-- Documentation: `knowledge/china/` plus historical `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`.
+- Native source patch: `Patches/0.19.5/`.
+- Deterministic patch application: `Scripts/apply_hisingen_china_0195.py`.
+- Build automation: `.github/workflows/build-hisingen-china-0195.yml`, Xcode 27, ad-hoc signature, macOS 15 + 26 ARM64 runtime smoke tests.
+- `Tools/china_bridge` was removed from the active tree. Its 0.18 design remains available in history and `STATE_AND_BRIDGE.md` only.
+- Primary protocol evidence: `docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`; documentation: `knowledge/china/`.
 
 ## What is already known
 
 1. Global and China identity systems are not token interchangeable. Global has a user/session grant, separate command-client audience, and independent EU Data Portal M2M.
-2. Official China Android `4.25.0-262` source confirms native phone/SMS endpoints, local + nested `globleToken` families, both refresh routes and `GET car-information/car` vehicle discovery. See [NATIVE_MAC_SESSION](NATIVE_MAC_SESSION.md).
+2. All 16 official China Android `4.25.0-262` DEX files confirm native phone/SMS endpoints, Pscn public headers, local + nested `globleToken` families, both refresh routes, public C3 discovery and dynamic `<c3.url>/car-information/car` vehicle discovery. See [NATIVE_MAC_SESSION](NATIVE_MAC_SESSION.md).
 3. The native provider now uses a dedicated Keychain item and injects China C3/PCCS roots into Hisingen's Swift implementation. The app has no Android/localhost runtime dependency.
 4. Source inspection and CI do not establish successful real-account authentication. Phone/SMS, refresh, linked vehicles and each telemetry family are IMPLEMENTED_UNVERIFIED pending a consenting real-account/vehicle run.
 5. Frida observations remain useful comparison evidence for battery values/timestamps but are no longer the Mac transport architecture.
@@ -75,7 +75,7 @@ At a minimum exercise the following cases, distinguish `mock` and `real account`
 
 ```bash
 git clone --depth 1 --branch v2.0.10 https://github.com/NicolasKheirallah/Hisingen.git
-HISINGEN_SRC="$PWD/Hisingen" python3 Scripts/apply_hisingen_china_019.py
+HISINGEN_SRC="$PWD/Hisingen" python3 Scripts/apply_hisingen_china_0195.py
 cd Hisingen
 swift package resolve
 NOTARIZE=never make app IDENTITY=-

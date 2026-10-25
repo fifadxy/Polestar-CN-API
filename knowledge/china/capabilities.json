@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "updated": "2026-10-23",
+  "updated": "2026-10-25",
   "baselines": {
     "hisingen": "v2.0.10",
     "china_android": "com.polestar.china.android 4.25.0-262",
-    "preview": "0.19.0-native-mac"
+    "preview": "0.19.5-native-mac"
   },
   "definitions": {
     "BRIDGE_ONLY": "Reads a signed-in Android application model; no direct Mac China API",
@@ -42,7 +42,7 @@
     {
       "name": "vehicle_discovery",
       "global": "getConsumerCarsV2",
-      "china": "GET car-information/car",
+      "china": "public discovery then GET <c3.url>/car-information/car with Global access",
       "cn_status": "IMPLEMENTED_UNVERIFIED"
     },
     {
@@ -182,9 +182,9 @@
       "evidence": "observed"
     },
     {
-      "role": "c3_token_related",
-      "address": "https://cepmobtoken.prod.c3.volvocars.com.cn/car-information/car",
-      "evidence": "official app source"
+      "role": "vehicle_discovery",
+      "address": "<c3.url>/car-information/car",
+      "evidence": "official app source; c3.url comes from public China discovery"
     },
     {
       "role": "c3_lbs_related",

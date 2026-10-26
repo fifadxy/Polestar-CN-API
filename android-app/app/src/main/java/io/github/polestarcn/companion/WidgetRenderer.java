@@ -63,7 +63,7 @@ public final class WidgetRenderer {
     int[] ids = {R.id.widget_metric0, R.id.widget_metric1, R.id.widget_metric2, R.id.widget_metric3,
         R.id.widget_metric4, R.id.widget_metric5, R.id.widget_metric6, R.id.widget_metric7};
     int[] rows = {R.id.widget_metric_row0, R.id.widget_metric_row1, R.id.widget_metric_row2, R.id.widget_metric_row3};
-    int columns = size == Size.MINI ? 1 : 2;
+    int columns = 2;
     int count = Math.min(capacity(size), selected.size());
     int ink = AppPreferences.dark(c) ? Color.WHITE : Color.rgb(21,22,23);
     views.setTextColor(R.id.widget_title, ink);

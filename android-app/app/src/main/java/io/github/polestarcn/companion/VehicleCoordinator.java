@@ -205,18 +205,32 @@ public final class VehicleCoordinator {
             main.post(
                 () -> {
                   operation = OperationState.SERVER_ACCEPTED;
-                  message = tr("指令已发送，约 15 秒后回读车况…", "Sent; checking vehicle after about 15 s…");
-                  changed();
-                  confirmCommand(vehicle, action);
+                  if (momentary(action)) {
+                    message = tr(
+                        "瞬时指令已发送；鸣笛/闪灯无法通过持续车况字段确认",
+                        "Momentary command sent; honk/flash cannot be confirmed from persistent vehicle state");
+                    finish();
+                  } else {
+                    message = tr("指令已发送，约 15 秒后回读车况…", "Sent; checking vehicle after about 15 s…");
+                    changed();
+                    confirmCommand(vehicle, action);
+                  }
                 });
           } catch (Exception e) {
             main.post(
                 () -> {
                   if (uncertain(e)) {
                     operation = OperationState.UNCONFIRMED;
-                    message = tr("发送结果未确认，约 15 秒后回读…", "Delivery uncertain; checking after about 15 s…");
-                    changed();
-                    confirmCommand(vehicle, action);
+                    if (momentary(action)) {
+                      message = tr(
+                          "瞬时指令发送结果未确认；未自动重试",
+                          "Momentary command delivery unconfirmed; command was not retried");
+                      finish();
+                    } else {
+                      message = tr("发送结果未确认，约 15 秒后回读…", "Delivery uncertain; checking after about 15 s…");
+                      changed();
+                      confirmCommand(vehicle, action);
+                    }
                   } else {
                     operation = OperationState.FAILED;
                     message = tr("操作结果：", "Command result: ") + safe(e);
@@ -371,6 +385,10 @@ public final class VehicleCoordinator {
   private void protectCamp(String vin, VehicleSnapshot state) {
     if (CampModeManager.protectBattery(context, vin, state))
       main.post(() -> checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false), () -> {}));
+  }
+
+  private static boolean momentary(String action) {
+    return "honk".equals(action) || "flash".equals(action) || "honk-flash".equals(action);
   }
 
   private static boolean uncertain(Exception e) {

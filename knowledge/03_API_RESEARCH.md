@@ -4,16 +4,16 @@
 
 | 领域 | 参考 APK 的静态依据 | 用户反馈与上游研究 | 本项目当前代码 | V3 开发 |
 |---|---|---|---|---|
-| China 登录 | `gw.app.polestar-auto.com`、`/user/api/v2/oauth/login/password`、`login` | 参考 APK `REFERENCE_USER_VERIFIED` | 无真实登录 | P0/P1 优先复刻与验证 |
-| China Token refresh | `/user/api/v2/oauth/refresh-global-token`、`refreshIfNeeded`、`SESSION_REFRESH_LOCK` | 用户反馈偶发 Token 报错，功能仍可能可用 | 无 Token | P1：并发、过期、错误分类 |
-| China 车辆发现 | `discoverAndRead`、`collectVehicles`、`ensureC3Host` | 参考客户端实际能操作本人车辆；完整 Discovery 参数未独立核对 | 演示车单 | P1/P2 映射 |
-| China C3 discovery | `cnepmob.volvocars.com.cn` | 真实 Host 需发现，不能硬编码假设 | 未实现 | P1/P2 验证 |
-| C3 电池 | `BatteryService`、`GetLatestBattery`、`Vehicle.battery` | 参考 APK SOC 已由用户实测 | DEMO | P2 真实读数 |
+| China 登录 | `gw.app.polestar-auto.com`、`/user/api/v2/oauth/login/password`、`login` | 参考 APK `REFERENCE_USER_VERIFIED` | 已实现；设备验证待完成 | P0/P1 优先复刻与验证 |
+| China Token refresh | `/user/api/v2/oauth/refresh-global-token`、`refreshIfNeeded`、`SESSION_REFRESH_LOCK` | 用户反馈偶发 Token 报错，功能仍可能可用 | Keystore + single-flight；设备验证待完成 | P1：并发、过期、错误分类 |
+| China 车辆发现 | `discoverAndRead`、`collectVehicles`、`ensureC3Host` | 参考客户端实际能操作本人车辆 | 已实现递归解析与多车选择；设备验证待完成 | P1/P2 映射 |
+| China C3 discovery | `cnepmob.volvocars.com.cn` | 真实 Host 需发现，不能硬编码假设 | 已实现 v1 Accept discovery；设备验证待完成 | P1/P2 验证 |
+| C3 电池 | `BatteryService`、`GetLatestBattery`、`Vehicle.battery` | 参考 APK SOC 已由用户实测 | 已实现 Proto 映射；设备验证待完成 | P2 真实读数 |
 | 续航/充电 | `Vehicle.range`、`charging` 等 | 尚无明确用户逐字段实测 | DEMO / 未覆盖 | P2 逐字段确认 |
 | C3 里程 | `OdometerService`、`GetLatestOdometer` | 参考 APK 累计里程已由用户实测 | DEMO | P2 真实读数 |
 | C3 Exterior | `ExteriorService`、`GetLatestExterior` | 中国官方 App 另有 C3 运行证据；不等同第三方所有字段实测 | DEMO | P2 状态回读，P3 解锁验证 |
-| 远控空调 | `control`、`ClimatizationStart` / `ClimatizationStop` 线索 | 参考 APK 空调远控已由用户实测 | `ENABLE_REMOTE_COMMANDS=false` | **P3 核心复刻** |
-| 远控解锁 | `control`、`Unlock` 线索 | 参考 APK 车门解锁已由用户实测 | `ENABLE_REMOTE_COMMANDS=false` | **P3 核心复刻** |
+| 远控空调 | `control`、`ClimatizationStart` / `ClimatizationStop` 线索 | 参考 APK 空调远控已由用户实测 | 手动确认、无自动重试；设备验证待完成 | **P3 核心复刻** |
+| 远控解锁 | `control`、`Unlock` 线索 | 参考 APK 车门解锁已由用户实测 | 手动确认、无自动重试；设备验证待完成 | **P3 核心复刻** |
 | 其他远控 | `Lock`、`WindowControl`、`TailgateControl`、`HonkFlash`、`PreCleaning` 线索 | 未经用户逐项确认 | 未实现 | P3 逐项确认车型支持 |
 | PCCS China | 当前参考 APK 尚未独立确认实际 PCCS 主机 | 既有官方 China App/Hisingen 文档：`api.pccs-prod.origin.polestar.cn` | 未实现 | P6 后续按车型确认 |
 | C3 Live Stream | 第三方 APK 的持续 Stream 尚未实证 | 官方中国 App 研究记录 C3 Live；不同软件，不能混为同一结论 | 未实现 | P6；不阻塞 P3 |

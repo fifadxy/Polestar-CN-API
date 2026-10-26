@@ -2,6 +2,15 @@
 
 格式：`日期 | 阶段 | 发现/实现 | 证据 | 状态 | 下一步`。每次分析追加，不覆盖过去状态。
 
+## 2026-10-26 / Phase 2 — v0.3.0-alpha2 协议纠偏与可安装 APK
+
+- `PROTOCOL_FIX`：按参考 APK 方法级证据修正公共参数签名为 `salt + canonical + salt`、`systemVer=Build.DISPLAY`、嵌套 `globleToken` 登录/刷新解析、C3 discovery v1 Accept、状态 RPC VIN field 2 与里程米→公里换算。
+- `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION`：Battery/Range/Charging、Odometer、Exterior 门窗/尾门/锁状态映射；多车选择；China 实车快照接入首页和标准/紧凑 Widget。
+- `REMOTE_STATE`：China 空调启动/停止与解锁进入手动确认通道；UI 区分 `SENDING`、`SERVER_ACCEPTED`、`FAILED`、`UNCONFIRMED`；写操作不自动重试。
+- `SESSION`：继续使用 Android Keystore AES-GCM 保存 Token；显示缓存不保存完整 VIN 或凭证，恢复后标 `CACHED`。
+- `LOCAL_BUILD_VERIFIED`：JDK 17 + Gradle 8.7 + Android SDK 35 执行 `assembleDebug` 成功；交付 APK 2.6 MiB，SHA256 `1398f074cf3ea7527c23134d20db12675762766600be9c32d7175cc6cf14710f`；ZIP 完整性及 APK v2 签名通过。
+- `DEVICE_LIMITATION`：当前执行环境无 USB/KVM，无法完成 T01–T12 真机/模拟器验证；China 能力保持 `DEVICE_VERIFICATION`，Global/C3 Live/PCCS/后台 Worker 仍未实现。
+
 ## 2026-10-26 / Phase 0 — 参考 APK 入库
 
 - `APK_CONFIRMED`：样本 SHA256 `8cae07a3b5c6050487443914ebb55b1d2f2f26e258f4b369837f2b88de052735`；4,856,483 字节；526 ZIP 成员；两份 DEX；包名 `app.c3garage.companion`。

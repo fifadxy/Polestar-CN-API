@@ -18,11 +18,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.util.List;
 
-/** Lightweight native Android preview. This screen never sends vehicle commands. */
+import io.github.polestarcn.companion.api.ChinaPolestarApi;
+import io.github.polestarcn.companion.auth.SecureSessionStore;
+
+/** Main dashboard. Remote writes are delegated to the confirmation-gated China live screen. */
 public final class MainActivity extends Activity {
     private static final int INK = Color.rgb(25, 27, 30);
     private static final int SUBTLE = Color.rgb(99, 104, 112);
@@ -30,7 +31,6 @@ public final class MainActivity extends Activity {
     private static final int LINE = Color.rgb(229, 230, 229);
     private static final int ACCENT = Color.rgb(240, 208, 58);
     private static final int GREEN = Color.rgb(16, 125, 77);
-    private final VehicleRepository repository = new DemoRepository();
     private int page = 0;
     private LinearLayout content;
     private Region region;
@@ -52,6 +52,10 @@ public final class MainActivity extends Activity {
     @Override protected void onSaveInstanceState(Bundle state) {
         state.putInt("page", page);
         super.onSaveInstanceState(state);
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        if (content != null) render();
     }
     private int dp(float value) { return (int)(value * getResources().getDisplayMetrics().density + 0.5f); }
     private GradientDrawable background(int color, int radius, int stroke) {
@@ -162,13 +166,22 @@ public final class MainActivity extends Activity {
         v.addView(text(message, 12, SUBTLE, false));
     }
     private void dashboard() {
-        VehicleSnapshot state = repository.snapshot(region);
-        sectionHeader(content, "车辆概览", "REGION  /  " + region.english + "  ·  Android Dev v0.2.0-alpha1");
-        flag(content, "演示模式 · 未连接真实车辆", "当前全部 SOC、续航、里程和车辆状态均为模拟值。未执行登录或网络请求。", true);
+        VehicleSnapshot state = currentSnapshot();
+        TelemetryStatus status = TelemetryStatus.classify(state.isDemo, state.source,
+                state.timestampMillis, System.currentTimeMillis(), 15L * 60L * 1000L);
+        sectionHeader(content, "车辆概览", "REGION  /  " + region.english + "  ·  Android v0.3.0-alpha2");
+        if (state.isDemo) {
+            flag(content, "尚未连接车辆", region == Region.CHINA
+                    ? "请登录中国区账号并读取本人车辆。当前显示的数值是明确标记的界面演示数据。"
+                    : "Global 授权仍未接入，当前显示的数值是明确标记的界面演示数据。", true);
+        } else {
+            flag(content, status == TelemetryStatus.STALE ? "车辆缓存已过期" : "中国区车辆缓存",
+                    status.description() + "。点击刷新会重新连接车辆服务。", status == TelemetryStatus.STALE);
+        }
         LinearLayout vehicle = card(content);
         vehicle.addView(text(state.name, 18, INK, true));
         gap(vehicle, 4);
-        vehicle.addView(text("示例车辆 · 仅作界面和小组件验证", 12, SUBTLE, false));
+        vehicle.addView(text(state.id + " · " + status.description(), 12, SUBTLE, false));
         gap(vehicle, 15);
         LinearLayout metrics = horizontal();
         LinearLayout soc = vertical(), range = vertical();
@@ -182,11 +195,12 @@ public final class MainActivity extends Activity {
         row(vehicle, "累计里程", VehicleSnapshot.metric(state.odometerKm, " km"));
         row(vehicle, "充电状态", state.charging);
         gap(vehicle, 12);
-        vehicle.addView(action("刷新演示数据", true, () -> {
-            DiagnosticLog.add("Demo refresh: success, no network request");
-            Toast.makeText(this, "模拟刷新成功 · 无车辆网络请求", Toast.LENGTH_SHORT).show();
-            render(); refreshWidgets();
-        }));
+        vehicle.addView(action(region == Region.CHINA ? "刷新车辆状态" : "刷新演示数据", true,
+                region == Region.CHINA ? this::refreshChina : () -> {
+                    DiagnosticLog.add("Global demo refresh: no network request");
+                    Toast.makeText(this, "Global 尚未接入 · 无车辆网络请求", Toast.LENGTH_SHORT).show();
+                    render(); refreshWidgets();
+                }));
         LinearLayout exterior = card(content);
         exterior.addView(text("车辆外观与开闭状态", 17, INK, true));
         exterior.addView(new VehicleDiagramView(this), new LinearLayout.LayoutParams(-1, dp(170)));
@@ -195,44 +209,38 @@ public final class MainActivity extends Activity {
         row(exterior, "车窗",state.windows);
         row(exterior, "尾门",state.tailgate);
         LinearLayout remote = card(content);
-        remote.addView(text("远程控制 · 暂不可用", 17, INK, true));
+        boolean chinaConnected = region == Region.CHINA && SecureSessionStore.hasSession(this);
+        remote.addView(text(chinaConnected ? "远程控制 · 手动确认" : "远程控制 · 暂不可用", 17, INK, true));
         gap(remote, 5);
-        remote.addView(text("China / Global 的真实控制权限与方法映射未经验证，所有指令均被禁用。",12,SUBTLE,false));
+        remote.addView(text(chinaConnected
+                ? "空调启动/停止与解锁已接入设备验证通道。每次写操作都需要确认，网络不确定时不会自动重试。"
+                : "请先连接中国区车辆；Global 控制接口仍未接入。",12,SUBTLE,false));
         gap(remote,11);
-        String[] actions={"车门上锁", "空调启动", "闪灯鸣笛"};
-        for (String name:actions) {
-            TextView blocked=action(name+"  ·  禁用",false,()->disabledCommand(name));
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(7);
-            remote.addView(blocked,p);
-        }
+        remote.addView(action(chinaConnected ? "打开远程控制" : "查看连接设置", false,
+                chinaConnected ? this::openChinaLive : () -> { page = 2; render(); }));
         TextView ts = text("数据源: " + state.source + "  |  " + TelemetryStatus.classify(
                 state.isDemo, state.source, state.timestampMillis, System.currentTimeMillis(), 15L * 60L * 1000L).description(),11,SUBTLE,false);
         content.addView(ts);
     }
     private void carDetails() {
-        VehicleSnapshot v = repository.snapshot(region);
+        VehicleSnapshot v = currentSnapshot();
         sectionHeader(content, "车辆与接口", "当前模式: " + region.chinese);
         LinearLayout r = card(content);
         r.addView(text("车辆列表",17,INK,true));
         gap(r,9);row(r,"车辆",v.name);row(r,"数据源",v.source);
         gap(r,11);
-        r.addView(action("选择车辆（仅一辆示例车）",false,()->{
-            DiagnosticLog.add("Vehicle selector opened: demo only");
-            new AlertDialog.Builder(this).setTitle("车辆选择").setItems(new String[]{v.name},(dialog,which)->{
-                DiagnosticLog.add("Demo vehicle selected");
-                Toast.makeText(this,"已选择示例车辆",Toast.LENGTH_SHORT).show();
-            }).setNegativeButton("取消",null).show();
-        }));
+        r.addView(action(region == Region.CHINA ? "发现 / 选择车辆" : "Global 车辆发现未接入",false,
+                region == Region.CHINA ? this::openChinaLive : () -> disabledCommand("Global 车辆发现")));
         LinearLayout m = card(content);
         m.addView(text("中国区 / 全球区 API 接入情况",17,INK,true));
         gap(m,8);
-        row(m,"Account Login","MAPPING_REQUIRED");
-        row(m,"Vehicle Discovery","MAPPING_REQUIRED");
-        row(m,"Battery / Range","DEMO_ONLY");
-        row(m,"Exterior / Odometer","DEMO_ONLY");
+        row(m,"Account Login",region == Region.CHINA ? "DEVICE_VERIFICATION" : "MAPPING_REQUIRED");
+        row(m,"Vehicle Discovery",CapabilityMatrix.vehicleDiscovery(region).name());
+        row(m,"Battery / Range",CapabilityMatrix.battery(region).name());
+        row(m,"Exterior / Odometer",CapabilityMatrix.exterior(region).name());
         row(m,"C3 Live Stream","MAPPING_REQUIRED");
         row(m,"PCCS","MAPPING_REQUIRED");
-        row(m,"Remote Commands","DISABLED");
+        row(m,"Remote Commands",CapabilityMatrix.remoteCommands(region).name());
         flag(content,"说明","真实 C3/PCCS、账户 Token 不能通过替换地区域名直接接通。新接口必须经过数据结构与权限验证后才能标注 VERIFIED_LIVE。",false);
     }
     private void settings() {
@@ -246,19 +254,18 @@ public final class MainActivity extends Activity {
         gap(r,8);
         if (region == Region.CHINA) {
             r.addView(action("中国区实车连接 / 登录",false,()->{
-                DiagnosticLog.add("Open China live alpha screen");
-                startActivity(new Intent(this, ChinaLiveActivity.class));
+                openChinaLive();
             }));
         } else {
             r.addView(action("Global 登录（后续阶段）",false,()->info("Global 尚未接入", "当前 alpha 优先完成中国区真实链路，Global 保持独立会话并在后续阶段接入。")));
         }
         LinearLayout diag = card(content);
         diag.addView(text("运行诊断",17,INK,true));gap(diag,8);
-        row(diag,"编译版本","0.2.0-alpha1");
-        row(diag,"China 实验 API","ALPHA / DEVICE_VERIFY");
-        row(diag,"China 核心远控","ALPHA / MANUAL_CONFIRM");
+        row(diag,"编译版本","0.3.0-alpha2");
+        row(diag,"China 车辆 API","DEVICE_VERIFICATION");
+        row(diag,"China 核心远控","MANUAL_CONFIRM / NO_RETRY");
         row(diag,"R8 混淆","DEFERRED");
-        row(diag,"模拟数据","ON");gap(diag,10);
+        row(diag,"当前数据",currentSnapshot().isDemo ? "DEMO" : "CACHED / LIVE REFRESH");gap(diag,10);
         diag.addView(action("复制诊断日志",true,()->{
             DiagnosticLog.add("Diagnostic log copied");
             ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
@@ -275,6 +282,44 @@ public final class MainActivity extends Activity {
     private void disabledCommand(String action) {
         DiagnosticLog.add("Blocked remote command: " + action);
         info("远控未开放", action + "：" + OperationState.DISABLED.label + "。本次点击没有发送车辆控制指令。");
+    }
+    private VehicleSnapshot currentSnapshot() {
+        if (region == Region.CHINA) {
+            VehicleSnapshot cached = VehicleSnapshotStore.loadChina(this);
+            if (cached != null) return cached;
+        }
+        return new DemoRepository().snapshot(region);
+    }
+    private void openChinaLive() {
+        DiagnosticLog.add("Open China vehicle screen");
+        startActivity(new Intent(this, ChinaLiveActivity.class));
+    }
+    private void refreshChina() {
+        if (!SecureSessionStore.hasSession(this)) {
+            openChinaLive();
+            return;
+        }
+        Toast.makeText(this, "正在刷新车辆状态…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                ChinaPolestarApi api = new ChinaPolestarApi(this);
+                List<ChinaPolestarApi.VehicleInfo> vehicles = api.discoverVehicles();
+                VehicleSnapshot snapshot = api.readVehicle(vehicles.get(0));
+                VehicleSnapshotStore.saveChina(this, snapshot);
+                runOnUiThread(() -> {
+                    DiagnosticLog.add("Dashboard live refresh completed");
+                    Toast.makeText(this, "车辆状态已更新", Toast.LENGTH_SHORT).show();
+                    render();
+                    refreshWidgets();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> info("刷新失败", safeMessage(e)));
+            }
+        }, "china-dashboard-refresh").start();
+    }
+    private static String safeMessage(Exception e) {
+        String message = e.getMessage();
+        return message == null || message.trim().isEmpty() ? e.getClass().getSimpleName() : message;
     }
     private void showInitialRegionChooser() { showRegionChooser(true); }
     private void showRegionChooser(boolean firstLaunch) {

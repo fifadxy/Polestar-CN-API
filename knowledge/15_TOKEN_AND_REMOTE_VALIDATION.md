@@ -57,7 +57,7 @@ UNCONFIRMED --只读状态确认--> VEHICLE_CONFIRMED 或保留 UNCONFIRMED
 - 请求状态不明确时**不能无条件自动重复** `unlock`、`lock`、尾门、窗、鸣笛、空调等写入指令。
 - `refreshControlState` 与类似 `controlReached` 的状态核对逻辑应作为 `CommandStateVerifier` 独立模块。
 - 每条命令应按 China/Global、车型、车端版本分别建立可用性判断；未经验证不可展示“已成功”。
-- 当前 `CapabilityMatrix.ENABLE_REMOTE_COMMANDS=false`：它表示 **当前代码未实现并仍禁用**，不是 V3.0 长期产品目标。
+- v0.3.0-alpha2 的 `CapabilityMatrix.ENABLE_REMOTE_COMMANDS=true` 仅表示 China 空调启停和解锁已进入手动确认的设备验证通道；未验证的上锁、车窗、尾门、鸣笛/闪灯和净化仍不展示为可用。
 
 ## 5. 可复现测试矩阵
 

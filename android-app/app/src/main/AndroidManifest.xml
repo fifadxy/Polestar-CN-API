@@ -5,7 +5,7 @@
         <package android:name="app.c3garage.companion" />
     </queries>
     <application
-        android:label="Polestar Companion Dev"
+        android:label="极星助手 CN"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="false"

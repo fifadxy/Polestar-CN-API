@@ -10,8 +10,8 @@
 | Java 纯模型 + 语义测试 | `scripts/test_models.sh`、`tests/ModelStateTest.java` | 既有源码单测通过 |
 | Android 0.1.0-dev2 Debug 编译 | Actions run `40261229408`，APK SHA256 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40` | `CI_VERIFIED`，**仅旧版本** |
 | 首次区域选择、页面和两个 Widget | 已有代码，但无本次新设备日志 | `IMPLEMENTED_DEMO / DEVICE_UNTESTED` |
-| China 真实登录及车辆接口 | 现有代码没有 | `NOT_IMPLEMENTED` |
-| China 远控 | 当前 `ENABLE_REMOTE_COMMANDS=false` | `DISABLED_IN_CURRENT_BUILD` |
+| China 真实登录及车辆接口 | v0.3.0-alpha2 已实现协议与 UI，尚无本项目设备日志 | `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION` |
+| China 远控 | 空调启停和解锁已接手动确认通道，无自动写重试 | `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION` |
 | Global 完整网络 API | 现有代码没有 | `NOT_IMPLEMENTED` |
 
 ## B. P0–P7 分项新验收要求

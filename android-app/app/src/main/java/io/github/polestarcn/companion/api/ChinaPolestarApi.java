@@ -44,6 +44,8 @@ import io.grpc.stub.MetadataUtils;
 public final class ChinaPolestarApi {
     private static final String GW = "https://gw.app.polestar-auto.com";
     private static final String DISCOVERY = "https://cnepmob.volvocars.com.cn/";
+    private static final String ACCEPT_C3 = "application/volvo.cloud.cnepmob.v1+json";
+    private static final long DEFAULT_TOKEN_LIFETIME_SECONDS = 14_400L;
     private static final Object REFRESH_LOCK = new Object();
 
     private final Context context;
@@ -67,6 +69,13 @@ public final class ChinaPolestarApi {
         public String model = "Polestar 2";
         public String modelName = "";
         public String modelYear = "";
+
+        public String displayLabel() {
+            String name = first(modelName, model, "Polestar");
+            String year = first(modelYear);
+            String suffix = vin == null || vin.length() < 4 ? "----" : vin.substring(vin.length() - 4);
+            return name + (year.isEmpty() ? "" : " · " + year) + " · VIN…" + suffix;
+        }
     }
 
     public Session login(String phone, String password) throws Exception {
@@ -88,14 +97,19 @@ public final class ChinaPolestarApi {
         }
 
         Session s = new Session();
-        s.access = first(
-                data.optString("globleToken"), data.optString("globalToken"), data.optString("global_token"),
+        JSONObject global = firstObject(data, "globleToken", "globalToken", "global_token");
+        s.access = global == null ? "" : first(global.optString("accessToken"),
+                global.optString("access_token"), global.optString("token"));
+        s.refresh = global == null ? "" : first(global.optString("refreshToken"), global.optString("refresh_token"));
+        long expires = global == null ? 0L : firstLong(global.optLong("expiresIn", 0), global.optLong("expires_in", 0));
+        if (s.access.isEmpty()) s.access = first(
+                scalar(data, "globleToken"), scalar(data, "globalToken"), scalar(data, "global_token"),
                 data.optString("accessToken"), data.optString("access_token"), data.optString("token"),
-                response.optString("globleToken"), response.optString("globalToken"), response.optString("global_token"));
-        s.refresh = first(data.optString("refreshToken"), data.optString("refresh_token"),
+                scalar(response, "globleToken"), scalar(response, "globalToken"), scalar(response, "global_token"));
+        if (s.refresh.isEmpty()) s.refresh = first(data.optString("refreshToken"), data.optString("refresh_token"),
                 response.optString("refreshToken"), response.optString("refresh_token"));
-        long expires = firstLong(data.optLong("expiresIn", 0), data.optLong("expires_in", 0),
-                response.optLong("expiresIn", 0), response.optLong("expires_in", 0));
+        if (expires <= 0) expires = firstLong(data.optLong("expiresIn", 0), data.optLong("expires_in", 0),
+                response.optLong("expiresIn", 0), response.optLong("expires_in", 0), DEFAULT_TOKEN_LIFETIME_SECONDS);
         if (s.access.isEmpty()) throw new Exception("登录成功响应中没有 C3 global token");
         s.expiresAt = System.currentTimeMillis() + Math.max(60L, expires) * 1000L;
         s.revision = System.currentTimeMillis();
@@ -131,15 +145,19 @@ public final class ChinaPolestarApi {
             if (code != 200 && code != 0)
                 throw new Exception("刷新令牌被服务端拒绝：" + first(response.optString("msg"), response.optString("message"), "未提供原因"));
 
-            String access = first(
-                    data.optString("globleToken"), data.optString("globalToken"), data.optString("global_token"),
+            JSONObject global = firstObject(data, "globleToken", "globalToken", "global_token");
+            String access = global == null ? "" : first(global.optString("accessToken"),
+                    global.optString("access_token"), global.optString("token"));
+            if (access.isEmpty()) access = first(
+                    scalar(data, "globleToken"), scalar(data, "globalToken"), scalar(data, "global_token"),
                     data.optString("accessToken"), data.optString("access_token"), data.optString("token"),
-                    response.optString("globleToken"), response.optString("globalToken"), response.optString("global_token"),
                     response.optString("accessToken"), response.optString("access_token"), response.optString("token"));
             if (access.isEmpty()) throw new Exception("刷新登录令牌响应中未找到 C3 global token");
-            String refresh = first(data.optString("refreshToken"), data.optString("refresh_token"), current.refresh);
-            long expires = firstLong(data.optLong("expiresIn", 0), data.optLong("expires_in", 0),
-                    response.optLong("expiresIn", 0), response.optLong("expires_in", 0));
+            String refresh = global == null ? "" : first(global.optString("refreshToken"), global.optString("refresh_token"));
+            refresh = first(refresh, data.optString("refreshToken"), data.optString("refresh_token"), current.refresh);
+            long expires = global == null ? 0L : firstLong(global.optLong("expiresIn", 0), global.optLong("expires_in", 0));
+            if (expires <= 0) expires = firstLong(data.optLong("expiresIn", 0), data.optLong("expires_in", 0),
+                    response.optLong("expiresIn", 0), response.optLong("expires_in", 0), DEFAULT_TOKEN_LIFETIME_SECONDS);
             current.access = access;
             current.refresh = refresh;
             current.expiresAt = System.currentTimeMillis() + Math.max(60L, expires) * 1000L;
@@ -168,10 +186,17 @@ public final class ChinaPolestarApi {
                 "services.vehiclestates.battery.BatteryService", "GetLatestBattery"), 3);
         Integer soc = ProtoWire.integer(battery, 2);
         Integer range = ProtoWire.integer(battery, 4);
+        String charging = ProtoWire.enumText(battery, 7, "未指定", "充电中", "空闲", "计划中",
+                "放电中", "错误", "智能充电", "已完成", "智能充电暂停");
+        long capturedAt = System.currentTimeMillis();
+        Long sourceTime = ProtoWire.longValue(ProtoWire.nested(battery, 1), 1);
+        if (sourceTime != null && sourceTime > 1_000_000_000_000L && sourceTime <= capturedAt + 300_000L)
+            capturedAt = sourceTime;
 
         Map<Integer,Object> odo = ProtoWire.nested(stateRpc(s, vin,
                 "services.vehiclestates.odometer.OdometerService", "GetLatestOdometer"), 2);
-        Integer odometer = ProtoWire.integer(odo, 2);
+        Integer odometerMeters = ProtoWire.integer(odo, 2);
+        Integer odometer = odometerMeters == null ? null : odometerMeters / 1000;
 
         String lock = "未知";
         String doors = "状态未知";
@@ -182,15 +207,26 @@ public final class ChinaPolestarApi {
                     "services.vehiclestates.exterior.ExteriorService", "GetLatestExterior"), 3);
             Integer lockValue = ProtoWire.integer(exterior, 2);
             if (lockValue != null) lock = lockValue == 2 ? "已上锁" : lockValue == 1 ? "未锁" : "未知";
+            int[] doorStates = new int[4];
+            int[] windowStates = new int[4];
+            for (int i = 0; i < 4; i++) {
+                Integer door = ProtoWire.integer(exterior, i + 3);
+                Integer window = ProtoWire.integer(exterior, i + 7);
+                doorStates[i] = door == null ? -1 : door;
+                windowStates[i] = window == null ? -1 : window;
+            }
+            doors = stateSummary(doorStates, "车门");
+            windows = stateSummary(windowStates, "车窗");
+            tailgate = ProtoWire.enumText(exterior, 12, "未知", "已打开", "已关闭", "未关严");
         } catch (Exception e) {
             DiagnosticLog.add("Exterior read failed: " + safe(e));
         }
 
         return new VehicleSnapshot(
                 first(info.modelName, info.model, "Polestar"),
-                maskVin(vin), soc, range, odometer, "实时状态待字段验证",
-                doors, windows, tailgate, lock, System.currentTimeMillis(),
-                "LIVE / CHINA C3", false);
+                maskVin(vin), soc, range, odometer, charging,
+                doors, windows, tailgate, lock, capturedAt,
+                "LIVE", false);
     }
 
     public byte[] unlock(String vin) throws Exception {
@@ -222,7 +258,7 @@ public final class ChinaPolestarApi {
     }
 
     private Map<Integer,Object> stateRpc(Session s, String vin, String service, String method) throws Exception {
-        return ProtoWire.decode(invoke(s, vin, service, method, ProtoWire.stringField(1, vin)));
+        return ProtoWire.decode(invoke(s, vin, service, method, ProtoWire.stringField(2, vin)));
     }
 
     private byte[] invoke(Session s, String vin, String service, String method, byte[] request) throws Exception {
@@ -275,7 +311,7 @@ public final class ChinaPolestarApi {
 
     private void ensureC3Host(Session s) throws Exception {
         if (s.c3Host != null && !s.c3Host.isEmpty()) return;
-        Object value = request(DISCOVERY, "GET", null, null, s.access);
+        Object value = request(DISCOVERY, "GET", null, null, null, ACCEPT_C3);
         if (!(value instanceof JSONObject)) throw new Exception("C3 服务发现返回格式异常");
         JSONObject c3 = ((JSONObject) value).optJSONObject("c3");
         String host = c3 == null ? "" : c3.optString("grpcHost", "");
@@ -305,7 +341,7 @@ public final class ChinaPolestarApi {
         params.put("deviceModel", Build.MODEL == null ? "Android" : Build.MODEL);
         params.put("brand", Build.BRAND == null ? "android" : Build.BRAND.toLowerCase(Locale.ROOT));
         params.put("clientType", "PHONE");
-        params.put("systemVer", "Android " + Build.VERSION.RELEASE);
+        params.put("systemVer", Build.DISPLAY == null ? "Android " + Build.VERSION.RELEASE : Build.DISPLAY);
         params.put("appVer", "4.25.0");
 
         ArrayList<String> keys = new ArrayList<>(params.keySet());
@@ -317,7 +353,7 @@ public final class ChinaPolestarApi {
         }
         String secret = signatureProvider.resolve();
         byte[] digest = MessageDigest.getInstance("MD5")
-                .digest((canonical.toString() + secret).getBytes(StandardCharsets.UTF_8));
+                .digest((secret + canonical + secret).getBytes(StandardCharsets.UTF_8));
         StringBuilder hex = new StringBuilder();
         for (byte b : digest) hex.append(String.format(Locale.US, "%02x", b & 0xff));
         params.put("sign", hex.toString());
@@ -331,12 +367,17 @@ public final class ChinaPolestarApi {
     }
 
     private Object request(String url, String method, String contentType, String body, String token) throws Exception {
+        return request(url, method, contentType, body, token, "application/json");
+    }
+
+    private Object request(String url, String method, String contentType, String body, String token,
+                           String accept) throws Exception {
         long start = System.currentTimeMillis();
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setRequestMethod(method);
         c.setConnectTimeout(12_000);
         c.setReadTimeout(18_000);
-        c.setRequestProperty("Accept", "application/json");
+        c.setRequestProperty("Accept", accept == null ? "application/json" : accept);
         c.setRequestProperty("User-Agent", "PolestarAppCN/RCS/4.25.0b262 Android/" + Build.VERSION.RELEASE);
         if (token != null && !token.isEmpty()) c.setRequestProperty("Authorization", "Bearer " + token);
         if (body != null) {
@@ -408,6 +449,33 @@ public final class ChinaPolestarApi {
         if (values == null) return "";
         for (String value : values) if (value != null && !value.trim().isEmpty() && !"null".equalsIgnoreCase(value.trim())) return value;
         return "";
+    }
+
+    private static JSONObject firstObject(JSONObject source, String... keys) {
+        if (source == null) return null;
+        for (String key : keys) {
+            JSONObject value = source.optJSONObject(key);
+            if (value != null) return value;
+        }
+        return null;
+    }
+
+    private static String scalar(JSONObject source, String key) {
+        if (source == null) return "";
+        Object value = source.opt(key);
+        return value instanceof String || value instanceof Number ? String.valueOf(value) : "";
+    }
+
+    private static String stateSummary(int[] values, String label) {
+        if (values == null || values.length == 0) return label + "状态未知";
+        boolean allKnown = true;
+        int open = 0;
+        for (int value : values) {
+            if (value < 0) allKnown = false;
+            else if (value == 1) open++;
+        }
+        if (!allKnown) return label + "状态不完整";
+        return open == 0 ? "全部关闭" : open + " 个开启";
     }
 
     private static long firstLong(long... values) {

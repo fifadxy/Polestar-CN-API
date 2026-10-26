@@ -2,7 +2,7 @@
 
 **Android 长期主开发分支**：`android-polestar-assistant-main`  
 **总开发计划**：`Android Parity V3.0`（**计划版本号，并非已编译 APK 版本号**）  
-**当前构建**：`v0.2.0-alpha1`，独立原生 Android Java 工程；主界面/Widget 仍保留 DEMO，但已加入 **China 实验实车链路**。
+**当前构建**：`v0.3.0-alpha2`，独立原生 Android Java 工程；China 实车状态缓存已接入主界面和 Widget，Global 仍为明确标记的 DEMO。
 
 ## 本次复刻计划的实测基础
 
@@ -22,11 +22,14 @@
 ## 当前实际代码与构建状态
 
 - Native Java / Android SDK：AGP 8.5.2、Gradle 8.7、JDK 17、compileSdk35、minSdk26、targetSdk34。
-- 已有基础 UI：首次 China/Global 选择、车辆总览、演示 SOC/里程/续航、车辆状态示意、标准/紧凑 Widget、日志复制、DEMO/CACHED/LIVE 状态语义与命令状态模型。
-- `v0.2.0-alpha1` 新增 China 实验链路：手机号+密码登录、Keystore 加密 Session、Token refresh、C3 Host/车辆发现、Battery/Odometer/Exterior 原始 Protobuf 读取、空调启动/停止与车门解锁手动确认调用。
+- 已有基础 UI：首次 China/Global 选择、车辆总览、SOC/里程/续航/充电/开闭状态、车辆示意、标准/紧凑 Widget、日志复制、DEMO/CACHED/LIVE 状态语义与命令状态模型。
+- `v0.3.0-alpha2` 修正模板协议的双侧盐签名、嵌套 `globleToken`、C3 Discovery Accept 头、State RPC VIN 字段及里程单位；支持多车选择，并把 China 实车快照接入首页和 Widget。
+- China 已有：手机号+密码登录、Keystore 加密 Session、single-flight Token refresh、C3 Host/车辆发现、Battery/Odometer/Exterior 读取、空调启动/停止与车门解锁手动确认调用。
 - 兼容签名材料**不进入 Git**：仅在设备端检测已安装的参考 APK，且 SHA-256 必须匹配已验证样本，再从该 APK 运行时读取；不写日志和持久存储。
-- 主界面/Widget 仍是 DEMO；Global、C3 Live、PCCS、完整 Exterior 字段、其他远控、命令车辆侧确认和原版 UI 复刻仍待后续阶段。
+- Global、C3 Live、PCCS、其他远控、后台定时刷新、命令车辆侧确认和原版 UI 的像素级复刻仍待后续阶段；新项目的 China 实车能力仍需用户设备验证，不能标记为 `PROJECT_DEVICE_VERIFIED`。
+- 当前兼容方式要求设备同时安装 SHA-256 完全匹配的参考 APK；本项目 APK 不内置第三方兼容签名材料。
 - `v0.2.0-alpha1`：GitHub Actions [run 40265773414](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40265773414) 已成功编译；Actions artifact `polestar-android-companion-v0.2.0-alpha1-debug`。**构建成功不等于实车链路已经由本项目验证。**
+- `v0.3.0-alpha2`：本地受控 Android 构建环境成功完成 `assembleDebug`；交付 APK SHA256 `1398f074cf3ea7527c23134d20db12675762766600be9c32d7175cc6cf14710f`，ZIP 完整性与 APK Signature Scheme v2 校验通过。
 
 ## 本地 / CI 构建
 

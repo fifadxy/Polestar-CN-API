@@ -14,8 +14,8 @@ public final class DiagnosticLog {
         MESSAGES.addLast(new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()) + "  " + event);
     }
     public static synchronized String export() {
-        StringBuilder out = new StringBuilder("Polestar Android Companion dev diagnostics\n");
-        out.append("build=0.2.0-alpha1; mainUi=demo; chinaLiveAdapter=alpha; chinaCoreRemote=manual-confirm; globalApi=off\n");
+        StringBuilder out = new StringBuilder("Polestar Android Companion diagnostics\n");
+        out.append("build=0.3.0-alpha2; mainUi=live-cache-aware; chinaAdapter=device-verification; chinaCoreRemote=manual-confirm; globalApi=off\n");
         for (String e : MESSAGES) out.append(e).append('\n');
         return out.toString();
     }

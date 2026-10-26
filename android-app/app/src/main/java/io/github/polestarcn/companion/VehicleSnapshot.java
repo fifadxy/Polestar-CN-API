@@ -10,6 +10,7 @@ public final class VehicleSnapshot {
   public final ExteriorSnapshot exterior;
   public final EnvironmentSnapshot environment;
   public final ChargingSnapshot chargingDetails;
+  public final TireSnapshot tires;
 
   public VehicleSnapshot(
       String name,
@@ -62,18 +63,21 @@ public final class VehicleSnapshot {
     this(name, id, batteryPercent, rangeKm, odometerKm, charging, doors, windows, tailgate,
         lock, timestampMillis, source, isDemo, climate, air,
         new MileageSnapshot(odometerKm == null ? null : odometerKm.longValue() * 1000L,
-            null, null), ExteriorSnapshot.unknown(), EnvironmentSnapshot.unknown(), ChargingSnapshot.unknown());
+            null, null), ExteriorSnapshot.unknown(), EnvironmentSnapshot.unknown(), ChargingSnapshot.unknown(),
+        TireSnapshot.unknown());
   }
 
   private VehicleSnapshot(
       String name, String id, Integer batteryPercent, Integer rangeKm, Integer odometerKm,
       String charging, String doors, String windows, String tailgate, String lock,
       long timestampMillis, String source, boolean isDemo, String climate, String air,
-      MileageSnapshot mileage, ExteriorSnapshot exterior, EnvironmentSnapshot environment, ChargingSnapshot chargingDetails) {
+      MileageSnapshot mileage, ExteriorSnapshot exterior, EnvironmentSnapshot environment, ChargingSnapshot chargingDetails,
+      TireSnapshot tires) {
     this.mileage = mileage == null ? MileageSnapshot.unknown() : mileage;
     this.exterior = exterior == null ? ExteriorSnapshot.unknown() : exterior;
     this.environment = environment == null ? EnvironmentSnapshot.unknown() : environment;
     this.chargingDetails = chargingDetails == null ? ChargingSnapshot.unknown() : chargingDetails;
+    this.tires = tires == null ? TireSnapshot.unknown() : tires;
     this.climate = climate;
     this.air = air;
     this.name = name;
@@ -111,7 +115,13 @@ public final class VehicleSnapshot {
   public VehicleSnapshot withCharging(ChargingSnapshot value) {
     return new VehicleSnapshot(name, id, batteryPercent, rangeKm, odometerKm, charging, doors,
         windows, tailgate, lock, timestampMillis, source, isDemo, climate, air,
-        mileage, exterior, environment, value);
+        mileage, exterior, environment, value, tires);
+  }
+
+  public VehicleSnapshot withTires(TireSnapshot value) {
+    return new VehicleSnapshot(name, id, batteryPercent, rangeKm, odometerKm, charging, doors,
+        windows, tailgate, lock, timestampMillis, source, isDemo, climate, air,
+        mileage, exterior, environment, chargingDetails, value);
   }
 
   public static String metric(Integer value, String unit) {

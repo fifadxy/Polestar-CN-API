@@ -55,6 +55,7 @@ public final class AppPreferences {
   private static String translated(String raw, boolean en) {
     if (raw == null || raw.trim().isEmpty()) return en ? "Unknown" : "未知";
     if (!en) return "处理中".equals(raw) ? "运行中（待确认）" : raw;
+    if (raw.contains(" 个开启")) return raw.replace(" 个开启", " open").replace("部分未知", "partly unknown");
     switch (raw) {
       case "已上锁": case "已锁": return "Locked";
       case "未锁": return "Unlocked";
@@ -73,6 +74,7 @@ public final class AppPreferences {
       case "已完成": return "Complete";
       case "智能充电暂停": return "Paused";
       case "未知": case "状态未知": return "Unknown";
+      case "状态不完整": return "Incomplete";
       default: return raw;
     }
   }

@@ -23,8 +23,9 @@ public final class DiagnosticLog {
   }
 
   public static synchronized String export() {
-    StringBuilder out = new StringBuilder("Polestar Android Companion diagnostics\n");
-    out.append("build=0.4.0-beta1; mainUi=control; chinaRemote=biometric; globalApi=off\n");
+    StringBuilder out = new StringBuilder("PsAssistant diagnostics\n");
+    out.append("build=").append(BuildConfig.VERSION_NAME)
+        .append("; mainUi=control; chinaRemote=biometric; camp=optional; globalApi=off\n");
     for (String e : MESSAGES) out.append(e).append('\n');
     return out.toString();
   }

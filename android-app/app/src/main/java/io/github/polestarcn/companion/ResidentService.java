@@ -14,10 +14,16 @@ public final class ResidentService extends Service {
   private static boolean running;
 
   public static void apply(Context c) {
-    JobScheduler jobs = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
     if (AppPreferences.enabled(c)) {
       c.startForegroundService(new Intent(c, ResidentService.class));
-      if (jobs != null)
+    } else c.stopService(new Intent(c, ResidentService.class));
+    scheduleUpdates(c);
+  }
+
+  public static void scheduleUpdates(Context c) {
+    JobScheduler jobs = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
+    if (AppPreferences.enabled(c) || WidgetRenderer.hasWidgets(c)) {
+      if (jobs != null && jobs.getPendingJob(41) == null)
         jobs.schedule(
             new JobInfo.Builder(41, new ComponentName(c, VehicleRefreshJob.class))
                 .setPersisted(true)
@@ -25,7 +31,6 @@ public final class ResidentService extends Service {
                 .setPeriodic(30 * 60 * 1000L, 5 * 60 * 1000L)
                 .build());
     } else {
-      c.stopService(new Intent(c, ResidentService.class));
       if (jobs != null) jobs.cancel(41);
     }
   }

@@ -5,6 +5,10 @@ import android.os.Build;
 import android.provider.Settings;
 import io.github.polestarcn.companion.DiagnosticLog;
 import io.github.polestarcn.companion.VehicleSnapshot;
+import io.github.polestarcn.companion.MileageSnapshot;
+import io.github.polestarcn.companion.ExteriorSnapshot;
+import io.github.polestarcn.companion.EnvironmentSnapshot;
+import io.github.polestarcn.companion.ChargingSnapshot;
 import io.github.polestarcn.companion.auth.ReferenceSignatureProvider;
 import io.github.polestarcn.companion.auth.SecureSessionStore;
 import io.grpc.CallOptions;
@@ -282,24 +286,24 @@ public final class ChinaPolestarApi {
     String charging =
         ProtoWire.enumText(
             battery, 7, "未指定", "充电中", "空闲", "计划中", "放电中", "错误", "智能充电", "已完成", "智能充电暂停");
-    long capturedAt = System.currentTimeMillis();
-    Long sourceTime = ProtoWire.longValue(ProtoWire.nested(battery, 1), 1);
-    if (sourceTime != null
-        && sourceTime > 1_000_000_000_000L
-        && sourceTime <= capturedAt + 300_000L) capturedAt = sourceTime;
+    long capturedAt = ProtoWire.timestampMillis(battery, 1);
+    if (capturedAt > System.currentTimeMillis() + 300_000L) capturedAt = 0;
 
-    Map<Integer, Object> odo =
-        ProtoWire.nested(
-            stateRpc(
-                s, vin, "services.vehiclestates.odometer.OdometerService", "GetLatestOdometer"),
-            2);
-    Integer odometerMeters = ProtoWire.integer(odo, 2);
-    Integer odometer = odometerMeters == null ? null : odometerMeters / 1000;
+    MileageSnapshot mileage = MileageSnapshot.unknown();
+    try {
+      mileage = MileageSnapshot.fromReply(stateRpc(
+          s, vin, "services.vehiclestates.odometer.OdometerService", "GetLatestOdometer"));
+    } catch (Exception e) {
+      // A missing optional mileage response must not discard valid battery/exterior data.
+      DiagnosticLog.add("Mileage state unavailable");
+    }
+    mileage = mileage.withConsumption(battery);
 
     String lock = "未知";
     String doors = "状态未知";
     String windows = "状态未知";
     String tailgate = "状态未知";
+    ExteriorSnapshot individualExterior = ExteriorSnapshot.unknown();
     try {
       Map<Integer, Object> exterior =
           ProtoWire.nested(
@@ -308,27 +312,22 @@ public final class ChinaPolestarApi {
               3);
       Integer lockValue = ProtoWire.integer(exterior, 2);
       if (lockValue != null) lock = lockValue == 2 ? "已上锁" : lockValue == 1 ? "未锁" : "未知";
-      int[] doorStates = new int[4];
-      int[] windowStates = new int[4];
-      for (int i = 0; i < 4; i++) {
-        Integer door = ProtoWire.integer(exterior, i + 3);
-        Integer window = ProtoWire.integer(exterior, i + 7);
-        doorStates[i] = door == null ? -1 : door;
-        windowStates[i] = window == null ? -1 : window;
-      }
-      doors = stateSummary(doorStates, "车门");
-      windows = stateSummary(windowStates, "车窗");
+      individualExterior = ExteriorSnapshot.fromData(exterior);
+      doors = individualExterior.summary(false);
+      windows = individualExterior.summary(true);
       tailgate = ProtoWire.enumText(exterior, 12, "未知", "已打开", "已关闭", "未关严");
     } catch (Exception e) {
       DiagnosticLog.add("Exterior read failed: " + safe(e));
     }
 
+    EnvironmentSnapshot environment = EnvironmentSnapshot.fromData(
+        readFeatureData(s, vin, true), readFeatureData(s, vin, false));
     return new VehicleSnapshot(
         first(info.modelName, info.model, "Polestar"),
         maskVin(vin),
         soc,
         range,
-        odometer,
+        mileage.wholeKm(),
         charging,
         doors,
         windows,
@@ -337,11 +336,16 @@ public final class ChinaPolestarApi {
         capturedAt,
         "LIVE",
         false,
-        readFeature(s, vin, true),
-        readFeature(s, vin, false));
+        environment.climate,
+        environment.air).withMileage(mileage).withExterior(individualExterior).withEnvironment(environment)
+        .withCharging(ChargingSnapshot.fromData(battery));
   }
 
   private String readFeature(Session s, String vin, boolean climate) {
+    return ProtoWire.enumText(readFeatureData(s, vin, climate), climate ? 2 : 6, "未知", "开启", "关闭", "处理中");
+  }
+
+  private Map<Integer, Object> readFeatureData(Session s, String vin, boolean climate) {
     try {
       Map<Integer, Object> fields =
           ProtoWire.nested(
@@ -353,10 +357,10 @@ public final class ChinaPolestarApi {
                       : "services.vehiclestates.precleaning.PreCleaningService",
                   climate ? "GetLatestParkingClimatization" : "GetLatestPreCleaning"),
               3);
-      return ProtoWire.enumText(fields, climate ? 2 : 6, "未知", "开启", "关闭", "处理中");
+      return fields;
     } catch (Exception e) {
       DiagnosticLog.add("Optional state unavailable: " + (climate ? "climate" : "air"));
-      return "未知";
+      return java.util.Collections.emptyMap();
     }
   }
 

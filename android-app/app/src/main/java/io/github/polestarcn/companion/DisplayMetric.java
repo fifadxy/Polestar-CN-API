@@ -1,0 +1,82 @@
+package io.github.polestarcn.companion;
+
+public enum DisplayMetric {
+  BATTERY("battery", "电量", "Battery", "%"), RANGE("range", "续航", "Range", " km"),
+  ODOMETER("odometer", "总里程", "Odometer", " km"),
+  TA_DISTANCE("ta_distance", "Last Trip · TA 距离", "Last Trip · TA distance", " km"),
+  TA_SPEED("ta_speed", "TA 平均速度", "TA · AVG Speed", " km/h"),
+  TA_CONSUMPTION("ta_consumption", "TA 百公里能耗", "TA · Average Consumption", " kWh/100 km"),
+  TM_DISTANCE("tm_distance", "Since Reset · TM 距离", "Since Reset · TM distance", " km"),
+  TM_SPEED("tm_speed", "TM 平均速度", "TM · AVG Speed", " km/h"),
+  TM_CONSUMPTION("tm_consumption", "TM 百公里能耗", "TM · Average Consumption", " kWh/100 km"),
+  TEMPERATURE("temperature", "车内温度", "Cabin temperature", " °C"),
+  TARGET_TEMPERATURE("target_temperature", "空调目标温度", "Climate target", " °C"),
+  AQI("aqi", "空气质量 AQI", "Air quality · AQI", " AQI"),
+  PM25("pm25", "PM2.5", "PM2.5", " µg/m³"),
+  CHARGE_CONNECTION("charge_connection", "充电连接", "Charger connection", ""),
+  CHARGE_TYPE("charge_type", "充电类型", "Charging type", ""),
+  CHARGE_POWER("charge_power", "充电功率", "Charging power", " kW"),
+  CHARGE_CURRENT("charge_current", "充电电流", "Charging current", " A"),
+  CHARGE_ETA("charge_eta", "预计充满", "Time to full", ""),
+  POWER_STATUS("power_status", "电源状态", "Power status", "");
+  public final String id, zh, en, unit;
+  DisplayMetric(String id, String zh, String en, String unit) { this.id = id; this.zh = zh; this.en = en; this.unit = unit; }
+  public String label(boolean english) { return english ? en : zh; }
+  public String shortLabel(boolean english) {
+    switch (this) {
+      case TA_DISTANCE: return "TA · km";
+      case TM_DISTANCE: return "TM · km";
+      case TA_SPEED: return "TA · km/h";
+      case TM_SPEED: return "TM · km/h";
+      case TA_CONSUMPTION: return "TA kWh/100km";
+      case TM_CONSUMPTION: return "TM kWh/100km";
+      case TEMPERATURE: return english ? "Cabin °C" : "车内 °C";
+      case TARGET_TEMPERATURE: return english ? "Target °C" : "目标 °C";
+      case AQI: return "AQI";
+      case PM25: return "PM2.5 µg/m³";
+      case BATTERY: return english ? "Battery %" : "电量 %";
+      case RANGE: return english ? "Range km" : "续航 km";
+      case ODOMETER: return english ? "ODO km" : "总里程 km";
+      case CHARGE_POWER: return english ? "Charge kW" : "充电 kW";
+      case CHARGE_CURRENT: return english ? "Current A" : "电流 A";
+      case CHARGE_CONNECTION: return english ? "Plug" : "充电连接";
+      case CHARGE_TYPE: return english ? "Type" : "充电类型";
+      case CHARGE_ETA: return english ? "Full" : "充满时间";
+      case POWER_STATUS: return english ? "Power" : "电源状态";
+      default: return label(english);
+    }
+  }
+  public String value(VehicleSnapshot s, boolean includeUnit) {
+    return value(s, includeUnit, false);
+  }
+  public String value(VehicleSnapshot s, boolean includeUnit, boolean english) {
+    if (s == null) return "--";
+    switch (this) {
+      case CHARGE_CONNECTION: return s.chargingDetails.connection(english);
+      case CHARGE_TYPE: return s.chargingDetails.type(english);
+      case CHARGE_POWER: return s.chargingDetails.power(includeUnit);
+      case CHARGE_CURRENT: return s.chargingDetails.current(includeUnit);
+      case CHARGE_ETA: return s.chargingDetails.timeToFull(english);
+      case POWER_STATUS: return s.chargingDetails.powerStatus(english);
+      default: break;
+    }
+    if (this == TEMPERATURE) return EnvironmentSnapshot.temperatureText(s.environment.temperatureC, includeUnit);
+    if (this == TARGET_TEMPERATURE) return EnvironmentSnapshot.temperatureText(s.environment.targetTemperatureC, includeUnit);
+    if (this == AQI) return s.environment.aqi == null ? "--" : s.environment.aqi + (includeUnit ? unit : "");
+    if (this == PM25) return MileageSnapshot.decimalText(s.environment.pm25UgM3, includeUnit ? unit : "");
+    if (this == BATTERY) return s.batteryPercent == null ? "--" : s.batteryPercent + (includeUnit ? unit : "");
+    if (this == RANGE) return s.rangeKm == null ? "--" : s.rangeKm + (includeUnit ? unit : "");
+    if (this == ODOMETER) return s.mileage.totalMeters == null ? "--" :
+        (s.mileage.totalMeters / 1000L) + (includeUnit ? unit : "");
+    Double value;
+    switch (this) {
+      case TA_DISTANCE: value = s.mileage.automaticKm; break;
+      case TM_DISTANCE: value = s.mileage.manualKm; break;
+      case TA_SPEED: value = s.mileage.automaticAverageSpeed; break;
+      case TM_SPEED: value = s.mileage.manualAverageSpeed; break;
+      case TA_CONSUMPTION: value = s.mileage.automaticConsumption; break;
+      default: value = s.mileage.manualConsumption;
+    }
+    return MileageSnapshot.decimalText(value, includeUnit ? unit : "");
+  }
+}

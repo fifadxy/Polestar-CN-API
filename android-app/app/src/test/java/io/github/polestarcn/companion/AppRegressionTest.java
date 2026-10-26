@@ -26,6 +26,9 @@ public final class AppRegressionTest {
     c.getSharedPreferences("preferences", 0).edit().clear().commit();
     c.getSharedPreferences("cn_vehicle_session_secure", 0).edit().clear().commit();
     c.getSharedPreferences("vehicle_snapshot_display_v1", 0).edit().clear().commit();
+    c.getSharedPreferences("camp_status", 0).edit().clear().commit();
+    c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit();
+    c.getSharedPreferences("climate_runtime_v1", 0).edit().clear().commit();
     Field f = VehicleCoordinator.class.getDeclaredField("instance");
     f.setAccessible(true);
     f.set(null, null);
@@ -45,6 +48,29 @@ public final class AppRegressionTest {
     assertFalse(AppPreferences.enabled(activity));
     assertEquals(Region.CHINA, AppState.region(activity));
     assertEquals(OperationState.NOT_SENT, VehicleCoordinator.get(activity).operation);
+  }
+
+  @Test public void controlColorsFollowVehicleStateRatherThanPendingTap() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn"); signedIn.setAccessible(true); signedIn.setBoolean(c, true);
+    c.snapshot = new VehicleSnapshot("fixture", "masked", 60, 250, 12000, "空闲", "全部关闭",
+        "全部关闭", "已打开", "未锁", System.currentTimeMillis(), "LIVE", false, "开启", "开启");
+    Method render = MainActivity.class.getDeclaredMethod("render"); render.setAccessible(true); render.invoke(activity);
+    assertTileColors(activity.getWindow().getDecorView(), android.graphics.Color.rgb(255, 107, 0));
+    c.snapshot = new VehicleSnapshot("fixture", "masked", 60, 250, 12000, "空闲", "全部关闭",
+        "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(), "LIVE", false, "关闭", "关闭");
+    c.busy = true; c.activeAction = "climate-start"; c.operation = OperationState.SENDING;
+    render.invoke(activity);
+    assertTileColors(activity.getWindow().getDecorView(), android.graphics.Color.WHITE);
+    c.busy = false;
+  }
+  private static void assertTileColors(View view, int color) {
+    if ("control_tile".equals(view.getTag()))
+      assertEquals(color, ((android.graphics.drawable.GradientDrawable) view.getBackground()).getColor().getDefaultColor());
+    if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+      assertTileColors(((ViewGroup) view).getChildAt(i), color);
   }
 
   @Test
@@ -139,8 +165,9 @@ public final class AppRegressionTest {
         View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
         View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
     root.layout(0, 0, width, height);
-    assertEquals(1, count(body, ScrollView.class));
+    assertEquals(0, count(body, ScrollView.class));
     assertEquals(4, countTappableTiles(body));
+    verifyTiles(body, body.getHeight());
     android.graphics.Bitmap bitmap =
         android.graphics.Bitmap.createBitmap(
             width, height, android.graphics.Bitmap.Config.ARGB_8888);
@@ -166,13 +193,99 @@ public final class AppRegressionTest {
   }
 
   private static int countTappableTiles(View v) {
-    int total = v instanceof LinearLayout && v.getContentDescription() != null
-        && ((LinearLayout) v).getChildCount() >= 3 ? 1 : 0;
+    int total = "control_tile".equals(v.getTag()) ? 1 : 0;
     if (v instanceof ViewGroup) {
       ViewGroup g = (ViewGroup) v;
       for (int i = 0; i < g.getChildCount(); i++) total += countTappableTiles(g.getChildAt(i));
     }
     return total;
+  }
+
+  private static void verifyTiles(View view, int viewportHeight) {
+    if ("control_tile".equals(view.getTag())) {
+      LinearLayout tile = (LinearLayout) view;
+      assertTrue("control target at least 48 dp", tile.getHeight() >= 48);
+      assertTrue("control text fits", tile.getChildAt(tile.getChildCount()-1).getBottom() <= tile.getHeight());
+      android.graphics.Rect bounds = new android.graphics.Rect();
+      assertTrue("control remains on screen", tile.getGlobalVisibleRect(bounds));
+      assertEquals("complete control remains on screen", tile.getHeight(), bounds.height());
+    }
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) verifyTiles(group.getChildAt(i), viewportHeight);
+    }
+  }
+
+  @Test @Config(qualifiers = "w320dp-h568dp-mdpi")
+  public void nineSelectedFieldsStillFitOneScreen() throws Exception {
+    AppPreferences.set(activity, "home_metrics", "odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,aqi,temperature");
+    checkLayout(320, 568);
+  }
+
+  @Test @Config(qualifiers = "w320dp-h568dp-mdpi")
+  public void nineFieldsAndLargerTextKeepControlsVisible() throws Exception {
+    android.content.res.Configuration configuration = new android.content.res.Configuration(activity.getResources().getConfiguration());
+    configuration.fontScale = 1.3f;
+    android.util.DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
+    metrics.scaledDensity = metrics.density * 1.3f;
+    activity.getResources().updateConfiguration(configuration, metrics);
+    AppPreferences.set(activity, "home_metrics", "odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,aqi,temperature");
+    checkLayout(320, 568);
+  }
+
+  @Test
+  public void campingDefaultsAndBatteryThresholdAreEnforcedInUi() throws Exception {
+    assertEquals(31, CampModeManager.interval(activity));
+    assertEquals(10, CampModeManager.minimum(activity));
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("test", "masked", 9, null, null, "未知", "未知", "未知",
+        "未知", "未知", 0, "CACHED", false);
+    Method method = MainActivity.class.getDeclaredMethod("campDialog"); method.setAccessible(true); method.invoke(activity);
+    AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+    assertFalse(dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());
+    assertEquals(3, count(dialog.getWindow().getDecorView(), SeekBar.class));
+    AppPreferences.set(activity, "camp_interval", "999");
+    AppPreferences.set(activity, "camp_minimum", "1");
+    assertEquals(60, CampModeManager.interval(activity)); assertEquals(5, CampModeManager.minimum(activity));
+  }
+
+  @Test
+  public void widgetsRenderEverySelectedFieldAndKeep48DpControlTargets() throws Exception {
+    VehicleSnapshot v = new VehicleSnapshot("Polestar 2", "masked", 63, 230, 65845,
+        "充电中", "全部关闭", "全部关闭", "已关闭", "未锁", System.currentTimeMillis(), "LIVE", false)
+        .withMileage(new MileageSnapshot(65_845_000L, 100.5, 25.25, 45.0, 35.0, 18.5, 21.5, 1000, 1000))
+        .withCharging(new ChargingSnapshot(1, 2, 4, 180, 6000.0, 29.0));
+    VehicleSnapshotStore.saveChina(activity, v);
+    for (WidgetRenderer.Size size : WidgetRenderer.Size.values()) {
+      int width = size == WidgetRenderer.Size.MINI || size == WidgetRenderer.Size.SQUARE ? 150 : 300;
+      int height = size == WidgetRenderer.Size.MINI ? 88 : size == WidgetRenderer.Size.WIDE ? 70
+          : size == WidgetRenderer.Size.DATA ? 260 : 170;
+      RemoteViews remote = WidgetRenderer.createViews(activity, 100 + size.ordinal(), size);
+      View root = remote.apply(activity, new FrameLayout(activity));
+      root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, width, height);
+      assertTrue(root.findViewById(R.id.widget_action_lock).getHeight() >= 48);
+      assertTrue(root.findViewById(R.id.widget_action_climate).getHeight() >= 48);
+      int[] ids = {R.id.widget_metric0, R.id.widget_metric1, R.id.widget_metric2, R.id.widget_metric3,
+          R.id.widget_metric4, R.id.widget_metric5, R.id.widget_metric6, R.id.widget_metric7};
+      for (int i = 0; i < WidgetRenderer.capacity(size); i++) {
+        TextView field = root.findViewById(ids[i]);
+        assertEquals(View.VISIBLE, field.getVisibility());
+        assertFalse(field.getText().toString().isEmpty());
+        assertTrue("widget field has width", field.getWidth() >= 30);
+        assertTrue("widget text fits height: " + size + "/" + i + " " + field.getLayout().getHeight() + "/" + field.getHeight(), field.getLayout().getHeight() <= field.getHeight());
+      }
+      android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);
+      root.draw(new android.graphics.Canvas(bitmap));
+      File directory = new File("build/reports/previews"); directory.mkdirs();
+      try (FileOutputStream out = new FileOutputStream(new File(directory, "widget-" + size + ".png"))) {
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+      }
+      bitmap.recycle();
+    }
   }
 
   @Test
@@ -209,6 +322,59 @@ public final class AppRegressionTest {
     assertEquals("开启", copy.climate);
     assertEquals("关闭", copy.air);
     assertEquals(Integer.valueOf(64), copy.batteryPercent);
+  }
+
+  @Test
+  public void mileageCachePreservesTripDecimalsAndNullValues() {
+    VehicleSnapshot v = new VehicleSnapshot("Polestar 2", "masked", 64, 280, null,
+        "空闲", "全部关闭", "全部关闭", "已关闭", "已上锁", 1000, "LIVE", false)
+        .withMileage(new MileageSnapshot(12_345_678L, 127.5, 43.25));
+    VehicleSnapshotStore.saveChina(activity, v);
+    VehicleSnapshot copy = VehicleSnapshotStore.loadChina(activity);
+    assertEquals("CACHED", copy.source);
+    assertEquals(Long.valueOf(12_345_678L), copy.mileage.totalMeters);
+    assertEquals(127.5, copy.mileage.manualKm, 0.0001);
+    assertEquals(43.25, copy.mileage.automaticKm, 0.0001);
+    VehicleSnapshotStore.saveChina(activity, v.withMileage(MileageSnapshot.unknown()));
+    copy = VehicleSnapshotStore.loadChina(activity);
+    assertNull(copy.mileage.totalMeters);
+    assertNull(copy.mileage.automaticKm);
+  }
+
+  @Test public void completeTelemetrySurvivesCacheAndWidgetLanguageIsIndependent() {
+    VehicleSnapshot v = new VehicleSnapshot("fixture", "masked", 63, 230, 65845,
+        "充电中", "全部关闭", "全部关闭", "已关闭", "已上锁", 1000, "LIVE", false)
+        .withMileage(new MileageSnapshot(65_845_000L, 100.5, 25.25, 45.0, 35.0, 18.5, 21.5, 1000, 1000))
+        .withEnvironment(new EnvironmentSnapshot("关闭", "关闭", -4.5, 22.0, 3.0, 4, 25, 8, 1000, 1000))
+        .withExterior(new ExteriorSnapshot(new int[]{1,2,3,-1}, new int[]{2,1,2,2}))
+        .withCharging(new ChargingSnapshot(1, 2, 4, 180, 6000.0, 29.0));
+    VehicleSnapshotStore.saveChina(activity, v);
+    VehicleSnapshot copy = VehicleSnapshotStore.loadChina(activity);
+    assertEquals(-4.5, copy.environment.temperatureC, 0.001);
+    assertEquals(Integer.valueOf(4), copy.environment.aqi);
+    assertEquals(3.0, copy.environment.pm25UgM3, 0.001);
+    assertArrayEquals(new int[]{1,2,3,-1}, copy.exterior.states(false));
+    assertEquals(29.0, copy.chargingDetails.currentAmps, 0.001);
+    assertEquals("3 h", copy.chargingDetails.timeToFull(true));
+    assertEquals(21.5, copy.mileage.automaticConsumption, 0.001);
+    AppPreferences.set(activity, "language", "zh");
+    AppPreferences.set(activity, "widget_language", "en");
+    AppPreferences.set(activity, WidgetRenderer.metricKey(WidgetRenderer.Size.MINI), "charge_connection");
+    View widget = WidgetRenderer.createViews(activity, 1234, WidgetRenderer.Size.MINI)
+        .apply(activity, new FrameLayout(activity));
+    assertTrue(((TextView) widget.findViewById(R.id.widget_metric0)).getText().toString().contains("Connected"));
+    assertFalse(AppPreferences.english(activity)); assertTrue(AppPreferences.widgetEnglish(activity));
+  }
+
+  @Test
+  public void previousMileageCacheIsInvalidatedWithoutLosingBattery() {
+    activity.getSharedPreferences("vehicle_snapshot_display_v1", 0).edit()
+        .putString("china", "{\"name\":\"Polestar 2\",\"batteryPercent\":64,\"odometerKm\":17,\"capturedAt\":1000}")
+        .commit();
+    VehicleSnapshot copy = VehicleSnapshotStore.loadChina(activity);
+    assertEquals(Integer.valueOf(64), copy.batteryPercent);
+    assertNull(copy.odometerKm);
+    assertNull(copy.mileage.totalMeters);
   }
 
   @Test

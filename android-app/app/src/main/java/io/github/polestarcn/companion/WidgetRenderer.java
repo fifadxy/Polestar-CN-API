@@ -16,7 +16,7 @@ import android.text.format.DateFormat;
 import android.widget.RemoteViews;
 
 public final class WidgetRenderer {
-  public enum Size { LARGE, SQUARE, WIDE, MINI }
+  public enum Size { LARGE, SQUARE, WIDE, MINI, DATA }
   private WidgetRenderer() {}
 
   public static void refreshAll(Context context) {
@@ -25,16 +25,30 @@ public final class WidgetRenderer {
     refresh(context, m, CompactWidgetProvider.class, Size.SQUARE);
     refresh(context, m, WideStripWidgetProvider.class, Size.WIDE);
     refresh(context, m, MiniStripWidgetProvider.class, Size.MINI);
+    refresh(context, m, DataWidgetProvider.class, Size.DATA);
   }
   private static void refresh(Context c, AppWidgetManager m, Class<?> receiver, Size size) {
     for (int id : m.getAppWidgetIds(new ComponentName(c, receiver))) update(c, m, id, size);
   }
 
   public static void update(Context c, AppWidgetManager m, int id, Size size) {
+    m.updateAppWidget(id, createViews(c, id, size));
+    ResidentService.scheduleUpdates(c);
+  }
+
+  public static boolean hasWidgets(Context c) {
+    AppWidgetManager m = AppWidgetManager.getInstance(c);
+    for (Class<?> provider : new Class<?>[]{VehicleWidgetProvider.class, CompactWidgetProvider.class,
+        WideStripWidgetProvider.class, MiniStripWidgetProvider.class, DataWidgetProvider.class})
+      if (m.getAppWidgetIds(new ComponentName(c, provider)).length > 0) return true;
+    return false;
+  }
+
+  static RemoteViews createViews(Context c, int id, Size size) {
     VehicleSnapshot s = AppState.region(c) == Region.CHINA ? VehicleSnapshotStore.loadChina(c) : null;
     TelemetryStatus state = s == null ? TelemetryStatus.UNKNOWN : TelemetryStatus.classify(
         s.isDemo, s.source, s.timestampMillis, System.currentTimeMillis(), 15 * 60 * 1000L);
-    int layout = size == Size.LARGE ? R.layout.widget_standard :
+    int layout = size == Size.DATA ? R.layout.widget_data : size == Size.LARGE ? R.layout.widget_standard :
         size == Size.SQUARE ? R.layout.widget_compact :
         size == Size.WIDE ? R.layout.widget_wide : R.layout.widget_mini;
     RemoteViews views = new RemoteViews(c.getPackageName(), layout);
@@ -46,25 +60,49 @@ public final class WidgetRenderer {
         + DateFormat.format("MM-dd HH:mm", s.timestampMillis);
     views.setTextViewText(R.id.widget_title,
         (s == null ? "PsAssistant" : s.name) + (state == TelemetryStatus.STALE ? " · !" : ""));
-    views.setTextViewText(R.id.widget_soc,
-        s == null ? "--%" : VehicleSnapshot.metric(s.batteryPercent, "%"));
-    views.setTextViewText(R.id.widget_range,
-        s == null ? "-- km" : VehicleSnapshot.metric(s.rangeKm, " km"));
     views.setTextViewText(R.id.widget_region, updated);
-    if (size == Size.LARGE) {
-      views.setTextViewText(R.id.widget_detail,
-          s == null ? AppPreferences.widgetTr(c, "无车辆数据", "No vehicle data")
-          : AppPreferences.widgetTr(c, "充电 ", "Charge ") + AppPreferences.widgetStatus(c, s.charging)
-            + "  ·  " + AppPreferences.widgetTr(c, "空调 ", "Climate ")
-            + ( "开启".equals(s.climate) ? AppPreferences.widgetTr(c, "运行中", "Running")
-                : AppPreferences.widgetStatus(c, s.climate)));
+    java.util.List<DisplayMetric> selected = MetricSelection.read(c, metricKey(size), defaults(size));
+    int[] ids = {R.id.widget_metric0, R.id.widget_metric1, R.id.widget_metric2, R.id.widget_metric3,
+        R.id.widget_metric4, R.id.widget_metric5, R.id.widget_metric6, R.id.widget_metric7};
+    int[] rows = {R.id.widget_metric_row0, R.id.widget_metric_row1, R.id.widget_metric_row2, R.id.widget_metric_row3};
+    int columns = size == Size.LARGE || size == Size.DATA ? 2 : 1;
+    int count = Math.min(capacity(size), selected.size());
+    int ink = AppPreferences.dark(c) ? Color.WHITE : Color.rgb(21,22,23);
+    views.setTextColor(R.id.widget_title, ink);
+    views.setTextColor(R.id.widget_region, AppPreferences.dark(c) ? Color.LTGRAY : Color.DKGRAY);
+    for (int i = 0; i < capacity(size); i++) {
+      views.setViewVisibility(ids[i], i < count ? android.view.View.VISIBLE : android.view.View.INVISIBLE);
+      if (i < count) {
+        DisplayMetric metric = selected.get(i);
+        String label = metric.shortLabel(en) + (state == TelemetryStatus.STALE ? en ? " · Old" : " · 旧" : ""), value = metric.value(s, false, en);
+        String content = label + (size == Size.WIDE ? "  " : "\n") + value;
+        android.text.SpannableString styled = new android.text.SpannableString(content);
+        styled.setSpan(new android.text.style.AbsoluteSizeSpan(size == Size.WIDE ? 12 : 11, true), 0, label.length(), 0);
+        styled.setSpan(new android.text.style.AbsoluteSizeSpan(size == Size.WIDE ? 12 : size == Size.MINI ? 14 : 16, true), label.length() + (size == Size.WIDE ? 2 : 1), content.length(), 0);
+        views.setTextViewTextSize(ids[i], android.util.TypedValue.COMPLEX_UNIT_SP, 11);
+        views.setTextViewText(ids[i], styled); views.setTextColor(ids[i], ink);
+        views.setContentDescription(ids[i], metric.label(en) + " · " + metric.value(s, true, en));
+      }
     }
+    for (int i = 0; i < (capacity(size) + columns - 1) / columns; i++)
+      views.setViewVisibility(rows[i], i * columns < count ? android.view.View.VISIBLE : android.view.View.GONE);
     views.setTextViewText(R.id.widget_action_lock, en ? "LOCK" : "车锁");
     views.setTextViewText(R.id.widget_action_climate, en ? "CLIMATE" : "空调");
     views.setOnClickPendingIntent(R.id.widget_summary, pending(c, id, size, "open"));
     views.setOnClickPendingIntent(R.id.widget_action_lock, pending(c, id, size, "lock-choice"));
     views.setOnClickPendingIntent(R.id.widget_action_climate, pending(c, id, size, "climate-choice"));
-    m.updateAppWidget(id, views);
+    return views;
+  }
+
+  public static int capacity(Size size) {
+    return size == Size.DATA ? 8 : size == Size.LARGE ? 4 : size == Size.MINI ? 1 : 2;
+  }
+  public static String metricKey(Size size) { return "widget_metrics_" + size.name(); }
+  public static String defaults(Size size) {
+    if (size == Size.MINI) return "battery";
+    if (size == Size.WIDE || size == Size.SQUARE) return "battery,range";
+    return size == Size.DATA ? "battery,range,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption"
+        : "battery,range,ta_distance,tm_distance";
   }
 
   private static PendingIntent pending(Context c, int id, Size size, String action) {
@@ -85,7 +123,7 @@ public final class WidgetRenderer {
     int opacity = opaque ? 100 : AppPreferences.slider(c, "widget_opacity", 65);
     int frost = AppPreferences.slider(c, "widget_frost", 45);
     int w = size == Size.MINI ? 190 : size == Size.SQUARE ? 190 : 480;
-    int h = size == Size.LARGE ? 205 : size == Size.SQUARE ? 205 : 108;
+    int h = size == Size.DATA ? 350 : size == Size.LARGE ? 205 : size == Size.SQUARE ? 205 : 108;
     Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
     Canvas canvas = new Canvas(bitmap);
     Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);

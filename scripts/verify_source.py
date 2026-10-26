@@ -32,7 +32,10 @@ assert 'app.c3garage.companion' not in other_java
 assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'fixed compatibility signing material must not be committed'
 assert 'ChinaLiveActivity' in manifest
 assert 'grpc-okhttp:1.68.2' in gradle
-assert "versionName '0.5.0-beta1'" in gradle
+version = re.search(r"versionName\s+'([^']+)'", gradle)
+assert version, 'missing APK versionName'
+workflow = (root/'.github/workflows/android-apk.yml').read_text()
+assert f'PsAssistant-v{version.group(1)}-debug.apk' in workflow, 'CI artifact version must match APK metadata'
 assert 'VehicleSnapshotStore.saveChina' in all_java
 assert 'secret + canonical + secret' in all_java
 assert 'ProtoWire.stringField(2, vin)' in all_java

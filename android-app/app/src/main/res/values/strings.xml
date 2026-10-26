@@ -5,6 +5,7 @@
     <string name="widget_compact_name" translatable="false">PsAssistant · 2×2</string>
     <string name="widget_wide_name" translatable="false">PsAssistant · 4×1</string>
     <string name="widget_mini_name" translatable="false">PsAssistant · 2×1</string>
+    <string name="widget_data_name" translatable="false">PsAssistant · Data 4×4</string>
     <color name="launcher_background">#F3F3F1</color>
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:fontFamily">@font/lato_regular</item>

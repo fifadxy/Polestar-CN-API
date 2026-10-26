@@ -127,6 +127,17 @@ public final class ProtoWire {
         return labels[i];
     }
 
+    public static long timestampMillis(Map<Integer, Object> map, int field) {
+        Map<Integer, Object> timestamp = nested(map, field);
+        Long seconds = longValue(timestamp, 1);
+        if (seconds == null || seconds <= 0) return 0;
+        // C3 uses protobuf Timestamp seconds; older reference snapshots also contained epoch ms.
+        if (seconds >= 1_000_000_000_000L) return seconds;
+        if (seconds > Long.MAX_VALUE / 1000L) return 0;
+        Long nanos = longValue(timestamp, 2);
+        return seconds * 1000L + (nanos == null || nanos < 0 || nanos >= 1_000_000_000L ? 0 : nanos / 1_000_000L);
+    }
+
     private static long readVarint(byte[] data, Cursor c) {
         long result = 0L;
         int shift = 0;

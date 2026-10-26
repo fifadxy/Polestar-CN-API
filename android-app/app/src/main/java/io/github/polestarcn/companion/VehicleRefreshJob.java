@@ -9,7 +9,8 @@ public final class VehicleRefreshJob extends JobService {
   @Override
   public boolean onStartJob(JobParameters p) {
     stopped = false;
-    if (!AppPreferences.enabled(this) || !VehicleCoordinator.get(this).hasSession()) return false;
+    if ((!AppPreferences.enabled(this) && !WidgetRenderer.hasWidgets(this))
+        || !VehicleCoordinator.get(this).hasSession()) return false;
     VehicleCoordinator.get(this)
         .refresh(
             () -> {

@@ -31,6 +31,7 @@ public final class VehicleCoordinator {
 
   public String message = "";
   public OperationState operation = OperationState.NOT_SENT;
+  public String activeAction = "";
   private final Context context;
   private final ExecutorService io = Executors.newSingleThreadExecutor();
   private final Handler main = new Handler(Looper.getMainLooper());
@@ -44,7 +45,7 @@ public final class VehicleCoordinator {
   }
 
   public void listen(Runnable r) {
-    listeners.add(r);
+    if (!listeners.contains(r)) listeners.add(r);
   }
 
   public void remove(Runnable r) {
@@ -62,6 +63,7 @@ public final class VehicleCoordinator {
 
   private void finish() {
     busy = false;
+    activeAction = "";
     changed();
     for (Runnable r : new ArrayList<>(completions)) r.run();
     completions.clear();
@@ -121,6 +123,7 @@ public final class VehicleCoordinator {
                   selected = pick;
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;
+                  protectCamp(pick.vin, live);
                   message = tr("车辆状态已更新", "Vehicle updated");
                   WidgetRenderer.refreshAll(context);
                   finish();
@@ -149,6 +152,7 @@ public final class VehicleCoordinator {
     if (busy || selected == null) return;
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
     busy = true;
+    activeAction = action;
     operation = OperationState.SENDING;
     message = tr("正在发送指令…", "Sending command…");
     changed();
@@ -220,7 +224,7 @@ public final class VehicleCoordinator {
                       reached
                           ? tr("车辆状态已确认", "Vehicle state confirmed")
                           : tr("已发送，车辆动作尚未确认", "Sent; vehicle action unconfirmed");
-                  if (updated != null) snapshot = updated;
+                  if (updated != null) { snapshot = updated; protectCamp(vehicle.vin, updated); }
                   WidgetRenderer.refreshAll(context);
                   finish();
                 });
@@ -238,6 +242,7 @@ public final class VehicleCoordinator {
   public void logout() {
     if (busy) return;
     signedIn = false;
+    CampModeManager.clear(context);
     api.logout();
     selected = null;
     cars.clear();
@@ -249,6 +254,116 @@ public final class VehicleCoordinator {
     message = "";
     WidgetRenderer.refreshAll(context);
     changed();
+  }
+
+  public void startCamp(int hours, boolean keepAir) {
+    if (busy || selected == null || hours < 1 || hours > 24) return;
+    final ChinaPolestarApi.VehicleInfo vehicle = selected;
+    busy = true;
+    message = tr("正在检查露营电量…", "Checking camping battery…");
+    changed();
+    io.execute(() -> {
+      try {
+        VehicleSnapshot fresh = api.readVehicle(vehicle);
+        long now = System.currentTimeMillis();
+        int minimum = CampModeManager.minimum(context);
+        if (!CampSession.batteryAllows(fresh.batteryPercent, minimum))
+          throw new IllegalStateException(tr("电量未知或低于下限，未开启露营", "Unknown/below-limit battery; camping not started"));
+        if (fresh.timestampMillis <= 0 || now - fresh.timestampMillis > 10 * 60_000L
+            || fresh.timestampMillis > now + 300_000L)
+          throw new IllegalStateException(tr("电量数据已过期，请刷新后重试", "Battery data is stale. Refresh and try again"));
+        CampSession camping = new CampSession(java.util.UUID.randomUUID().toString(), vehicle.vin,
+            fresh.name, now + hours * 3_600_000L, CampModeManager.interval(context), minimum, keepAir);
+        CampModeManager.start(context, camping);
+        VehicleSnapshotStore.saveChina(context, fresh);
+        main.post(() -> { snapshot = fresh; message = CampModeManager.status(context); finish(); });
+      } catch (Exception e) {
+        main.post(() -> { message = tr("露营未开启：", "Camping not started: ") + safe(e); finish(); });
+      }
+    });
+  }
+
+  public void stopCamp() {
+    if (CampModeManager.requestStop(context)) {
+      checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false), () -> {});
+    }
+  }
+
+  public void checkCamp(java.util.concurrent.atomic.AtomicBoolean cancelled, Runnable done) {
+    if (cancelled.get()) { done.run(); return; }
+    if (busy) {
+      completions.add(() -> main.post(() -> checkCamp(cancelled, done)));
+      return;
+    }
+    CampSession camping = CampModeManager.session(context);
+    String phase = CampModeManager.phase(context);
+    if (camping == null || !("ACTIVE".equals(phase) || "STOPPING".equals(phase))) { done.run(); return; }
+    if (!signedIn) { CampModeManager.deactivate(context, camping.id, "SIGNED_OUT");
+      CampModeManager.finishCheck(context, camping.id); done.run(); return; }
+    busy = true;
+    activeAction = "";
+    message = tr("正在检查露营状态…", "Checking camping status…");
+    changed();
+    io.execute(() -> {
+      final VehicleSnapshot[] read = {null};
+      final boolean[] wrote = {false};
+      ChinaPolestarApi.VehicleInfo vehicle = new ChinaPolestarApi.VehicleInfo();
+      vehicle.vin = camping.vin; vehicle.modelName = camping.vehicleName;
+      CampEngine.Backend backend = new CampEngine.Backend() {
+        public VehicleSnapshot read(CampSession s) throws Exception {
+          return read[0] = api.readVehicle(vehicle);
+        }
+        public void write(CampSession s, String action) throws Exception {
+          wrote[0] = true;
+          switch (action) {
+            case "climate-start": api.climateStart(s.vin, 22f); break;
+            case "climate-stop": api.climateStop(s.vin); break;
+            case "air-start": api.purify(s.vin, true); break;
+            case "air-stop": api.purify(s.vin, false); break;
+            default: throw new IllegalArgumentException("Unsupported camping action");
+          }
+        }
+        public boolean confirm(CampSession s, String action) throws Exception {
+          for (int i = 0; i < 4; i++) {
+            if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
+            Thread.sleep(3000);
+            if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
+            if (api.commandReached(s.vin, action)) {
+              if ("climate-start".equals(action)) ClimateRuntime.started(context, identity(s.vin), System.currentTimeMillis());
+              if ("climate-stop".equals(action)) ClimateRuntime.stopped(context);
+              return true;
+            }
+          }
+          return false;
+        }
+      };
+      CampEngine.Control control = new CampEngine.Control() {
+        public boolean current(String id) { return CampModeManager.current(context, id); }
+        public boolean active(String id) { return current(id) && CampModeManager.active(context); }
+        public boolean cancelled() { return cancelled.get(); }
+        public long now() { return System.currentTimeMillis(); }
+        public void deactivate(String id, String reason) { CampModeManager.deactivate(context, id, reason); }
+        public void report(String result) { CampModeManager.report(context, camping.id, result); }
+      };
+      new CampEngine(backend, control).check(camping, "STOPPING".equals(phase), System.currentTimeMillis(), CampModeManager.stopReason(context));
+      if (wrote[0] && !cancelled.get() && CampModeManager.current(context, camping.id)) {
+        try { read[0] = api.readVehicle(vehicle); } catch (Exception ignored) {}
+      }
+      main.post(() -> {
+        if (read[0] != null && selected != null && camping.vin.equals(selected.vin)) {
+          snapshot = read[0]; VehicleSnapshotStore.saveChina(context, snapshot); WidgetRenderer.refreshAll(context);
+        }
+        message = CampModeManager.status(context);
+        finish();
+        done.run();
+        CampModeManager.finishCheck(context, camping.id);
+      });
+    });
+  }
+
+  private void protectCamp(String vin, VehicleSnapshot state) {
+    if (CampModeManager.protectBattery(context, vin, state))
+      main.post(() -> checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false), () -> {}));
   }
 
   private static boolean uncertain(Exception e) {

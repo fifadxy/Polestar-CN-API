@@ -1,55 +1,41 @@
-# Polestar Assistant for Android · China
+# PsAssistant for Android
 
-**Android 长期主开发分支**：`android-polestar-assistant-main`  
-**总开发计划**：`Android Parity V3.0`（**计划版本号，并非已编译 APK 版本号**）  
-**当前构建**：`v0.4.0-beta1`，独立原生 Android Java 工程；真实中国区登录入口、默认车辆控制首页、系统生物识别、双语与日夜模式、可选常驻状态通知。Global 不展示为可用功能。
+当前版本：**v0.6.0-beta1**（versionCode 60）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
-安装与一次性模板导入、通知和指纹说明见 [Android v0.4 使用说明](docs/ANDROID_V04.md)。旧版本进度保留在知识库历史记录。
+支持中国区手机号/密码登录。首次使用需要导入已验证的原模板 APK，或在本机安装匹配样本；兼容参数与会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
 
-## 本次复刻计划的实测基础
+## 当前功能
 
-用户已在第三方参考 APK `app-release.apk.1.1(1).1` (`app.c3garage.companion`, v0.1.0) 上实际使用 **中国区账号登录、SOC 电量读取、累计里程读取、空调远程控制和车门解锁**。用户另报告：长期使用可能弹出 Token 错误，但实际功能仍可能可用。这些是 `REFERENCE_USER_VERIFIED` 的**参考 APP**行为，**不能说明本独立 Android 工程已经实现**。
+- 默认一页车辆控制首页；电量、续航及最多 9 项自选数据显示，四项控制无需滑动。
+- 修正总里程响应层级；显示 Last Trip / TA、Since Reset / TM 的距离、AVG Speed、Average Consumption（实际响应未提供的字段为 --）。
+- 四门、四车窗独立状态，空调当前/目标温度、AQI、PM2.5，以及充电连接、类型、kW、A、充满时间、充电电源状态。
+- 控制使用强生物识别；车辆确认后的开启/未锁状态为橙色，关闭/已锁为白色，发送及未确认另行提示。
+- 露营模式保留 1–24 小时托管和可选空气净化。默认 31 分钟检查、10% 电量下限；可调 20–60 分钟及 5%–90%。启用前读取电量；运行中发现低于下限便结束托管并尝试停止受托管功能。
+- Widget 2×1、4×1、2×2、4×2 及 Data 4×4，分别最多 1/2/2/4/8 项自选数据；保留门锁与空调入口、独立中英文、不透明/透明与模拟磨砂设置。
+- 可选静默常驻通知显示基础车况与数据更新时间；独立的露营检查不依赖开启常驻通知。
+- 主程序中英文、日夜模式；设置内提供圆屏/方屏手表布局预览。当前 APK 是手机应用，未宣称已完成独立手表应用或 OPPO Watch X2 实机适配。
 
-本工程目标是完整分析参考 APK 的 Manifest/DEX、UI、资源、C3/Proto、认证/会话、远控、Widget/后台机制，以独立、可维护源码复刻功能；同时解决 Token 误报归因并增强 China/Global 分区。**不直接将反编译源码拼接生产、不把第三方兼容签名材料或用户凭证提交源码或构建产物。用户主动导入的兼容参数仅使用本机 Keystore 加密保存。**
+露营检查受 Android 后台限制、网络和车辆服务影响，并非车辆本地恒温功能。状态未知时不盲目启动，超时写请求不自动重发，停止未确认时明确显示结果。
 
-## 推荐阅读
+## 文档
 
-1. [V3 总开发计划](knowledge/14_ANDROID_PARITY_V3_MASTER_PLAN.md)：P0–P7 任务、架构、验收与交付。
-2. [参考 APK 实测与证据](knowledge/13_REFERENCE_APK_FIELD_VALIDATION.md)：已由用户测试的能力和未证实项。
-3. [Token / 远控验证](knowledge/15_TOKEN_AND_REMOTE_VALIDATION.md)：请求与状态独立分类、误报、超时和逐项远控验收。
-4. [功能矩阵](knowledge/04_FEATURE_MATRIX.md)：参考 APK vs 新工程的真实实现状态。
-5. [Android 分支管理](knowledge/16_ANDROID_BRANCH_GOVERNANCE.md)：长期主线、历史分支与 Mac 分支隔离。
-6. [知识库完整索引](knowledge/INDEX.md)：全部文件、APK 字典和实测证据。
+- [本轮字段核对、使用方式、验证边界与待确认优化方案](docs/Psa_v060_Parity_and_Review.md)
+- [Psa VI/UI Design Specification v5](docs/Psa_VI_UI_Design_Specification_EN_v5_Optimized.md)
+- [初次导入、指纹与通知说明](docs/ANDROID_V04.md)
+- [知识库历史索引](knowledge/INDEX.md)（历史阶段状态以各文件日期为准）
+- [China / Global 接口来源比较](docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md)
 
-## 当前实际代码与构建状态
+## 构建与验证
 
-- Native Java / Android SDK：AGP 8.5.2、Gradle 8.7、JDK 17、compileSdk35、minSdk26、targetSdk34。
-- 已有基础 UI：首次 China/Global 选择、车辆总览、SOC/里程/续航/充电/开闭状态、车辆示意、标准/紧凑 Widget、日志复制、DEMO/CACHED/LIVE 状态语义与命令状态模型。
-- `v0.3.0-alpha2` 修正模板协议的双侧盐签名、嵌套 `globleToken`、C3 Discovery Accept 头、State RPC VIN 字段及里程单位；支持多车选择，并把 China 实车快照接入首页和 Widget。
-- China 已有：手机号+密码登录、Keystore 加密 Session、single-flight Token refresh、C3 Host/车辆发现、Battery/Odometer/Exterior 读取、空调启动/停止与车门解锁手动确认调用。
-- 兼容签名材料**不进入 Git**：仅在设备端检测已安装的参考 APK，且 SHA-256 必须匹配已验证样本，再从该 APK 运行时读取；不写日志和持久存储。
-- Global、C3 Live、PCCS、其他远控、后台定时刷新、命令车辆侧确认和原版 UI 的像素级复刻仍待后续阶段；新项目的 China 实车能力仍需用户设备验证，不能标记为 `PROJECT_DEVICE_VERIFIED`。
-- 当前兼容方式要求设备同时安装 SHA-256 完全匹配的参考 APK；本项目 APK 不内置第三方兼容签名材料。
-- `v0.2.0-alpha1`：GitHub Actions [run 40265773414](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40265773414) 已成功编译；Actions artifact `polestar-android-companion-v0.2.0-alpha1-debug`。**构建成功不等于实车链路已经由本项目验证。**
-- `v0.3.0-alpha2`：本地受控 Android 构建环境成功完成 `assembleDebug`；交付 APK SHA256 `1398f074cf3ea7527c23134d20db12675762766600be9c32d7175cc6cf14710f`，ZIP 完整性与 APK Signature Scheme v2 校验通过。GitHub Actions [run 40268035481](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40268035481) 已成功重建并上传同版本命名的 CI artifact。
-
-## 本地 / CI 构建
-
-Android Studio 打开 `android-app`，或在具备 Android SDK 35 和 Gradle 8.7 环境的终端：
+JDK 17、Gradle 8.7、Android SDK 35；minSdk 26、targetSdk 34。
 
 ```bash
 cd android-app
-gradle --no-daemon :app:assembleDebug
+gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-产物：`android-app/app/build/outputs/apk/debug/app-debug.apk`。
+输出为 `android-app/app/build/outputs/apk/debug/app-debug.apk`。CI 上传同版本名称的 APK artifact；debug 签名在不同构建环境可能不同，正式更新需固定签名。
 
-静态与 JVM 测试：`python3 scripts/verify_source.py`、`python3 scripts/check_knowledge.py`、`sh scripts/test_models.sh`；新 Android 主线已加入 `.github/workflows/android-apk.yml` 的 push 监听。
+仓库根目录可运行：`python3 scripts/verify_source.py`、`python3 scripts/check_knowledge.py`、`sh scripts/test_models.sh`。测试包括协议字段、空值与单位、缓存迁移、露营阈值/过期/取消/不重复写入、手机一屏布局和 Widget 控制触区。
 
-## 分支和项目边界
-
-- 此分支为 **Android 子项目主线**，并非修改整个仓库的默认 `main`；Mac/Hisingen 的 Native Swift 和其它历史分支保持原状。
-- China/Global 需独立 Token、车辆列表和能力矩阵，不假设登录/认证/主机可互换。
-- 真实远控须针对本人授权车辆、主动发起、逐功能验证；网络不确定时只读回读，禁止自动重复写入。
-- R8、混淆和非必要安全加固继续 `DEFERRED`；基本凭证隔离、权限/用户确认、敏感日志脱敏属于功能正确性要求。
-- 本项目是非官方技术研究应用，不代表 Polestar 官方客户端。
+构建和合成样本测试不代替用户账号/车辆/手表实测。Mac 分支及默认 main 不受本 Android 分支修改影响；本项目是独立的非官方客户端。

@@ -1,3 +1,14 @@
+## 2026-10-26 / v0.7.5-beta1 — 车辆信息二级化、Health 聚合与动态密度 VI
+
+- `PRIMARY_IDENTITY`：两套控制页主标题只显示车型；年份与 VIN 从主界面移除，点击车型进入二级“车辆详情”查看完整车型、年款和 VIN，再从该菜单切换车辆。
+- `POLESTAR_2_ART`：控制页 Polestar 2 主视觉统一放大约 8%，继续沿用白天原色 / 夜间黑色车身处理。
+- `HEALTH_CROSS_CHECK`：对上游 Hisingen commit `5301353` 的 `HealthService/GetHealth` 源码重新逐字段核对：washer fluid=field 13（>1 告警）、low-voltage/12V=field 38（2 告警）、tyre warning=fields 9–12；全球实现明确玻璃水是告警状态，不是液位值。
+- `CHINA_BOUNDARY`：中国 Android 分支已有 `HealthService/GetHealth` 只读调用；本轮扩展为同一次 Health 返回同时解析 12V、玻璃水和胎压告警。官方 China App 的历史可访问证据只定位到 `com.polestar.carcontrol / CarMainFragment` 车辆状态 UI，尚未直接确认 HealthService 字段，因此 China 语义仍标记为待授权实车验证。
+- `VEHICLE_STATUS`：主界面取消独立胎压按钮，改为统一“车辆状态”按钮；12V、玻璃水、胎压告警在二级状态页聚合。四轮 iTPMS 详情默认隐藏，设置内提供“实验性 iTPMS 四轮状态（待修复）”开关。
+- `DYNAMIC_METRICS`：车辆控制页自选数据上限由 6 提升到 12；1–4 项采用 2 列、5–6 项 3 列、7–12 项 4 列，字号/行高随密度自动收缩，保持竖屏/横屏单页无滚动。
+- `AMBIENT_VI`：原 3dp 细线升级为约 20dp 的整体橙色环境光带，3.6 秒低频位移+呼吸，仅重绘光带自身区域；日间降低透明度、夜间增强层次，按钮按压回弹继续保留。
+- `VERSION`：Android 提升至 `0.7.5-beta1` / versionCode 75。
+
 ## 2026-10-26 / v0.7.4-beta1 — 两套皮肤、详细风格重排、动态 VI 与车辆空调剩余时间
 
 - `UI_SKINS`：删除“最新模板”皮肤入口；现仅保留 **简洁风格** 与 **详细风格**。旧 `latest/ev_concept` 自动迁移到简洁风格，旧 `current` 自动迁移到详细风格。

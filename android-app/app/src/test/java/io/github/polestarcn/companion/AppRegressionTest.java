@@ -7,6 +7,7 @@ import android.content.*;
 import android.view.*;
 import android.widget.*;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import io.github.polestarcn.companion.api.ProtoWire;
 import java.io.*;
 import java.lang.reflect.*;
 import org.junit.*;
@@ -666,7 +667,7 @@ public final class AppRegressionTest {
         "LIVE", false, "开启", "关闭")
         .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
             3.0, 4, 18, null, 1, 1));
-    AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,tire_status");
+    AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,vehicle_status");
     Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
     signedIn.setAccessible(true);
     signedIn.setBoolean(c, true);
@@ -800,7 +801,7 @@ public final class AppRegressionTest {
         "LIVE", false, "开启", "关闭")
         .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
             3.0, 4, 18, null, 1, 1));
-    AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,tire_status");
+    AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,vehicle_status");
     Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
     signedIn.setAccessible(true);
     signedIn.setBoolean(c, true);
@@ -828,17 +829,138 @@ public final class AppRegressionTest {
     View car = findTagged(root, "polestar_vehicle");
     View windows = findTagged(root, "windows_control_button");
     View bodyButton = findTagged(root, "exterior_button");
-    View tire = findTagged(root, "tire_button");
+    View vehicleStatus = findTagged(root, "vehicle_status_button");
     View camp = findTagged(root, "camp_button");
     View signal = findTagged(root, "signal_control_button");
     assertNotNull(car); assertNotNull(windows); assertNotNull(bodyButton);
-    assertNotNull(tire); assertNotNull(camp); assertNotNull(signal);
+    assertNotNull(vehicleStatus); assertNotNull(camp); assertNotNull(signal);
     int carBottom = absoluteTop(car) + car.getHeight();
     assertTrue(absoluteTop(windows) >= carBottom);
     assertTrue(absoluteTop(bodyButton) >= carBottom);
-    assertTrue(absoluteTop(tire) >= carBottom);
+    assertTrue(absoluteTop(vehicleStatus) >= carBottom);
     assertTrue(absoluteTop(camp) >= carBottom);
     assertTrue(absoluteTop(signal) >= carBottom);
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void primaryVehicleHeaderHidesYearAndVinButSecondaryMenuShowsThem() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "LPSVSE1K9ML123456";
+    c.selected.model = "Polestar 2";
+    c.selected.modelName = "Polestar 2 2021";
+    c.selected.modelYear = "2021";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    UiSkin.set(activity, UiSkin.DETAILED);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    render.invoke(activity);
+    View root = activity.getWindow().getDecorView();
+    assertTrue(hasText(root, "Polestar 2"));
+    assertFalse(hasText(root, "2021"));
+    assertFalse(hasText(root, "LPSVSE1K9ML123456"));
+
+    Method info = MainActivity.class.getDeclaredMethod("vehicleInfoDialog");
+    info.setAccessible(true);
+    info.invoke(activity);
+    AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "2021"));
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "LPSVSE1K9ML123456"));
+    dialog.dismiss();
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void tyreDetailIsHiddenByDefaultBehindAggregateVehicleStatus() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    TireSnapshot tyres = new TireSnapshot(
+        new Double[]{null, null, null, null},
+        new int[]{TireSnapshot.OK, TireSnapshot.OK, TireSnapshot.OK, TireSnapshot.OK}, 1);
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭")
+        .withTires(tyres)
+        .withHealth(new VehicleHealthSnapshot(
+            VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, 1));
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    AppPreferences.set(activity, "experimental_tire", "off");
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    render.invoke(activity);
+    View root = activity.getWindow().getDecorView();
+    assertNotNull(findTagged(root, "vehicle_status_button"));
+    assertNull("standalone tyre button is not on control page", findTagged(root, "tire_button"));
+
+    Method dialogMethod = MainActivity.class.getDeclaredMethod("vehicleStatusDialog");
+    dialogMethod.setAccessible(true);
+    dialogMethod.invoke(activity);
+    AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "12V"));
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "玻璃水"));
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "胎压告警"));
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "默认隐藏"));
+    dialog.dismiss();
+  }
+
+  @Test
+  public void healthWarningMappingMatchesGlobalHisingenFields() {
+    java.util.Map<Integer, Object> health = new java.util.LinkedHashMap<>();
+    health.put(13, 2L);
+    health.put(38, 1L);
+    TireSnapshot tyres = new TireSnapshot(
+        new Double[]{null, null, null, null},
+        new int[]{TireSnapshot.OK, TireSnapshot.OK, TireSnapshot.OK, TireSnapshot.OK}, 1);
+    VehicleHealthSnapshot state = VehicleHealthSnapshot.fromData(health, tyres);
+    assertEquals(VehicleHealthSnapshot.WARNING, state.washerFluid);
+    assertEquals(VehicleHealthSnapshot.OK, state.lowVoltageBattery);
+    assertEquals(VehicleHealthSnapshot.OK, state.tirePressure);
+    assertTrue(state.hasProblem());
+  }
+
+  @Test
+  @Config(qualifiers = "w320dp-h568dp-mdpi")
+  public void twelveDynamicMetricsRemainOnSingleScreenInBothSkins() throws Exception {
+    AppPreferences.set(activity, "home_metrics",
+        "vehicle_status,odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,"
+            + "tm_consumption,aqi,temperature,charge_power,charge_current");
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+      UiSkin.set(activity, skin);
+      render.invoke(activity);
+      View root = activity.getWindow().getDecorView();
+      root.measure(View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(568, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 320, 568);
+      View content = findTagged(root, "control_pull_content");
+      assertNotNull(content);
+      assertEquals(0, count(content, ScrollView.class));
+      ViewGroup group = (ViewGroup) content;
+      View last = group.getChildAt(group.getChildCount() - 1);
+      assertTrue(last.getBottom() <= content.getHeight());
+      View glow = findTagged(root, "vi_ambient_glow");
+      assertNotNull(glow);
+      assertTrue("ambient band is integrated, not a 3dp line", glow.getHeight() >= 16);
+    }
   }
 
   @Test

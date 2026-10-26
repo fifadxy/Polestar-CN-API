@@ -38,6 +38,10 @@ public final class VehicleSnapshotStore {
       o.put("tireWarnings", array(snapshot.tires.warnings()));
       o.put("tirePressures", doubleArray(snapshot.tires.pressures()));
       o.put("tireReportedAt", snapshot.tires.reportedAt);
+      o.put("health12v", snapshot.health.lowVoltageBattery);
+      o.put("healthWasher", snapshot.health.washerFluid);
+      o.put("healthTire", snapshot.health.tirePressure);
+      o.put("healthReportedAt", snapshot.health.reportedAt);
       o.put("temperatureC", snapshot.environment.temperatureC);
       o.put("targetTemperatureC", snapshot.environment.targetTemperatureC);
       o.put("aqi", snapshot.environment.aqi);
@@ -99,6 +103,12 @@ public final class VehicleSnapshotStore {
         snapshot = snapshot.withTires(new TireSnapshot(
             doubles(o.optJSONArray("tirePressures")), states(o.optJSONArray("tireWarnings")),
             o.optLong("tireReportedAt", 0)));
+      if (o.has("health12v") || o.has("healthWasher") || o.has("healthTire"))
+        snapshot = snapshot.withHealth(new VehicleHealthSnapshot(
+            o.optInt("health12v", VehicleHealthSnapshot.UNKNOWN),
+            o.optInt("healthWasher", VehicleHealthSnapshot.UNKNOWN),
+            o.optInt("healthTire", VehicleHealthSnapshot.UNKNOWN),
+            o.optLong("healthReportedAt", 0)));
       snapshot = snapshot.withEnvironment(new EnvironmentSnapshot(snapshot.climate, snapshot.air,
           decimal(o, "temperatureC"), decimal(o, "targetTemperatureC"), decimal(o, "pm25"),
           integer(o, "aqi"), integer(o, "climateRuntimeMinutes"), integer(o, "airRuntimeMinutes"),

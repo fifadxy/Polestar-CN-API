@@ -46,7 +46,7 @@ public final class MainActivity extends FragmentActivity {
   };
   private static final int PICK_APK = 32, NOTIFICATIONS = 33;
   private static final String HOME_DEFAULTS =
-      "odometer,ta_distance,tm_distance,ta_speed,tm_speed,tm_consumption,temperature,aqi,charge_power";
+      "vehicle_status,odometer,ta_distance,tm_distance,ta_speed,tm_speed,tm_consumption,temperature,aqi,charge_power";
 
   private String tr(String zh, String en) {
     return AppPreferences.tr(this, zh, en);
@@ -189,6 +189,8 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void stylePolestarVehicle(ImageView car) {
+    car.setScaleX(1.08f);
+    car.setScaleY(1.08f);
     if (!AppPreferences.dark(this)) {
       car.clearColorFilter();
       return;
@@ -205,23 +207,34 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private String vehicleDisplayName(VehicleSnapshot snapshot) {
-    if (model != null && model.selected != null) return model.selected.displayLabel();
-    return snapshot == null ? tr("连接车辆", "Connect vehicle") : snapshot.name;
+    String name = null;
+    if (model != null && model.selected != null) {
+      if (model.selected.modelName != null && !model.selected.modelName.trim().isEmpty())
+        name = model.selected.modelName.trim();
+      else if (model.selected.model != null && !model.selected.model.trim().isEmpty())
+        name = model.selected.model.trim();
+    }
+    if ((name == null || name.isEmpty()) && snapshot != null) name = snapshot.name;
+    if (name == null || name.trim().isEmpty()) return tr("连接车辆", "Connect vehicle");
+    name = name.replaceAll("\\b(?:19|20)\\d{2}\\b", "").replaceAll("\\s{2,}", " ").trim();
+    return name.isEmpty() ? "Polestar 2" : name;
   }
 
   private java.util.List<DisplayMetric> controlMetrics() {
     java.util.List<DisplayMetric> chosen =
         MetricSelection.read(this, "home_metrics", HOME_DEFAULTS);
-    if (chosen.size() > 6) chosen = new java.util.ArrayList<>(chosen.subList(0, 6));
+    if (!AppPreferences.visible(this, "experimental_tire", false))
+      chosen.remove(DisplayMetric.TIRE_STATUS);
+    if (chosen.size() > 12) chosen = new java.util.ArrayList<>(chosen.subList(0, 12));
     return chosen;
   }
 
   private void addAmbientGlow(LinearLayout parent) {
     ViAmbientGlowView glow = new ViAmbientGlowView(this);
     glow.setTag("vi_ambient_glow");
-    LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, dp(3));
-    gp.leftMargin = dp(18);
-    gp.rightMargin = dp(18);
+    LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, dp(20));
+    gp.leftMargin = dp(3);
+    gp.rightMargin = dp(3);
     parent.addView(glow, gp);
   }
 
@@ -298,6 +311,26 @@ public final class MainActivity extends FragmentActivity {
     view.setBackground(background);
     view.setTextColor(problem ? Color.rgb(21,22,23) : good ? orange : muted);
     view.setTag("tire_button");
+    return view;
+  }
+
+  private TextView vehicleStatusUtility(VehicleSnapshot v) {
+    VehicleHealthSnapshot h = v == null ? VehicleHealthSnapshot.unknown() : v.health;
+    boolean problem = h.hasProblem();
+    boolean good = h.allGood();
+    String label =
+        problem
+            ? tr("车辆状态 !", "Vehicle !")
+            : good ? "ALL GOOD" : tr("车辆状态 --", "Vehicle --");
+    TextView view = button(label, this::vehicleStatusDialog);
+    view.setTextSize(11);
+    view.setSingleLine(true);
+    view.setPadding(dp(6), dp(4), dp(6), dp(4));
+    GradientDrawable background = bg(problem ? orange : surface, 8);
+    background.setStroke(dp(problem ? 2 : 1), problem || good ? orange : line);
+    view.setBackground(background);
+    view.setTextColor(problem ? Color.rgb(21, 22, 23) : good ? orange : muted);
+    view.setTag("vehicle_status_button");
     return view;
   }
 
@@ -538,7 +571,7 @@ public final class MainActivity extends FragmentActivity {
     TextView title = text(vehicleDisplayName(v), tiny ? 14 : 16, ink, true);
     title.setMaxLines(2);
     title.setGravity(Gravity.CENTER_VERTICAL);
-    click(title, this::chooseVehicle);
+    click(title, this::vehicleInfoDialog);
     selector.addView(title, new LinearLayout.LayoutParams(0, -1, 1));
     TextView refresh = button(model.busy ? "…" : "↻", () -> model.refresh(null));
     refresh.setEnabled(!model.busy);
@@ -591,7 +624,7 @@ public final class MainActivity extends FragmentActivity {
     exterior.setTag("exterior_button");
     utilityOne.addView(exterior, bp);
     LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, dp(40), 1); tp.leftMargin = dp(5);
-    utilityOne.addView(tireUtility(v), tp);
+    utilityOne.addView(vehicleStatusUtility(v), tp);
     body.addView(utilityOne);
 
     gap(body, 4);
@@ -641,7 +674,7 @@ public final class MainActivity extends FragmentActivity {
     TextView title = text(vehicleDisplayName(v), 13, ink, true);
     title.setMaxLines(2);
     title.setGravity(Gravity.CENTER_VERTICAL);
-    click(title, this::chooseVehicle);
+    click(title, this::vehicleInfoDialog);
     selector.addView(title, new LinearLayout.LayoutParams(0, -1, 1));
     TextView refresh = button(model.busy ? "…" : "↻", () -> model.refresh(null));
     refresh.setEnabled(!model.busy);
@@ -699,7 +732,7 @@ public final class MainActivity extends FragmentActivity {
     utilityOne.addView(exterior, bp);
     LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, dp(30), 1);
     tp.leftMargin = dp(4);
-    utilityOne.addView(tireUtility(v), tp);
+    utilityOne.addView(vehicleStatusUtility(v), tp);
     visual.addView(utilityOne, new LinearLayout.LayoutParams(-1, dp(30)));
 
     LinearLayout utilityTwo = row();
@@ -750,7 +783,7 @@ public final class MainActivity extends FragmentActivity {
     TextView vehicle = text(vehicleDisplayName(v), 13, ink, true);
     vehicle.setMaxLines(2);
     vehicle.setGravity(Gravity.CENTER_VERTICAL);
-    click(vehicle, this::chooseVehicle);
+    click(vehicle, this::vehicleInfoDialog);
     head.addView(vehicle, new LinearLayout.LayoutParams(0, -1, 1));
     TextView refresh = text(model.busy ? "…" : "↻", 20, ink, false);
     refresh.setGravity(Gravity.CENTER);
@@ -824,7 +857,7 @@ public final class MainActivity extends FragmentActivity {
         new LinearLayout.LayoutParams(0, dp(30), 1));
     LinearLayout.LayoutParams tyreLp = new LinearLayout.LayoutParams(0, dp(30), 1);
     tyreLp.leftMargin = dp(4);
-    utilities.addView(tireUtility(v), tyreLp);
+    utilities.addView(vehicleStatusUtility(v), tyreLp);
     LinearLayout.LayoutParams campLp = new LinearLayout.LayoutParams(0, dp(30), 1);
     campLp.leftMargin = dp(4);
     utilities.addView(
@@ -888,7 +921,7 @@ public final class MainActivity extends FragmentActivity {
     TextView vehicle = text(vehicleDisplayName(v), tiny ? 15 : 17, ink, true);
     vehicle.setMaxLines(2);
     vehicle.setGravity(Gravity.CENTER_VERTICAL);
-    click(vehicle, this::chooseVehicle);
+    click(vehicle, this::vehicleInfoDialog);
     titles.addView(vehicle, new LinearLayout.LayoutParams(-1, 0, 1));
     head.addView(titles, new LinearLayout.LayoutParams(0, -1, 1));
     TextView refresh = text(model.busy ? "…" : "↻", 22, ink, false);
@@ -998,7 +1031,7 @@ public final class MainActivity extends FragmentActivity {
         new LinearLayout.LayoutParams(0, dp(40), 1));
     LinearLayout.LayoutParams tyreLp = new LinearLayout.LayoutParams(0, dp(40), 1);
     tyreLp.leftMargin = dp(5);
-    utilities.addView(tireUtility(v), tyreLp);
+    utilities.addView(vehicleStatusUtility(v), tyreLp);
     LinearLayout.LayoutParams sig = new LinearLayout.LayoutParams(0, dp(40), 1);
     sig.leftMargin = dp(5);
     utilities.addView(utility(tr("鸣笛 / 闪灯", "Honk / flash"), false, false, this::signalMenu), sig);
@@ -1052,24 +1085,41 @@ public final class MainActivity extends FragmentActivity {
 
   private void addMetricGrid(LinearLayout parent, VehicleSnapshot snapshot,
       java.util.List<DisplayMetric> chosen, boolean compact) {
-    boolean dense = chosen.size() > 9;
-    int columns = dense ? 4 : chosen.size() <= 4 ? 2 : 3;
-    for (int i = 0; i < chosen.size(); i += columns) {
+    int count = chosen.size();
+    boolean dense = count > 6;
+    int columns = count <= 4 ? 2 : count <= 6 ? 3 : 4;
+    int rowHeight = compact ? (dense ? 24 : 29) : (dense ? 28 : 34);
+    int labelSize = dense ? 7 : compact ? 8 : 9;
+    int valueSize = dense ? 10 : compact ? 11 : 13;
+    for (int i = 0; i < count; i += columns) {
       LinearLayout metricRow = row();
-      for (int j = i; j < Math.min(chosen.size(), i + columns); j++) {
+      for (int j = i; j < Math.min(count, i + columns); j++) {
         DisplayMetric metric = chosen.get(j);
-        LinearLayout cell = column(); cell.setGravity(Gravity.CENTER_VERTICAL);
-        cell.setPadding(dp(dense ? 3 : 5), 0, dp(dense ? 2 : 4), 0);
-        TextView label = text(metric.shortLabel(AppPreferences.english(this)), dense ? 8 : compact ? 9 : 10, muted, false);
-        label.setMaxLines(1); label.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        TextView value = text(metric.value(this, snapshot, false, AppPreferences.english(this)), dense ? 11 : compact ? 12 : 14, ink, false);
+        LinearLayout cell = column();
+        cell.setGravity(Gravity.CENTER_VERTICAL);
+        cell.setPadding(dp(dense ? 2 : 4), 0, dp(dense ? 2 : 3), 0);
+        TextView label = text(metric.shortLabel(AppPreferences.english(this)), labelSize, muted, false);
+        label.setMaxLines(1);
+        label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        TextView value =
+            text(metric.value(this, snapshot, false, AppPreferences.english(this)), valueSize, ink, false);
         value.setMaxLines(1);
-        cell.addView(label); cell.addView(value);
-        cell.setContentDescription(metric.label(AppPreferences.english(this)) + " · " + metric.value(this, snapshot, true, AppPreferences.english(this)));
-        click(cell, () -> info(metric.label(AppPreferences.english(this)), metric.value(snapshot, true, AppPreferences.english(this))));
+        value.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        cell.addView(label);
+        cell.addView(value);
+        cell.setContentDescription(
+            metric.label(AppPreferences.english(this))
+                + " · "
+                + metric.value(this, snapshot, true, AppPreferences.english(this)));
+        click(
+            cell,
+            () ->
+                info(
+                    metric.label(AppPreferences.english(this)),
+                    metric.value(this, snapshot, true, AppPreferences.english(this))));
         metricRow.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
       }
-      parent.addView(metricRow, new LinearLayout.LayoutParams(-1, dp(compact ? 31 : 36)));
+      parent.addView(metricRow, new LinearLayout.LayoutParams(-1, dp(rowHeight)));
     }
   }
 
@@ -1134,6 +1184,32 @@ public final class MainActivity extends FragmentActivity {
     click(t, action);
     t.setContentDescription(label + ", " + feedback + (detail.isEmpty() ? "" : ", " + detail));
     t.setFocusable(true);
+  }
+
+  private void vehicleInfoDialog() {
+    io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo info = model.selected;
+    LinearLayout panel = column();
+    panel.setPadding(dp(16), dp(6), dp(16), dp(4));
+    if (info == null) {
+      panel.addView(text(tr("暂无车辆信息", "Vehicle information unavailable"), 14, muted, false));
+    } else {
+      String modelName =
+          info.modelName != null && !info.modelName.trim().isEmpty()
+              ? info.modelName.trim()
+              : info.model != null && !info.model.trim().isEmpty() ? info.model.trim() : "Polestar 2";
+      detailRow(panel, tr("车型", "Model"), modelName);
+      detailRow(
+          panel,
+          tr("年款", "Model year"),
+          info.modelYear == null || info.modelYear.trim().isEmpty() ? "--" : info.modelYear.trim());
+      detailRow(panel, "VIN", info.vin == null || info.vin.trim().isEmpty() ? "--" : info.vin.trim());
+    }
+    panel.addView(button(tr("切换车辆", "Select another vehicle"), () -> chooseVehicle()));
+    new HapticDialogBuilder(this)
+        .setTitle(tr("车辆详情", "Vehicle details"))
+        .setView(panel)
+        .setPositiveButton(tr("关闭", "Close"), null)
+        .show();
   }
 
   private void chooseVehicle() {
@@ -1276,8 +1352,9 @@ public final class MainActivity extends FragmentActivity {
       p.addView(text(tr("暂无车辆数据，请刷新", "No vehicle data. Refresh to connect."), 14, muted, false));
       return;
     }
-    detailRow(p, tr("车辆", "Vehicle"), v.name);
-    detailRow(p, "VIN", v.id);
+    detailRow(p, tr("车辆", "Vehicle"), vehicleDisplayName(v));
+    p.addView(button(tr("车辆信息 · 年款 / VIN", "Vehicle info · year / VIN"), this::vehicleInfoDialog));
+    gap(p, 6);
     detailRow(p, tr("电量", "Battery"), VehicleSnapshot.metric(v.batteryPercent, "%"));
     detailRow(p, tr("续航", "Range"), VehicleSnapshot.metric(v.rangeKm, " km"));
     detailRow(p, tr("累计里程", "Odometer"), v.mileage.totalText());
@@ -1300,10 +1377,14 @@ public final class MainActivity extends FragmentActivity {
       detailRow(p, positions[i], tr("门 ", "Door ") + status(ExteriorSnapshot.label(v.exterior.state(false, i)))
           + " · " + tr("窗 ", "Window ") + status(ExteriorSnapshot.label(v.exterior.state(true, i))));
     detailRow(p, tr("尾箱", "Tailgate"), status(v.tailgate));
-    detailRow(p, tr("胎压", "Tire status"), v.tires.summary(AppPreferences.english(this)));
-    String[] tirePositions = {tr("左前胎", "Front-left tire"), tr("右前胎", "Front-right tire"),
-        tr("左后胎", "Rear-left tire"), tr("右后胎", "Rear-right tire")};
-    for (int i = 0; i < 4; i++) detailRow(p, tirePositions[i], v.tires.label(i, AppPreferences.english(this)));
+    detailRow(p, tr("车辆状态", "Vehicle status"), v.health.summary(AppPreferences.english(this)));
+    detailRow(p, tr("12V 电瓶", "12 V battery"),
+        VehicleHealthSnapshot.label(v.health.lowVoltageBattery, AppPreferences.english(this)));
+    detailRow(p, tr("玻璃水", "Washer fluid"),
+        VehicleHealthSnapshot.label(v.health.washerFluid, AppPreferences.english(this)));
+    detailRow(p, tr("胎压告警", "Tyre warning"),
+        VehicleHealthSnapshot.label(v.health.tirePressure, AppPreferences.english(this)));
+    p.addView(button(tr("车辆状态详情", "Vehicle status details"), this::vehicleStatusDialog));
     detailRow(p, tr("空调", "Climate"), status(v.climate));
     detailRow(p, tr("净化", "Purification"), status(v.air));
     detailRow(p, tr("车内温度", "Cabin temperature"), DisplayMetric.TEMPERATURE.value(v, true));
@@ -1375,8 +1456,28 @@ public final class MainActivity extends FragmentActivity {
         this::maintenanceDialog));
     gap(p, 8);
     p.addView(button(
-        tr("车辆控制页数据显示 · 最多 6 项", "Vehicle control data · up to 6"),
-        () -> metricDialog("home_metrics", 6, HOME_DEFAULTS)));
+        tr("车辆控制页数据显示 · 最多 12 项", "Vehicle control data · up to 12"),
+        () -> metricDialog("home_metrics", 12, HOME_DEFAULTS)));
+    gap(p, 8);
+    Switch experimentalTire = new Switch(this);
+    experimentalTire.setText(
+        tr("实验性 iTPMS 四轮状态（待修复）", "Experimental four-wheel iTPMS (pending fix)"));
+    experimentalTire.setTextColor(ink);
+    experimentalTire.setMinHeight(dp(46));
+    experimentalTire.setChecked(AppPreferences.visible(this, "experimental_tire", false));
+    experimentalTire.setOnCheckedChangeListener(
+        (control, on) -> {
+          Haptics.tap(this);
+          AppPreferences.set(this, "experimental_tire", on ? "on" : "off");
+          if (!on) {
+            java.util.List<DisplayMetric> selected =
+                MetricSelection.read(this, "home_metrics", HOME_DEFAULTS);
+            selected.remove(DisplayMetric.TIRE_STATUS);
+            MetricSelection.save(this, "home_metrics", selected);
+          }
+          render();
+        });
+    p.addView(experimentalTire);
     gap(p, 8);
     p.addView(button(tr("按键震动 · 开关与强度", "Button haptics · switch and strength"), this::hapticsDialog));
     gap(p, 8);
@@ -1595,26 +1696,45 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void metricDialog(String key, int capacity, String defaults) {
-    DisplayMetric[] values = DisplayMetric.values();
+    java.util.List<DisplayMetric> available = new java.util.ArrayList<>();
+    boolean hideExperimentalTire =
+        "home_metrics".equals(key) && !AppPreferences.visible(this, "experimental_tire", false);
+    for (DisplayMetric metric : DisplayMetric.values())
+      if (!(hideExperimentalTire && metric == DisplayMetric.TIRE_STATUS)) available.add(metric);
+    DisplayMetric[] values = available.toArray(new DisplayMetric[0]);
     java.util.List<DisplayMetric> selected = MetricSelection.read(this, key, defaults);
+    if (hideExperimentalTire) selected.remove(DisplayMetric.TIRE_STATUS);
     String[] labels = new String[values.length];
     boolean[] checked = new boolean[values.length];
     for (int i = 0; i < values.length; i++) {
-      labels[i] = values[i].label(AppPreferences.english(this)); checked[i] = selected.contains(values[i]);
+      labels[i] = values[i].label(AppPreferences.english(this));
+      checked[i] = selected.contains(values[i]);
     }
-    new HapticDialogBuilder(this).setTitle(tr("选择数据显示 · 最多 ", "Choose fields · up to ") + capacity)
-        .setMultiChoiceItems(labels, checked, (dialog, which, on) -> {
-          if (on && !selected.contains(values[which])) {
-            if (selected.size() >= capacity) {
-              ((AlertDialog) dialog).getListView().setItemChecked(which, false);
-              toast(tr("此尺寸最多显示 ", "This size supports up to ") + capacity + tr(" 项", " fields"));
-              return;
-            }
-            selected.add(values[which]);
-          } else if (!on) selected.remove(values[which]);
-        }).setPositiveButton(tr("保存", "Save"), (d, w) -> {
-          MetricSelection.save(this, key, selected); WidgetRenderer.refreshAll(this); render();
-        }).setNegativeButton(tr("取消", "Cancel"), null).show();
+    new HapticDialogBuilder(this)
+        .setTitle(tr("选择数据显示 · 最多 ", "Choose fields · up to ") + capacity)
+        .setMultiChoiceItems(
+            labels,
+            checked,
+            (dialog, which, on) -> {
+              if (on && !selected.contains(values[which])) {
+                if (selected.size() >= capacity) {
+                  ((AlertDialog) dialog).getListView().setItemChecked(which, false);
+                  toast(tr("此页面最多显示 ", "This page supports up to ") + capacity
+                      + tr(" 项", " fields"));
+                  return;
+                }
+                selected.add(values[which]);
+              } else if (!on) selected.remove(values[which]);
+            })
+        .setPositiveButton(
+            tr("保存", "Save"),
+            (d, w) -> {
+              MetricSelection.save(this, key, selected);
+              WidgetRenderer.refreshAll(this);
+              render();
+            })
+        .setNegativeButton(tr("取消", "Cancel"), null)
+        .show();
   }
 
   private void watchPreview() {
@@ -1630,6 +1750,64 @@ public final class MainActivity extends FragmentActivity {
         .setPositiveButton(tr("关闭", "Close"), null).show();
   }
 
+  private void vehicleStatusDialog() {
+    VehicleSnapshot v = model.snapshot;
+    if (v == null) return;
+    boolean english = AppPreferences.english(this);
+    LinearLayout panel = column();
+    panel.setPadding(dp(16), dp(8), dp(16), dp(8));
+    detailRow(panel, tr("总览", "Summary"), v.health.summary(english));
+    detailRow(
+        panel,
+        tr("12V 电瓶", "12 V battery"),
+        VehicleHealthSnapshot.label(v.health.lowVoltageBattery, english));
+    detailRow(
+        panel,
+        tr("玻璃水", "Washer fluid"),
+        VehicleHealthSnapshot.label(v.health.washerFluid, english));
+    detailRow(
+        panel,
+        tr("胎压告警", "Tyre warning"),
+        VehicleHealthSnapshot.label(v.health.tirePressure, english));
+    if (v.health.reportedAt > 0)
+      detailRow(
+          panel,
+          tr("状态更新时间", "Status updated"),
+          android.text.format.DateFormat.format("MM-dd HH:mm", v.health.reportedAt).toString());
+    gap(panel, 6);
+    panel.addView(
+        text(
+            tr(
+                "12V 与玻璃水仅显示车辆告警状态，不代表电压值或液位。中国区 Health 协议映射已接入，仍需实车语义验证。",
+                "12 V and washer fluid are warning states only, not measured voltage or fluid"
+                    + " level. China Health mapping is integrated but still needs vehicle verification."),
+            11,
+            muted,
+            false));
+    gap(panel, 8);
+    if (AppPreferences.visible(this, "experimental_tire", false)) {
+      panel.addView(
+          button(
+              tr("查看四轮 iTPMS · 实验性 / 待修复", "Four-wheel iTPMS · experimental"),
+              () -> tireDialog()));
+    } else {
+      panel.addView(
+          text(
+              tr(
+                  "四轮胎压详情默认隐藏。可在设置中开启“实验性 iTPMS 四轮状态（待修复）”。",
+                  "Four-wheel tyre details are hidden by default. Enable the experimental iTPMS"
+                      + " view in Settings if needed."),
+              11,
+              muted,
+              false));
+    }
+    new HapticDialogBuilder(this)
+        .setTitle(tr("车辆状态", "Vehicle status"))
+        .setView(panel)
+        .setPositiveButton(tr("关闭", "Close"), null)
+        .show();
+  }
+
   private void tireDialog() {
     VehicleSnapshot v = model.snapshot;
     if (v == null) return;
@@ -1640,7 +1818,7 @@ public final class MainActivity extends FragmentActivity {
         "橙色和 ! 表示该轮胎需要检查。本页按 iTPMS 告警状态展示，不显示未验证的具体 kPa。",
         "Orange / ! means that tyre needs attention. This view follows iTPMS warning state and does not show unverified kPa."),
         12, muted, false));
-    new HapticDialogBuilder(this).setTitle(tr("胎压", "Tire status"))
+    new HapticDialogBuilder(this).setTitle(tr("iTPMS 四轮状态 · 实验性", "Four-wheel iTPMS · experimental"))
         .setView(panel).setPositiveButton(tr("关闭", "Close"), null).show();
   }
 

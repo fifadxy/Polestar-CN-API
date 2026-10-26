@@ -58,6 +58,20 @@ public final class ModelStateTest {
             "test", "masked", null, null, null, "unknown", "unknown", "unknown", "unknown",
             "unknown", 0, "CACHED", false, "开启", "关闭");
     check(climate.climate.equals("开启") && climate.air.equals("关闭"), "climate/air independent");
+    java.util.Map<Integer, Object> healthFields =
+        ProtoWire.decode(
+            ProtoWire.concat(
+                ProtoWire.varintField(13, 2),
+                ProtoWire.varintField(38, 1),
+                ProtoWire.varintField(9, 1),
+                ProtoWire.varintField(10, 1),
+                ProtoWire.varintField(11, 1),
+                ProtoWire.varintField(12, 1)));
+    TireSnapshot tyres = TireSnapshot.fromData(healthFields);
+    VehicleHealthSnapshot health = VehicleHealthSnapshot.fromData(healthFields, tyres);
+    check(health.washerFluid == VehicleHealthSnapshot.WARNING, "washer field 13 warning");
+    check(health.lowVoltageBattery == VehicleHealthSnapshot.OK, "12V field 38 normal");
+    check(health.tirePressure == VehicleHealthSnapshot.OK, "tyre fields 9-12 normal");
     System.out.println("PASS: pure-Java data provenance and operation state invariants");
   }
 }

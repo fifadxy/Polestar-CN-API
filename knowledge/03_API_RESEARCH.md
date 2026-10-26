@@ -1,3 +1,33 @@
+## v0.7.5 Health / 车辆状态交叉核对
+
+### Global / Europe Hisingen 源码
+
+对 `NicolasKheirallah/Hisingen` commit `5301353665cf890b350c6e437b04c088833a88f1` 的
+`PolestarGRPCCapabilities.parseHealth` 重新核对：
+
+| 能力 | Health 字段 | 上游语义 |
+|---|---:|---|
+| 左前/右前/左后/右后胎压告警 | 9 / 10 / 11 / 12 | iTPMS/胎压告警状态 |
+| 玻璃水 | 13 | 字段存在即已上报，值 > 1 为告警；**不是液位值** |
+| 12V / Low-voltage battery | 38 | 值 2 为告警 |
+| 四轮压力研究值 | 39–42 | Hisingen 可解析；Polestar 2 不保证提供，Android 主 UI 不展示 |
+| 保养剩余天数 / 距离 | 3 / 4 | 上游 Health 映射 |
+| 发动机小时保养输入 | 2 | 上游 schema 字段，即使 BEV 也可能上报 |
+
+### China
+
+- 本 Android 分支已通过 China C3 host 调用 `/services.vehiclestates.health.HealthService/GetHealth`。
+- v0.7.5 将同一次响应同时映射为 12V、玻璃水和胎压告警；仍需用户授权 Polestar 2 实车验证 China 返回值语义。
+- 历史中国官方 Android App 静态/StackTrace 证据能定位 `com.polestar.carcontrol.ui.main.CarMainFragment`、`CarMainTipsProvider` 等车辆状态 UI，但当前可访问材料**未直接证明**官方 App 对 13/38/9–12 的具体 RPC 映射。
+- 用户提供的参考模板 APK `app.c3garage.companion` 也未发现 HealthService，因此不能用它替代官方 China App 证据。
+
+### UI 决策
+
+- 主界面只显示一个“车辆状态”聚合按钮。
+- 12V 与玻璃水仅显示 Normal / Check / Unavailable，不显示虚构电压或液位百分比。
+- 四轮 iTPMS 详情默认隐藏；实验开关只恢复告警视图，不把 39–42 kPa 当成中国 Polestar 2 已验证能力。
+
+
 ## v0.7.4 参考 APK 空调字段复核
 
 对当前模板 APK 的 DEX 方法 `PolestarApi.readClimateFields` 与 `MainActivity.climateMetricText` 做字节码级复核：

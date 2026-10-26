@@ -1035,3 +1035,18 @@ Android 中国区新增模板方法体映射的 TailgateControl、Lock、PreClea
 - China Android 现在按 Mac/Hisingen 研究接入 `/services.vehiclestates.health.HealthService/GetHealth`。
 - 当前 Hisingen 源码对 Polestar 5.11.1 Health 的解析：四轮胎压报警为 fields 9–12，实际压力为 fields 39–42（kPa），顺序左前/右前/左后/右后；43/44 是参考压力，不可误当四轮读数。
 - Health field 3/4 对应剩余保养天数/里程研究值；Android v0.7 仍以用户指定的本地 365 天 / 20,000 km 规则为业务显示基准，等待 China 实车验证后再决定是否融合官方值。
+
+
+## 20. Android v0.7.5 Health 聚合补充（2026-10-26）
+
+Global Hisingen `PolestarGRPCCapabilities.parseHealth` 的源码级字段已经再次确认：
+
+- washer fluid：Health field 13，值大于 1 为告警；这是**告警状态，不是液位测量值**；
+- low-voltage / 12V battery：field 38，值 2 为告警；
+- tyre/iTPMS warning：fields 9–12；
+- tyre numeric research fields：39–42，但 Polestar 2 不保证返回，China Android UI 默认不展示；
+- service days / distance：fields 3 / 4。
+
+Android China 分支已使用同名 `HealthService/GetHealth`，v0.7.5 同一次只读调用会解析上述 12V/washer/tyre warning 为统一 `VehicleHealthSnapshot`。此处属于**Global 源码映射 + China 实现接入**，不是 China 官方 App 实车验证。
+
+中国官方 App 的现有历史静态证据将车辆主页/提示集中到 `com.polestar.carcontrol`（如 `CarMainFragment`、`CarMainTipsProvider`），但当前可访问证据未直接定位 13/38/9–12 的官方 China App 调用，因此仍须保持 `MAPPING_REQUIRED / PROJECT_DEVICE_VERIFICATION` 边界。

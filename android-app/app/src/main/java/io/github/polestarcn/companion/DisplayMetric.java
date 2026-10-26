@@ -21,6 +21,7 @@ public enum DisplayMetric {
   CHARGE_CURRENT("charge_current", "充电电流", "Charging current", " A"),
   CHARGE_ETA("charge_eta", "预计充满", "Time to full", ""),
   POWER_STATUS("power_status", "电源状态", "Power status", ""),
+  VEHICLE_STATUS("vehicle_status", "车辆状态", "Vehicle status", ""),
   TIRE_STATUS("tire_status", "胎压状态", "Tire status", ""),
   SERVICE_DAYS_LEFT("service_days_left", "保养剩余天数", "Service days left", " d"),
   SERVICE_KM_LEFT("service_km_left", "保养剩余里程", "Service km left", " km"),
@@ -50,6 +51,7 @@ public enum DisplayMetric {
       case CHARGE_TYPE: return english ? "Type" : "充电类型";
       case CHARGE_ETA: return english ? "Full" : "充满时间";
       case POWER_STATUS: return english ? "Power" : "电源状态";
+      case VEHICLE_STATUS: return english ? "Vehicle" : "车辆状态";
       case TIRE_STATUS: return english ? "Tires" : "胎压";
       case SERVICE_DAYS_LEFT: return english ? "Service d" : "保养天数";
       case SERVICE_KM_LEFT: return english ? "Service km" : "保养里程";
@@ -66,6 +68,7 @@ public enum DisplayMetric {
   }
   public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
+    if (this == VEHICLE_STATUS) return s.health.summary(english);
     if (this == TIRE_STATUS) return s.tires.summary(english);
     if (this == SERVICE_DAYS_LEFT || this == SERVICE_KM_LEFT
         || this == SERVICE_TIME_PERCENT || this == SERVICE_KM_PERCENT) {

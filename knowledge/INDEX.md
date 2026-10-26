@@ -1,6 +1,6 @@
 # Android Polestar Assistant 主线知识库 · 索引
 
-> 版本 `KB-0.3 / Android Parity V3.0` · 2026-10-26 · 主线 `android-polestar-assistant-main`
+> 版本 `KB-0.7 / Android Parity V3.0` · 2026-10-26 · 主线 `android-polestar-assistant-main`
 
 本目录是 **Polestar2 Widget&API** 独立 Android 子项目的长期知识库。`main` 为 GitHub 仓库默认主分支，本项目专属的 Android 主线是 `android-polestar-assistant-main`，不修改 Mac/Hisingen 的独立工程。
 
@@ -22,6 +22,7 @@
 | [14_ANDROID_PARITY_V3_MASTER_PLAN.md](14_ANDROID_PARITY_V3_MASTER_PLAN.md) | **完整复刻主计划**：P0–P7、架构、优先级、交付 | V3 计划主文件 |
 | [15_TOKEN_AND_REMOTE_VALIDATION.md](15_TOKEN_AND_REMOTE_VALIDATION.md) | Token 误报故障树、真实远控状态机、T01–T12 验收 | 计划/待测试 |
 | [16_ANDROID_BRANCH_GOVERNANCE.md](16_ANDROID_BRANCH_GOVERNANCE.md) | 新 Android 主线命名、版本、合并和证据管理 | V3 决议 |
+| [17_TYRE_MAINTENANCE_WIDGET_V07.md](17_TYRE_MAINTENANCE_WIDGET_V07.md) | 胎压、保养剩余量与 Widget 自适应设计 | v0.7 实现 |
 | [evidence/apk-v2-signature.json](evidence/apk-v2-signature.json) | 参考 APK 签名及内容摘要证据 | 已验证 |
 | [evidence/apk-vehicle-schema.json](evidence/apk-vehicle-schema.json) | 33 字段独立提取 | 已验证 |
 | [evidence/apk-inventory.json](evidence/apk-inventory.json) | APK 静态清单 | 可复现 |

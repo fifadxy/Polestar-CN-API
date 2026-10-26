@@ -802,7 +802,7 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("按键震动 · 开关与强度", "Button haptics · switch and strength"), this::hapticsDialog));
     gap(p, 8);
     p.addView(button(tr("Widget 数据显示", "Widget data fields"), () -> {
-      String[] labels = {"4×2 · 4", "2×2 · 2", "4×1 · 2", "2×1 · 1", "Data 4×4 · 8"};
+      String[] labels = {"4×2 · 最多 8", "2×2 · 最多 4", "4×1 · 最多 4", "2×1 · 最多 2", "Data 4×4 · 最多 8"};
       WidgetRenderer.Size[] sizes = {WidgetRenderer.Size.LARGE, WidgetRenderer.Size.SQUARE,
           WidgetRenderer.Size.WIDE, WidgetRenderer.Size.MINI, WidgetRenderer.Size.DATA};
       new HapticDialogBuilder(this).setTitle(tr("选择组件尺寸与数据容量", "Widget size and field capacity"))
@@ -851,14 +851,14 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("背景样式", "Background style"), () ->
       new HapticDialogBuilder(this).setTitle(tr("背景样式", "Widget style"))
         .setSingleChoiceItems(new String[]{tr("不透明", "Opaque"), tr("透明", "Transparent")},
-          "opaque".equals(AppPreferences.get(this, "widget_style", "opaque")) ? 0 : 1,
+          "opaque".equals(AppPreferences.get(this, "widget_style", "transparent")) ? 0 : 1,
           (dialog, index) -> {
             AppPreferences.set(this, "widget_style", index == 0 ? "opaque" : "transparent");
             WidgetRenderer.refreshAll(this);
             dialog.dismiss();
           }).show()));
-    widgetSlider(p, tr("透明度", "Opacity"), "widget_opacity", 65);
-    widgetSlider(p, tr("磨砂玻璃程度（模拟）", "Frost intensity (simulated)"), "widget_frost", 45);
+    widgetSlider(p, tr("透明度", "Opacity"), "widget_opacity", 58);
+    widgetSlider(p, tr("磨砂玻璃程度（模拟）", "Frost intensity (simulated)"), "widget_frost", 28);
     p.addView(text(tr("磨砂为渐变视觉模拟，不会实时模糊桌面壁纸。",
         "Frost is a gradient simulation; Android widgets cannot live-blur wallpaper."),
         12, muted, false));

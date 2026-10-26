@@ -490,16 +490,17 @@ public final class MainActivity extends FragmentActivity {
 
   private void addMetricGrid(LinearLayout parent, VehicleSnapshot snapshot,
       java.util.List<DisplayMetric> chosen, boolean compact) {
-    int columns = compact && chosen.size() > 9 ? 4 : chosen.size() <= 4 ? 2 : 3;
+    boolean dense = chosen.size() > 9;
+    int columns = dense ? 4 : chosen.size() <= 4 ? 2 : 3;
     for (int i = 0; i < chosen.size(); i += columns) {
       LinearLayout metricRow = row();
       for (int j = i; j < Math.min(chosen.size(), i + columns); j++) {
         DisplayMetric metric = chosen.get(j);
         LinearLayout cell = column(); cell.setGravity(Gravity.CENTER_VERTICAL);
-        cell.setPadding(dp(5), 0, dp(4), 0);
-        TextView label = text(metric.shortLabel(AppPreferences.english(this)), compact ? 9 : 10, muted, false);
+        cell.setPadding(dp(dense ? 3 : 5), 0, dp(dense ? 2 : 4), 0);
+        TextView label = text(metric.shortLabel(AppPreferences.english(this)), dense ? 8 : compact ? 9 : 10, muted, false);
         label.setMaxLines(1); label.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        TextView value = text(metric.value(this, snapshot, false, AppPreferences.english(this)), compact ? 12 : 14, ink, false);
+        TextView value = text(metric.value(this, snapshot, false, AppPreferences.english(this)), dense ? 11 : compact ? 12 : 14, ink, false);
         value.setMaxLines(1);
         cell.addView(label); cell.addView(value);
         cell.setContentDescription(metric.label(AppPreferences.english(this)) + " · " + metric.value(this, snapshot, true, AppPreferences.english(this)));

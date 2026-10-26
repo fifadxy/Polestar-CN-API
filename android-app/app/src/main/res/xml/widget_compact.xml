@@ -1,2 +1,5 @@
-<?xml version="1.0" ?>
-<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" android:minWidth="150dp" android:minHeight="85dp" android:targetCellWidth="3" android:targetCellHeight="2" android:initialLayout="@layout/widget_compact" android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" android:updatePeriodMillis="0"/>
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+ android:minWidth="118dp" android:minHeight="110dp" android:targetCellWidth="2"
+ android:targetCellHeight="2" android:initialLayout="@layout/widget_compact"
+ android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" android:updatePeriodMillis="0"/>

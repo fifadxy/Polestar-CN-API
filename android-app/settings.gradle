@@ -12,5 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = 'PolestarAndroidCompanion'
+rootProject.name = 'PsAssistant'
 include ':app'
+

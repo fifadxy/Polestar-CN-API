@@ -32,14 +32,18 @@ assert 'app.c3garage.companion' not in other_java
 assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'fixed compatibility signing material must not be committed'
 assert 'ChinaLiveActivity' in manifest
 assert 'grpc-okhttp:1.68.2' in gradle
-assert "versionName '0.4.0-beta1'" in gradle
+assert "versionName '0.5.0-beta1'" in gradle
 assert 'VehicleSnapshotStore.saveChina' in all_java
 assert 'secret + canonical + secret' in all_java
 assert 'ProtoWire.stringField(2, vin)' in all_java
 assert '<appwidget-provider' in (main/'res/xml/widget_standard.xml').read_text()
 assert '<appwidget-provider' in (main/'res/xml/widget_compact.xml').read_text()
+assert '<appwidget-provider' in (main/'res/xml/widget_wide.xml').read_text()
+assert '<appwidget-provider' in (main/'res/xml/widget_mini.xml').read_text()
+assert 'widget_action' in (main/'java/io/github/polestarcn/companion/WidgetRenderer.java').read_text()
 assert not (root/'android-app/local.properties').exists()
 assert 'BIOMETRIC_STRONG' in all_java
 assert 'setOngoing(true)' in all_java
 assert 'TailgateControl' in all_java
 print('PASS: source structure, real UI gating, biometric controls, private sessions and widgets; Java count',len(java))
+

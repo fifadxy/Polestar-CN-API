@@ -23,9 +23,10 @@ public final class MainActivity extends FragmentActivity {
   private final Runnable listener = this::render;
   private LinearLayout shell, body;
   private int page = 0, ink, muted, paper, surface, line;
-  private final int orange = Color.rgb(232, 132, 69);
+  private final int orange = Color.rgb(255, 107, 0);
   private Typeface regular, bold;
   private boolean authPending;
+  private boolean handlingWidget;
   private BiometricPrompt biometric;
   private EditText phone, password;
   private String inputPhone = "", inputPassword = "";
@@ -52,6 +53,7 @@ public final class MainActivity extends FragmentActivity {
     model = VehicleCoordinator.get(this);
     model.listen(listener);
     render();
+    handleWidgetIntent(getIntent());
     if (model.hasSession() && !model.busy) model.refresh(null);
     if (AppPreferences.enabled(this))
       try {
@@ -59,6 +61,38 @@ public final class MainActivity extends FragmentActivity {
       } catch (RuntimeException e) {
         DiagnosticLog.add("Resident start restricted");
       }
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    handleWidgetIntent(intent);
+  }
+  private void handleWidgetIntent(Intent i) {
+    if (i == null || !i.hasExtra("widget_action") || handlingWidget) return;
+    String request = i.getStringExtra("widget_action");
+    i.removeExtra("widget_action");
+    if (!"lock-choice".equals(request) && !"climate-choice".equals(request)) return;
+    page = 0;
+    render();
+    if (!model.hasSession() || model.selected == null || model.busy) {
+      toast(tr("请先连接车辆，刷新后重试", "Connect and refresh the vehicle before controlling"));
+      if (model.hasSession() && model.selected == null && !model.busy) model.refresh(null);
+      return;
+    }
+    handlingWidget = true;
+    boolean lock = "lock-choice".equals(request);
+    String label = lock ? tr("门锁", "Door lock") : tr("驻车空调", "Parking climate");
+    new AlertDialog.Builder(this).setTitle(label)
+      .setItems(lock
+        ? new String[]{tr("解锁车门", "Unlock doors"), tr("锁定车门", "Lock doors")}
+        : new String[]{tr("启动空调", "Start climate"), tr("关闭空调", "Stop climate")},
+        (d, index) -> authenticate(label, lock
+          ? (index == 0 ? "unlock" : "lock")
+          : (index == 0 ? "climate-start" : "climate-stop")))
+      .setNegativeButton(tr("取消", "Cancel"), null)
+      .setOnDismissListener(d -> handlingWidget = false).show();
   }
 
   @Override
@@ -132,8 +166,8 @@ public final class MainActivity extends FragmentActivity {
     boolean dark = AppPreferences.dark(this);
     ink = Color.parseColor(dark ? "#F4F4F2" : "#18191A");
     muted = Color.parseColor(dark ? "#AAAAA7" : "#626560");
-    paper = Color.parseColor(dark ? "#111213" : "#F5F5F2");
-    surface = Color.parseColor(dark ? "#242628" : "#FFFFFF");
+    paper = Color.parseColor(dark ? "#151617" : "#F3F3F1");
+    surface = Color.parseColor(dark ? "#292B2D" : "#FFFFFF");
     line = Color.parseColor(dark ? "#343638" : "#DCDDD7");
     getWindow().setStatusBarColor(paper);
     getWindow().setNavigationBarColor(paper);
@@ -165,7 +199,7 @@ public final class MainActivity extends FragmentActivity {
     brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
     brand.setContentDescription("Polestar");
     header.addView(brand, new LinearLayout.LayoutParams(dp(30), dp(30)));
-    TextView name = text("Polestar Assistant", 16, ink, false);
+    TextView name = text("PsAssistant", 17, ink, true);
     LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, -2, 1);
     np.leftMargin = dp(12);
     header.addView(name, np);
@@ -287,125 +321,113 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void controls() {
-    boolean compact =
-        getResources().getDisplayMetrics().heightPixels / getResources().getDisplayMetrics().density
-            < 500;
     VehicleSnapshot v = model.snapshot;
-    LinearLayout vehicle = row();
-    TextView title = text(v == null ? tr("连接车辆", "Connect vehicle") : v.name, 20, ink, false);
-    vehicle.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView refresh = button(model.busy ? "…" : "↻", () -> model.refresh(null));
-    refresh.setContentDescription(tr("刷新车辆状态", "Refresh vehicle"));
-    refresh.setEnabled(!model.busy);
-    vehicle.addView(refresh, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    LinearLayout content = scrollBody();
+    content.setPadding(0, dp(6), 0, dp(20));
+    LinearLayout selector = row();
+    TextView title = text(v == null ? tr("连接车辆", "Connect vehicle") : v.name, 23, ink, true);
+    title.setSingleLine(true);
+    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     title.setOnClickListener(w -> chooseVehicle());
-    body.addView(vehicle, new LinearLayout.LayoutParams(-1, dp(compact ? 36 : 52)));
+    selector.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView refresh = button(model.busy ? "···" : "↻", () -> model.refresh(null));
+    refresh.setContentDescription(tr("更新车辆状态", "Refresh vehicle status"));
+    refresh.setEnabled(!model.busy);
+    selector.addView(refresh, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    content.addView(selector);
+    gap(content, 14);
+    LinearLayout hero = column();
+    hero.setPadding(dp(17), dp(18), dp(17), dp(10));
+    hero.setBackground(bg(surface, 12));
     LinearLayout metrics = row();
-    TextView soc =
-        text(v == null ? "—%" : VehicleSnapshot.metric(v.batteryPercent, "%"), 36, orange, false);
-    metrics.addView(soc, new LinearLayout.LayoutParams(0, -1, 1));
-    soc.setGravity(Gravity.CENTER_VERTICAL);
-    LinearLayout ranges = column();
-    ranges.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
-    TextView range =
-        text(v == null ? "— km" : VehicleSnapshot.metric(v.rangeKm, " km"), 23, orange, false);
-    ranges.addView(range);
-    ranges.addView(
-        text(
-            v == null ? tr("等待车辆数据", "Waiting for vehicle") : status(v.charging),
-            12,
-            muted,
-            false));
-    metrics.addView(ranges, new LinearLayout.LayoutParams(0, -1, 1));
-    body.addView(metrics, new LinearLayout.LayoutParams(-1, dp(compact ? 44 : 66)));
-    ImageView car = new ImageView(this);
-    String modelName = v == null ? "" : v.name;
-    if (modelName.contains("2")) car.setImageResource(R.drawable.vehicle_top);
-    else
-      car.setImageResource(
-          AppPreferences.dark(this) ? R.drawable.brand_light : R.drawable.brand_dark);
-    car.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    car.setPadding(dp(14), dp(8), dp(14), dp(8));
-    car.setContentDescription(
-        modelName.contains("2") ? "Polestar 2" : tr("车辆品牌标志", "Vehicle brand symbol"));
-    if (!compact) body.addView(car, new LinearLayout.LayoutParams(-1, 0, 1.3f));
-    LinearLayout first = row(), second = compact ? first : row();
-    LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, 0, 1);
-    rp.topMargin = dp(8);
-    body.addView(first, rp);
-    if (!compact) {
-      LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, 0, 1);
-      sp.topMargin = dp(8);
-      body.addView(second, sp);
+    LinearLayout battery = column();
+    battery.addView(text(tr("电池电量", "BATTERY"), 12, muted, true));
+    gap(battery, 4);
+    battery.addView(text(v == null ? "--%" : VehicleSnapshot.metric(v.batteryPercent, "%"),
+        48, orange, false));
+    metrics.addView(battery, new LinearLayout.LayoutParams(0, -2, 1));
+    LinearLayout range = column();
+    range.setGravity(Gravity.RIGHT);
+    range.addView(text(tr("剩余续航", "RANGE"), 12, muted, true));
+    gap(range, 9);
+    range.addView(text(v == null ? "-- km" : VehicleSnapshot.metric(v.rangeKm, " km"),
+        25, ink, false));
+    metrics.addView(range, new LinearLayout.LayoutParams(0, -2, 1));
+    hero.addView(metrics);
+    if (AppPreferences.visible(this, "show_car", true)) {
+      ImageView car = new ImageView(this);
+      boolean model2 = v != null && v.name.contains("2");
+      car.setImageResource(model2
+          ? R.drawable.vehicle_top
+          : AppPreferences.dark(this) ? R.drawable.brand_light : R.drawable.brand_dark);
+      car.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      car.setAdjustViewBounds(true);
+      car.setPadding(dp(10), dp(8), dp(10), dp(8));
+      car.setContentDescription(model2 ? "Polestar 2" : "Brand symbol");
+      hero.addView(car, new LinearLayout.LayoutParams(-1, dp(148)));
     }
-    tile(
-        first,
-        tr("门锁", "Door lock"),
-        v == null ? tr("未知", "Unknown") : status(v.lock),
-        "lock",
-        () ->
-            actionDialog(
-                tr("门锁", "Door lock"),
-                new String[] {tr("解锁车门", "Unlock doors"), tr("锁定车门", "Lock doors")},
-                new String[] {"unlock", "lock"}));
-    tile(
-        first,
-        tr("尾箱", "Tailgate"),
-        v == null ? tr("未知", "Unknown") : status(v.tailgate),
-        "trunk",
-        () ->
-            actionDialog(
-                tr("尾箱", "Tailgate"),
-                new String[] {tr("打开尾箱", "Open tailgate"), tr("关闭尾箱", "Close tailgate")},
-                new String[] {"trunk-open", "trunk-close"}));
-    tile(
-        second,
-        tr("空调", "Climate"),
-        v == null ? tr("未知", "Unknown") : status(v.climate),
-        "climate",
-        () ->
-            actionDialog(
-                tr("驻车空调", "Parking climate"),
-                new String[] {tr("启动 · 22°C", "Start · 22°C"), tr("关闭空调", "Stop climate")},
-                new String[] {"climate-start", "climate-stop"}));
-    tile(
-        second,
-        tr("空气净化", "Air purification"),
-        v == null ? tr("未知", "Unknown") : status(v.air),
-        "air",
-        () ->
-            actionDialog(
-                tr("空气净化", "Air purification"),
-                new String[] {tr("开启净化", "Start purification"), tr("关闭净化", "Stop purification")},
-                new String[] {"air-start", "air-stop"}));
-    TextView message =
-        text(
-            model.message.isEmpty()
-                ? tr("点击卡片控制 · 需指纹验证", "Tap a tile · Biometric verification required")
-                : model.message,
-            12,
-            muted,
-            false);
-    message.setMaxLines(2);
-    message.setGravity(Gravity.CENTER_VERTICAL);
-    body.addView(message, new LinearLayout.LayoutParams(-1, dp(compact ? 28 : 40)));
-    String age =
-        v == null
-            ? ""
-            : (v.source.equals("CACHED") ? tr("缓存", "Cached") : tr("读取", "Read"))
-                + " · "
-                + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
-    TextView stamp = text(age, 11, muted, false);
-    if (!compact) body.addView(stamp, new LinearLayout.LayoutParams(-1, dp(20)));
+    if (v != null && AppPreferences.visible(this, "show_charging", true))
+      hero.addView(text(tr("充电  ", "Charging  ") + status(v.charging), 13, muted, false));
+    if (v != null && AppPreferences.visible(this, "show_update", true)) {
+      gap(hero, 5);
+      hero.addView(text(tr("数据更新  ", "Data updated  ")
+          + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis), 11, muted, false));
+    }
+    content.addView(hero);
+    gap(content, 12);
+    content.addView(text(tr("快捷控制", "QUICK CONTROLS"), 13, muted, true));
+    gap(content, 8);
+    LinearLayout first = row(), second = row();
+    content.addView(first, new LinearLayout.LayoutParams(-1, dp(117)));
+    gap(content, 8);
+    content.addView(second, new LinearLayout.LayoutParams(-1, dp(117)));
+    tile(first, tr("门锁", "Door lock"), v == null ? tr("未知", "Unknown") : status(v.lock),
+        "lock", () -> actionDialog(tr("门锁", "Door lock"),
+            new String[]{tr("解锁车门", "Unlock doors"), tr("锁定车门", "Lock doors")},
+            new String[]{"unlock", "lock"}));
+    tile(first, tr("驻车空调", "Climate"),
+        ClimateRuntime.label(this, v, AppPreferences.get(this, "vehicle", "")),
+        "climate", () -> actionDialog(tr("驻车空调", "Parking climate"),
+            new String[]{tr("启动 · 22°C", "Start · 22°C"), tr("关闭空调", "Stop climate")},
+            new String[]{"climate-start", "climate-stop"}));
+    tile(second, tr("尾箱", "Tailgate"), v == null ? tr("未知", "Unknown") : status(v.tailgate),
+        "trunk", () -> actionDialog(tr("尾箱", "Tailgate"),
+            new String[]{tr("打开尾箱", "Open tailgate"), tr("关闭尾箱", "Close tailgate")},
+            new String[]{"trunk-open", "trunk-close"}));
+    tile(second, tr("空气净化", "Purification"), v == null ? tr("未知", "Unknown") : status(v.air),
+        "air", () -> actionDialog(tr("空气净化", "Purification"),
+            new String[]{tr("开启净化", "Start purification"), tr("关闭净化", "Stop purification")},
+            new String[]{"air-start", "air-stop"}));
+    if (v != null) {
+      gap(content, 14);
+      LinearLayout extra = column();
+      extra.setPadding(dp(14), dp(10), dp(14), dp(10));
+      extra.setBackground(bg(surface, 10));
+      if (AppPreferences.visible(this, "show_odometer", true))
+        detailRow(extra, tr("累计里程", "Odometer"), VehicleSnapshot.metric(v.odometerKm, " km"));
+      if (AppPreferences.visible(this, "show_doors", false))
+        detailRow(extra, tr("车门", "Doors"), status(v.doors));
+      if (AppPreferences.visible(this, "show_windows", false))
+        detailRow(extra, tr("车窗", "Windows"), status(v.windows));
+      if (AppPreferences.visible(this, "show_air", false))
+        detailRow(extra, tr("空气净化", "Purification"), status(v.air));
+      if (extra.getChildCount() > 0) content.addView(extra);
+    }
+    gap(content, 10);
+    TextView msg = text(model.message.isEmpty()
+        ? tr("车辆控制需要确认与生物识别", "Commands require confirmation and biometrics")
+        : model.message, 12, muted, false);
+    msg.setMaxLines(3);
+    content.addView(msg);
   }
 
   private void tile(LinearLayout row, String label, String state, String icon, Runnable action) {
     LinearLayout t = column();
     t.setGravity(Gravity.CENTER_VERTICAL);
-    t.setPadding(dp(14), dp(6), dp(12), dp(6));
+    t.setPadding(dp(14), dp(8), dp(10), dp(8));
     t.setBackground(bg(surface, 8));
     LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -1, 1);
-    tp.setMargins(0, 0, row.getChildCount() < 3 ? dp(8) : 0, 0);
+    tp.setMargins(0, 0, row.getChildCount() == 0 ? dp(8) : 0, 0);
     row.addView(t, tp);
     ImageView image = new ImageView(this);
     int id =
@@ -419,10 +441,10 @@ public final class MainActivity extends FragmentActivity {
     t.addView(image, new LinearLayout.LayoutParams(dp(22), dp(22)));
     gap(t, 5);
     TextView a = text(label, 14, ink, false);
-    a.setMaxLines(1);
+    a.setMaxLines(2);
     t.addView(a);
     TextView b = text(state, 12, muted, false);
-    b.setMaxLines(1);
+    b.setMaxLines(2);
     t.addView(b);
     t.setEnabled(!model.busy && model.selected != null);
     t.setAlpha(t.isEnabled() ? 1f : .55f);
@@ -562,7 +584,10 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout p = scrollBody();
     p.addView(text(tr("设置", "Settings"), 24, ink, false));
     gap(p, 20);
-    p.addView(button(tr("语言 / Language", "Language / 语言"), this::languageDialog));
+    p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
+    gap(p, 8);
+    p.addView(button(tr("Widget 语言 · 中文 / English", "Widget language · 中文 / English"),
+        this::widgetLanguageDialog));
     gap(p, 8);
     p.addView(
         button(
@@ -578,7 +603,42 @@ public final class MainActivity extends FragmentActivity {
                           render();
                         })
                     .show()));
-    gap(p, 16);
+    gap(p, 20);
+    p.addView(text(tr("主页面显示内容", "HOME INFORMATION"), 17, ink, true));
+    for (String[] field : new String[][] {
+        {"show_car", "车辆图", "Vehicle image", "on"},
+        {"show_charging", "充电状态", "Charging status", "on"},
+        {"show_update", "更新时间", "Last updated", "on"},
+        {"show_odometer", "累计里程", "Odometer", "on"},
+        {"show_doors", "车门状态", "Door status", "off"},
+        {"show_windows", "车窗状态", "Window status", "off"},
+        {"show_air", "净化状态", "Air purification", "off"}}) {
+      Switch toggle = new Switch(this);
+      toggle.setText(tr(field[1], field[2]));
+      toggle.setTextColor(ink);
+      toggle.setMinHeight(dp(46));
+      toggle.setChecked(AppPreferences.visible(this, field[0], "on".equals(field[3])));
+      toggle.setOnCheckedChangeListener((control, on) ->
+          AppPreferences.set(this, field[0], on ? "on" : "off"));
+      p.addView(toggle);
+    }
+    gap(p, 18);
+    p.addView(text(tr("桌面 Widget 外观", "WIDGET APPEARANCE"), 17, ink, true));
+    p.addView(button(tr("背景样式", "Background style"), () ->
+      new AlertDialog.Builder(this).setTitle(tr("背景样式", "Widget style"))
+        .setSingleChoiceItems(new String[]{tr("不透明", "Opaque"), tr("透明", "Transparent")},
+          "opaque".equals(AppPreferences.get(this, "widget_style", "opaque")) ? 0 : 1,
+          (dialog, index) -> {
+            AppPreferences.set(this, "widget_style", index == 0 ? "opaque" : "transparent");
+            WidgetRenderer.refreshAll(this);
+            dialog.dismiss();
+          }).show()));
+    widgetSlider(p, tr("透明度", "Opacity"), "widget_opacity", 65);
+    widgetSlider(p, tr("磨砂玻璃程度（模拟）", "Frost intensity (simulated)"), "widget_frost", 45);
+    p.addView(text(tr("磨砂为渐变视觉模拟，不会实时模糊桌面壁纸。",
+        "Frost is a gradient simulation; Android widgets cannot live-blur wallpaper."),
+        12, muted, false));
+    gap(p, 20);
     Switch keep = new Switch(this);
     keep.setText(tr("常驻车辆状态通知", "Persistent vehicle notification"));
     keep.setTextColor(ink);
@@ -601,8 +661,8 @@ public final class MainActivity extends FragmentActivity {
     p.addView(
         text(
             tr(
-                "显示电量、充电、空调／净化及 Token 刷新时间。静默通知；系统约每 30 分钟刷新，省电限制可能延迟。锁屏隐藏详细内容。",
-                "Shows battery, charging, climate / air and Token refresh time. Silent; Android"
+                "显示电量、充电、空调／净化和车辆数据更新时间。静默通知；系统约每 30 分钟刷新，省电限制可能延迟。锁屏隐藏详细内容。",
+                "Shows battery, charging, climate / air and data update time. Silent; Android"
                     + " schedules updates about every 30 minutes. Battery restrictions may delay"
                     + " updates. Details are hidden on the lock screen."),
             12,
@@ -654,11 +714,42 @@ public final class MainActivity extends FragmentActivity {
     gap(p, 20);
     p.addView(
         text(
-            "v0.4.0-beta1 · " + tr("独立开发的非官方客户端", "Independent unofficial client"),
+            "v0.5.0-beta1 · " + tr("独立开发的非官方客户端", "Independent unofficial client"),
             12,
             muted,
             false));
     p.addView(text("Lato · SIL Open Font License", 12, muted, false));
+  }
+
+  private void widgetLanguageDialog() {
+    new AlertDialog.Builder(this).setTitle("Widget 语言 / Language")
+      .setItems(new String[]{"跟随系统 / System", "简体中文", "English"},
+          (d, index) -> {
+            AppPreferences.set(this, "widget_language",
+                new String[]{"system", "zh", "en"}[index]);
+            WidgetRenderer.refreshAll(this);
+            render();
+          }).show();
+  }
+
+  private void widgetSlider(LinearLayout parent, String label, String key, int fallback) {
+    TextView caption = text(label + " · " + AppPreferences.slider(this, key, fallback) + "%", 14, ink, false);
+    parent.addView(caption);
+    SeekBar bar = new SeekBar(this);
+    bar.setMax(100);
+    bar.setProgress(AppPreferences.slider(this, key, fallback));
+    bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+      @Override public void onProgressChanged(SeekBar seek, int value, boolean user) {
+        caption.setText(label + " · " + value + "%");
+        if (user) {
+          AppPreferences.set(MainActivity.this, key, Integer.toString(value));
+          WidgetRenderer.refreshAll(MainActivity.this);
+        }
+      }
+      @Override public void onStartTrackingTouch(SeekBar seek) {}
+      @Override public void onStopTrackingTouch(SeekBar seek) {}
+    });
+    parent.addView(bar);
   }
 
   private void setResident(boolean enabled) {

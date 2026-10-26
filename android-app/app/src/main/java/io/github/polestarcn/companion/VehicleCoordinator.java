@@ -119,6 +119,7 @@ public final class VehicleCoordinator {
                   cars.clear();
                   cars.addAll(found);
                   selected = pick;
+                  AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;
                   message = tr("车辆状态已更新", "Vehicle updated");
                   WidgetRenderer.refreshAll(context);
@@ -212,6 +213,9 @@ public final class VehicleCoordinator {
                 () -> {
                   operation =
                       reached ? OperationState.VEHICLE_CONFIRMED : OperationState.UNCONFIRMED;
+                  if (reached && "climate-start".equals(action))
+                    ClimateRuntime.started(context, identity(vehicle.vin), System.currentTimeMillis());
+                  if (reached && "climate-stop".equals(action)) ClimateRuntime.stopped(context);
                   message =
                       reached
                           ? tr("车辆状态已确认", "Vehicle state confirmed")
@@ -239,6 +243,7 @@ public final class VehicleCoordinator {
     cars.clear();
     snapshot = null;
     VehicleSnapshotStore.clearChina(context);
+    ClimateRuntime.stopped(context);
     AppPreferences.set(context, "vehicle", "");
     operation = OperationState.NOT_SENT;
     message = "";

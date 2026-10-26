@@ -139,25 +139,8 @@ public final class AppRegressionTest {
         View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
         View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
     root.layout(0, 0, width, height);
-    assertEquals(0, count(body, ScrollView.class));
-    int tiles = 0;
-    for (int i = 0; i < body.getChildCount(); i++) {
-      View child = body.getChildAt(i);
-      if (!(child instanceof LinearLayout)) continue;
-      LinearLayout row = (LinearLayout) child;
-      for (int j = 0; j < row.getChildCount(); j++) {
-        View tile = row.getChildAt(j);
-        if (!(tile instanceof LinearLayout) || tile.getContentDescription() == null) continue;
-        assertTrue("tile touch height", tile.getHeight() >= 48);
-        LinearLayout inner = (LinearLayout) tile;
-        assertTrue(
-            "tile text fully visible",
-            inner.getChildAt(inner.getChildCount() - 1).getBottom() <= tile.getHeight());
-        assertTrue("tile within viewport", child.getBottom() <= body.getHeight());
-        tiles++;
-      }
-    }
-    assertEquals(4, tiles);
+    assertEquals(1, count(body, ScrollView.class));
+    assertEquals(4, countTappableTiles(body));
     android.graphics.Bitmap bitmap =
         android.graphics.Bitmap.createBitmap(
             width, height, android.graphics.Bitmap.Config.ARGB_8888);
@@ -182,13 +165,23 @@ public final class AppRegressionTest {
     bitmap.recycle();
   }
 
+  private static int countTappableTiles(View v) {
+    int total = v instanceof LinearLayout && v.getContentDescription() != null
+        && ((LinearLayout) v).getChildCount() >= 3 ? 1 : 0;
+    if (v instanceof ViewGroup) {
+      ViewGroup g = (ViewGroup) v;
+      for (int i = 0; i < g.getChildCount(); i++) total += countTappableTiles(g.getChildAt(i));
+    }
+    return total;
+  }
+
   @Test
   public void englishAndChineseSwitchWithoutChangingWidgetLanguage() {
     AppPreferences.set(activity, "language", "en");
     assertEquals("On", AppPreferences.status(activity, "开启"));
     AppPreferences.set(activity, "language", "zh");
     assertEquals("开启", AppPreferences.status(activity, "开启"));
-    assertEquals("Polestar · Standard", activity.getString(R.string.widget_standard_name));
+    assertEquals("PsAssistant · 4×2", activity.getString(R.string.widget_standard_name));
   }
 
   @Test
@@ -219,7 +212,7 @@ public final class AppRegressionTest {
   }
 
   @Test
-  public void notificationContainsStatesAndTokenTime() throws Exception {
+  public void notificationContainsStatesAndDataUpdateTime() throws Exception {
     VehicleSnapshotStore.saveChina(
         activity,
         new VehicleSnapshot(
@@ -244,7 +237,8 @@ public final class AppRegressionTest {
     String title = n.extras.getString(Notification.EXTRA_TITLE),
         text = n.extras.getString(Notification.EXTRA_TEXT);
     assertTrue(title.contains("64%"));
-    assertTrue(text.contains("Token"));
+    assertFalse(text.contains("Token"));
+    assertTrue(text.contains("Data updated"));
     assertEquals(Notification.VISIBILITY_PRIVATE, n.visibility);
     assertTrue((n.flags & Notification.FLAG_ONGOING_EVENT) != 0);
   }

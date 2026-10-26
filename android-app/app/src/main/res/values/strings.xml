@@ -1,21 +1,23 @@
-<?xml version="1.0" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Polestar Assistant</string>
-    <string name="widget_standard_name" translatable="false">Polestar · Standard</string>
-    <string name="widget_compact_name" translatable="false">Polestar · Compact</string>
-    <color name="launcher_background">#F5F5F2</color>
+    <string name="app_name" translatable="false">PsAssistant</string>
+    <string name="widget_standard_name" translatable="false">PsAssistant · 4×2</string>
+    <string name="widget_compact_name" translatable="false">PsAssistant · 2×2</string>
+    <string name="widget_wide_name" translatable="false">PsAssistant · 4×1</string>
+    <string name="widget_mini_name" translatable="false">PsAssistant · 2×1</string>
+    <color name="launcher_background">#F3F3F1</color>
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:fontFamily">@font/lato_regular</item>
-        <item name="android:colorAccent">#E88445</item>
+        <item name="android:colorAccent">#FF6B00</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
     <style name="AppThemeLight" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:fontFamily">@font/lato_regular</item>
-        <item name="android:colorAccent">#E88445</item>
+        <item name="android:colorAccent">#FF6B00</item>
     </style>
     <style name="AppThemeDark" parent="Theme.AppCompat.NoActionBar">
         <item name="android:fontFamily">@font/lato_regular</item>
-        <item name="android:colorAccent">#E88445</item>
+        <item name="android:colorAccent">#FF6B00</item>
     </style>
 </resources>

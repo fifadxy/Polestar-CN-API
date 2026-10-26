@@ -4,7 +4,6 @@ import android.app.*;
 import android.app.job.*;
 import android.content.*;
 import android.os.*;
-import io.github.polestarcn.companion.auth.SecureSessionStore;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -57,10 +56,9 @@ public final class ResidentService extends Service {
     ch.setShowBadge(false);
     nm.createNotificationChannel(ch);
     VehicleSnapshot v = VehicleSnapshotStore.loadChina(c);
-    long refreshed = SecureSessionStore.refreshedAt(c);
     String title =
         v == null
-            ? tr(c, "极星助手 · 未连接", "Polestar Assistant · Offline")
+            ? tr(c, "PsAssistant · 未连接", "PsAssistant · Offline")
             : VehicleSnapshot.metric(v.batteryPercent, "%")
                 + " · "
                 + AppPreferences.status(c, v.charging);
@@ -68,15 +66,12 @@ public final class ResidentService extends Service {
         v == null
             ? tr(c, "点击连接车辆", "Tap to connect")
             : tr(c, "空调 ", "Climate ")
-                + AppPreferences.status(c, v.climate)
+                + ClimateRuntime.label(c, v, AppPreferences.get(c, "vehicle", ""))
                 + " · "
                 + tr(c, "净化 ", "Air ")
                 + AppPreferences.status(c, v.air);
-    String timestamps =
-        tr(c, "数据 ", "Data ")
-            + (v == null ? "—" : time(v.timestampMillis))
-            + " · Token ↻ "
-            + time(refreshed);
+    String timestamps = tr(c, "数据更新 ", "Data updated ")
+        + (v == null ? "—" : time(v.timestampMillis));
     PendingIntent open =
         PendingIntent.getActivity(
             c,
@@ -119,3 +114,4 @@ public final class ResidentService extends Service {
     return null;
   }
 }
+

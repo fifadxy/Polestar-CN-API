@@ -12,7 +12,12 @@ required = [
     '04_FEATURE_MATRIX.md', '05_BUILD_AND_TEST.md', '06_DEFERRED_SECURITY_R8.md',
     '07_PROGRESS.md', '08_ROADMAP.md', '09_EXTERNAL_ANALYSIS_REVIEW.md',
     '10_TWO_REPORTS_RECONCILED.md', '11_VEHICLE_DATA_DICTIONARY.md',
-    '12_STAGED_VALIDATION.md', 'evidence/apk-inventory.json',
+    '12_STAGED_VALIDATION.md',
+    '13_REFERENCE_APK_FIELD_VALIDATION.md',
+    '14_ANDROID_PARITY_V3_MASTER_PLAN.md',
+    '15_TOKEN_AND_REMOTE_VALIDATION.md',
+    '16_ANDROID_BRANCH_GOVERNANCE.md',
+    'evidence/apk-inventory.json',
     'evidence/apk-v2-signature.json', 'evidence/apk-vehicle-schema.json',
 ]
 for rel in required:
@@ -29,4 +34,7 @@ signature = json.loads((kb / 'evidence/apk-v2-signature.json').read_text(encodin
 assert signature['apk_v2_signature'] == 'VERIFIED'
 assert signature['apk_v2_content_digest'] == 'VERIFIED'
 assert signature['file_sha256'] == json.loads((kb / 'evidence/apk-inventory.json').read_text(encoding='utf-8'))['sha256']
-print('PASS: knowledge index, 33 field schema, signature evidence, deferred safety work')
+assert 'REFERENCE_USER_VERIFIED' in (kb / '13_REFERENCE_APK_FIELD_VALIDATION.md').read_text(encoding='utf-8')
+assert 'android-polestar-assistant-main' in (kb / '16_ANDROID_BRANCH_GOVERNANCE.md').read_text(encoding='utf-8')
+assert 'P3' in (kb / '14_ANDROID_PARITY_V3_MASTER_PLAN.md').read_text(encoding='utf-8')
+print('PASS: V3 Android parity knowledge, 33 field schema, reference evidence, branch and deferred safety work')

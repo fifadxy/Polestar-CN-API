@@ -42,3 +42,12 @@
 - `BUILD_PASS`：成功生成 `app-debug.apk`（28,951 字节，SHA256 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40`）；人工解包、zip 完整性检查、v2 签名内容摘要检查均通过。
 - `NOT_YET_TESTED`：Android 模拟器/真机 UI、Widget、账户登录、中国区车辆 API、真实控制；不可从编译成功推断行为可用。
 - 新增文档仅补成功记录和签名读取的准确算法位数标注，**不改变参与上述 CI 的 Android 应用源代码**。R8 与后期安全工作仍 `DEFERRED`。
+
+## 2026-10-26 / Android Assistant Parity V3.0：主线创建与计划/知识库同步
+
+- `USER_EVIDENCE`：用户明确报告参考 `app-release.apk.1.1(1).1` 的中国区登录、SOC、累计里程、空调控制与车门解锁实际可用，且长期使用可能弹 Token 错误但车控仍有效；标签 **`REFERENCE_USER_VERIFIED`**，非本工程设备实测。
+- `PLAN_UPDATED`：将远程控制从原有后期研究调整为 V3 核心 P3，先复现参考 APK 可用的空调/解锁；Token 误报列 P1 核心诊断；P4/P5 原版 UI/Widget；P6 Global/Live/PCCS。
+- `BRANCH_DECISION`：新建 `android-polestar-assistant-main` 作为 Android 子项目长期主线；保留历史 `feature/android-companion-v0.1` 和仓库原默认 `main`，Mac/Hisingen 不改。
+- `KNOWLEDGE_SYNC`：新建 `13_REFERENCE_APK_FIELD_VALIDATION.md`、`14_ANDROID_PARITY_V3_MASTER_PLAN.md`、`15_TOKEN_AND_REMOTE_VALIDATION.md`、`16_ANDROID_BRANCH_GOVERNANCE.md`，并更新 INDEX/API/FEATURE/ROADMAP/VALIDATION/README。
+- `CODE_STATUS_UNCHANGED`：`v0.1.0-dev2` 仍为 DEMO/OFFLINE，未加入真实认证/API/远控；既有成功构建 run `40261229408` 是旧版记录。V3 为计划版本，非新 APK 发布。
+- `SCOPE`：R8、混淆、非必要安全加固仍延期；真实远控后续在授权、确认与逐项验证下实施。

@@ -4,6 +4,7 @@ on:
     branches:
       - android-polestar-china-api
       - feature/android-companion-v0.1
+      - android-polestar-assistant-main
     paths:
       - 'android-app/**'
       - 'knowledge/**'

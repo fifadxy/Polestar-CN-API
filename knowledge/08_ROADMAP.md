@@ -1,22 +1,20 @@
-# 08｜Android 开发里程碑与优先级
+# 08｜Android Polestar Assistant 主线开发路线图（V3.0）
 
-| 阶段 | 工作 | 验收条件 | 当前 |
-|---|---|---|---|
-| P0 / 基础 | APK 指纹、Manifest/DEX、来源标记、知识库 | 可复现 inventory + 结构表 | 已完成静态整理 |
-| P1 / 工程 | 原生 Android 项目、首次区域选择、状态 UI 与两个 Widget | CI 编译 APK + 实机首启和桌面添加验证 | 源码完成，CI 待验 |
-| P2 / 登录 | China / Global 各自完整授权登录 + Token 刷新 | 各区域独立认证，不串 Token | 待映射 |
-| P3 / 车辆 | China Vehicle Discovery、C3 SOC/Range/Odometer/Exterior | 同一 VIN + 时间戳核对官方客户端 | 待映射 |
-| P4 / 实时 | C3 gRPC Live Stream、断线重连、后台刷新 | 连续稳定性及休眠恢复测试 | 待映射 |
-| P5 / 扩展 | PCCS/车型差异、空调/净化/充电相关状态 | 区分车型支持及接口权限 | 待映射 |
-| P6 / 命令 | 单项远控验证、确认与结果回读 | 完成独立安全/权限评审后再开放 | BLOCKED |
-| P7 / 后期 | R8、混淆、安全审计、依赖瘦身与发行 | 用户同意启动该阶段后定义 | **DEFERRED** |
+主线 `android-polestar-assistant-main`，基线 `feature/android-companion-v0.1`；本轮同步**计划与知识库**，源码仍为 `v0.1.0-dev2 DEMO/OFFLINE`，旧版 CI Run `40261229408` 已通过。真车数据和远控在新项目均**未实现**。
 
-研究始终优先复用 Hisingen 已验证的 Global 模型和 China 官方客户端观察结果，但两者既不共用 Token，也不假定服务端可替换。新增能力先形成 `README` / `knowledge` 记录再提代码评审，防止不同 AI 将推论当成已交付事实。
+| 优先级 | 阶段 | 工作内容 | 必须验收 | 状态 |
+|---|---|---|---|---|
+| P0 | 参考 APK 深度分析 | DEX/资源/动态 Java UI、HTTP/JSON、Proto/RPC、Token、远控、Widget、后台方法级核对 | 可追溯方法-字段-请求-界面映射，未知点清晰 | `PLANNED`（静态基础已入库） |
+| P1 | 中国区真实登录 | ChinaAuth、TokenRefreshCoordinator、Session、Vehicle Discovery | 用户授权登录、自动续期、报错分类、车单匹配 | `NOT_IMPLEMENTED` |
+| P2 | 中国区车辆只读 | SOC、里程、续航、充电、Exterior、状态新鲜度 | 实车对照和字段级单位/时间戳 | `DEMO_ONLY` |
+| P3 | 远程控制 | 首先空调与车门解锁，接着逐项扩展上锁、车窗、尾门、鸣笛闪灯、净化 | 用户主动确认、服务端受理/车端执行分离、未确认不自动重发 | `DISABLED_IN_CURRENT_BUILD` / **核心计划** |
+| P4 | UI 一比一复刻 | 车辆图、布局、VI、手势、状态卡片、设置、控制反馈 | 同设备截图对照和交互测试 | `DEMO_ONLY` |
+| P5 | Widget/后台 | Widget 车辆配置、状态更新、快捷控制、WorkManager/Doze | 实机添加/锁屏/重启/省电场景 | `DEMO_ONLY` |
+| P6 | 双区域与扩展 | China/Global 隔离、C3 Live、PCCS，逐车型能力 | 各区域自身授权账号、车型、RPC 独立回归 | `MAPPING_REQUIRED` |
+| P7 | 构建与交付 | JVM 测试、知识库检查、CI 编译、运行实测、缺陷与日志 | APK SHA/commit/CI run/分项验收记录 | 旧版 CI 已通过，新版待做 |
 
-## 融合报告后的非安全优先项
+**依赖**：P0/P4 可以并行；P1/P2 保障 P3 的正确性；P3 不等待 P6 完成；P7 每阶段持续执行。不得把第三方参考 APK 的 `REFERENCE_USER_VERIFIED` 写为本项目已实车验证。
 
-1. **验证工程产物**：修复 Android SDK 安装的 CI 障碍，取得可安装 Debug APK；随后模拟器/真机验证 UI 与 Widget。
-2. **数据语义先行**：实现来源、缓存过期、控制结果的状态分类，已经建立小型纯 Java 模型及测试；未接实车。
-3. **静态证据深化**：33 个字段与实际 RPC/Proto 的差异逐项映射；先读后写、先验证后标注。
-4. **通信分层**：API 会话刷新、gRPC Channel 复用、异常分类、Widget 读取节流均作为后续功能可靠性工作，禁止将源 APK 的账号固定材料原样移植。
-5. **后期单独里程碑**：R8、App 安全加固、发布 target API 36、真实远控权限评审，仍然 `DEFERRED`；上线标准与侧载 Dev 测试不能混淆。
+**功能优先级**：首个可用里程碑聚焦 China 登录、SOC、里程、空调控制、车门解锁、Token 误报；再补完整 UI/Widget 和其他可用的远控操作；最后 Global/C3 Live/PCCS 拓展。
+
+**持续约束**：R8、混淆、可选安全加固和正式发布适配 `DEFERRED`；但会话隔离、用户确认、敏感日志脱敏、不会重复下发不确定写命令是必需的正确性保障。参见 `14_ANDROID_PARITY_V3_MASTER_PLAN.md`、`15_TOKEN_AND_REMOTE_VALIDATION.md` 和 `16_ANDROID_BRANCH_GOVERNANCE.md`。

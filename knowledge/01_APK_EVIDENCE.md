@@ -63,3 +63,7 @@ Manifest 可见：INTERNET、RECEIVE_BOOT_COMPLETED、USE_BIOMETRIC、USE_FINGER
 - `APK_CONFIRMED`：`PolestarApi$Vehicle` DEX 字段计数 **33**，而非外部报告 B 的 30；详见 `evidence/apk-vehicle-schema.json` 和 `11_VEHICLE_DATA_DICTIONARY.md`。
 - 报告 A/B 关于 AES-GCM 的全链路、固定 MD5 签名算法执行过程、周期任务间隔、真实 API 成功率等，在本次不是独立运行验证。**静态结构证据与报告解释分栏保存**，详见 `10_TWO_REPORTS_RECONCILED.md`。
 - 用户给的 Gemini 分享链接当前无法读取正文；不按未见内容提升确认级别。
+
+## 2026-10-26 / Android Assistant Parity V3.0：新增用户实车反馈
+
+原先“`PolestarApi.control` 实际可用性未验证”是本项目此前**仅凭静态 APK**的历史观察；现用户明确反馈参考 APK 的 **China 登录、SOC、里程、空调远控、车门解锁已经在实际车辆上成功使用**，故这些功能新增 `REFERENCE_USER_VERIFIED` 级别。这个标签不替代本项目的 `PROJECT_DEVICE_VERIFIED`；其他远控操作和车型兼容仍需分别实测。用户还报告偶发 Token 提示与实际操作能力不完全一致，根因待查，见 `13_REFERENCE_APK_FIELD_VALIDATION.md`。

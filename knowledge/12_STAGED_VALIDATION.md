@@ -1,48 +1,43 @@
-# 12｜Android 分支可复现验证清单与远程操作边界
+# 12｜Android 分阶段验证总表（参考 APK 与新工程区分）
 
-**目的：把静态“可能有功能”转化为可测量的“这次版本确实实现”。** 本文件并未授权发送任何真实车控指令。
+**重要**：参考 APK 用户已反馈 China 登录、SOC、里程、空调、解锁真实可用，标 `REFERENCE_USER_VERIFIED`；本工程尚无相应 API 实现与端到端实测，故不能标 `PROJECT_DEVICE_VERIFIED`。
 
-## A. 当前可执行（无需账户/车辆）
+## A. 现有工程历史验收
 
-| 测试 | 环境 | 通过标准 | 状态 |
-| --- | --- | --- | --- |
-| 静态 APK 指纹 | Python ZIP/DEX | SHA256/Manifest/DEX 统计可复现 | 已有提取脚本 |
-| APK 签名验证 | Python `cryptography` | 签名 + 摘要通过；不推断开发者身份 | 已完成 |
-| 33 字段提取 | Python DEX | 与 `evidence/apk-vehicle-schema.json` 一致 | 已完成 |
-| 纯 Java 状态测试 | JDK | 7+ 类分类不变量通过 | `scripts/test_models.sh` |
-| Android 编译 | GitHub Actions / SDK | `assembleDebug` 成功且有 `app-debug.apk` | **CI 已通过**（run `40261229408`） |
-| 首次区域选择 | 模拟器/真机 | 首次弹 China/Global，之后能切换 | **待设备测试** |
-| 车辆首页 | 模拟器/真机 | SOC、续航、里程完整；明示 DEMO/OFFLINE | **待设备测试** |
-| 两种 Widget | 模拟器/真机 | 不截断、区域切换更新，点击打开 App | **待设备测试** |
-| 日志与点击反馈 | 模拟器/真机 | 有反馈、可复制、不包含真实凭证 | **待设备测试** |
-| 远控禁用 | 静态 + 真机 | 所有指令按钮仅显示禁用，零网络写入 | 静态通过，真机待验证 |
+| 项目 | 核验依据 | 状态 |
+|---|---|---|
+| 原 APK ZIP/DEX/SHA、v2 签名、33 字段 | `01_APK_EVIDENCE` / `evidence` | `APK_CONFIRMED` |
+| Java 纯模型 + 语义测试 | `scripts/test_models.sh`、`tests/ModelStateTest.java` | 既有源码单测通过 |
+| Android 0.1.0-dev2 Debug 编译 | Actions run `40261229408`，APK SHA256 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40` | `CI_VERIFIED`，**仅旧版本** |
+| 首次区域选择、页面和两个 Widget | 已有代码，但无本次新设备日志 | `IMPLEMENTED_DEMO / DEVICE_UNTESTED` |
+| China 真实登录及车辆接口 | 现有代码没有 | `NOT_IMPLEMENTED` |
+| China 远控 | 当前 `ENABLE_REMOTE_COMMANDS=false` | `DISABLED_IN_CURRENT_BUILD` |
+| Global 完整网络 API | 现有代码没有 | `NOT_IMPLEMENTED` |
 
-## B. 后期功能接入阶段（当前不执行）
+## B. P0–P7 分项新验收要求
 
-| 里程碑 | 关键验证 |
-| --- | --- |
-| China / Global 登录 | 各自官方支持的方式、Token Audience、有效期和刷新互不污染；凭证不入仓 |
-| Vehicle Discovery | 账户下多车选择与 VIN 身份匹配，避免数据串车 |
-| C3 Read | 电池/续航/里程/开闭分项检验，分别记录来源和采集时间 |
-| C3 Stream | 真正 stream 的订阅、断线重连、后台休眠、服务器速率限制；仅有 `stateRpc` 不可写成 Stream 已实现 |
-| PCCS | 每项按车型/年款独立验证，禁止“改域名套 Global RPC” |
-| Widget & 省电 | 长时间锁屏、Doze、省电、重启、网络断连，禁止把缓存当 Live |
-| 操作状态机 | 请求中 → 服务端接受 → 车辆确认 / 失败 / 未确认；未确认不等同失败，也不自动重复写入 |
-| 露营与宠物托管 | 本阶段不开放。以后即便能周期运行，手机云端轮询也不是车端安全保障；不能用于保障儿童/动物生命安全 |
+| 阶段 | 主要验收 |
+|---|---|
+| P0 | 参考 APK 七业务类、33 字段、认证方法、RPC/Proto 字段、UI 组件、Widget Worker 形成可复现依据；静态存在不等于运行成功 |
+| P1 | China 本人账号合法登录、Session/Token 刷新、闲置和并发场景、车辆发现及多车绑定 |
+| P2 | China 真实 SOC/里程优先，其余 Range/Exterior/Charging/Climate 分项核对，采样时间、单位、缓存新鲜度明确 |
+| P3 | 用户主动解锁、空调操作逐项验证，指令服务受理与车辆真实状态核对分开；未确认的指令不自动重发；其余控制按车型逐项开放 |
+| P4 | 原 APK 与新 APK 的同设备截图和操作流程对照，页面/手势/字体/素材状态正确 |
+| P5 | Widget 配置/刷新/主动快捷控制与主界面一致，Doze、重启、断网不虚报实时 |
+| P6 | Global 独立认证/车表与 China 分离；C3 Live/PCCS 每个方法独立验收 |
+| P7 | GitHub CI、调试 APK、SHA256、源代码、测试报告和未通过项；不能用旧 v0.1 CI 代表新版本 |
 
-## C. 指令状态语义（仅模型，不是功能）
+## C. 命令与认证验收底线
 
-`OperationState`：`DISABLED`、`NOT_SENT`、`SENDING`、`SERVER_ACCEPTED`、`VEHICLE_CONFIRMED`、`FAILED`、`UNCONFIRMED`。
+- 状态：`DISABLED`、`NOT_SENT`、`SENDING`、`SERVER_ACCEPTED`、`VEHICLE_CONFIRMED`、`FAILED`、`UNCONFIRMED`。
+- `SERVER_ACCEPTED` ≠ `VEHICLE_CONFIRMED`；没有可靠回读不展示“车辆已执行”。
+- 参考 APK 一段时间后 Token 误报属于用户观察事实，根因尚未确认。分类登录、刷新、Discovery、C3 Read、Remote Write 和结果回读异常，禁止单个错误覆盖其他已成功操作。
+- 真实指令只能针对用户授权的本人车辆，在明确主动操作后发起。命令超时先只读回读，不自动重复写入。
+- 不提交密码、Access/Refresh Token、短信验证码、Cookie、第三方签名密钥或完整 VIN。
+- WorkManager 不能作为生命安全相关的精确定时器；露营/宠物功能不得承诺通过手机轮询保障车内安全。
 
-- 只有 `VEHICLE_CONFIRMED` 可以作为「车辆已执行」展示。
-- 网络返回不确定时标 `UNCONFIRMED`，**不得**自动发送重复车控命令。
-- 当前 CapabilityMatrix 的 `ENABLE_NETWORK_VEHICLE_API=false`、`ENABLE_REMOTE_COMMANDS=false`；任何带后端认证的代码评审必须单独检查这两项。
+## D. 长时间与设备回归
 
-## D. 安全工作延期政策
+详尽的 T01–T12 测试用例见 `15_TOKEN_AND_REMOTE_VALIDATION.md`，原 APK/新 APK 实测对照格式见 `13_REFERENCE_APK_FIELD_VALIDATION.md`。新代码在确认并接通 API 之前必须继续标 DEMO/OFFLINE，不能隐藏真实数据源状态。
 
-R8、混淆、Release 保护、密码学绑定鉴权、SSL Pinning、依赖漏洞扫描和完整组件安全测评按 `06_DEFERRED_SECURITY_R8.md` **暂不执行**。但不会为赶进度牺牲底线：本版本不收集真实密码、Token，不内置第三方静态密钥，不发出远程写操作，也不宣称演示值为实时值。
-
-## E. 本次平台材料
-
-- WorkManager `PeriodicWorkRequest` 文档：`https://developer.android.com/reference/androidx/work/PeriodicWorkRequest`，最短周期 15 分钟，不保证严格按时执行。
-- Google Play target API 规则：`https://support.google.com/googleplay/android-developer/answer/11926878`，截至 2026-10-26 普通手机新应用与更新的 Play 提交要求 API 36；当前侧载 Dev APK 不因此自动变成正式发布版本。
+R8、混淆及非必要安全加固按 `06_DEFERRED_SECURITY_R8.md` 延期，不意味着远控功能应永久搁置。

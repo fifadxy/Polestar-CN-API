@@ -11,5 +11,8 @@ public final class CapabilityMatrix {
     public static Status odometer(Region region) { return china(region); }
     public static Status liveStream(Region region) { return Status.MAPPING_REQUIRED; }
     public static Status remoteCommands(Region region) { return region == Region.CHINA ? Status.DEVICE_VERIFICATION : Status.DISABLED; }
+    public static Status windows(Region region) { return region == Region.CHINA ? Status.DEVICE_VERIFICATION : Status.DISABLED; }
+    public static Status honkFlash(Region region) { return region == Region.CHINA ? Status.DEVICE_VERIFICATION : Status.DISABLED; }
+    public static Status maintenance(Region region) { return region == Region.CHINA ? Status.VERIFIED_LIVE : Status.DISABLED; }
     private static Status china(Region region) { return region == Region.CHINA ? Status.DEVICE_VERIFICATION : Status.MAPPING_REQUIRED; }
 }

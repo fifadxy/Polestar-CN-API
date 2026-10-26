@@ -97,19 +97,19 @@ public final class VehicleSnapshot {
 
   public VehicleSnapshot withMileage(MileageSnapshot value) {
     return new VehicleSnapshot(name, id, batteryPercent, rangeKm, odometerKm, charging,
-        doors, windows, tailgate, lock, timestampMillis, source, isDemo, climate, air, value, exterior, environment, chargingDetails);
+        doors, windows, tailgate, lock, timestampMillis, source, isDemo, climate, air, value, exterior, environment, chargingDetails, tires);
   }
 
   public VehicleSnapshot withExterior(ExteriorSnapshot value) {
     return new VehicleSnapshot(name, id, batteryPercent, rangeKm, odometerKm, charging,
         value.summary(false), value.summary(true), tailgate, lock, timestampMillis, source,
-        isDemo, climate, air, mileage, value, environment, chargingDetails);
+        isDemo, climate, air, mileage, value, environment, chargingDetails, tires);
   }
 
   public VehicleSnapshot withEnvironment(EnvironmentSnapshot value) {
     return new VehicleSnapshot(name, id, batteryPercent, rangeKm, odometerKm, charging, doors,
         windows, tailgate, lock, timestampMillis, source, isDemo, value.climate, value.air,
-        mileage, exterior, value, chargingDetails);
+        mileage, exterior, value, chargingDetails, tires);
   }
 
   public VehicleSnapshot withCharging(ChargingSnapshot value) {

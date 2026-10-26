@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -162,7 +163,7 @@ public final class MainActivity extends Activity {
     }
     private void dashboard() {
         VehicleSnapshot state = repository.snapshot(region);
-        sectionHeader(content, "车辆概览", "REGION  /  " + region.english + "  ·  Android Dev v0.1.0-dev2");
+        sectionHeader(content, "车辆概览", "REGION  /  " + region.english + "  ·  Android Dev v0.2.0-alpha1");
         flag(content, "演示模式 · 未连接真实车辆", "当前全部 SOC、续航、里程和车辆状态均为模拟值。未执行登录或网络请求。", true);
         LinearLayout vehicle = card(content);
         vehicle.addView(text(state.name, 18, INK, true));
@@ -243,15 +244,19 @@ public final class MainActivity extends Activity {
         gap(r,10);
         r.addView(action("切换 China / Global",true,()->showRegionChooser(false)));
         gap(r,8);
-        r.addView(action("登录（功能尚未接入）",false,()->{
-            DiagnosticLog.add(region.english + " login: not implemented");
-            info("登录未接入", "当前为离线演示版本，未获取或保存任何 China / Global 登录凭证。");
-        }));
+        if (region == Region.CHINA) {
+            r.addView(action("中国区实车连接 / 登录",false,()->{
+                DiagnosticLog.add("Open China live alpha screen");
+                startActivity(new Intent(this, ChinaLiveActivity.class));
+            }));
+        } else {
+            r.addView(action("Global 登录（后续阶段）",false,()->info("Global 尚未接入", "当前 alpha 优先完成中国区真实链路，Global 保持独立会话并在后续阶段接入。")));
+        }
         LinearLayout diag = card(content);
         diag.addView(text("运行诊断",17,INK,true));gap(diag,8);
-        row(diag,"编译版本","0.1.0-dev2");
-        row(diag,"网络车辆 API","OFF");
-        row(diag,"远程控制","OFF");
+        row(diag,"编译版本","0.2.0-alpha1");
+        row(diag,"China 实验 API","ALPHA / DEVICE_VERIFY");
+        row(diag,"China 核心远控","ALPHA / MANUAL_CONFIRM");
         row(diag,"R8 混淆","DEFERRED");
         row(diag,"模拟数据","ON");gap(diag,10);
         diag.addView(action("复制诊断日志",true,()->{
@@ -274,7 +279,7 @@ public final class MainActivity extends Activity {
     private void showInitialRegionChooser() { showRegionChooser(true); }
     private void showRegionChooser(boolean firstLaunch) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this).setTitle("Select Polestar Region")
-            .setMessage("请选择车辆所在地区。当前提供离线模拟界面，真实 API 登录尚未接入。")
+            .setMessage("请选择车辆所在地区。当前提供离线模拟界面，China 实验链路已接入；Global 仍未接入。")
             .setCancelable(!firstLaunch)
             .setItems(new String[]{"China · 中国", "Global · 全球"}, (dialog, which)->{
                 region = which==0 ? Region.CHINA : Region.GLOBAL;

@@ -878,6 +878,7 @@ public final class AppRegressionTest {
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
   public void tyreDetailIsHiddenByDefaultBehindAggregateVehicleStatus() throws Exception {
+    AppPreferences.set(activity, "language", "zh");
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";

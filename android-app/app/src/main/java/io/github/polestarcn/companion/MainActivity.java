@@ -673,7 +673,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout.LayoutParams tc = new LinearLayout.LayoutParams(0, dp(tiny ? 34 : 38), 1); tc.leftMargin = dp(6);
     heroStatus.addView(tireChip, tc); hero.addView(heroStatus);
 
-    p.addView(hero, new LinearLayout.LayoutParams(-1, dp(tiny ? 150 : compact ? 170 : 186)));
+    p.addView(hero, new LinearLayout.LayoutParams(-1, -2));
     gap(p, tiny ? 3 : 6);
 
     LinearLayout first = row(), second = row();

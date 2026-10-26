@@ -689,6 +689,33 @@ public final class AppRegressionTest {
   }
 
   @Test
+  @Config(qualifiers = "w320dp-h568dp-mdpi")
+  public void allThreeControlSkinsKeepTheirLastControlInsideSmallScreen() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true); signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render"); render.setAccessible(true);
+    for (String skin : new String[]{UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT}) {
+      UiSkin.set(activity, skin);
+      render.invoke(activity);
+      View content = findTagged(activity.getWindow().getDecorView(), "control_pull_content");
+      assertNotNull(content);
+      View root = activity.getWindow().getDecorView();
+      root.measure(View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(568, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 320, 568);
+      ViewGroup group = (ViewGroup) content;
+      View last = group.getChildAt(group.getChildCount() - 1);
+      assertTrue("last control stays in page for " + skin, last.getBottom() <= content.getHeight());
+    }
+  }
+
+  @Test
   public void invalidReferenceCannotImport() throws Exception {
     File temp = File.createTempFile("invalid", ".apk", activity.getCacheDir());
     try {

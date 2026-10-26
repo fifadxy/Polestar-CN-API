@@ -201,6 +201,21 @@ public final class MainActivity extends FragmentActivity {
     return view;
   }
 
+  private TextView tireUtility(VehicleSnapshot v) {
+    boolean problem = v != null && v.tires.hasProblem();
+    boolean good = v != null && v.tires.allGood();
+    String label = v == null ? tr("胎压 --", "Tires --")
+        : good ? "ALL GOOD" : problem ? tr("胎压 !", "Tires !") : tr("胎压 --", "Tires --");
+    TextView view = button(label, this::tireDialog);
+    view.setTextSize(11); view.setSingleLine(true); view.setPadding(dp(6), dp(4), dp(6), dp(4));
+    GradientDrawable background = bg(problem ? orange : surface, 8);
+    background.setStroke(dp(problem ? 2 : 1), problem || good ? orange : line);
+    view.setBackground(background);
+    view.setTextColor(problem ? Color.rgb(21,22,23) : good ? orange : muted);
+    view.setTag("tire_button");
+    return view;
+  }
+
   private void palette() {
     boolean dark = AppPreferences.dark(this);
     ink = Color.parseColor(dark ? "#F4F4F2" : "#18191A");
@@ -373,13 +388,18 @@ public final class MainActivity extends FragmentActivity {
     exterior.setTag("exterior_button");
     exterior.setContentDescription(tr("车门、车窗和尾箱", "Doors, windows and tailgate")
         + (exteriorOpen ? tr(" · 有未关闭部位", " · opening detected") : ""));
-    LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(dp(62), dp(48));
-    ep.leftMargin = dp(6); selector.addView(exterior, ep);
+    LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(dp(58), dp(48));
+    ep.leftMargin = dp(5); selector.addView(exterior, ep);
+    TextView tire = tireUtility(v);
+    tire.setContentDescription(tr("四轮胎压状态 · ", "Four-wheel tire status · ")
+        + (v == null ? tr("未知", "Unknown") : v.tires.summary(AppPreferences.english(this))));
+    LinearLayout.LayoutParams tpTyre = new LinearLayout.LayoutParams(dp(68), dp(48));
+    tpTyre.leftMargin = dp(5); selector.addView(tire, tpTyre);
     boolean camping = CampModeManager.active(this) || "STOPPING".equals(CampModeManager.phase(this));
     TextView camp = utility(tr("△ 露营", "△ Camp"), camping, false, this::campDialog);
     camp.setTag("camp_button");
     camp.setContentDescription(tr("露营模式 · ", "Camping · ") + CampModeManager.status(this));
-    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(64), dp(48));
+    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(60), dp(48));
     cp.leftMargin = dp(6); selector.addView(camp, cp);
     TextView refresh = button(model.busy ? "…" : "↻", () -> model.refresh(null));
     refresh.setEnabled(!model.busy);
@@ -479,10 +499,10 @@ public final class MainActivity extends FragmentActivity {
         cell.setPadding(dp(5), 0, dp(4), 0);
         TextView label = text(metric.shortLabel(AppPreferences.english(this)), compact ? 9 : 10, muted, false);
         label.setMaxLines(1); label.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        TextView value = text(metric.value(snapshot, false, AppPreferences.english(this)), compact ? 12 : 14, ink, false);
+        TextView value = text(metric.value(this, snapshot, false, AppPreferences.english(this)), compact ? 12 : 14, ink, false);
         value.setMaxLines(1);
         cell.addView(label); cell.addView(value);
-        cell.setContentDescription(metric.label(AppPreferences.english(this)) + " · " + metric.value(snapshot, true, AppPreferences.english(this)));
+        cell.setContentDescription(metric.label(AppPreferences.english(this)) + " · " + metric.value(this, snapshot, true, AppPreferences.english(this)));
         click(cell, () -> info(metric.label(AppPreferences.english(this)), metric.value(snapshot, true, AppPreferences.english(this))));
         metricRow.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
       }
@@ -721,6 +741,10 @@ public final class MainActivity extends FragmentActivity {
       detailRow(p, positions[i], tr("门 ", "Door ") + status(ExteriorSnapshot.label(v.exterior.state(false, i)))
           + " · " + tr("窗 ", "Window ") + status(ExteriorSnapshot.label(v.exterior.state(true, i))));
     detailRow(p, tr("尾箱", "Tailgate"), status(v.tailgate));
+    detailRow(p, tr("胎压", "Tire status"), v.tires.summary(AppPreferences.english(this)));
+    String[] tirePositions = {tr("左前胎", "Front-left tire"), tr("右前胎", "Front-right tire"),
+        tr("左后胎", "Rear-left tire"), tr("右后胎", "Rear-right tire")};
+    for (int i = 0; i < 4; i++) detailRow(p, tirePositions[i], v.tires.label(i, AppPreferences.english(this)));
     detailRow(p, tr("空调", "Climate"), status(v.climate));
     detailRow(p, tr("净化", "Purification"), status(v.air));
     detailRow(p, tr("车内温度", "Cabin temperature"), DisplayMetric.TEMPERATURE.value(v, true));
@@ -737,6 +761,11 @@ public final class MainActivity extends FragmentActivity {
     MaintenanceSchedule.Status service = MaintenanceSchedule.status(
         this, AppPreferences.get(this, "vehicle", ""), v);
     detailRow(p, tr("保养", "Service"), service.summary(AppPreferences.english(this)));
+    detailRow(p, tr("保养剩余时间", "Service time left"),
+        service.configured ? service.remainingDays() + tr(" 天 · ", " d · ") + service.remainingTimePercent() + "%" : "--");
+    detailRow(p, tr("保养剩余里程", "Service distance left"),
+        service.configured && service.remainingKm() != null
+            ? service.remainingKm() + " km · " + service.remainingDistancePercent() + "%" : "--");
     p.addView(button(tr("设置上次保养记录", "Set last service record"), this::maintenanceDialog));
     gap(p, 14);
     p.addView(button(tr("切换车辆", "Select vehicle"), this::chooseVehicle));
@@ -1020,6 +1049,20 @@ public final class MainActivity extends FragmentActivity {
         "OPPO Watch X2 · 466×466 round display. Layout preview; a watch APK and device compatibility need separate verification."), 12, muted, false));
     new HapticDialogBuilder(this).setTitle(tr("手表布局预览", "Watch layout preview")).setView(panel)
         .setPositiveButton(tr("关闭", "Close"), null).show();
+  }
+
+  private void tireDialog() {
+    VehicleSnapshot v = model.snapshot;
+    if (v == null) return;
+    LinearLayout panel = column(); panel.setPadding(dp(16), dp(8), dp(16), dp(8));
+    panel.addView(new TirePressureView(this, v.tires), new LinearLayout.LayoutParams(-1,
+        dp(Math.min(380, Math.max(280, getResources().getConfiguration().screenHeightDp - 230)))));
+    panel.addView(text(tr(
+        "橙色和 ! 表示该轮胎需要检查。部分车型只提供 iTPMS 状态，不提供具体 kPa。",
+        "Orange / ! means that tyre needs attention. Some models report iTPMS status without exact kPa."),
+        12, muted, false));
+    new HapticDialogBuilder(this).setTitle(tr("胎压", "Tire status"))
+        .setView(panel).setPositiveButton(tr("关闭", "Close"), null).show();
   }
 
   private void exteriorDialog() {

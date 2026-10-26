@@ -23,7 +23,14 @@ assert 'class MainActivity' in all_java
 assert 'WidgetRenderer.update' in all_java
 assert 'class VehicleWidgetProvider' in all_java
 assert 'class CompactWidgetProvider' in all_java
-assert 'app.c3garage.companion' not in all_java  # Do not reuse original package
+reference=(main/'java/io/github/polestarcn/companion/auth/ReferenceSignatureProvider.java').read_text()
+assert 'app.c3garage.companion' in reference  # only used to locate the user-installed reference APK
+other_java='\n'.join(p.read_text() for p in java if p.name != 'ReferenceSignatureProvider.java')
+assert 'app.c3garage.companion' not in other_java
+assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'fixed compatibility signing material must not be committed'
+assert 'ChinaLiveActivity' in manifest
+assert 'grpc-okhttp:1.68.2' in gradle
+assert "versionName '0.2.0-alpha1'" in gradle
 assert '<appwidget-provider' in (main/'res/xml/widget_standard.xml').read_text()
 assert '<appwidget-provider' in (main/'res/xml/widget_compact.xml').read_text()
 assert not (root/'android-app/local.properties').exists()

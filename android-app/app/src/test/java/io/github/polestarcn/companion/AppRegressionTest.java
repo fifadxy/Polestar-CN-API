@@ -412,6 +412,10 @@ public final class AppRegressionTest {
         assertEquals(View.VISIBLE, field.getVisibility());
         assertFalse(field.getText().toString().isEmpty());
         assertTrue("widget field has width", field.getWidth() >= 30);
+        if (field.getLayout().getHeight() > field.getHeight())
+          System.err.println("WIDGET_OVERFLOW size=" + size + " field=" + i
+              + " text=" + field.getText() + " layout=" + field.getLayout().getHeight()
+              + " view=" + field.getHeight() + " width=" + field.getWidth());
         assertTrue("widget text fits height: " + size + "/" + i + " " + field.getLayout().getHeight() + "/" + field.getHeight(), field.getLayout().getHeight() <= field.getHeight());
       }
       android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888);

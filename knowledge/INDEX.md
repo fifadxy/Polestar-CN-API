@@ -1,6 +1,6 @@
 # Android Polestar Assistant 主线知识库 · 索引
 
-> 版本 `KB-0.7.2 / Android Parity V3.0` · 2026-10-26 · 主线 `android-polestar-assistant-main`
+> 版本 `KB-0.7.3 / Android Parity V3.0` · 2026-10-26 · 主线 `android-polestar-assistant-main`
 
 本目录是 **Polestar2 Widget&API** 独立 Android 子项目的长期知识库。`main` 为 GitHub 仓库默认主分支，本项目专属的 Android 主线是 `android-polestar-assistant-main`，不修改 Mac/Hisingen 的独立工程。
 
@@ -25,6 +25,7 @@
 | [17_TYRE_MAINTENANCE_WIDGET_V07.md](17_TYRE_MAINTENANCE_WIDGET_V07.md) | 胎压、保养剩余量与 Widget 自适应设计 | v0.7 实现 |
 | [18_UI_SKINS_REFERENCE_IMPORT_V071.md](18_UI_SKINS_REFERENCE_IMPORT_V071.md) | 三套 UI 皮肤与模板 APK 签名兼容修复 | v0.7.1 实现 |
 | [19_CONTROL_PULL_REFRESH_V072.md](19_CONTROL_PULL_REFRESH_V072.md) | 控制首页模板式下拉刷新与横向手势保护 | v0.7.2 实现 |
+| [20_UI_DAY_NIGHT_ITPMS_V073.md](20_UI_DAY_NIGHT_ITPMS_V073.md) | 三套日夜模式、单屏布局、iTPMS 与 Polestar VI | v0.7.3 实现 |
 | [evidence/apk-v2-signature.json](evidence/apk-v2-signature.json) | 参考 APK 签名及内容摘要证据 | 已验证 |
 | [evidence/apk-vehicle-schema.json](evidence/apk-vehicle-schema.json) | 33 字段独立提取 | 已验证 |
 | [evidence/apk-inventory.json](evidence/apk-inventory.json) | APK 静态清单 | 可复现 |

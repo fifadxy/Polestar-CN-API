@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 
@@ -25,6 +27,11 @@ public final class TirePressureView extends View {
     surface = Color.parseColor(dark ? "#292B2D" : "#FFFFFF");
     line = Color.parseColor(dark ? "#45484A" : "#DCDDD7");
     vehicle = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.vehicle_top);
+    if (dark && vehicle != null) {
+      ColorMatrix m = new ColorMatrix(new float[] {
+          .14f,0,0,0,10, 0,.14f,0,0,10, 0,0,.14f,0,10, 0,0,0,1,0});
+      vehicle.setColorFilter(new ColorMatrixColorFilter(m));
+    }
     paint.setTypeface(getResources().getFont(R.font.lato_regular));
     setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     StringBuilder a = new StringBuilder(english ? "Tire status. " : "胎压状态。");

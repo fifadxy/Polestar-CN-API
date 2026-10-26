@@ -1,3 +1,13 @@
+## 2026-10-26 / v0.7.3-beta1 — 三套日夜模式、单屏控制页、iTPMS 与 Polestar VI
+
+- `DAY_NIGHT`：三套 UI 皮肤统一支持 System / Light / Dark；取消“此刻图片风格强制浅色”的旧限制。
+- `FIXED_CONTROL_PAGE`：三套车辆控制页均改为单屏固定布局，不依赖上下滚动查看控制项；保留 v0.7.2 的顶部下拉刷新手势作为唯一页面滑动操作。
+- `POLESTAR_2_ART`：此刻图片皮肤改回项目原始 Polestar 2 顶视车辆素材；所有 Polestar 车辆素材在夜间通过暗色矩阵呈现黑色车身，并保留轮廓高光。
+- `ITPMS_RECHECK`：对当前参考模板 APK 再做静态核对，仅发现 Battery / Exterior / Odometer / ParkingClimatization / PreCleaning 五类 `services.vehiclestates.*` 服务；**未发现 HealthService/GetHealth、TPMS/iTPMS 或四轮 kPa 的第一方调用字符串**。因此模板 APK 不能作为“具体胎压数值”证据。
+- `TYRE_UI`：胎压 UI 改为 iTPMS 告警状态优先，四轮只显示 正常 / 偏低 / 严重偏低 / 偏高 / 未知；不再在用户界面显示未验证的 kPa。ALL GOOD 只有四轮告警字段全部明确为 OK 时才出现。
+- `VI_CONTROLS`：车辆电量进度条、露营模式、Widget 外观、触感强度等所有 SeekBar/ProgressBar 统一使用 Polestar 黑/白/灰 + 橙色强调的 VI 色彩。
+- `VERSION`：Android 提升至 `0.7.3-beta1` / versionCode 73；CI test/lint/assemble 结果以本轮交付记录为准。
+
 ## 2026-10-26 / v0.7.2-beta1 — 控制首页模板式下拉刷新
 
 - \`REFERENCE_APK_CONFIRMED\`：重新核对用户提供模板 APK，确认包含 \`androidx.swiperefreshlayout:swiperefreshlayout:1.1.0\`，DEX 中存在 \`MainActivity$HorizontalSwipeRefreshLayout\`、\`SwipeRefreshLayout$OnRefreshListener\`、\`setOnRefreshListener\` 与 \`setRefreshing\`。

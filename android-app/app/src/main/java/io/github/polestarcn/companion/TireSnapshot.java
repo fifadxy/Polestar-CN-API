@@ -3,7 +3,7 @@ package io.github.polestarcn.companion;
 import io.github.polestarcn.companion.api.ProtoWire;
 import java.util.Map;
 
-/** China C3 HealthService tyre state. Order: front-left, front-right, rear-left, rear-right. */
+/** China C3 tyre/iTPMS warning state. Numeric pressure is retained as research data but not surfaced in UI. */
 public final class TireSnapshot {
   public static final int UNKNOWN = -1, OK = 1, VERY_LOW = 2, LOW = 3, HIGH = 4;
   private final Double[] kpa;
@@ -43,7 +43,7 @@ public final class TireSnapshot {
   }
 
   public boolean hasAnyReport() {
-    for (int i = 0; i < 4; i++) if (kpa[i] != null || warnings[i] != UNKNOWN) return true;
+    for (int value : warnings) if (value != UNKNOWN) return true;
     return false;
   }
 
@@ -53,12 +53,9 @@ public final class TireSnapshot {
   }
 
   public boolean allGood() {
-    if (!hasAnyReport() || hasProblem()) return false;
-    boolean explicit = false;
-    for (int value : warnings) if (value == OK) explicit = true;
-    if (explicit) return true;
-    for (Double value : kpa) if (value != null) return true;
-    return false;
+    if (hasProblem()) return false;
+    for (int value : warnings) if (value != OK) return false;
+    return true;
   }
 
   public String summary(boolean english) {
@@ -69,17 +66,13 @@ public final class TireSnapshot {
 
   public String label(int position, boolean english) {
     int w = warning(position);
-    String status;
     switch (w) {
-      case OK: status = english ? "OK" : "正常"; break;
-      case VERY_LOW: status = english ? "Very low" : "严重偏低"; break;
-      case LOW: status = english ? "Low" : "偏低"; break;
-      case HIGH: status = english ? "High" : "偏高"; break;
-      default: status = english ? "Unknown" : "未知";
+      case OK: return english ? "OK" : "正常";
+      case VERY_LOW: return english ? "Very low" : "严重偏低";
+      case LOW: return english ? "Low" : "偏低";
+      case HIGH: return english ? "High" : "偏高";
+      default: return english ? "Unknown" : "未知";
     }
-    Double p = pressureKpa(position);
-    if (p == null) return status;
-    return Math.round(p) + " kPa · " + status;
   }
 
   public Double[] pressures() { return kpa.clone(); }

@@ -11,7 +11,7 @@
 | C3 电池 | `BatteryService`、`GetLatestBattery`、`Vehicle.battery` | 参考 APK SOC 已由用户实测 | 已实现 Proto 映射；设备验证待完成 | P2 真实读数 |
 | 续航/充电 | `Vehicle.range`、`charging` 等 | 尚无明确用户逐字段实测 | DEMO / 未覆盖 | P2 逐字段确认 |
 | C3 里程 | `OdometerService`、`GetLatestOdometer` | 参考 APK 累计里程已由用户实测 | DEMO | P2 真实读数 |
-| C3 Health / 胎压 | 参考 APK 未形成独立胎压证据；Mac/Hisingen 有 `tyreAndWarnings` | 上游 Hisingen：Health field 9–12 报警、39–42 kPa | **v0.7 已实现**；待实车验证 | P2 Health 实车语义核对 |
+| C3 Health / 胎压 | **v0.7.3 复核：当前模板 APK 仅出现 Battery/Exterior/Odometer/ParkingClimatization/PreCleaning 服务，未发现 HealthService/GetHealth 或 TPMS/iTPMS 字符串**；Mac/Hisingen 另有 `tyreAndWarnings` | 上游 Hisingen：Health field 9–12 报警、39–42 压力字段；但这不能证明中国 Polestar 2 会返回可展示的四轮 kPa | 已实现 Health 告警读取；UI 按 iTPMS 状态展示，不显示未验证 kPa | P2 重点核对中国区 iTPMS 告警语义 |
 | C3 Exterior | `ExteriorService`、`GetLatestExterior` | 中国官方 App 另有 C3 运行证据；不等同第三方所有字段实测 | DEMO | P2 状态回读，P3 解锁验证 |
 | 远控空调 | `control`、`ClimatizationStart` / `ClimatizationStop` 线索 | 参考 APK 空调远控已由用户实测 | 手动确认、无自动重试；设备验证待完成 | **P3 核心复刻** |
 | 远控解锁 | `control`、`Unlock` 线索 | 参考 APK 车门解锁已由用户实测 | 手动确认、无自动重试；设备验证待完成 | **P3 核心复刻** |

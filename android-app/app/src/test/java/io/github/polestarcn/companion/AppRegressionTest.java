@@ -626,6 +626,69 @@ public final class AppRegressionTest {
   }
 
   @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void allThreeControlSkinsFitWithoutContentScrollingInLightAndDark() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+
+    for (String theme : new String[]{"light", "dark"}) {
+      AppPreferences.set(activity, "theme", theme);
+      for (String skin : new String[]{UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT}) {
+        UiSkin.set(activity, skin);
+        render.invoke(activity);
+        View refresh = findTagged(activity.getWindow().getDecorView(), "control_pull_refresh");
+        assertNotNull(refresh);
+        assertEquals("control page itself is fixed for " + skin + "/" + theme,
+            0, count(refresh, ScrollView.class));
+      }
+    }
+  }
+
+  @Test
+  public void tireUiUsesItpmsWarningStateWithoutDisplayingKpa() {
+    TireSnapshot tyres = new TireSnapshot(
+        new Double[]{250.0, 251.0, 249.0, 252.0},
+        new int[]{TireSnapshot.OK, TireSnapshot.OK, TireSnapshot.OK, TireSnapshot.OK}, 1);
+    assertTrue(tyres.allGood());
+    assertEquals("正常", tyres.label(0, false));
+    assertFalse(tyres.label(0, false).contains("kPa"));
+    assertFalse(tyres.label(0, true).contains("kPa"));
+
+    TireSnapshot partial = new TireSnapshot(
+        new Double[]{250.0, 251.0, 249.0, 252.0},
+        new int[]{TireSnapshot.OK, TireSnapshot.UNKNOWN, TireSnapshot.OK, TireSnapshot.OK}, 1);
+    assertFalse("partial iTPMS state must not be called ALL GOOD", partial.allGood());
+    assertEquals("UNKNOWN", partial.summary(true));
+  }
+
+  @Test
+  public void campAndWidgetSlidersUsePolestarViStyling() throws Exception {
+    Method camp = MainActivity.class.getDeclaredMethod("campDialog");
+    camp.setAccessible(true);
+    camp.invoke(activity);
+    AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+    assertNotNull(findTagged(dialog.getWindow().getDecorView(), "vi_slider"));
+    dialog.dismiss();
+
+    Method widget = MainActivity.class.getDeclaredMethod(
+        "widgetSlider", LinearLayout.class, String.class, String.class, int.class);
+    widget.setAccessible(true);
+    LinearLayout panel = new LinearLayout(activity);
+    panel.setOrientation(LinearLayout.VERTICAL);
+    widget.invoke(activity, panel, "Opacity", "widget_opacity", 58);
+    assertNotNull(findTagged(panel, "vi_slider"));
+  }
+
+  @Test
   public void invalidReferenceCannotImport() throws Exception {
     File temp = File.createTempFile("invalid", ".apk", activity.getCacheDir());
     try {

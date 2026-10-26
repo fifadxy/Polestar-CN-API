@@ -3,34 +3,38 @@ package io.github.polestarcn.companion;
 import android.content.Context;
 
 public final class UiSkin {
-  public static final String LATEST = "latest";
-  public static final String CURRENT = "current";
-  public static final String EV_CONCEPT = "ev_concept";
+  public static final String SIMPLE = "simple";
+  public static final String DETAILED = "detailed";
+  private static final String LEGACY_LATEST = "latest";
+  private static final String LEGACY_CURRENT = "current";
+  private static final String LEGACY_EV_CONCEPT = "ev_concept";
 
   private UiSkin() {}
 
   public static String get(Context context) {
-    String value = AppPreferences.get(context, "ui_skin", CURRENT);
-    if (LATEST.equals(value) || EV_CONCEPT.equals(value)) return value;
-    return CURRENT;
+    String value = AppPreferences.get(context, "ui_skin", DETAILED);
+    if (SIMPLE.equals(value) || DETAILED.equals(value)) return value;
+    String migrated =
+        LEGACY_CURRENT.equals(value)
+            ? DETAILED
+            : (LEGACY_LATEST.equals(value) || LEGACY_EV_CONCEPT.equals(value))
+                ? SIMPLE
+                : DETAILED;
+    AppPreferences.set(context, "ui_skin", migrated);
+    return migrated;
   }
 
   public static void set(Context context, String value) {
-    AppPreferences.set(context, "ui_skin",
-        LATEST.equals(value) || EV_CONCEPT.equals(value) ? value : CURRENT);
+    AppPreferences.set(context, "ui_skin", SIMPLE.equals(value) ? SIMPLE : DETAILED);
   }
 
   public static int index(Context context) {
-    String value = get(context);
-    if (LATEST.equals(value)) return 0;
-    if (CURRENT.equals(value)) return 1;
-    return 2;
+    return SIMPLE.equals(get(context)) ? 0 : 1;
   }
 
   public static String label(Context context, String value) {
     boolean en = AppPreferences.english(context);
-    if (LATEST.equals(value)) return en ? "Latest" : "最新模板";
-    if (EV_CONCEPT.equals(value)) return en ? "EV concept" : "此刻图片风格";
-    return en ? "Current" : "当前版本";
+    return SIMPLE.equals(value) ? (en ? "Simple" : "简洁风格")
+        : (en ? "Detailed" : "详细风格");
   }
 }

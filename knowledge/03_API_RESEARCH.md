@@ -1,3 +1,16 @@
+## v0.7.4 参考 APK 空调字段复核
+
+对当前模板 APK 的 DEX 方法 `PolestarApi.readClimateFields` 与 `MainActivity.climateMetricText` 做字节码级复核：
+
+- ParkingClimatization field **2**：状态（未知 / 开启 / 关闭 / 处理中）
+- field **3**：`climateRuntimeMinutes`，模板 UI 将其作为**剩余运行分钟**
+- field **7**：`climateTemperatureC`（车内温度）
+- field **8**：`climateTargetTemperatureC`（目标温度）
+- 仅当状态为“开启”且 runtimeMinutes > 0 时显示“剩余 …”；否则显示“剩余时间暂无”
+
+Android v0.7.4 已按此证据优先显示车辆 field 3，本地 30 分钟计时仅作为带“估算”标记的回退。
+
+
 # 03｜China / Global API 研究映射（Android Parity V3.0）
 
 > 证据分层：APK 静态 / 用户参考 APK 实车反馈 / 官方 China App 与 Hisingen 历史研究 / 新 Android 已实现能力，各自独立。详见 `13_REFERENCE_APK_FIELD_VALIDATION.md`。

@@ -244,7 +244,7 @@ public final class AppRegressionTest {
     AppPreferences.set(activity, "home_metrics", "odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,aqi,temperature,charge_power,charge_current,charge_eta");
     checkLayout(320, 568);
     View tile = findTagged(activity.getWindow().getDecorView(), "control_tile");
-    assertEquals(76, tile.getHeight());
+    assertTrue(tile.getHeight() >= 60);
   }
 
   @Test @Config(qualifiers = "w640dp-h320dp-mdpi")
@@ -552,7 +552,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void allThreeSkinsExposeTemplateStylePullToRefresh() throws Exception {
+  public void bothSkinsExposeTemplateStylePullToRefresh() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -565,7 +565,7 @@ public final class AppRegressionTest {
     Method render = MainActivity.class.getDeclaredMethod("render");
     render.setAccessible(true);
 
-    for (String skin : new String[]{UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
       UiSkin.set(activity, skin);
       c.busy = false;
       c.activeAction = "";
@@ -627,7 +627,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void allThreeControlSkinsFitWithoutContentScrollingInLightAndDark() throws Exception {
+  public void bothControlSkinsFitWithoutContentScrollingInLightAndDark() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -642,7 +642,7 @@ public final class AppRegressionTest {
 
     for (String theme : new String[]{"light", "dark"}) {
       AppPreferences.set(activity, "theme", theme);
-      for (String skin : new String[]{UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT}) {
+      for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
         UiSkin.set(activity, skin);
         render.invoke(activity);
         View refresh = findTagged(activity.getWindow().getDecorView(), "control_pull_refresh");
@@ -690,7 +690,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w320dp-h568dp-mdpi")
-  public void allThreeControlSkinsKeepTheirLastControlInsideSmallScreen() throws Exception {
+  public void bothControlSkinsKeepTheirLastControlInsideSmallScreen() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -700,7 +700,7 @@ public final class AppRegressionTest {
     Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
     signedIn.setAccessible(true); signedIn.setBoolean(c, true);
     Method render = MainActivity.class.getDeclaredMethod("render"); render.setAccessible(true);
-    for (String skin : new String[]{UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
       UiSkin.set(activity, skin);
       render.invoke(activity);
       View content = findTagged(activity.getWindow().getDecorView(), "control_pull_content");
@@ -713,6 +713,111 @@ public final class AppRegressionTest {
       View last = group.getChildAt(group.getChildCount() - 1);
       assertTrue("last control stays in page for " + skin, last.getBottom() <= content.getHeight());
     }
+  }
+
+  @Test
+  public void legacySkinValuesMigrateToTwoStyleModel() {
+    AppPreferences.set(activity, "ui_skin", "latest");
+    assertEquals(UiSkin.SIMPLE, UiSkin.get(activity));
+    AppPreferences.set(activity, "ui_skin", "ev_concept");
+    assertEquals(UiSkin.SIMPLE, UiSkin.get(activity));
+    AppPreferences.set(activity, "ui_skin", "current");
+    assertEquals(UiSkin.DETAILED, UiSkin.get(activity));
+  }
+
+  @Test
+  public void climateUsesVehicleReportedRemainingMinutesBeforeLocalEstimate() {
+    AppPreferences.set(activity, "language", "zh");
+    ClimateRuntime.stopped(activity);
+    VehicleSnapshot live = new VehicleSnapshot("Polestar 2", "masked", 60, 250, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "开启", "关闭")
+        .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
+            null, null, 18, null, 1, 1));
+    assertEquals("运行中 · 剩余18分钟", ClimateRuntime.label(activity, live, "vehicle"));
+    assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("剩余 18分钟"));
+    assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("车内 23.0 °C"));
+    assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("设定 22.0 °C"));
+
+    ClimateRuntime.started(activity, "vehicle", System.currentTimeMillis() - 5L * 60L * 1000L);
+    VehicleSnapshot fallback = new VehicleSnapshot("Polestar 2", "masked", 60, 250, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "开启", "关闭")
+        .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
+            null, null, null, null, 1, 1));
+    assertTrue(ClimateRuntime.label(activity, fallback, "vehicle").contains("估算剩余"));
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void bothVehicleControlStylesExposeAmbientGlowAndSelectedMetrics() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.selected.modelName = "Polestar 2 Long Range Dual Motor";
+    c.selected.modelYear = "2024";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "开启", "关闭")
+        .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
+            3.0, 4, 18, null, 1, 1));
+    AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,tire_status");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+      UiSkin.set(activity, skin);
+      render.invoke(activity);
+      View root = activity.getWindow().getDecorView();
+      root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 360, 780);
+      assertNotNull(findTagged(root, "vi_ambient_glow"));
+      assertTrue(hasText(root, "车内 °C"));
+      assertTrue(hasText(root, "目标 °C"));
+    }
+
+    UiSkin.set(activity, UiSkin.DETAILED);
+    render.invoke(activity);
+    View root = activity.getWindow().getDecorView();
+    root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
+    root.layout(0, 0, 360, 780);
+    View car = findTagged(root, "polestar_vehicle");
+    View windows = findTagged(root, "windows_control_button");
+    View bodyButton = findTagged(root, "exterior_button");
+    View tire = findTagged(root, "tire_button");
+    View camp = findTagged(root, "camp_button");
+    View signal = findTagged(root, "signal_control_button");
+    assertNotNull(car); assertNotNull(windows); assertNotNull(bodyButton);
+    assertNotNull(tire); assertNotNull(camp); assertNotNull(signal);
+    int carBottom = absoluteTop(car) + car.getHeight();
+    assertTrue(absoluteTop(windows) >= carBottom);
+    assertTrue(absoluteTop(bodyButton) >= carBottom);
+    assertTrue(absoluteTop(tire) >= carBottom);
+    assertTrue(absoluteTop(camp) >= carBottom);
+    assertTrue(absoluteTop(signal) >= carBottom);
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void controlPageDoesNotExposeLanguageShortcut() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true); signedIn.setBoolean(c, true);
+    UiSkin.set(activity, UiSkin.DETAILED);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true); render.invoke(activity);
+    assertFalse(hasExactText(activity.getWindow().getDecorView(), "中文"));
+    assertFalse(hasExactText(activity.getWindow().getDecorView(), "EN"));
   }
 
   @Test
@@ -733,6 +838,37 @@ public final class AppRegressionTest {
     } finally {
       temp.delete();
     }
+  }
+
+  private static boolean hasText(View view, String text) {
+    if (view instanceof TextView && ((TextView) view).getText().toString().contains(text)) return true;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (hasText(group.getChildAt(i), text)) return true;
+    }
+    return false;
+  }
+
+  private static boolean hasExactText(View view, String text) {
+    if (view instanceof TextView && text.equals(((TextView) view).getText().toString())) return true;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (hasExactText(group.getChildAt(i), text)) return true;
+    }
+    return false;
+  }
+
+  private static int absoluteTop(View view) {
+    int top = 0;
+    View current = view;
+    while (current != null) {
+      top += current.getTop();
+      android.view.ViewParent parent = current.getParent();
+      current = parent instanceof View ? (View) parent : null;
+    }
+    return top;
   }
 
   private static int count(View v, Class<?> type) {

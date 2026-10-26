@@ -1,3 +1,14 @@
+## 2026-10-26 / v0.7.4-beta1 — 两套皮肤、详细风格重排、动态 VI 与车辆空调剩余时间
+
+- `UI_SKINS`：删除“最新模板”皮肤入口；现仅保留 **简洁风格** 与 **详细风格**。旧 `latest/ev_concept` 自动迁移到简洁风格，旧 `current` 自动迁移到详细风格。
+- `DETAILED_LAYOUT`：详细风格完整显示车辆 `车型 · 年款 · VIN 后4位`；车窗、门窗、胎压、露营、鸣笛/闪灯全部移动到车辆图片下方；四个核心远控保持单屏显示。
+- `CONTROL_DATA`：设置中的数据显示改为“车辆控制页数据显示 · 最多 6 项”，简洁/详细两种控制页使用同一用户选择，保证切换皮肤后数据项一致。
+- `LANGUAGE`：移除各页面右上角语言切换按钮；语言仅在设置菜单中修改。
+- `MOTION_VI`：所有通过统一 click helper 的交互控件加入轻量缩放/透明度回弹；两套车辆控制页加入独立小区域的 Polestar Orange 循环呼吸光带，避免全屏高频重绘。
+- `CLIMATE_REFERENCE_VERIFIED`：继续拆解当前参考 APK DEX，确认 ParkingClimatization：field 2=状态、field 3=剩余运行分钟、field 7=车内温度、field 8=目标温度；参考 UI 仅在运行分钟 > 0 时显示“剩余”，否则显示“剩余时间暂无”。
+- `CLIMATE_RUNTIME`：本项目现在优先显示车辆返回的 field 3；只有 field 3 缺失且本机刚确认启动空调时才显示带“估算/~”标记的本地 30 分钟回退，不再把本地计时当成车辆真实剩余时间。
+- `VERSION`：Android 提升至 `0.7.4-beta1` / versionCode 74。
+
 ## 2026-10-26 / v0.7.3-beta1 — 三套日夜模式、单屏控制页、iTPMS 与 Polestar VI
 
 - `DAY_NIGHT`：三套 UI 皮肤统一支持 System / Light / Dark；取消“此刻图片风格强制浅色”的旧限制。

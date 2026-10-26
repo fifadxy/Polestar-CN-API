@@ -38,3 +38,12 @@ dependencies {
     implementation 'io.grpc:grpc-stub:1.68.2'
 }
 
+
+
+tasks.withType(Test).configureEach {
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+        showStandardStreams = true
+    }
+}

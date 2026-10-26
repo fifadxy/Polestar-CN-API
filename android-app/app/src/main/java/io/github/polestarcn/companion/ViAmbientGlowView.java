@@ -24,9 +24,12 @@ public final class ViAmbientGlowView extends View {
   private ValueAnimator animator;
   private float pulse = .32f;
   private float phase;
+  private boolean hostResumed = true;
+  private final boolean dark;
 
   public ViAmbientGlowView(Context context) {
     super(context);
+    dark = AppPreferences.dark(context);
     setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     setLayerType(LAYER_TYPE_HARDWARE, null);
   }
@@ -46,12 +49,33 @@ public final class ViAmbientGlowView extends View {
     core.setShader(coreShader);
   }
 
-  @Override protected void onAttachedToWindow() {
-    super.onAttachedToWindow();
-    if (animator != null) animator.cancel();
+  public void setHostResumed(boolean resumed) { hostResumed = resumed; syncAnimation(); }
+
+  @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); syncAnimation(); }
+  @Override protected void onWindowVisibilityChanged(int visibility) {
+    super.onWindowVisibilityChanged(visibility); syncAnimation();
+  }
+  @Override public void onVisibilityAggregated(boolean visible) {
+    super.onVisibilityAggregated(visible); syncAnimation();
+  }
+  @Override protected void onDetachedFromWindow() { stopAnimation(); super.onDetachedFromWindow(); }
+
+  private void stopAnimation() {
+    if (animator != null) { animator.cancel(); animator = null; }
+  }
+
+  private void syncAnimation() {
+    android.os.PowerManager power = (android.os.PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+    boolean enabled = isAttachedToWindow() && hostResumed && isShown()
+        && getWindowVisibility() == VISIBLE && ValueAnimator.areAnimatorsEnabled()
+        && (power == null || !power.isPowerSaveMode())
+        && AppPreferences.visible(getContext(), "ambient_animation", true);
+    if (!enabled) {
+      stopAnimation(); pulse = .38f; phase = .5f; invalidate(); return;
+    }
+    if (animator != null) return;
     animator = ValueAnimator.ofFloat(0f, 1f);
-    animator.setDuration(3600L);
-    animator.setRepeatCount(ValueAnimator.INFINITE);
+    animator.setDuration(3600L); animator.setRepeatCount(ValueAnimator.INFINITE);
     animator.setInterpolator(new AccelerateDecelerateInterpolator());
     animator.addUpdateListener(a -> {
       phase = (Float) a.getAnimatedValue();
@@ -61,18 +85,9 @@ public final class ViAmbientGlowView extends View {
     animator.start();
   }
 
-  @Override protected void onDetachedFromWindow() {
-    if (animator != null) {
-      animator.cancel();
-      animator = null;
-    }
-    super.onDetachedFromWindow();
-  }
-
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
     if (haloShader == null || coreShader == null) return;
-    boolean dark = AppPreferences.dark(getContext());
     float shift = (phase - .5f) * getWidth() * .18f;
     matrix.reset();
     matrix.setTranslate(shift, 0);

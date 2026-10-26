@@ -436,7 +436,7 @@ public final class AppRegressionTest {
     assertEquals("On", AppPreferences.status(activity, "开启"));
     AppPreferences.set(activity, "language", "zh");
     assertEquals("开启", AppPreferences.status(activity, "开启"));
-    assertEquals("PsAssistant · 4×2", activity.getString(R.string.widget_standard_name));
+    assertEquals(activity.getString(R.string.app_name) + " · 4×2", activity.getString(R.string.widget_standard_name));
   }
 
   @Test
@@ -772,7 +772,7 @@ public final class AppRegressionTest {
         "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
         "LIVE", false, "开启", "关闭")
         .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
-            null, null, 18, null, 1, 1));
+            null, null, 18, null, System.currentTimeMillis(), System.currentTimeMillis()));
     assertEquals("运行中 · 剩余18分钟", ClimateRuntime.label(activity, live, "vehicle"));
     assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("剩余 18分钟"));
     assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("车内 23.0 °C"));

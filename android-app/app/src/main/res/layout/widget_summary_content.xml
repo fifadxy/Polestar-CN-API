@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_summary" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <TextView android:id="@+id/widget_title" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="PsAssistant" android:textSize="11sp" />
+    <LinearLayout android:id="@+id/widget_metrics" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+    <LinearLayout android:id="@+id/widget_metric_row0" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric0" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric1" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row1" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric2" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric3" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row2" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric4" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric5" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row3" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric6" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric7" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row4" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric8" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric9" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row5" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric10" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric11" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    </LinearLayout>
+    <ProgressBar android:id="@+id/widget_soc_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:minHeight="3dp" android:layout_marginBottom="3dp" android:progressTint="#FF6B00" android:progressBackgroundTint="#33777A7C" android:visibility="gone" />
+    <TextView android:id="@+id/widget_region" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--" />
+</LinearLayout>

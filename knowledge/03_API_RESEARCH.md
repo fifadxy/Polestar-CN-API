@@ -85,3 +85,8 @@ Android v0.7.4 已按此证据优先显示车辆 field 3，本地 30 分钟计�
 ## v0.7.0-beta1 Health 增量
 
 Android 已新增 `HealthService/GetHealth` 只读调用。四轮顺序按左前、右前、左后、右后，报警 1=正常、2=严重偏低、3=偏低、4=偏高；压力字段 39–42 以 kPa 显示。该映射来自当前 Hisingen 源码并与 Mac China `tyreAndWarnings` 能力对齐，代码已实现但仍需用户车辆完成 `PROJECT_DEVICE_VERIFIED`。
+
+
+## v0.7.6 传输与时间来源
+
+Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 秒截止时间；读失败不影响其他车况。枚举 0/未知值不映射为正常；来源定义与中国区边界见 knowledge/23。空调分钟和原报告时间共同用于展示倒计时，推算不写回车辆。

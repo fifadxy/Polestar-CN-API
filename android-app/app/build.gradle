@@ -9,8 +9,20 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 75
-        versionName '0.7.5-beta1'
+        versionCode 76
+        versionName '0.7.6-beta1'
+    }
+    // The signing file stays outside the repository; CI secrets can supply the same identity.
+    def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
+    signingConfigs {
+        if (persistentKey) {
+            persistent {
+                storeFile file(persistentKey)
+                storePassword System.getenv('PSA_SIGNING_STORE_PASSWORD')
+                keyAlias System.getenv('PSA_SIGNING_KEY_ALIAS') ?: 'androiddebugkey'
+                keyPassword System.getenv('PSA_SIGNING_KEY_PASSWORD') ?: System.getenv('PSA_SIGNING_STORE_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
@@ -18,8 +30,15 @@ android {
             shrinkResources false
         }
         release {
+            debuggable false
+            if (persistentKey) signingConfig signingConfigs.persistent
             minifyEnabled false
             shrinkResources false
+        }
+        preview {
+            initWith release
+            applicationIdSuffix '.preview'
+            matchingFallbacks = ['release']
         }
     }
     buildFeatures { buildConfig = true }

@@ -23,6 +23,7 @@ public final class VehicleCoordinator {
   public ChinaPolestarApi.VehicleInfo selected;
   public VehicleSnapshot snapshot;
   public boolean busy;
+  private long vehiclesDiscoveredAt;
   private boolean signedIn;
 
   public boolean hasSession() {
@@ -94,6 +95,11 @@ public final class VehicleCoordinator {
         });
   }
 
+  public void refreshUser(Runnable done) {
+    if (!busy && selected != null) api.invalidateHealth(selected.vin);
+    refresh(done);
+  }
+
   public void refresh(Runnable done) {
     if (done != null) completions.add(done);
     if (busy) return;
@@ -106,10 +112,12 @@ public final class VehicleCoordinator {
     message = tr("正在更新车辆…", "Updating vehicle…");
     changed();
     final String wanted = AppPreferences.get(context, "vehicle", "");
+    final List<ChinaPolestarApi.VehicleInfo> known = new ArrayList<>(cars);
+    final boolean discover = known.isEmpty() || System.currentTimeMillis() - vehiclesDiscoveredAt >= 15 * 60_000L;
     io.execute(
         () -> {
           try {
-            List<ChinaPolestarApi.VehicleInfo> found = api.discoverVehicles();
+            List<ChinaPolestarApi.VehicleInfo> found = discover ? api.discoverVehicles() : known;
             ChinaPolestarApi.VehicleInfo picked = found.get(0);
             for (ChinaPolestarApi.VehicleInfo car : found)
               if (identity(car.vin).equals(wanted)) picked = car;
@@ -120,6 +128,7 @@ public final class VehicleCoordinator {
                 () -> {
                   cars.clear();
                   cars.addAll(found);
+                  if (discover) vehiclesDiscoveredAt = System.currentTimeMillis();
                   selected = pick;
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;
@@ -267,6 +276,7 @@ public final class VehicleCoordinator {
     api.logout();
     selected = null;
     cars.clear();
+    vehiclesDiscoveredAt = 0;
     snapshot = null;
     VehicleSnapshotStore.clearChina(context);
     ClimateRuntime.stopped(context);

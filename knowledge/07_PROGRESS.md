@@ -143,3 +143,8 @@
 - `BUILD_PASS`：Actions artifact ZIP digest `sha256:81bfd7f3ed628c2711eca906e16e2a8eaf42ee96bd7a36174629b626518d1a08`；解包后的 APK SHA-256 `eac3d5118ed715ab7d5e739fe55b6675472cee4783cda37254cb23e218673a6e`。
 - `NOT_PROJECT_DEVICE_VERIFIED`：本次只证明源码门禁和 APK 编译成功；China 登录、真实车单、SOC/里程及空调/解锁仍需在用户本人授权车辆上逐项实测，不能从参考 APK 的成功外推为本 APK 已成功。
 - `REMAINS`：P4 原版 UI、真实 Widget、完整 Exterior/车窗/尾门/鸣笛闪灯/净化、命令车辆侧回读确认、Token 误报长时测试、C3 Live、PCCS、Global 仍未完成。
+
+
+## 2026-10-26 v0.7.6-beta1
+
+v0.7.5 Actions 40348312346 完成并上传 artifact 12661514910 后，以 fa81ac5 为基线开始修复。完成一页自适应布局、主控制状态/配色、空调展示倒计时、最小 Widget 更新时间和字体、局部更新、Health 首条流式读取和缓存、车辆列表缓存及动画生命周期。同步 Psa_v076_Update.md 与 knowledge/23。保留远控验证/延迟回读、不重发与露营阈值。Release 使用保留签名；旧 CI APK 与该签名不同，覆盖升级需原签名。

@@ -1050,3 +1050,8 @@ Global Hisingen `PolestarGRPCCapabilities.parseHealth` 的源码级字段已经�
 Android China 分支已使用同名 `HealthService/GetHealth`，v0.7.5 同一次只读调用会解析上述 12V/washer/tyre warning 为统一 `VehicleHealthSnapshot`。此处属于**Global 源码映射 + China 实现接入**，不是 China 官方 App 实车验证。
 
 中国官方 App 的现有历史静态证据将车辆主页/提示集中到 `com.polestar.carcontrol`（如 `CarMainFragment`、`CarMainTipsProvider`），但当前可访问证据未直接定位 13/38/9–12 的官方 China App 调用，因此仍须保持 `MAPPING_REQUIRED / PROJECT_DEVICE_VERIFICATION` 边界。
+
+
+## Android v0.7.6 读取策略更新
+
+Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 秒截止时间；按车辆缓存 5 分钟并保留原时间。玻璃水/12V 未指定枚举不再视为正常。该修复只落实已核查的传输/字段定义，不表示中国极星实车验证完成。空调倒计时仅本地展示，不发送远程停止请求。

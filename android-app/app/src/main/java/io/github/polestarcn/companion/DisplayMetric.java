@@ -60,6 +60,21 @@ public enum DisplayMetric {
       default: return label(english);
     }
   }
+  /** Timestamp of this metric's source, independent of battery refresh time. */
+  public long reportedAt(VehicleSnapshot s) {
+    if (s == null) return 0;
+    switch (this) {
+      case VEHICLE_STATUS: return s.health.reportedAt;
+      case TIRE_STATUS: return s.tires.reportedAt;
+      case TEMPERATURE: case TARGET_TEMPERATURE: return s.environment.climateReportedAt;
+      case AQI: case PM25: return s.environment.airReportedAt;
+      case ODOMETER: case TA_DISTANCE: case TM_DISTANCE: case TA_SPEED: case TM_SPEED:
+      case SERVICE_KM_LEFT: case SERVICE_KM_PERCENT: return s.mileage.reportedAt;
+      case TA_CONSUMPTION: case TM_CONSUMPTION: return s.mileage.consumptionReportedAt;
+      case SERVICE_DAYS_LEFT: case SERVICE_TIME_PERCENT: return System.currentTimeMillis();
+      default: return s.timestampMillis;
+    }
+  }
   public String value(VehicleSnapshot s, boolean includeUnit) {
     return value(s, includeUnit, false);
   }

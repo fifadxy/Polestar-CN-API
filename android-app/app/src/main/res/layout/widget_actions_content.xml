@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="48dp">
+    <LinearLayout android:id="@+id/widget_action_lock" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:layout_marginEnd="4dp" android:background="@drawable/widget_action_off">
+        <ImageView android:id="@+id/widget_lock_icon" android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_lock" android:contentDescription="@null" />
+        <TextView android:id="@+id/widget_lock_label" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:layout_marginTop="2dp" android:text="Lock" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_action_climate" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:background="@drawable/widget_action_off">
+        <ImageView android:id="@+id/widget_climate_icon" android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_climate" android:contentDescription="@null" />
+        <TextView android:id="@+id/widget_climate_label" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:layout_marginTop="2dp" android:text="Climate" />
+    </LinearLayout>
+</LinearLayout>

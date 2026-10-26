@@ -55,6 +55,15 @@ public final class ChinaPolestarApi {
   private final ReferenceSignatureProvider signatureProvider;
   private ManagedChannel sharedChannel;
   private String sharedHost;
+  private final Map<String, HealthCache> healthCache = new java.util.concurrent.ConcurrentHashMap<>();
+  private static final class HealthCache {
+    final Map<Integer, Object> fields; final long expires;
+    HealthCache(Map<Integer, Object> fields, long expires) { this.fields = fields; this.expires = expires; }
+  }
+  public void invalidateHealth(String vin) {
+    HealthCache previous = healthCache.get(vin);
+    if (previous != null) healthCache.put(vin, new HealthCache(previous.fields, 0));
+  }
 
   public synchronized void close() {
     if (sharedChannel != null) sharedChannel.shutdownNow();
@@ -171,12 +180,14 @@ public final class ChinaPolestarApi {
     if (s.access.isEmpty()) throw new Exception("登录成功响应中没有 C3 global token");
     s.expiresAt = System.currentTimeMillis() + Math.max(60L, expires) * 1000L;
     s.revision = System.currentTimeMillis();
+    healthCache.clear();
     SecureSessionStore.save(context, s);
     DiagnosticLog.add("China login accepted; session stored securely");
     return s;
   }
 
   public void logout() {
+    healthCache.clear();
     close();
     SecureSessionStore.clear(context);
     DiagnosticLog.add("China session cleared");
@@ -322,16 +333,9 @@ public final class ChinaPolestarApi {
       DiagnosticLog.add("Exterior read failed: " + safe(e));
     }
 
-    TireSnapshot tires = TireSnapshot.unknown();
-    VehicleHealthSnapshot vehicleHealth = VehicleHealthSnapshot.unknown();
-    try {
-      Map<Integer, Object> health = ProtoWire.nested(
-          stateRpc(s, vin, "services.vehiclestates.health.HealthService", "GetHealth"), 3);
-      tires = TireSnapshot.fromData(health);
-      vehicleHealth = VehicleHealthSnapshot.fromData(health, tires);
-    } catch (Exception e) {
-      DiagnosticLog.add("Health warning state unavailable");
-    }
+    Map<Integer, Object> health = readHealth(s, vin);
+    TireSnapshot tires = TireSnapshot.fromData(health);
+    VehicleHealthSnapshot vehicleHealth = VehicleHealthSnapshot.fromData(health, tires);
 
     EnvironmentSnapshot environment = EnvironmentSnapshot.fromData(
         readFeatureData(s, vin, true), readFeatureData(s, vin, false));
@@ -352,6 +356,29 @@ public final class ChinaPolestarApi {
         environment.climate,
         environment.air).withMileage(mileage).withExterior(individualExterior).withEnvironment(environment)
         .withCharging(ChargingSnapshot.fromData(battery)).withTires(tires).withHealth(vehicleHealth);
+  }
+
+  private Map<Integer, Object> readHealth(Session s, String vin) {
+    long now = System.currentTimeMillis();
+    HealthCache cache = healthCache.get(vin);
+    if (cache != null && now < cache.expires) return cache.fields;
+    try {
+      Map<Integer, Object> reply = ProtoWire.decode(invoke(s, vin,
+          "services.vehiclestates.health.HealthService", "GetHealth",
+          ProtoWire.stringField(2, vin), true));
+      Object returned = reply.get(1);
+      if (returned instanceof byte[] && !vin.equals(new String((byte[]) returned, StandardCharsets.UTF_8)))
+        throw new IllegalStateException("Health vehicle mismatch");
+      Map<Integer, Object> fields = ProtoWire.nested(reply, 3);
+      healthCache.put(vin, new HealthCache(fields, now + 5 * 60_000L));
+      return fields;
+    } catch (Exception e) {
+      // Optional Health failure must not erase independently reported battery/climate data.
+      Map<Integer, Object> fields = cache == null ? Collections.emptyMap() : cache.fields;
+      healthCache.put(vin, new HealthCache(fields, now + 60_000L));
+      DiagnosticLog.add("Optional Health unavailable; retained original report time");
+      return fields;
+    }
   }
 
   private String readFeature(Session s, String vin, boolean climate) {
@@ -478,6 +505,11 @@ public final class ChinaPolestarApi {
 
   private byte[] invoke(Session s, String vin, String service, String method, byte[] request)
       throws Exception {
+    return invoke(s, vin, service, method, request, false);
+  }
+
+  private byte[] invoke(Session s, String vin, String service, String method, byte[] request,
+      boolean firstStream) throws Exception {
     String host = s.c3Host;
     if (host == null || host.isEmpty()) throw new Exception("C3 host missing");
     String cleanHost = host.replace("https://", "").replace("http://", "");
@@ -509,7 +541,7 @@ public final class ChinaPolestarApi {
         };
     MethodDescriptor<byte[], byte[]> descriptor =
         MethodDescriptor.<byte[], byte[]>newBuilder()
-            .setType(MethodDescriptor.MethodType.UNARY)
+            .setType(firstStream ? MethodDescriptor.MethodType.SERVER_STREAMING : MethodDescriptor.MethodType.UNARY)
             .setFullMethodName(MethodDescriptor.generateFullMethodName(service, method))
             .setRequestMarshaller(marshaller)
             .setResponseMarshaller(marshaller)
@@ -524,6 +556,18 @@ public final class ChinaPolestarApi {
     try {
       Channel authenticated =
           ClientInterceptors.intercept(channel, MetadataUtils.newAttachHeadersInterceptor(headers));
+      if (firstStream) {
+        io.grpc.Context.CancellableContext readContext = io.grpc.Context.current().withCancellation();
+        io.grpc.Context previous = readContext.attach();
+        try {
+          java.util.Iterator<byte[]> replies = ClientCalls.blockingServerStreamingCall(authenticated,
+              descriptor, CallOptions.DEFAULT.withDeadlineAfter(4, TimeUnit.SECONDS), request);
+          return replies.hasNext() ? replies.next() : new byte[0];
+        } finally {
+          readContext.detach(previous);
+          readContext.cancel(null);
+        }
+      }
       return ClientCalls.blockingUnaryCall(
           authenticated,
           descriptor,

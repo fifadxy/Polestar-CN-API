@@ -37,9 +37,9 @@ public final class VehicleHealthSnapshot {
       Map<Integer, Object> health, TireSnapshot tires) {
     Integer washerRaw = ProtoWire.integer(health, 13);
     Integer lowVoltageRaw = ProtoWire.integer(health, 38);
-    int washer = washerRaw == null ? UNKNOWN : washerRaw > 1 ? WARNING : OK;
+    int washer = washerRaw == null || washerRaw == 0 ? UNKNOWN : washerRaw == 1 ? OK : washerRaw == 2 ? WARNING : UNKNOWN;
     int lowVoltage =
-        lowVoltageRaw == null ? UNKNOWN : lowVoltageRaw == 2 ? WARNING : OK;
+        lowVoltageRaw == null ? UNKNOWN : lowVoltageRaw == 2 ? WARNING : lowVoltageRaw == 1 ? OK : UNKNOWN;
     int tyre =
         tires == null || !tires.hasAnyReport()
             ? UNKNOWN

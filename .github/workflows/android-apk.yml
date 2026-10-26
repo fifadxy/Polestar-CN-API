@@ -42,12 +42,64 @@ jobs:
       - name: Build standalone debug APK
         working-directory: android-app
         run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - name: Configure persistent signing when available
+        env:
+          PSA_SIGNING_KEYSTORE_BASE64: ${{ secrets.PSA_SIGNING_KEYSTORE_BASE64 }}
+          PSA_SIGNING_STORE_PASSWORD: ${{ secrets.PSA_SIGNING_STORE_PASSWORD }}
+          PSA_SIGNING_KEY_ALIAS: ${{ secrets.PSA_SIGNING_KEY_ALIAS }}
+          PSA_SIGNING_KEY_PASSWORD: ${{ secrets.PSA_SIGNING_KEY_PASSWORD }}
+        run: |
+          python3 - <<'PYCODE'
+          import base64, os, pathlib
+          encoded = os.environ.get('PSA_SIGNING_KEYSTORE_BASE64', '')
+          password = os.environ.get('PSA_SIGNING_STORE_PASSWORD', '')
+          if encoded and password:
+              key = pathlib.Path(os.environ['RUNNER_TEMP']) / 'psassistant-signing.keystore'
+              key.write_bytes(base64.b64decode(encoded, validate=True))
+              key.chmod(0o600)
+              values = {'PSA_SIGNING_KEYSTORE': str(key), 'PSA_SIGNING_STORE_PASSWORD': password,
+                        'PSA_SIGNING_KEY_ALIAS': os.environ.get('PSA_SIGNING_KEY_ALIAS') or 'androiddebugkey',
+                        'PSA_SIGNING_KEY_PASSWORD': os.environ.get('PSA_SIGNING_KEY_PASSWORD') or password}
+              if any('\n' in v or '\r' in v for v in values.values()):
+                  raise ValueError('Signing variables must be single-line')
+              with open(os.environ['GITHUB_ENV'], 'a') as out:
+                  for name, value in values.items():
+                      out.write(name + '=' + value + '\n')
+              print('Persistent release signing configured')
+          else:
+              print('No persistent key configured; debug APK is for validation, not a stable update identity')
+          PYCODE
+      - name: Build signed release with persistent identity
+        if: env.PSA_SIGNING_KEYSTORE != ''
+        working-directory: android-app
+        run: gradle --no-daemon :app:assembleRelease :app:assemblePreview
       - name: Check output
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.7.5-beta1-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.7.6-beta1-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.7.5-beta1-debug
-          path: PsAssistant-v0.7.5-beta1-debug.apk
+          name: PsAssistant-v0.7.6-beta1-debug
+          path: PsAssistant-v0.7.6-beta1-debug.apk
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: env.PSA_SIGNING_KEYSTORE != ''
+        with:
+          name: PsAssistant-v0.7.6-beta1-release
+          path: android-app/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: env.PSA_SIGNING_KEYSTORE != ''
+        with:
+          name: PsAssistant-v0.7.6-beta1-preview
+          path: android-app/app/build/outputs/apk/preview/app-preview.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PsAssistant-v0.7.6-beta1-checks
+          path: |
+            android-app/app/build/reports/previews/
+            android-app/app/build/test-results/testDebugUnitTest/
+            android-app/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore

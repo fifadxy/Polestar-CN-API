@@ -52,7 +52,7 @@ public final class AppPreferences {
   public static String widgetStatus(Context c, String raw) {
     return translated(raw, widgetEnglish(c));
   }
-  private static String translated(String raw, boolean en) {
+  public static String translated(String raw, boolean en) {
     if (raw == null || raw.trim().isEmpty()) return en ? "Unknown" : "未知";
     if (!en) return "处理中".equals(raw) ? "运行中（待确认）" : raw;
     if (raw.contains(" 个开启")) return raw.replace(" 个开启", " open").replace("部分未知", "partly unknown");

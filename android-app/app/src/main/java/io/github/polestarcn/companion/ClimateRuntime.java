@@ -29,9 +29,23 @@ public final class ClimateRuntime {
   }
 
   public static Integer vehicleRemainingMinutes(VehicleSnapshot s) {
+    return remainingMinutes(s, System.currentTimeMillis());
+  }
+
+  /** Presentation only: never assumes a stopped vehicle or sends a command at expiry. */
+  public static Integer remainingMinutes(VehicleSnapshot s, long now) {
     if (s == null || !"开启".equals(s.climate)) return null;
-    Integer minutes = s.environment == null ? null : s.environment.climateRuntimeMinutes;
-    return minutes != null && minutes > 0 ? minutes : null;
+    Integer minutes = s.environment.climateRuntimeMinutes;
+    if (minutes == null) return null;
+    long at = s.environment.climateReportedAt;
+    if (at <= 0 || at > now) return minutes;
+    long remaining = Math.max(0L, minutes * 60_000L - (now - at));
+    return (int) ((remaining + 59_999L) / 60_000L);
+  }
+
+  private static boolean extrapolated(VehicleSnapshot s) {
+    long at = s.environment.climateReportedAt;
+    return at > 0 && System.currentTimeMillis() - at >= 60_000L;
   }
 
   public static long estimatedRemaining(Context c, String vehicleHash, long now) {
@@ -49,23 +63,33 @@ public final class ClimateRuntime {
     return remaining < 0 ? null : (int) ((remaining + 59999L) / 60000L);
   }
 
+  public static String shortLabel(Context c, VehicleSnapshot s, String vehicleHash, boolean en) {
+    if (s == null) return en ? "Unknown" : "未知";
+    if ("处理中".equals(s.climate)) return en ? "Verifying" : "待确认";
+    if (!"开启".equals(s.climate)) return AppPreferences.translated(s.climate, en);
+    Integer vehicle = vehicleRemainingMinutes(s);
+    if (vehicle != null) {
+      if (vehicle == 0) return en ? "Check status" : "待更新";
+      return (extrapolated(s) ? "~" : "") + formatTime(vehicle, en);
+    }
+    Integer estimate = fallbackMinutes(c, vehicleHash);
+    return estimate == null ? (en ? "Running" : "运行中") : "~" + formatTime(estimate, en);
+  }
+
   public static String label(Context c, VehicleSnapshot s, String vehicleHash) {
     boolean en = AppPreferences.english(c);
     if (s == null) return en ? "Unknown" : "未知";
-    if ("处理中".equals(s.climate))
-      return en ? "Running · verifying" : "运行中 · 待确认";
+    if ("处理中".equals(s.climate)) return en ? "Verifying vehicle state" : "车辆状态待确认";
     if (!"开启".equals(s.climate)) return AppPreferences.status(c, s.climate);
-
     Integer vehicle = vehicleRemainingMinutes(s);
-    if (vehicle != null)
-      return en ? "Running · " + formatTime(vehicle, true) + " left"
-          : "运行中 · 剩余" + formatTime(vehicle, false);
-
+    if (vehicle != null) {
+      if (vehicle == 0) return en ? "Runtime elapsed · refresh to verify" : "预计时间已到 · 请刷新确认";
+      return en ? "Running · " + (extrapolated(s) ? "~" : "") + formatTime(vehicle, true) + " left"
+          : "运行中 · " + (extrapolated(s) ? "估算剩余" : "剩余") + formatTime(vehicle, false);
+    }
     Integer estimate = fallbackMinutes(c, vehicleHash);
-    if (estimate != null)
-      return en ? "Running · ~" + formatTime(estimate, true) + " left"
-          : "运行中 · 估算剩余" + formatTime(estimate, false);
-
+    if (estimate != null) return en ? "Running · ~" + formatTime(estimate, true) + " left"
+        : "运行中 · 估算剩余" + formatTime(estimate, false);
     return en ? "Running · remaining time unavailable" : "运行中 · 剩余时间暂无";
   }
 
@@ -73,22 +97,11 @@ public final class ClimateRuntime {
     if (s == null) return "--";
     boolean en = AppPreferences.english(c);
     List<String> parts = new ArrayList<>();
+    if ("开启".equals(s.climate)) parts.add((en ? "Left " : "剩余 ") + shortLabel(c, s, vehicleHash, en));
     if (s.environment.temperatureC != null)
-      parts.add((en ? "Cabin " : "车内 ")
-          + EnvironmentSnapshot.temperatureText(s.environment.temperatureC, true));
+      parts.add((en ? "Cabin " : "车内 ") + EnvironmentSnapshot.temperatureText(s.environment.temperatureC, true));
     if (s.environment.targetTemperatureC != null)
-      parts.add((en ? "Target " : "设定 ")
-          + EnvironmentSnapshot.temperatureText(s.environment.targetTemperatureC, true));
-    if ("开启".equals(s.climate)) {
-      Integer vehicle = vehicleRemainingMinutes(s);
-      if (vehicle != null) parts.add((en ? "Left " : "剩余 ") + formatTime(vehicle, en));
-      else {
-        Integer estimate = fallbackMinutes(c, vehicleHash);
-        parts.add(estimate == null
-            ? (en ? "Time unavailable" : "剩余时间暂无")
-            : (en ? "~" : "估算 ") + formatTime(estimate, en));
-      }
-    }
+      parts.add((en ? "Target " : "设定 ") + EnvironmentSnapshot.temperatureText(s.environment.targetTemperatureC, true));
     if (parts.isEmpty()) return en ? "Temperature unavailable" : "温度暂无";
     return android.text.TextUtils.join(" · ", parts).toString();
   }
@@ -102,21 +115,6 @@ public final class ClimateRuntime {
   }
 
   public static String widgetLabel(Context c, VehicleSnapshot s, String vehicleHash) {
-    if (s == null) return AppPreferences.widgetTr(c, "未知", "Unknown");
-    if ("处理中".equals(s.climate))
-      return AppPreferences.widgetTr(c, "运行中 · 待确认", "Running · verifying");
-    if (!"开启".equals(s.climate)) return AppPreferences.widgetStatus(c, s.climate);
-
-    Integer vehicle = vehicleRemainingMinutes(s);
-    if (vehicle != null)
-      return AppPreferences.widgetTr(c, "剩余" + formatTime(vehicle, false),
-          formatTime(vehicle, true) + " left");
-
-    Integer estimate = fallbackMinutes(c, vehicleHash);
-    if (estimate != null)
-      return AppPreferences.widgetTr(c, "估算" + formatTime(estimate, false),
-          "~" + formatTime(estimate, true));
-
-    return AppPreferences.widgetTr(c, "运行中", "Running");
+    return shortLabel(c, s, vehicleHash, AppPreferences.widgetEnglish(c));
   }
 }

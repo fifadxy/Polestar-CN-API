@@ -74,7 +74,8 @@ public final class WidgetRenderer {
         DisplayMetric metric = selected.get(i);
         String label = metric.shortLabel(en), value = metric.value(c, s, false, en);
         boolean dense = count >= 7;
-        String separator = dense ? " · " : "\n";
+        boolean singleLine = dense || size == Size.WIDE || size == Size.MINI;
+        String separator = singleLine ? " · " : "\n";
         String content = label + separator + value;
         int labelSp = dense ? 8 : count >= 5 ? 9 : count >= 3 ? 10 : 11;
         int valueSp = dense ? 10 : count >= 5 ? 12 : count >= 3 ? 14 : 16;

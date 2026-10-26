@@ -219,10 +219,9 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout header = row();
     header.setPadding(dp(20), 0, dp(12), 0);
     ImageView brand = new ImageView(this);
-    brand.setImageResource(
-        AppPreferences.dark(this) ? R.drawable.brand_light : R.drawable.brand_dark);
+    brand.setImageDrawable(getApplicationInfo().loadIcon(getPackageManager()));
     brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    brand.setContentDescription("Polestar");
+    brand.setContentDescription("PsAssistant");
     header.addView(brand, new LinearLayout.LayoutParams(dp(30), dp(30)));
     TextView name = text("PsAssistant", 17, ink, true);
     LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, -2, 1);

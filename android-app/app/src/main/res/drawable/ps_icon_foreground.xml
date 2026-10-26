@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 80/108 square artwork; percentage insets preserve the safe area at every icon size. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="12.962963%"
+    android:insetRight="12.962963%"
+    android:insetTop="12.962963%"
+    android:insetBottom="12.962963%">
+    <bitmap
+        android:src="@drawable/psassistant_icon_art"
+        android:gravity="fill"
+        android:filter="true" />
+</inset>

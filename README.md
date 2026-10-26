@@ -1,6 +1,8 @@
 # PsAssistant for Android
 
-当前版本：**v0.6.0-beta1**（versionCode 60）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.6.1-beta1**（versionCode 61）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+
+Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
 支持中国区手机号/密码登录。首次使用需要导入已验证的原模板 APK，或在本机安装匹配样本；兼容参数与会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
 

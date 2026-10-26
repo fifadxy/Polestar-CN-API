@@ -412,13 +412,14 @@ public final class ChinaPolestarApi {
         ProtoWire.concat(baseControl(vin), ProtoWire.varintField(2, open ? 1 : 2)));
   }
 
-  public byte[] honkFlash(String vin, boolean honk, boolean flash) throws Exception {
-    // HonkFlash request keeps the two independently selectable effects explicit.
-    byte[] body = ProtoWire.concat(
-        baseControl(vin),
-        ProtoWire.varintField(2, honk ? 1 : 0),
-        ProtoWire.varintField(3, flash ? 1 : 0));
-    return control(vin, "HonkFlash", body);
+  public byte[] honkFlash(String vin, int action) throws Exception {
+    // Verified against upstream Hisingen: HonkFlash uses one field-2 enum.
+    // 0 = honk + flash, 1 = honk only, 2 = flash only.
+    if (action < 0 || action > 2) throw new IllegalArgumentException("Unsupported HonkFlash action");
+    return control(
+        vin,
+        "HonkFlash",
+        ProtoWire.concat(baseControl(vin), ProtoWire.varintField(2, action)));
   }
 
   public byte[] tailgate(String vin, boolean open) throws Exception {

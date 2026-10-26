@@ -152,6 +152,18 @@ public final class MaintenanceSchedule {
       return s;
     }
 
+    public long remainingDays() { return Math.max(0L, intervalDays - elapsedDays); }
+    public Integer remainingKm() { return elapsedKm == null ? null : Math.max(0, intervalKm - elapsedKm); }
+    public int remainingTimePercent() {
+      if (!configured || intervalDays <= 0) return -1;
+      return (int)Math.max(0, Math.min(100, Math.round(100.0 * remainingDays() / intervalDays)));
+    }
+    public int remainingDistancePercent() {
+      Integer remain = remainingKm();
+      if (!configured || remain == null || intervalKm <= 0) return -1;
+      return (int)Math.max(0, Math.min(100, Math.round(100.0 * remain / intervalKm)));
+    }
+
     public String detail(boolean english) {
       if (!configured) return summary(english);
       StringBuilder s = new StringBuilder();

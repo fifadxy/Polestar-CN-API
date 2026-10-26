@@ -26,6 +26,7 @@ public final class MainActivity extends FragmentActivity {
   private final int orange = Color.rgb(255, 107, 0);
   private Typeface regular, bold;
   private boolean authPending;
+  private int authGeneration;
   private boolean handlingWidget;
   private BiometricPrompt biometric;
   private EditText phone, password;
@@ -42,6 +43,8 @@ public final class MainActivity extends FragmentActivity {
     }
   };
   private static final int PICK_APK = 32, NOTIFICATIONS = 33;
+  private static final String HOME_DEFAULTS =
+      "odometer,ta_distance,tm_distance,ta_speed,tm_speed,tm_consumption,temperature,aqi,charge_power";
 
   private String tr(String zh, String en) {
     return AppPreferences.tr(this, zh, en);
@@ -93,23 +96,16 @@ public final class MainActivity extends FragmentActivity {
       return;
     }
     handlingWidget = true;
-    boolean lock = "lock-choice".equals(request);
-    String label = lock ? tr("门锁", "Door lock") : tr("驻车空调", "Parking climate");
-    new AlertDialog.Builder(this).setTitle(label)
-      .setItems(lock
-        ? new String[]{tr("解锁车门", "Unlock doors"), tr("锁定车门", "Lock doors")}
-        : new String[]{tr("启动空调", "Start climate"), tr("关闭空调", "Stop climate")},
-        (d, index) -> authenticate(label, lock
-          ? (index == 0 ? "unlock" : "lock")
-          : (index == 0 ? "climate-start" : "climate-stop")))
-      .setNegativeButton(tr("取消", "Cancel"), null)
-      .setOnDismissListener(d -> handlingWidget = false).show();
+    Haptics.tap(this);
+    directControl("lock-choice".equals(request) ? "lock" : "climate");
+    handlingWidget = false;
   }
 
   @Override
   protected void onDestroy() {
     displayHandler.removeCallbacks(displayTick);
     model.remove(listener);
+    authGeneration++; authPending = false;
     if (biometric != null) biometric.cancelAuthentication();
     super.onDestroy();
   }
@@ -129,7 +125,9 @@ public final class MainActivity extends FragmentActivity {
   protected void onStop() {
     if (model != null) model.remove(listener);
     resumeRender = true;
-    if (biometric != null && authPending) biometric.cancelAuthentication();
+    if (biometric != null && authPending) {
+      authGeneration++; authPending = false; biometric.cancelAuthentication();
+    }
     super.onStop();
   }
 
@@ -181,10 +179,26 @@ public final class MainActivity extends FragmentActivity {
     t.setMinHeight(dp(48));
     t.setPadding(dp(12), dp(8), dp(12), dp(8));
     t.setBackground(bg(surface, 8));
-    t.setOnClickListener(v -> r.run());
+    click(t, r);
     t.setFocusable(true);
     t.setClickable(true);
     return t;
+  }
+
+  private void click(View view, Runnable action) {
+    view.setHapticFeedbackEnabled(false);
+    view.setOnClickListener(v -> { Haptics.tap(this); action.run(); });
+  }
+
+  private TextView utility(String title, boolean active, boolean warning, Runnable action) {
+    TextView view = button(title + (warning ? " !" : ""), action);
+    view.setTextSize(12); view.setSingleLine(true);
+    view.setPadding(dp(6), dp(4), dp(6), dp(4));
+    GradientDrawable background = bg(active ? orange : surface, 8);
+    background.setStroke(dp(1), active ? orange : line);
+    view.setBackground(background);
+    view.setTextColor(active ? Color.rgb(21, 22, 23) : ink);
+    return view;
   }
 
   private void palette() {
@@ -346,36 +360,32 @@ public final class MainActivity extends FragmentActivity {
 
   private void controls() {
     VehicleSnapshot v = model.snapshot;
-    boolean landscape = getResources().getConfiguration().screenHeightDp < 500;
+    boolean landscape = getResources().getConfiguration().screenWidthDp
+        > getResources().getConfiguration().screenHeightDp;
     LinearLayout selector = row();
     TextView title = text(v == null ? tr("连接车辆", "Connect vehicle") : v.name, 20, ink, true);
     title.setSingleLine(true);
     title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-    title.setOnClickListener(w -> chooseVehicle());
+    click(title, this::chooseVehicle);
     selector.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView exterior = button(tr("门窗", "Body"), this::exteriorDialog);
-    exterior.setPadding(dp(4), dp(4), dp(4), dp(4)); exterior.setSingleLine(true);
-    exterior.setTextSize(12);
-    boolean exteriorOpen = false, exteriorKnown = v != null;
-    if (v != null) for (int i = 0; i < 4; i++) {
-      for (boolean window : new boolean[]{false, true}) {
-        int state = v.exterior.state(window, i);
-        exteriorOpen |= state == 1 || state == 3;
-        exteriorKnown &= state >= 1 && state <= 3;
-      }
-    }
-    if (exteriorOpen || exteriorKnown) {
-      exterior.setBackground(bg(exteriorOpen ? orange : Color.WHITE, 8));
-      exterior.setTextColor(Color.rgb(21, 22, 23));
-    }
-    selector.addView(exterior, new LinearLayout.LayoutParams(dp(54), dp(48)));
-    TextView camp = button(tr("露营", "Camp"), this::campDialog);
-    camp.setPadding(dp(4), dp(4), dp(4), dp(4)); camp.setSingleLine(true); camp.setTextSize(12);
-    selector.addView(camp, new LinearLayout.LayoutParams(dp(54), dp(48)));
+    boolean exteriorOpen = ExteriorView.hasOpening(v);
+    TextView exterior = utility(tr("门窗", "Body"), exteriorOpen, exteriorOpen, this::exteriorDialog);
+    exterior.setTag("exterior_button");
+    exterior.setContentDescription(tr("车门、车窗和尾箱", "Doors, windows and tailgate")
+        + (exteriorOpen ? tr(" · 有未关闭部位", " · opening detected") : ""));
+    LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(dp(62), dp(48));
+    ep.leftMargin = dp(6); selector.addView(exterior, ep);
+    boolean camping = CampModeManager.active(this) || "STOPPING".equals(CampModeManager.phase(this));
+    TextView camp = utility(tr("△ 露营", "△ Camp"), camping, false, this::campDialog);
+    camp.setTag("camp_button");
+    camp.setContentDescription(tr("露营模式 · ", "Camping · ") + CampModeManager.status(this));
+    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(64), dp(48));
+    cp.leftMargin = dp(6); selector.addView(camp, cp);
     TextView refresh = button(model.busy ? "…" : "↻", () -> model.refresh(null));
     refresh.setEnabled(!model.busy);
     refresh.setContentDescription(tr("刷新车辆状态", "Refresh vehicle status"));
-    selector.addView(refresh, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(dp(40), dp(48));
+    rp.leftMargin = dp(4); selector.addView(refresh, rp);
     body.addView(selector, new LinearLayout.LayoutParams(-1, dp(48)));
 
     LinearLayout data = landscape ? column() : body;
@@ -386,7 +396,7 @@ public final class MainActivity extends FragmentActivity {
     }
     LinearLayout headline = row();
     TextView soc = text(v == null ? "--%" : VehicleSnapshot.metric(v.batteryPercent, "%"),
-        landscape ? 26 : 42, orange, false);
+        landscape ? 26 : 36, orange, false);
     headline.addView(soc, new LinearLayout.LayoutParams(0, -2, 1));
     LinearLayout range = column();
     range.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
@@ -394,50 +404,42 @@ public final class MainActivity extends FragmentActivity {
     if (!landscape && AppPreferences.visible(this, "show_charging", true))
       range.addView(text(v == null ? tr("未知", "Unknown") : status(v.charging), 12, muted, false));
     headline.addView(range);
-    data.addView(headline, new LinearLayout.LayoutParams(-1, dp(landscape ? 32 : 64)));
+    data.addView(headline, new LinearLayout.LayoutParams(-1, dp(landscape ? 32 : 54)));
 
-    java.util.List<DisplayMetric> chosen = MetricSelection.read(this, "home_metrics",
-        "odometer,ta_distance,tm_distance,tm_consumption");
+    java.util.List<DisplayMetric> chosen = MetricSelection.read(this, "home_metrics", HOME_DEFAULTS);
+    if (chosen.size() > 12) chosen = chosen.subList(0, 12);
     addMetricGrid(data, v, chosen, landscape);
     if (!landscape && AppPreferences.visible(this, "show_car", true)
-        && getResources().getConfiguration().screenHeightDp >= 740 && chosen.size() <= 4) {
+        && getResources().getConfiguration().screenHeightDp >= 600) {
       ImageView car = new ImageView(this);
       boolean model2 = v != null && v.name.contains("2");
       car.setImageResource(model2 ? R.drawable.vehicle_top
           : AppPreferences.dark(this) ? R.drawable.brand_light : R.drawable.brand_dark);
       car.setScaleType(ImageView.ScaleType.FIT_CENTER);
       car.setContentDescription(model2 ? "Polestar 2" : "Vehicle symbol");
-      car.setOnClickListener(w -> exteriorDialog());
-      body.addView(car, new LinearLayout.LayoutParams(-1, 0, .8f));
-    }
+      click(car, this::exteriorDialog);
+      body.addView(car, new LinearLayout.LayoutParams(-1, 0, 1));
+    } else if (!landscape) body.addView(new View(this), new LinearLayout.LayoutParams(1, 0, 1));
     LinearLayout first = row(), second = landscape ? first : row();
     if (landscape) {
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -1, .60f);
       p.leftMargin = dp(8);
       center.addView(first, p);
     } else {
-      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, 0, 1);
+      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(76));
       p.topMargin = dp(6); body.addView(first, p);
-      LinearLayout.LayoutParams q = new LinearLayout.LayoutParams(-1, 0, 1);
+      LinearLayout.LayoutParams q = new LinearLayout.LayoutParams(-1, dp(76));
       q.topMargin = dp(6); body.addView(second, q);
     }
     tile(first, tr("门锁", "Door lock"), v == null ? tr("未知", "Unknown") : status(v.lock),
-        "lock", () -> actionDialog(tr("门锁", "Door lock"),
-            new String[]{tr("解锁车门", "Unlock doors"), tr("锁定车门", "Lock doors")},
-            new String[]{"unlock", "lock"}));
+        "lock", () -> directControl("lock"));
     tile(first, tr("驻车空调", "Climate"),
         ClimateRuntime.label(this, v, AppPreferences.get(this, "vehicle", "")),
-        "climate", () -> actionDialog(tr("驻车空调", "Parking climate"),
-            new String[]{tr("启动 · 22°C", "Start · 22°C"), tr("关闭空调", "Stop climate")},
-            new String[]{"climate-start", "climate-stop"}));
+        "climate", () -> directControl("climate"));
     tile(second, tr("尾箱", "Tailgate"), v == null ? tr("未知", "Unknown") : status(v.tailgate),
-        "trunk", () -> actionDialog(tr("尾箱", "Tailgate"),
-            new String[]{tr("打开尾箱", "Open tailgate"), tr("关闭尾箱", "Close tailgate")},
-            new String[]{"trunk-open", "trunk-close"}));
+        "trunk", () -> directControl("trunk"));
     tile(second, tr("空气净化", "Air"), v == null ? tr("未知", "Unknown") : status(v.air),
-        "air", () -> actionDialog(tr("空气净化", "Purification"),
-            new String[]{tr("开启净化", "Start purification"), tr("关闭净化", "Stop purification")},
-            new String[]{"air-start", "air-stop"}));
+        "air", () -> directControl("air"));
     String stamp = v == null || v.timestampMillis <= 0 ? tr("更新时间未知", "Update time unknown")
         : tr("更新 ", "Updated ") + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
     TextView footer = text((model.message.isEmpty() ? "" : model.message + " · ")
@@ -445,29 +447,29 @@ public final class MainActivity extends FragmentActivity {
         + (CampModeManager.active(this) ? tr(" · 露营托管中", " · Camping active") : ""), 11, muted, false);
     footer.setGravity(Gravity.CENTER_VERTICAL); footer.setMaxLines(2);
     footer.setContentDescription(model.message);
-    footer.setOnClickListener(w -> info(tr("车辆状态", "Vehicle status"), model.message + "\n" + stamp));
-    body.addView(footer, new LinearLayout.LayoutParams(-1, dp(28)));
+    click(footer, () -> info(tr("车辆状态", "Vehicle status"), model.message + "\n" + stamp));
+    body.addView(footer, new LinearLayout.LayoutParams(-1, dp(landscape ? 28 : 32)));
   }
 
   private void addMetricGrid(LinearLayout parent, VehicleSnapshot snapshot,
       java.util.List<DisplayMetric> chosen, boolean compact) {
-    int columns = chosen.size() <= 4 ? 2 : 3;
+    int columns = compact && chosen.size() > 9 ? 4 : chosen.size() <= 4 ? 2 : 3;
     for (int i = 0; i < chosen.size(); i += columns) {
       LinearLayout metricRow = row();
       for (int j = i; j < Math.min(chosen.size(), i + columns); j++) {
         DisplayMetric metric = chosen.get(j);
         LinearLayout cell = column(); cell.setGravity(Gravity.CENTER_VERTICAL);
         cell.setPadding(dp(5), 0, dp(4), 0);
-        TextView label = text(metric.shortLabel(AppPreferences.english(this)), compact ? 9 : 11, muted, false);
+        TextView label = text(metric.shortLabel(AppPreferences.english(this)), compact ? 9 : 10, muted, false);
         label.setMaxLines(1); label.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        TextView value = text(metric.value(snapshot, false, AppPreferences.english(this)), compact ? 12 : 16, ink, false);
+        TextView value = text(metric.value(snapshot, false, AppPreferences.english(this)), compact ? 12 : 14, ink, false);
         value.setMaxLines(1);
         cell.addView(label); cell.addView(value);
         cell.setContentDescription(metric.label(AppPreferences.english(this)) + " · " + metric.value(snapshot, true, AppPreferences.english(this)));
-        cell.setOnClickListener(w -> info(metric.label(AppPreferences.english(this)), metric.value(snapshot, true, AppPreferences.english(this))));
+        click(cell, () -> info(metric.label(AppPreferences.english(this)), metric.value(snapshot, true, AppPreferences.english(this))));
         metricRow.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
       }
-      parent.addView(metricRow, new LinearLayout.LayoutParams(-1, dp(compact ? 31 : 40)));
+      parent.addView(metricRow, new LinearLayout.LayoutParams(-1, dp(compact ? 31 : 36)));
     }
   }
 
@@ -484,7 +486,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout t = column();
     t.setTag("control_tile");
     t.setGravity(Gravity.CENTER_VERTICAL);
-    t.setPadding(dp(14), dp(8), dp(10), dp(8));
+    t.setPadding(dp(12), dp(6), dp(8), dp(6));
     GradientDrawable card = bg(known ? active ? orange : Color.WHITE : surface, 8);
     if (sending) card.setStroke(dp(2), orange);
     t.setBackground(card);
@@ -501,14 +503,14 @@ public final class MainActivity extends FragmentActivity {
     image.setImageResource(id);
     image.setColorFilter(foreground);
     LinearLayout top = row();
-    top.addView(image, new LinearLayout.LayoutParams(dp(22), dp(22)));
+    top.addView(image, new LinearLayout.LayoutParams(dp(20), dp(20)));
     TextView a = text(label, 14, foreground, false);
     a.setMaxLines(1);
     a.setEllipsize(android.text.TextUtils.TruncateAt.END);
     LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, -2, 1); ap.leftMargin = dp(6);
     top.addView(a, ap);
     t.addView(top);
-    gap(t, 4);
+    gap(t, 2);
     String detail = "";
     if (snapshot != null && icon.equals("climate")) {
       detail = EnvironmentSnapshot.temperatureText(snapshot.environment.temperatureC, true);
@@ -520,8 +522,8 @@ public final class MainActivity extends FragmentActivity {
       detail = "PM2.5 " + MileageSnapshot.decimalText(snapshot.environment.pm25UgM3, "")
           + " · AQI " + (snapshot.environment.aqi == null ? "--" : snapshot.environment.aqi);
     }
-    String feedback = sending ? model.operation == OperationState.SERVER_ACCEPTED
-        ? tr("等待车辆确认", "Waiting for vehicle") : tr("正在发送…", "Sending…") : state;
+    String feedback = sending ? model.operation == OperationState.SENDING
+        ? tr("正在发送…", "Sending…") : tr("等待车辆确认", "Waiting for vehicle") : state;
     if (!sending && icon.equals("climate") && "开启".equals(raw)) feedback = tr("运行中", "Running");
     TextView b = text(feedback, 12, known ? foreground : muted, false);
     b.setMaxLines(detail.isEmpty() ? 2 : 1);
@@ -533,7 +535,7 @@ public final class MainActivity extends FragmentActivity {
     }
     t.setEnabled(!model.busy && model.selected != null);
     t.setAlpha(t.isEnabled() ? 1f : .55f);
-    t.setOnClickListener(w -> action.run());
+    click(t, action);
     t.setContentDescription(label + ", " + feedback + (detail.isEmpty() ? "" : ", " + detail));
     t.setFocusable(true);
   }
@@ -546,19 +548,31 @@ public final class MainActivity extends FragmentActivity {
     }
     String[] labels = new String[model.cars.size()];
     for (int i = 0; i < labels.length; i++) labels[i] = model.cars.get(i).displayLabel();
-    new AlertDialog.Builder(this)
+    new HapticDialogBuilder(this)
         .setTitle(tr("选择车辆", "Select vehicle"))
         .setItems(labels, (d, w) -> model.choose(model.cars.get(w)))
         .show();
   }
 
-  private void actionDialog(String title, String[] labels, String[] actions) {
+  private void directControl(String control) {
     if (model.busy || authPending || model.selected == null) return;
-    new AlertDialog.Builder(this)
-        .setTitle(title)
-        .setItems(labels, (d, w) -> authenticate(labels[w], actions[w]))
-        .setNegativeButton(tr("取消", "Cancel"), null)
-        .show();
+    String action = ControlAction.next(control, model.snapshot);
+    if (action == null) {
+      toast(tr("状态未知或未确认，请刷新车况后再试", "State unknown or unconfirmed. Refresh before controlling"));
+      return;
+    }
+    String zh, en;
+    switch (action) {
+      case "unlock": zh = "解锁车门"; en = "Unlock doors"; break;
+      case "lock": zh = "锁定车门"; en = "Lock doors"; break;
+      case "trunk-open": zh = "打开尾箱"; en = "Open tailgate"; break;
+      case "trunk-close": zh = "关闭尾箱"; en = "Close tailgate"; break;
+      case "climate-start": zh = "启动空调 · 22°C"; en = "Start climate · 22°C"; break;
+      case "climate-stop": zh = "关闭空调"; en = "Stop climate"; break;
+      case "air-start": zh = "开启空气净化"; en = "Start purification"; break;
+      default: zh = "关闭空气净化"; en = "Stop purification";
+    }
+    authenticate(tr(zh, en), action);
   }
 
   private void authenticate(String label, String action) {
@@ -578,6 +592,7 @@ public final class MainActivity extends FragmentActivity {
     }
     final String vin = campTarget == null ? model.selected.vin : campTarget.vin;
     authPending = true;
+    final int generation = ++authGeneration;
     biometric =
         new BiometricPrompt(
             this,
@@ -587,6 +602,8 @@ public final class MainActivity extends FragmentActivity {
               public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
                 runOnUiThread(
                     () -> {
+                      if (generation != authGeneration) return;
+                      authGeneration++;
                       authPending = false;
                       if (model.busy) return;
                       if (campTarget != null) {
@@ -602,6 +619,8 @@ public final class MainActivity extends FragmentActivity {
               public void onAuthenticationError(int code, CharSequence error) {
                 runOnUiThread(
                     () -> {
+                      if (generation != authGeneration) return;
+                      authGeneration++;
                       authPending = false;
                       if (code != 5 && code != 10 && code != 13) toast(error.toString());
                     });
@@ -679,7 +698,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void languageDialog() {
-    new AlertDialog.Builder(this)
+    new HapticDialogBuilder(this)
         .setTitle("语言 / Language")
         .setItems(
             new String[] {"跟随系统 / System", "简体中文", "English"},
@@ -699,14 +718,16 @@ public final class MainActivity extends FragmentActivity {
     gap(p, 8);
     p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));
     gap(p, 8);
-    p.addView(button(tr("主页数据显示", "Home data fields"), () -> metricDialog("home_metrics", 9,
-        "odometer,ta_distance,tm_distance,tm_consumption")));
+    p.addView(button(tr("主页数据显示 · 最多 12 项", "Home data fields · up to 12"), () -> metricDialog("home_metrics", 12,
+        HOME_DEFAULTS)));
+    gap(p, 8);
+    p.addView(button(tr("按键震动 · 开关与强度", "Button haptics · switch and strength"), this::hapticsDialog));
     gap(p, 8);
     p.addView(button(tr("Widget 数据显示", "Widget data fields"), () -> {
       String[] labels = {"4×2 · 4", "2×2 · 2", "4×1 · 2", "2×1 · 1", "Data 4×4 · 8"};
       WidgetRenderer.Size[] sizes = {WidgetRenderer.Size.LARGE, WidgetRenderer.Size.SQUARE,
           WidgetRenderer.Size.WIDE, WidgetRenderer.Size.MINI, WidgetRenderer.Size.DATA};
-      new AlertDialog.Builder(this).setTitle(tr("选择组件尺寸与数据容量", "Widget size and field capacity"))
+      new HapticDialogBuilder(this).setTitle(tr("选择组件尺寸与数据容量", "Widget size and field capacity"))
           .setItems(labels, (d, w) -> metricDialog(WidgetRenderer.metricKey(sizes[w]),
               WidgetRenderer.capacity(sizes[w]), WidgetRenderer.defaults(sizes[w]))).show();
     }));
@@ -720,7 +741,7 @@ public final class MainActivity extends FragmentActivity {
         button(
             tr("显示模式", "Appearance"),
             () ->
-                new AlertDialog.Builder(this)
+                new HapticDialogBuilder(this)
                     .setTitle(tr("显示模式", "Appearance"))
                     .setItems(
                         new String[] {tr("跟随系统", "System"), tr("浅色", "Light"), tr("深色", "Dark")},
@@ -741,14 +762,16 @@ public final class MainActivity extends FragmentActivity {
       toggle.setTextColor(ink);
       toggle.setMinHeight(dp(46));
       toggle.setChecked(AppPreferences.visible(this, field[0], "on".equals(field[3])));
-      toggle.setOnCheckedChangeListener((control, on) ->
-          AppPreferences.set(this, field[0], on ? "on" : "off"));
+      toggle.setHapticFeedbackEnabled(false);
+      toggle.setOnCheckedChangeListener((control, on) -> {
+        Haptics.tap(this); AppPreferences.set(this, field[0], on ? "on" : "off");
+      });
       p.addView(toggle);
     }
     gap(p, 18);
     p.addView(text(tr("桌面 Widget 外观", "WIDGET APPEARANCE"), 17, ink, true));
     p.addView(button(tr("背景样式", "Background style"), () ->
-      new AlertDialog.Builder(this).setTitle(tr("背景样式", "Widget style"))
+      new HapticDialogBuilder(this).setTitle(tr("背景样式", "Widget style"))
         .setSingleChoiceItems(new String[]{tr("不透明", "Opaque"), tr("透明", "Transparent")},
           "opaque".equals(AppPreferences.get(this, "widget_style", "opaque")) ? 0 : 1,
           (dialog, index) -> {
@@ -770,6 +793,7 @@ public final class MainActivity extends FragmentActivity {
     keep.setChecked(AppPreferences.enabled(this));
     keep.setOnCheckedChangeListener(
         (b, on) -> {
+          Haptics.tap(this);
           if (on
               && Build.VERSION.SDK_INT >= 33
               && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -820,7 +844,7 @@ public final class MainActivity extends FragmentActivity {
                 toast(tr("请等待当前操作完成", "Wait for the current operation"));
                 return;
               }
-              new AlertDialog.Builder(this)
+              new HapticDialogBuilder(this)
                   .setMessage(tr("退出并清除本机登录会话？", "Sign out and clear this phone's session?"))
                   .setPositiveButton(
                       tr("退出", "Sign out"),
@@ -845,7 +869,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void widgetLanguageDialog() {
-    new AlertDialog.Builder(this).setTitle("Widget 语言 / Language")
+    new HapticDialogBuilder(this).setTitle("Widget 语言 / Language")
       .setItems(new String[]{"跟随系统 / System", "简体中文", "English"},
           (d, index) -> {
             AppPreferences.set(this, "widget_language",
@@ -863,7 +887,7 @@ public final class MainActivity extends FragmentActivity {
     for (int i = 0; i < values.length; i++) {
       labels[i] = values[i].label(AppPreferences.english(this)); checked[i] = selected.contains(values[i]);
     }
-    new AlertDialog.Builder(this).setTitle(tr("选择数据显示 · 最多 ", "Choose fields · up to ") + capacity)
+    new HapticDialogBuilder(this).setTitle(tr("选择数据显示 · 最多 ", "Choose fields · up to ") + capacity)
         .setMultiChoiceItems(labels, checked, (dialog, which, on) -> {
           if (on && !selected.contains(values[which])) {
             if (selected.size() >= capacity) {
@@ -887,32 +911,18 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(shapes); panel.addView(preview, new LinearLayout.LayoutParams(-1, dp(250)));
     panel.addView(text(tr("OPPO Watch X2 · 圆屏 466×466。此处为布局预览，手表安装包与实机兼容性仍需单独验证。",
         "OPPO Watch X2 · 466×466 round display. Layout preview; a watch APK and device compatibility need separate verification."), 12, muted, false));
-    new AlertDialog.Builder(this).setTitle(tr("手表布局预览", "Watch layout preview")).setView(panel)
+    new HapticDialogBuilder(this).setTitle(tr("手表布局预览", "Watch layout preview")).setView(panel)
         .setPositiveButton(tr("关闭", "Close"), null).show();
   }
 
   private void exteriorDialog() {
     VehicleSnapshot v = model.snapshot;
     if (v == null) return;
-    String[] positions = {tr("左前", "Front left"), tr("右前", "Front right"), tr("左后", "Rear left"), tr("右后", "Rear right")};
     LinearLayout panel = column(); panel.setPadding(dp(16), dp(8), dp(16), dp(8));
-    for (int i = 0; i < 4; i++) {
-      LinearLayout states = row();
-      for (boolean window : new boolean[]{false, true}) {
-        int value = v.exterior.state(window, i);
-        boolean open = value == 1 || value == 3, known = value >= 1 && value <= 3;
-        TextView cell = text(positions[i] + tr(window ? "窗" : "门", window ? " window" : " door")
-            + "\n" + status(ExteriorSnapshot.label(value)), 13,
-            known ? Color.rgb(21,22,23) : ink, false);
-        cell.setGravity(Gravity.CENTER);
-        cell.setBackground(bg(known ? open ? orange : Color.WHITE : surface, 8));
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(60), 1);
-        p.setMargins(dp(3), dp(3), dp(3), dp(3)); states.addView(cell, p);
-      }
-      panel.addView(states);
-    }
-    panel.addView(text(tr("尾箱 · ", "Tailgate · ") + status(v.tailgate), 13, ink, false));
-    new AlertDialog.Builder(this).setTitle(tr("车门与车窗", "Doors and windows"))
+    panel.addView(new ExteriorView(this, v), new LinearLayout.LayoutParams(-1,
+        dp(Math.min(380, Math.max(280, getResources().getConfiguration().screenHeightDp - 230)))));
+    panel.addView(text(tr("橙色 / ! 表示未关闭；-- 表示状态未知。", "Orange / ! means open or ajar; -- means unknown."), 12, muted, false));
+    new HapticDialogBuilder(this).setTitle(tr("车门与车窗", "Doors and windows"))
         .setView(panel).setPositiveButton(tr("关闭", "Close"), null).show();
   }
 
@@ -930,7 +940,7 @@ public final class MainActivity extends FragmentActivity {
         if (changed != null) changed.accept(value);
       }
       public void onStartTrackingTouch(SeekBar b) {}
-      public void onStopTrackingTouch(SeekBar b) {}
+      public void onStopTrackingTouch(SeekBar b) { Haptics.tap(MainActivity.this); }
     });
     return bar;
   }
@@ -951,7 +961,7 @@ public final class MainActivity extends FragmentActivity {
       gap(panel, 8);
       panel.addView(text(tr("上次检查 ", "Last check ") + (checked == 0 ? "--"
           : android.text.format.DateFormat.format("MM-dd HH:mm", checked)), 12, muted, false));
-      new AlertDialog.Builder(this).setTitle(tr("露营模式", "Camping mode")).setView(panel)
+      new HapticDialogBuilder(this).setTitle(tr("露营模式", "Camping mode")).setView(panel)
           .setPositiveButton(tr("结束托管", "End camping"), (d, w) ->
               authenticate(tr("结束露营，并停止托管的空调／净化", "End camping and stop managed climate / air"), "camp-stop"))
           .setNegativeButton(tr("关闭", "Close"), null).show();
@@ -970,10 +980,11 @@ public final class MainActivity extends FragmentActivity {
         });
     CheckBox air = new CheckBox(this); air.setText(tr("同时维持空气净化", "Maintain air purification"));
     air.setTextColor(ink); air.setChecked(model.snapshot != null && "开启".equals(model.snapshot.air));
+    click(air, () -> {});
     panel.addView(air);
     panel.addView(text(tr("低于电量下限时不可开启；检查发现低于下限则结束托管并尝试停止空调／净化。Android 省电策略可能延迟检查。",
         "Below-limit battery prevents starting. A below-limit check ends camping and attempts to stop managed climate / air. Android battery restrictions can delay checks."), 12, muted, false));
-    dialog[0] = new AlertDialog.Builder(this).setTitle(tr("露营模式", "Camping mode")).setView(panel)
+    dialog[0] = new HapticDialogBuilder(this).setTitle(tr("露营模式", "Camping mode")).setView(panel)
         .setPositiveButton(tr("验证并开启", "Verify and start"), (d, w) -> {
           campHours = hours.getProgress() + 1; campKeepAir = air.isChecked();
           authenticate(tr("开启露营空调托管", "Enable camping climate maintenance"), "camp-start");
@@ -998,9 +1009,28 @@ public final class MainActivity extends FragmentActivity {
         }
       }
       @Override public void onStartTrackingTouch(SeekBar seek) {}
-      @Override public void onStopTrackingTouch(SeekBar seek) {}
+      @Override public void onStopTrackingTouch(SeekBar seek) { Haptics.tap(MainActivity.this); }
     });
     parent.addView(bar);
+  }
+
+  private void hapticsDialog() {
+    LinearLayout panel = column(); panel.setPadding(dp(20), dp(12), dp(20), dp(8));
+    Switch enabled = new Switch(this); enabled.setText(tr("按键震动", "Button haptics"));
+    enabled.setTextColor(ink); enabled.setMinHeight(dp(48));
+    enabled.setChecked(AppPreferences.visible(this, "haptics", true)); enabled.setHapticFeedbackEnabled(false);
+    enabled.setOnCheckedChangeListener((view, on) -> {
+      AppPreferences.set(this, "haptics", on ? "on" : "off"); Haptics.tap(this);
+    });
+    panel.addView(enabled);
+    campSlider(panel, tr("震动强度（%）", "Strength (%)"), 1, 100,
+        Math.max(1, AppPreferences.slider(this, "haptic_strength", 35)), "haptic_strength", null);
+    panel.addView(button(tr("试一下", "Test vibration"), () -> {}));
+    gap(panel, 12);
+    panel.addView(text(tr("跟随系统触感开关。不支持振幅调节的手机将用短脉冲时长近似强弱。",
+        "Respects system haptics. Devices without amplitude control use short pulse durations."), 12, muted, false));
+    new HapticDialogBuilder(this).setTitle(tr("按键震动", "Button haptics")).setView(panel)
+        .setPositiveButton(tr("完成", "Done"), null).show();
   }
 
   private void setResident(boolean enabled) {
@@ -1055,7 +1085,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void info(String title, String s) {
-    new AlertDialog.Builder(this)
+    new HapticDialogBuilder(this)
         .setTitle(title)
         .setMessage(s)
         .setPositiveButton(tr("知道了", "OK"), null)

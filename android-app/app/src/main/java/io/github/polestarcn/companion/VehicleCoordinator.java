@@ -190,53 +190,45 @@ public final class VehicleCoordinator {
             main.post(
                 () -> {
                   operation = OperationState.SERVER_ACCEPTED;
-                  message = tr("服务器已接受，正在回读…", "Accepted; checking vehicle…");
+                  message = tr("指令已发送，约 15 秒后回读车况…", "Sent; checking vehicle after about 15 s…");
                   changed();
-                });
-            boolean confirmed = false;
-            for (int i = 0; i < 4; i++) {
-              Thread.sleep(3000);
-              try {
-                if (api.commandReached(vehicle.vin, action)) {
-                  confirmed = true;
-                  break;
-                }
-              } catch (Exception e) {
-                DiagnosticLog.add("Readback unavailable; command will not be replayed");
-              }
-            }
-            VehicleSnapshot live = null;
-            try {
-              live = api.readVehicle(vehicle);
-              VehicleSnapshotStore.saveChina(context, live);
-            } catch (Exception ignored) {
-            }
-            final boolean reached = confirmed;
-            final VehicleSnapshot updated = live;
-            main.post(
-                () -> {
-                  operation =
-                      reached ? OperationState.VEHICLE_CONFIRMED : OperationState.UNCONFIRMED;
-                  if (reached && "climate-start".equals(action))
-                    ClimateRuntime.started(context, identity(vehicle.vin), System.currentTimeMillis());
-                  if (reached && "climate-stop".equals(action)) ClimateRuntime.stopped(context);
-                  message =
-                      reached
-                          ? tr("车辆状态已确认", "Vehicle state confirmed")
-                          : tr("已发送，车辆动作尚未确认", "Sent; vehicle action unconfirmed");
-                  if (updated != null) { snapshot = updated; protectCamp(vehicle.vin, updated); }
-                  WidgetRenderer.refreshAll(context);
-                  finish();
+                  confirmCommand(vehicle, action);
                 });
           } catch (Exception e) {
             main.post(
                 () -> {
-                  operation = uncertain(e) ? OperationState.UNCONFIRMED : OperationState.FAILED;
-                  message = tr("操作结果：", "Command result: ") + safe(e);
-                  finish();
+                  if (uncertain(e)) {
+                    operation = OperationState.UNCONFIRMED;
+                    message = tr("发送结果未确认，约 15 秒后回读…", "Delivery uncertain; checking after about 15 s…");
+                    changed();
+                    confirmCommand(vehicle, action);
+                  } else {
+                    operation = OperationState.FAILED;
+                    message = tr("操作结果：", "Command result: ") + safe(e);
+                    finish();
+                  }
                 });
           }
         });
+  }
+
+  private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle, String action) {
+    new CommandReadback(() -> api.readVehicle(vehicle), io,
+        (delay, task) -> main.postDelayed(task, delay), (updated, reached) -> {
+          operation = reached ? OperationState.VEHICLE_CONFIRMED : OperationState.UNCONFIRMED;
+          if (reached && "climate-start".equals(action))
+            ClimateRuntime.started(context, identity(vehicle.vin), System.currentTimeMillis());
+          if (reached && "climate-stop".equals(action)) ClimateRuntime.stopped(context);
+          message = reached ? tr("车辆状态已确认", "Vehicle state confirmed")
+              : tr("车辆状态尚未确认，请稍后刷新；未重复发送", "Vehicle state unconfirmed; refresh later. Command not repeated");
+          if (updated != null && selected != null && vehicle.vin.equals(selected.vin)) {
+            snapshot = updated;
+            VehicleSnapshotStore.saveChina(context, updated);
+            protectCamp(vehicle.vin, updated);
+          }
+          WidgetRenderer.refreshAll(context);
+          finish();
+        }).start(action);
   }
 
   public void logout() {
@@ -326,7 +318,7 @@ public final class VehicleCoordinator {
         public boolean confirm(CampSession s, String action) throws Exception {
           for (int i = 0; i < 4; i++) {
             if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            Thread.sleep(3000);
+            Thread.sleep(i == 0 ? CommandReadback.INITIAL_DELAY_MS : CommandReadback.RETRY_DELAY_MS);
             if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
             if (api.commandReached(s.vin, action)) {
               if ("climate-start".equals(action)) ClimateRuntime.started(context, identity(s.vin), System.currentTimeMillis());

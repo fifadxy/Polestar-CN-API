@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 61
-        versionName '0.6.1-beta1'
+        versionCode 62
+        versionName '0.6.2-beta1'
     }
     buildTypes {
         debug {

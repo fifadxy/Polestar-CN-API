@@ -233,6 +233,142 @@ public final class AppRegressionTest {
     checkLayout(320, 568);
   }
 
+  @Test @Config(qualifiers = "w320dp-h568dp-mdpi")
+  public void twelveFieldsAndLargerTextKeepCompactControlsVisible() throws Exception {
+    android.content.res.Configuration configuration = new android.content.res.Configuration(activity.getResources().getConfiguration());
+    configuration.fontScale = 1.3f;
+    android.util.DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
+    metrics.scaledDensity = metrics.density * 1.3f;
+    activity.getResources().updateConfiguration(configuration, metrics);
+    AppPreferences.set(activity, "home_metrics", "odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,aqi,temperature,charge_power,charge_current,charge_eta");
+    checkLayout(320, 568);
+    View tile = findTagged(activity.getWindow().getDecorView(), "control_tile");
+    assertEquals(76, tile.getHeight());
+  }
+
+  @Test @Config(qualifiers = "w640dp-h320dp-mdpi")
+  public void twelveFieldsFitLandscape() throws Exception {
+    AppPreferences.set(activity, "home_metrics", "odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,aqi,temperature,charge_power,charge_current,charge_eta");
+    checkLayout(640, 320);
+  }
+
+  @Test @Config(sdk = 26, qualifiers = "w360dp-h640dp-mdpi")
+  public void allFourTilesGoDirectlyToBiometricsAndCancelWithoutCommand() throws Exception {
+    org.robolectric.Shadows.shadowOf(activity.getPackageManager())
+        .setSystemFeature(android.content.pm.PackageManager.FEATURE_FINGERPRINT, true);
+    org.robolectric.shadows.ShadowFingerprintManager fingerprint = org.robolectric.Shadows.shadowOf(
+        activity.getSystemService(android.hardware.fingerprint.FingerprintManager.class));
+    fingerprint.setIsHardwareDetected(true); fingerprint.setHasEnrolledFingerprints(true);
+    checkLayout(360, 640);
+    java.util.List<View> tiles = new java.util.ArrayList<>(); collectTiles(activity.getWindow().getDecorView(), tiles);
+    Field pending = MainActivity.class.getDeclaredField("authPending"); pending.setAccessible(true);
+    Field prompt = MainActivity.class.getDeclaredField("biometric"); prompt.setAccessible(true);
+    for (View tile : tiles) {
+      tile.performClick(); org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+      assertTrue("tap opens biometric prompt directly", pending.getBoolean(activity));
+      assertNull("no action-selection dialog", org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
+      View cancel = null;
+      for (androidx.fragment.app.Fragment fragment : activity.getSupportFragmentManager().getFragments()) {
+        if (fragment instanceof androidx.fragment.app.DialogFragment) {
+          Dialog dialog = ((androidx.fragment.app.DialogFragment) fragment).getDialog();
+          if (dialog != null) cancel = dialog.findViewById(android.R.id.button2);
+        }
+      }
+      assertNotNull("biometric cancel control", cancel); cancel.performClick();
+      org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(1, java.util.concurrent.TimeUnit.SECONDS);
+      assertFalse(pending.getBoolean(activity));
+      assertFalse(VehicleCoordinator.get(activity).busy);
+      assertEquals(OperationState.NOT_SENT, VehicleCoordinator.get(activity).operation);
+    }
+  }
+
+  @Test public void hapticSwitchAndFallbackStrength() {
+    android.os.Vibrator vibrator = (android.os.Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
+    org.robolectric.shadows.ShadowVibrator shadow = org.robolectric.Shadows.shadowOf(vibrator);
+    shadow.setHasVibrator(true); shadow.setHasAmplitudeControl(true);
+    android.provider.Settings.System.putInt(activity.getContentResolver(), android.provider.Settings.System.HAPTIC_FEEDBACK_ENABLED, 1);
+    AppPreferences.set(activity, "haptics", "off"); Haptics.tap(activity); assertFalse(shadow.isVibrating());
+    AppPreferences.set(activity, "haptics", "on"); AppPreferences.set(activity, "haptic_strength", "20");
+    Haptics.tap(activity); assertTrue(shadow.isVibrating());
+    vibrator.cancel(); AppPreferences.set(activity, "haptics", "off"); Haptics.tap(activity); assertFalse(shadow.isVibrating());
+    shadow.setHasAmplitudeControl(false); AppPreferences.set(activity, "haptics", "on");
+    Haptics.tap(activity); assertEquals(10L, shadow.getMilliseconds());
+    AppPreferences.set(activity, "haptic_strength", "80"); Haptics.tap(activity);
+    assertEquals(22L, shadow.getMilliseconds());
+  }
+
+  @Test @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void exportThreeNativePagePreviewsAndOpeningBadges() throws Exception {
+    AppPreferences.set(activity, "language", "zh"); AppPreferences.set(activity, "theme", "dark");
+    AppPreferences.set(activity, "home_metrics", "odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,temperature,aqi,charge_power,charge_current,charge_eta");
+    checkLayout(360, 780);
+    VehicleCoordinator model = VehicleCoordinator.get(activity);
+    model.snapshot = new VehicleSnapshot("Polestar 2", "masked", 63, 230, 65845, "充电中", "全部关闭", "全部关闭",
+        "已关闭", "未锁", System.currentTimeMillis(), "LIVE", false, "开启", "关闭")
+        .withMileage(new MileageSnapshot(65_845_000L, 100.5, 25.25, 45.0, 35.0, 18.5, 21.5, 1, 1))
+        .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0, 3.0, 4, null, null, 1, 1))
+        .withCharging(new ChargingSnapshot(1, 2, 4, 180, 6000.0, 29.0))
+        .withExterior(new ExteriorSnapshot(new int[]{1, 2, 2, 2}, new int[]{2, 2, 3, -1}));
+    Method render = MainActivity.class.getDeclaredMethod("render"); render.setAccessible(true); render.invoke(activity);
+    Field field = MainActivity.class.getDeclaredField("body"); field.setAccessible(true);
+    View root = (View) ((View) field.get(activity)).getParent();
+    root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
+    root.layout(0, 0, 360, 780);
+    assertTrue(((TextView) findTagged(root, "exterior_button")).getText().toString().contains("!"));
+    assertTrue(ExteriorView.hasOpening(model.snapshot));
+    savePage(root, null, "v062-home.png");
+    Method doors = MainActivity.class.getDeclaredMethod("exteriorDialog"); doors.setAccessible(true); doors.invoke(activity);
+    AlertDialog exterior = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+    assertEquals(1, count(exterior.getWindow().getDecorView(), ExteriorView.class));
+    savePage(root, exterior, "v062-exterior.png"); exterior.dismiss();
+    Method camp = MainActivity.class.getDeclaredMethod("campDialog"); camp.setAccessible(true); camp.invoke(activity);
+    AlertDialog camping = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+    assertTrue(camping.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());
+    savePage(root, camping, "v062-camping.png"); camping.dismiss();
+    activity.getSharedPreferences("camp_status", 0).edit().putString("phase", "STOPPING").commit();
+    render.invoke(activity);
+    View campButton = findTagged(activity.getWindow().getDecorView(), "camp_button");
+    assertEquals(android.graphics.Color.rgb(255, 107, 0),
+        ((android.graphics.drawable.GradientDrawable) campButton.getBackground()).getColor().getDefaultColor());
+  }
+
+  private static void savePage(View root, AlertDialog dialog, String name) throws Exception {
+    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(1080, 2340, android.graphics.Bitmap.Config.ARGB_8888);
+    android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap); canvas.scale(3f, 3f); root.draw(canvas);
+    if (dialog != null) {
+      canvas.drawColor(0x99000000);
+      View decor = dialog.getWindow().getDecorView();
+      clearPreviewScrollIndicators(decor);
+      decor.measure(View.MeasureSpec.makeMeasureSpec(336, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(744, View.MeasureSpec.AT_MOST));
+      decor.layout(0, 0, 336, decor.getMeasuredHeight());
+      canvas.save(); canvas.translate(12, (780 - decor.getMeasuredHeight()) / 2f); decor.draw(canvas); canvas.restore();
+    }
+    File dir = new File("build/reports/previews"); dir.mkdirs();
+    try (FileOutputStream out = new FileOutputStream(new File(dir, name))) {
+      bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+    }
+    bitmap.recycle();
+  }
+  private static void clearPreviewScrollIndicators(View view) {
+    view.setScrollIndicators(0);
+    if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+      clearPreviewScrollIndicators(((ViewGroup) view).getChildAt(i));
+  }
+  private static View findTagged(View view, String tag) {
+    if (tag.equals(view.getTag())) return view;
+    if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+      View found = findTagged(((ViewGroup) view).getChildAt(i), tag); if (found != null) return found;
+    }
+    return null;
+  }
+  private static void collectTiles(View view, java.util.List<View> tiles) {
+    if ("control_tile".equals(view.getTag())) tiles.add(view);
+    if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
+      collectTiles(((ViewGroup) view).getChildAt(i), tiles);
+  }
+
   @Test
   public void campingDefaultsAndBatteryThresholdAreEnforcedInUi() throws Exception {
     assertEquals(31, CampModeManager.interval(activity));

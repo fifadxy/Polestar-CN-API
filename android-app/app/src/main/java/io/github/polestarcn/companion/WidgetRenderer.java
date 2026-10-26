@@ -72,6 +72,8 @@ public final class WidgetRenderer {
     views.setImageViewBitmap(R.id.widget_bg, backing);
     boolean en = AppPreferences.widgetEnglish(c);
     java.util.List<DisplayMetric> selected = MetricSelection.read(c, metricKey(size), defaults(size));
+    if (!AppPreferences.visible(c, "experimental_tire", false))
+      selected.remove(DisplayMetric.TIRE_STATUS);
     WidgetLayoutPlan plan = new WidgetLayoutPlan(size, selected.size(), width, height,
         c.getResources().getConfiguration().fontScale);
     float density = c.getResources().getDisplayMetrics().density;

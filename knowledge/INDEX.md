@@ -28,6 +28,7 @@
 | [20_UI_DAY_NIGHT_ITPMS_V073.md](20_UI_DAY_NIGHT_ITPMS_V073.md) | 三套日夜模式、单屏布局、iTPMS 与 Polestar VI | v0.7.3 实现 |
 | [21_TWO_SKINS_CLIMATE_V074.md](21_TWO_SKINS_CLIMATE_V074.md) | 两套皮肤、详细风格重排、动态 VI 与空调剩余时间 | v0.7.4 实现 |
 | [22_VEHICLE_HEALTH_UI_V075.md](22_VEHICLE_HEALTH_UI_V075.md) | VIN 二级菜单、车辆状态聚合、12V/玻璃水/iTPMS 与动态密度 UI | v0.7.5 实现 |
+| [23_NIOLIKE_STATIC_VI_V078.md](23_NIOLIKE_STATIC_VI_V078.md) | 无动态光效、条件充电栏、ALL GOOD 车况条与 NIOlike 第三皮肤 | v0.7.8 alpha 实现 |
 | [23_V076_STABILITY_WIDGET_RUNTIME.md](23_V076_STABILITY_WIDGET_RUNTIME.md) | v0.7.5 核查、首页/Widget/倒计时/流式读取与固定签名 | v0.7.6 实现 |
 | [evidence/apk-v2-signature.json](evidence/apk-v2-signature.json) | 参考 APK 签名及内容摘要证据 | 已验证 |
 | [evidence/apk-vehicle-schema.json](evidence/apk-vehicle-schema.json) | 33 字段独立提取 | 已验证 |

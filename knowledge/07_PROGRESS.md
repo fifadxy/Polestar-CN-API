@@ -1,3 +1,15 @@
+## 2026-10-27 / v0.7.8-alpha1 — 静态 VI、条件充电栏与 NIOlike 第三皮肤
+
+- `BRANCH_ISOLATION`：为避免覆盖另一位正在制作的 v0.7.7，本轮基于 v0.7.6 commit `45281847` 创建独立分支 `feature/niolike-ui-v078`。待 v0.7.7 上传后再基于其主线做合并/冲突核对。
+- `NO_AMBIENT_MOTION`：控制页彻底停止实例化动态环境光；设置中删除“车辆环境光动画”。保留低幅按钮按压/回弹触感，不再有循环发光动画。
+- `ENERGY_HEADER`：简洁/详细控制页统一为“电量百分比 + 下方横向 VI 进度条 / 预估续航并列”；电量、续航从自定义数据网格中固定抽离，避免重复。
+- `CHARGING_SECTION`：充电数据不再混入常规指标。仅当 Battery charging=充电中/智能充电，或 powerStatus=初始化中/正在供电时，显示独立充电栏；空闲、完成、计划等状态不显示。充电栏包含类型、功率、电流与预计充满时间。
+- `VEHICLE_HEALTH_BANNER`：车辆图正下方增加静态 VI 车况条。可见 Health 项全部正常时固定显示英文 `ALL GOOD`；异常显示橙色 CHECK/需检查；图标使用项目自有 1.5–1.7dp 圆角线性 vector，不使用绿色或 Emoji。
+- `TYRE_VISIBILITY`：设置项改为“显示胎压 / iTPMS（实验性）”。关闭后主页面、车辆状态弹窗和 Widget 均隐藏胎压显示，聚合 ALL GOOD 只基于当前可见的 12V/玻璃水状态；底层 Health 数据仍保留。
+- `NIOLIKE`：新增第三套皮肤 NIOlike。浅色使用暖灰粉背景与高亮卡片，深色回落 Polestar 黑/灰；2×2 大圆角卡片分别承载能源+Polestar 2+ALL GOOD、四个快捷控制、空调/净化、车辆信息与门窗/车况/露营/详情。横屏改为四卡横排。
+- `VI_ICONS`：新增 check/warning/window/signal/camp/charge/power 线性 vector，统一 24dp 画布、1.5–1.7dp 圆角线条；橙色仅用于进度、激活和警告。
+- `VERSION`：功能分支暂标 `0.7.8-alpha1` / versionCode 78；不占用正在制作的 0.7.7。
+
 ## 2026-10-26 / v0.7.5-beta1 — 车辆信息二级化、Health 聚合与动态密度 VI
 
 - `PRIMARY_IDENTITY`：两套控制页主标题只显示车型；年份与 VIN 从主界面移除，点击车型进入二级“车辆详情”查看完整车型、年款和 VIN，再从该菜单切换车辆。

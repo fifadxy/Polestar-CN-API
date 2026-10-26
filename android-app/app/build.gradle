@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 76
-        versionName '0.7.6-beta1'
+        versionCode 78
+        versionName '0.7.8-alpha1'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')

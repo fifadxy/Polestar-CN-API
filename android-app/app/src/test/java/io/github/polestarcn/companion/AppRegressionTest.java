@@ -553,7 +553,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void bothSkinsExposeTemplateStylePullToRefresh() throws Exception {
+  public void allSkinsExposeTemplateStylePullToRefresh() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -566,7 +566,7 @@ public final class AppRegressionTest {
     Method render = MainActivity.class.getDeclaredMethod("render");
     render.setAccessible(true);
 
-    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
       UiSkin.set(activity, skin);
       c.busy = false;
       c.activeAction = "";
@@ -628,7 +628,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void bothControlSkinsFitWithoutContentScrollingInLightAndDark() throws Exception {
+  public void allControlSkinsFitWithoutContentScrollingInLightAndDark() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -643,7 +643,7 @@ public final class AppRegressionTest {
 
     for (String theme : new String[]{"light", "dark"}) {
       AppPreferences.set(activity, "theme", theme);
-      for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+      for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
         UiSkin.set(activity, skin);
         render.invoke(activity);
         View refresh = findTagged(activity.getWindow().getDecorView(), "control_pull_refresh");
@@ -656,7 +656,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w640dp-h320dp-mdpi")
-  public void bothStylesUseFixedLandscapeLayoutsWithoutClippedControls() throws Exception {
+  public void allStylesUseFixedLandscapeLayoutsWithoutClippedControls() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -674,7 +674,7 @@ public final class AppRegressionTest {
     Method render = MainActivity.class.getDeclaredMethod("render");
     render.setAccessible(true);
 
-    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
       UiSkin.set(activity, skin);
       render.invoke(activity);
       View root = activity.getWindow().getDecorView();
@@ -688,7 +688,8 @@ public final class AppRegressionTest {
       assertTrue(content.getGlobalVisibleRect(visible));
       assertTrue("fixed landscape content stays within viewport for " + skin,
           visible.bottom <= 320);
-      assertNotNull(findTagged(root, "vi_ambient_glow"));
+      assertNull(findTagged(root, "vi_ambient_glow"));
+      assertNotNull(findTagged(root, "vehicle_health_banner"));
     }
   }
 
@@ -729,7 +730,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w320dp-h568dp-mdpi")
-  public void bothControlSkinsKeepTheirLastControlInsideSmallScreen() throws Exception {
+  public void allControlSkinsKeepTheirLastControlInsideSmallScreen() throws Exception {
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -739,7 +740,7 @@ public final class AppRegressionTest {
     Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
     signedIn.setAccessible(true); signedIn.setBoolean(c, true);
     Method render = MainActivity.class.getDeclaredMethod("render"); render.setAccessible(true);
-    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
       UiSkin.set(activity, skin);
       render.invoke(activity);
       View content = findTagged(activity.getWindow().getDecorView(), "control_pull_content");
@@ -755,13 +756,16 @@ public final class AppRegressionTest {
   }
 
   @Test
-  public void legacySkinValuesMigrateToTwoStyleModel() {
+  public void legacySkinValuesMigrateAndNioLikePersists() {
     AppPreferences.set(activity, "ui_skin", "latest");
     assertEquals(UiSkin.SIMPLE, UiSkin.get(activity));
     AppPreferences.set(activity, "ui_skin", "ev_concept");
     assertEquals(UiSkin.SIMPLE, UiSkin.get(activity));
     AppPreferences.set(activity, "ui_skin", "current");
     assertEquals(UiSkin.DETAILED, UiSkin.get(activity));
+    UiSkin.set(activity, UiSkin.NIOLIKE);
+    assertEquals(UiSkin.NIOLIKE, UiSkin.get(activity));
+    assertEquals(2, UiSkin.index(activity));
   }
 
   @Test
@@ -789,7 +793,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void bothVehicleControlStylesExposeAmbientGlowAndSelectedMetrics() throws Exception {
+  public void allControlStylesUseStaticViStatusAndEnergyLayout() throws Exception {
     AppPreferences.set(activity, "language", "zh");
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
@@ -800,7 +804,10 @@ public final class AppRegressionTest {
         "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
         "LIVE", false, "开启", "关闭")
         .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
-            3.0, 4, 18, null, 1, 1));
+            3.0, 4, 18, null, 1, 1))
+        .withHealth(new VehicleHealthSnapshot(
+            VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, 1));
+    AppPreferences.set(activity, "experimental_tire", "off");
     AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,vehicle_status");
     Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
     signedIn.setAccessible(true);
@@ -808,16 +815,23 @@ public final class AppRegressionTest {
     Method render = MainActivity.class.getDeclaredMethod("render");
     render.setAccessible(true);
 
-    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
       UiSkin.set(activity, skin);
       render.invoke(activity);
       View root = activity.getWindow().getDecorView();
       root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
           View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
       root.layout(0, 0, 360, 780);
-      assertNotNull(findTagged(root, "vi_ambient_glow"));
-      assertTrue(hasText(root, "车内 °C"));
-      assertTrue(hasText(root, "目标 °C"));
+      assertNull("dynamic ambient light removed", findTagged(root, "vi_ambient_glow"));
+      assertNotNull(findTagged(root, "battery_value"));
+      assertNotNull(findTagged(root, "battery_progress"));
+      assertNotNull(findTagged(root, "range_value"));
+      assertNotNull(findTagged(root, "vehicle_health_banner"));
+      assertTrue("ALL GOOD sits under the Polestar 2 visual", hasText(root, "ALL GOOD"));
+      if (!UiSkin.NIOLIKE.equals(skin)) {
+        assertTrue(hasText(root, "车内 °C"));
+        assertTrue(hasText(root, "目标 °C"));
+      }
     }
 
     UiSkin.set(activity, UiSkin.DETAILED);
@@ -827,19 +841,19 @@ public final class AppRegressionTest {
         View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
     root.layout(0, 0, 360, 780);
     View car = findTagged(root, "polestar_vehicle");
+    View health = findTagged(root, "vehicle_health_banner");
     View windows = findTagged(root, "windows_control_button");
     View bodyButton = findTagged(root, "exterior_button");
-    View vehicleStatus = findTagged(root, "vehicle_status_button");
     View camp = findTagged(root, "camp_button");
     View signal = findTagged(root, "signal_control_button");
-    assertNotNull(car); assertNotNull(windows); assertNotNull(bodyButton);
-    assertNotNull(vehicleStatus); assertNotNull(camp); assertNotNull(signal);
+    assertNotNull(car); assertNotNull(health); assertNotNull(windows);
+    assertNotNull(bodyButton); assertNotNull(camp); assertNotNull(signal);
     int carBottom = absoluteTop(car) + car.getHeight();
-    assertTrue(absoluteTop(windows) >= carBottom);
-    assertTrue(absoluteTop(bodyButton) >= carBottom);
-    assertTrue(absoluteTop(vehicleStatus) >= carBottom);
-    assertTrue(absoluteTop(camp) >= carBottom);
-    assertTrue(absoluteTop(signal) >= carBottom);
+    assertTrue(absoluteTop(health) >= carBottom);
+    assertTrue(absoluteTop(windows) >= absoluteTop(health));
+    assertTrue(absoluteTop(bodyButton) >= absoluteTop(health));
+    assertTrue(absoluteTop(camp) >= absoluteTop(health));
+    assertTrue(absoluteTop(signal) >= absoluteTop(health));
   }
 
   @Test
@@ -877,7 +891,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void tyreDetailIsHiddenByDefaultBehindAggregateVehicleStatus() throws Exception {
+  public void tyreCanBeFullyHiddenFromVehicleStatusUi() throws Exception {
     AppPreferences.set(activity, "language", "zh");
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
@@ -894,12 +908,13 @@ public final class AppRegressionTest {
     Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
     signedIn.setAccessible(true);
     signedIn.setBoolean(c, true);
-    AppPreferences.set(activity, "experimental_tire", "off");
     Method render = MainActivity.class.getDeclaredMethod("render");
     render.setAccessible(true);
+
+    AppPreferences.set(activity, "experimental_tire", "off");
     render.invoke(activity);
     View root = activity.getWindow().getDecorView();
-    assertNotNull(findTagged(root, "vehicle_status_button"));
+    assertNotNull(findTagged(root, "vehicle_health_banner"));
     assertNull("standalone tyre button is not on control page", findTagged(root, "tire_button"));
 
     Method dialogMethod = MainActivity.class.getDeclaredMethod("vehicleStatusDialog");
@@ -908,8 +923,14 @@ public final class AppRegressionTest {
     AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
     assertTrue(hasText(dialog.getWindow().getDecorView(), "12V"));
     assertTrue(hasText(dialog.getWindow().getDecorView(), "玻璃水"));
+    assertFalse("tyre row is hidden when disabled", hasText(dialog.getWindow().getDecorView(), "胎压告警"));
+    dialog.dismiss();
+
+    AppPreferences.set(activity, "experimental_tire", "on");
+    dialogMethod.invoke(activity);
+    dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
     assertTrue(hasText(dialog.getWindow().getDecorView(), "胎压告警"));
-    assertTrue(hasText(dialog.getWindow().getDecorView(), "默认隐藏"));
+    assertTrue(hasText(dialog.getWindow().getDecorView(), "iTPMS"));
     dialog.dismiss();
   }
 
@@ -930,10 +951,10 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w320dp-h568dp-mdpi")
-  public void twelveDynamicMetricsRemainOnSingleScreenInBothSkins() throws Exception {
+  public void twelveDynamicMetricsRemainOnSingleScreen() throws Exception {
     AppPreferences.set(activity, "home_metrics",
         "vehicle_status,odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,"
-            + "tm_consumption,aqi,temperature,charge_power,charge_current");
+            + "tm_consumption,aqi,temperature,target_temperature,pm25");
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -945,7 +966,7 @@ public final class AppRegressionTest {
     signedIn.setBoolean(c, true);
     Method render = MainActivity.class.getDeclaredMethod("render");
     render.setAccessible(true);
-    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
       UiSkin.set(activity, skin);
       render.invoke(activity);
       View root = activity.getWindow().getDecorView();
@@ -958,10 +979,117 @@ public final class AppRegressionTest {
       ViewGroup group = (ViewGroup) content;
       View last = group.getChildAt(group.getChildCount() - 1);
       assertTrue(last.getBottom() <= content.getHeight());
-      View glow = findTagged(root, "vi_ambient_glow");
-      assertNotNull(glow);
-      assertTrue("ambient band is integrated, not a 3dp line", glow.getHeight() >= 16);
+      assertNull(findTagged(root, "vi_ambient_glow"));
+      assertNotNull(findTagged(root, "vehicle_health_banner"));
     }
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void chargingSectionOnlyAppearsWhileStartingOrCharging() throws Exception {
+    AppPreferences.set(activity, "language", "zh");
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭")
+        .withCharging(new ChargingSnapshot(1, 1, 3, null, null, null));
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
+      UiSkin.set(activity, skin);
+      render.invoke(activity);
+      View charge = findTagged(activity.getWindow().getDecorView(), "charging_section");
+      assertNotNull(charge);
+      assertEquals(View.GONE, charge.getVisibility());
+    }
+
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 65, 258, 12000, "充电中",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭")
+        .withCharging(new ChargingSnapshot(1, 3, 4, 75, 11000.0, 30.0));
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIOLIKE}) {
+      UiSkin.set(activity, skin);
+      render.invoke(activity);
+      View root = activity.getWindow().getDecorView();
+      View charge = findTagged(root, "charging_section");
+      assertNotNull(charge);
+      assertEquals(View.VISIBLE, charge.getVisibility());
+      assertTrue(hasText(charge, "正在充电"));
+      assertTrue(hasText(charge, "11.0 kW"));
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void nioLikeSkinContainsFourReferenceInspiredCards() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 85, 892, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭")
+        .withEnvironment(new EnvironmentSnapshot("关闭", "关闭", 30.0, 22.0,
+            8.0, 12, null, null, 1, 1))
+        .withHealth(new VehicleHealthSnapshot(
+            VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, 1));
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    UiSkin.set(activity, UiSkin.NIOLIKE);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+    render.invoke(activity);
+    View root = activity.getWindow().getDecorView();
+    assertNotNull(findTagged(root, "nio_energy_card"));
+    assertNotNull(findTagged(root, "nio_control_card"));
+    assertNotNull(findTagged(root, "nio_climate_card"));
+    assertNotNull(findTagged(root, "nio_info_card"));
+    assertNotNull(findTagged(root, "nio_lock"));
+    assertNotNull(findTagged(root, "nio_trunk"));
+    assertNotNull(findTagged(root, "nio_windows"));
+    assertNotNull(findTagged(root, "nio_signal"));
+    assertNotNull(findTagged(root, "nio_climate_power"));
+    assertTrue(hasText(root, "85%"));
+    assertTrue(hasText(root, "892 km"));
+    assertTrue(hasText(root, "ALL GOOD"));
+    assertNull(findTagged(root, "vi_ambient_glow"));
+  }
+
+  @Test
+  public void hiddenTyreDoesNotBlockVisibleAllGoodStatus() {
+    VehicleHealthSnapshot health = new VehicleHealthSnapshot(
+        VehicleHealthSnapshot.OK, VehicleHealthSnapshot.OK, VehicleHealthSnapshot.WARNING, 1);
+    AppPreferences.set(activity, "experimental_tire", "off");
+    assertTrue(VehicleHealthUi.allGood(activity, health));
+    assertEquals("ALL GOOD", VehicleHealthUi.summary(activity, health, false));
+    AppPreferences.set(activity, "experimental_tire", "on");
+    assertTrue(VehicleHealthUi.hasProblem(activity, health));
+    assertFalse(VehicleHealthUi.allGood(activity, health));
+  }
+
+  @Test
+  public void chargingAndCoreEnergyAreNotRepeatedInGeneralMetricGrid() throws Exception {
+    AppPreferences.set(activity, "home_metrics",
+        "battery,range,charge_power,charge_current,charge_eta,power_status,odometer,temperature");
+    Method metrics = MainActivity.class.getDeclaredMethod("controlMetrics");
+    metrics.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    java.util.List<DisplayMetric> selected =
+        (java.util.List<DisplayMetric>) metrics.invoke(activity);
+    assertFalse(selected.contains(DisplayMetric.BATTERY));
+    assertFalse(selected.contains(DisplayMetric.RANGE));
+    assertFalse(selected.contains(DisplayMetric.CHARGE_POWER));
+    assertFalse(selected.contains(DisplayMetric.CHARGE_CURRENT));
+    assertFalse(selected.contains(DisplayMetric.CHARGE_ETA));
+    assertFalse(selected.contains(DisplayMetric.POWER_STATUS));
+    assertTrue(selected.contains(DisplayMetric.ODOMETER));
+    assertTrue(selected.contains(DisplayMetric.TEMPERATURE));
   }
 
   @Test

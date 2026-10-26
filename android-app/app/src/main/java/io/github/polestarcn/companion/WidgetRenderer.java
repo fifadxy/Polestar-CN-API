@@ -55,17 +55,15 @@ public final class WidgetRenderer {
     views.setImageViewBitmap(R.id.widget_bg, background(c, size));
     boolean en = AppPreferences.widgetEnglish(c);
     String updated = s == null || s.timestampMillis <= 0
-        ? AppPreferences.widgetTr(c, "未连接", "Not connected")
-        : (state == TelemetryStatus.STALE ? AppPreferences.widgetTr(c, "已过期", "Stale") + " · " : "")
-        + DateFormat.format("MM-dd HH:mm", s.timestampMillis);
-    views.setTextViewText(R.id.widget_title,
-        (s == null ? "PsAssistant" : s.name) + (state == TelemetryStatus.STALE ? " · !" : ""));
+        ? AppPreferences.widgetTr(c, "更新时间 --", "Updated --")
+        : AppPreferences.widgetTr(c, "更新 ", "Updated ") + DateFormat.format("MM-dd HH:mm", s.timestampMillis);
+    views.setTextViewText(R.id.widget_title, s == null ? "PsAssistant" : s.name);
     views.setTextViewText(R.id.widget_region, updated);
     java.util.List<DisplayMetric> selected = MetricSelection.read(c, metricKey(size), defaults(size));
     int[] ids = {R.id.widget_metric0, R.id.widget_metric1, R.id.widget_metric2, R.id.widget_metric3,
         R.id.widget_metric4, R.id.widget_metric5, R.id.widget_metric6, R.id.widget_metric7};
     int[] rows = {R.id.widget_metric_row0, R.id.widget_metric_row1, R.id.widget_metric_row2, R.id.widget_metric_row3};
-    int columns = size == Size.LARGE || size == Size.DATA ? 2 : 1;
+    int columns = size == Size.MINI ? 1 : 2;
     int count = Math.min(capacity(size), selected.size());
     int ink = AppPreferences.dark(c) ? Color.WHITE : Color.rgb(21,22,23);
     views.setTextColor(R.id.widget_title, ink);
@@ -74,14 +72,17 @@ public final class WidgetRenderer {
       views.setViewVisibility(ids[i], i < count ? android.view.View.VISIBLE : android.view.View.INVISIBLE);
       if (i < count) {
         DisplayMetric metric = selected.get(i);
-        String label = metric.shortLabel(en) + (state == TelemetryStatus.STALE ? en ? " · Old" : " · 旧" : ""), value = metric.value(s, false, en);
-        String content = label + (size == Size.WIDE ? "  " : "\n") + value;
+        String label = metric.shortLabel(en), value = metric.value(c, s, false, en);
+        String content = label + "\n" + value;
+        int labelSp = count >= 7 ? 8 : count >= 5 ? 9 : count >= 3 ? 10 : 11;
+        int valueSp = count >= 7 ? 11 : count >= 5 ? 12 : count >= 3 ? 14 : size == Size.MINI ? 15 : 16;
+        if (size == Size.WIDE) { labelSp = count >= 4 ? 8 : 9; valueSp = count >= 4 ? 11 : 13; }
         android.text.SpannableString styled = new android.text.SpannableString(content);
-        styled.setSpan(new android.text.style.AbsoluteSizeSpan(size == Size.WIDE ? 12 : 11, true), 0, label.length(), 0);
-        styled.setSpan(new android.text.style.AbsoluteSizeSpan(size == Size.WIDE ? 12 : size == Size.MINI ? 14 : 16, true), label.length() + (size == Size.WIDE ? 2 : 1), content.length(), 0);
-        views.setTextViewTextSize(ids[i], android.util.TypedValue.COMPLEX_UNIT_SP, 11);
+        styled.setSpan(new android.text.style.AbsoluteSizeSpan(labelSp, true), 0, label.length(), 0);
+        styled.setSpan(new android.text.style.AbsoluteSizeSpan(valueSp, true), label.length() + 1, content.length(), 0);
+        views.setTextViewTextSize(ids[i], android.util.TypedValue.COMPLEX_UNIT_SP, labelSp);
         views.setTextViewText(ids[i], styled); views.setTextColor(ids[i], ink);
-        views.setContentDescription(ids[i], metric.label(en) + " · " + metric.value(s, true, en));
+        views.setContentDescription(ids[i], metric.label(en) + " · " + metric.value(c, s, true, en));
       }
     }
     for (int i = 0; i < (capacity(size) + columns - 1) / columns; i++)
@@ -95,14 +96,16 @@ public final class WidgetRenderer {
   }
 
   public static int capacity(Size size) {
-    return size == Size.DATA ? 8 : size == Size.LARGE ? 4 : size == Size.MINI ? 1 : 2;
+    return size == Size.DATA ? 8 : size == Size.LARGE ? 8 : size == Size.SQUARE ? 4
+        : size == Size.WIDE ? 4 : 2;
   }
   public static String metricKey(Size size) { return "widget_metrics_" + size.name(); }
   public static String defaults(Size size) {
-    if (size == Size.MINI) return "battery";
-    if (size == Size.WIDE || size == Size.SQUARE) return "battery,range";
-    return size == Size.DATA ? "battery,range,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption"
-        : "battery,range,ta_distance,tm_distance";
+    if (size == Size.MINI) return "battery,range";
+    if (size == Size.WIDE) return "battery,range,tire_status,service_km_left";
+    if (size == Size.SQUARE) return "battery,range,tire_status,service_days_left";
+    return size == Size.DATA ? "battery,range,tire_status,service_days_left,service_km_left,service_time_percent,service_km_percent,odometer"
+        : "battery,range,tire_status,service_days_left,service_km_left,ta_distance,tm_distance,odometer";
   }
 
   private static PendingIntent pending(Context c, int id, Size size, String action) {
@@ -119,9 +122,9 @@ public final class WidgetRenderer {
   /** Rounded background and simulated frosting; actual launcher-wallpaper blur is not available. */
   static Bitmap background(Context c, Size size) {
     boolean dark = AppPreferences.dark(c);
-    boolean opaque = "opaque".equals(AppPreferences.get(c, "widget_style", "opaque"));
-    int opacity = opaque ? 100 : AppPreferences.slider(c, "widget_opacity", 65);
-    int frost = AppPreferences.slider(c, "widget_frost", 45);
+    boolean opaque = "opaque".equals(AppPreferences.get(c, "widget_style", "transparent"));
+    int opacity = opaque ? 100 : AppPreferences.slider(c, "widget_opacity", 58);
+    int frost = AppPreferences.slider(c, "widget_frost", 28);
     int w = size == Size.MINI ? 190 : size == Size.SQUARE ? 190 : 480;
     int h = size == Size.DATA ? 350 : size == Size.LARGE ? 205 : size == Size.SQUARE ? 205 : 108;
     Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);

@@ -380,9 +380,35 @@ public final class ChinaPolestarApi {
             stateRpc(
                 s, vin, "services.vehiclestates.exterior.ExteriorService", "GetLatestExterior"),
             3);
+    if (action.startsWith("window")) {
+      boolean targetOpen = action.equals("windows-open");
+      for (int field = 7; field <= 10; field++) {
+        Integer value = ProtoWire.integer(fields, field);
+        if (value == null || value != (targetOpen ? 1 : 2)) return false;
+      }
+      return true;
+    }
     Integer value = ProtoWire.integer(fields, action.startsWith("trunk") ? 12 : 2);
     return value != null
         && value == (action.equals("lock") || action.equals("trunk-close") ? 2 : 1);
+  }
+
+  public byte[] windows(String vin, boolean open) throws Exception {
+    // Reference APK and upstream Hisingen expose WindowControl. Field 2 uses open/close enum 1/2,
+    // matching TailgateControl. China execution still requires device verification.
+    return control(
+        vin,
+        "WindowControl",
+        ProtoWire.concat(baseControl(vin), ProtoWire.varintField(2, open ? 1 : 2)));
+  }
+
+  public byte[] honkFlash(String vin, boolean honk, boolean flash) throws Exception {
+    // HonkFlash request keeps the two independently selectable effects explicit.
+    byte[] body = ProtoWire.concat(
+        baseControl(vin),
+        ProtoWire.varintField(2, honk ? 1 : 0),
+        ProtoWire.varintField(3, flash ? 1 : 0));
+    return control(vin, "HonkFlash", body);
   }
 
   public byte[] tailgate(String vin, boolean open) throws Exception {

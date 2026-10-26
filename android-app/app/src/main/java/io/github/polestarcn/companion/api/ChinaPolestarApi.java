@@ -13,7 +13,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -33,6 +32,8 @@ import io.github.polestarcn.companion.auth.ReferenceSignatureProvider;
 import io.github.polestarcn.companion.auth.SecureSessionStore;
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
+import io.grpc.Channel;
+import io.grpc.ClientInterceptors;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.StatusRuntimeException;
@@ -257,11 +258,13 @@ public final class ChinaPolestarApi {
                 .userAgent("grpc-java-okhttp/1.68.2")
                 .build();
         try {
+            Channel authenticated = ClientInterceptors.intercept(
+                    channel, MetadataUtils.newAttachHeadersInterceptor(headers));
             return ClientCalls.blockingUnaryCall(
-                    channel,
+                    authenticated,
                     descriptor,
                     CallOptions.DEFAULT.withDeadlineAfter(12, TimeUnit.SECONDS),
-                    MetadataUtils.newAttachHeadersInterceptor(headers).interceptCall(descriptor, CallOptions.DEFAULT, channel)
+                    request
             );
         } catch (StatusRuntimeException e) {
             throw new Exception("C3 " + e.getStatus().getCode() + ": " + first(e.getStatus().getDescription(), "无描述"), e);

@@ -800,16 +800,19 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private LinearLayout dashboardEnergy(boolean compact) {
+    boolean landscape =
+        getResources().getConfiguration().screenWidthDp
+            > getResources().getConfiguration().screenHeightDp;
     LinearLayout root = row();
     root.setTag("energy_header");
     root.setPadding(0, dp(2), 0, dp(2));
 
     LinearLayout battery = column();
-    TextView batteryLabel = text(tr("电量", "Battery"), 9, muted, false);
+    TextView batteryLabel = text(tr("电量", "Battery"), landscape ? 8 : 9, muted, false);
     TextView batteryValue =
         liveText(
             () -> model.snapshot == null ? "--%" : VehicleSnapshot.metric(model.snapshot.batteryPercent, "%"),
-            compact ? 23 : 28,
+            landscape ? 16 : compact ? 21 : 28,
             ink,
             true);
     batteryValue.setTag("battery_value");
@@ -829,12 +832,12 @@ public final class MainActivity extends FragmentActivity {
 
     LinearLayout range = column();
     range.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-    TextView rangeLabel = text(tr("预估续航", "Est. range"), 9, muted, false);
+    TextView rangeLabel = text(tr("预估续航", "Est. range"), landscape ? 8 : 9, muted, false);
     rangeLabel.setGravity(Gravity.END);
     TextView rangeValue =
         liveText(
             () -> model.snapshot == null ? "-- km" : VehicleSnapshot.metric(model.snapshot.rangeKm, " km"),
-            compact ? 20 : 25,
+            landscape ? 15 : compact ? 18 : 25,
             ink,
             true);
     rangeValue.setTag("range_value");

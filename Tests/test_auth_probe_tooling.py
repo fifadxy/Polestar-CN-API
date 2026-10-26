@@ -10,6 +10,18 @@ START = (PROBE / "start_pcapdroid_root_mac.sh").read_text(encoding="utf-8")
 STOP_FRIDA = (PROBE / "stop_root_frida_mac.sh").read_text(encoding="utf-8")
 SESSION = (PROBE / "capture_root_metadata_mac.sh").read_text(encoding="utf-8")
 README = (PROBE / "README.md").read_text(encoding="utf-8")
+EMULATOR_SETUP = (PROBE / "setup_arm64_bridge_emulator_linux.sh").read_text(
+    encoding="utf-8"
+)
+EMULATOR_RUN = (PROBE / "run_arm64_bridge_emulator_linux.sh").read_text(
+    encoding="utf-8"
+)
+EMULATOR_PREFLIGHT = (PROBE / "emulator_native_bridge_preflight.sh").read_text(
+    encoding="utf-8"
+)
+EMULATOR_TCG_PREPARE = (PROBE / "prepare_tcg_emulator_install.sh").read_text(
+    encoding="utf-8"
+)
 
 
 class AuthProbeToolingTests(unittest.TestCase):
@@ -63,6 +75,50 @@ class AuthProbeToolingTests(unittest.TestCase):
             "Do not use SSL-unpinning",
         ]:
             self.assertIn(value, README)
+
+    def test_emulator_setup_pins_proven_native_bridge_image(self):
+        for value in [
+            "system-images;android-${api};google_apis;x86_64",
+            'ANDROID_BRIDGE_API:-30',
+            'disk.dataPartition.size',
+            'hw.ramSize',
+        ]:
+            self.assertIn(value, EMULATOR_SETUP)
+
+    def test_emulator_runner_is_headless_and_can_disable_acceleration(self):
+        for value in [
+            "-no-window",
+            "-writable-system",
+            'ANDROID_BRIDGE_ACCEL:-off',
+            'ANDROID_BRIDGE_PORT:-5558',
+            'ANDROID_BRIDGE_WRITABLE_SYSTEM:-0',
+        ]:
+            self.assertIn(value, EMULATOR_RUN)
+
+    def test_emulator_preflight_proves_root_and_arm64_translation(self):
+        for value in [
+            "adb_cmd root",
+            "ro.product.cpu.abilist",
+            "arm64-v8a",
+            "ro.dalvik.vm.native.bridge",
+            "ro.enable.native.bridge.exec",
+            "/system/lib64/$native_bridge",
+            "runtime_mode=x86_64-host-with-arm64-translation",
+        ]:
+            self.assertIn(value, EMULATOR_PREFLIGHT)
+        self.assertNotIn("ro.serialno", EMULATOR_PREFLIGHT)
+
+    def test_tcg_install_preparation_waits_for_framework_and_skips_dex_verification(self):
+        for value in [
+            "Service package: found",
+            "Service activity: found",
+            "private mounted",
+            "init.svc.bootanim",
+            "pm.dexopt.install extract",
+        ]:
+            self.assertIn(value, EMULATOR_TCG_PREPARE)
+        for forbidden in ["curl ", "wget ", "resetprop", "ro.serialno"]:
+            self.assertNotIn(forbidden, EMULATOR_TCG_PREPARE)
 
 
 if __name__ == "__main__":

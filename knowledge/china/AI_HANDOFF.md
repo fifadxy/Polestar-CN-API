@@ -1,6 +1,6 @@
 # AI handoff: what another agent needs to continue Polestar China integration
 
-Read this document before editing the project. Updated 2026-10-25.
+Read this document before editing the project. Updated 2026-10-26.
 
 ## Project, branches and sources
 
@@ -12,6 +12,7 @@ Read this document before editing the project. Updated 2026-10-25.
 - Build automation: `.github/workflows/build-hisingen-china-0195.yml`, Xcode 27, ad-hoc signature, macOS 15 + 26 ARM64 runtime smoke tests.
 - `Tools/china_bridge` was removed from the active tree. Its 0.18 design remains available in history and `STATE_AND_BRIDGE.md` only.
 - Primary protocol evidence: `docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`; documentation: `knowledge/china/`.
+- Emulator evidence and exact resume point: `knowledge/china/ANDROID_RUNTIME_VALIDATION.md`; operational helpers: `Tools/auth_probe/*arm64_bridge*` and `prepare_tcg_emulator_install.sh`.
 
 ## What is already known
 
@@ -21,6 +22,7 @@ Read this document before editing the project. Updated 2026-10-25.
 4. Source inspection and CI do not establish successful real-account authentication. Phone/SMS, refresh, linked vehicles and each telemetry family are IMPLEMENTED_UNVERIFIED pending a consenting real-account/vehicle run.
 5. Frida observations remain useful comparison evidence for battery values/timestamps but are no longer the Mac transport architecture.
 6. `parkingClimatizationMaxRuntime=30`; `supportsParkingClimatizationDirectStartSettings=false`. Do not add custom duration 5–30 minute functionality.
+7. API 30 Google APIs x86_64 exposes Android Native Bridge and root ADB on the no-KVM host. PackageManager selected the official APK's `arm64-v8a` ABI, but install completion, process entry and JNI loading are not yet verified. Do not promote this to runtime success.
 
 ## Reliable constraints
 
@@ -89,6 +91,7 @@ Whenever code or findings change, update [FEATURE_MATRIX](FEATURE_MATRIX.md), [E
 
 ## Open blockers
 
+- Emulator install/startup is paused with a clean API 30 AVD and no Polestar package. After user confirmation, rerun the TCG preparation helper (the `extract` property is boot-scoped), then record install, launcher, process and JNI evidence separately.
 - Native Mac phone/SMS and refresh flows are not yet validated with a real account.
 - China vehicle list decoder and multi-vehicle selection are not yet validated with a real account.
 - China C3 gRPC token audience and dynamic host discovery are implemented but not authenticated end to end from Mac.

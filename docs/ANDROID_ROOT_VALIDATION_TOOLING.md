@@ -1,6 +1,6 @@
 # Android Root validation tooling
 
-**Research baseline:** 2026-10-25; official Polestar China `4.25.0-262`; Hisingen China `0.19.5`.
+**Research baseline:** 2026-10-26; official Polestar China `4.25.0-262`; Hisingen China `0.19.5`.
 
 This runbook covers a device and account owned by the tester. Its purpose is to verify non-secret request structure and runtime sequencing, not to extract a session, bypass a challenge, or enable a remote vehicle command.
 
@@ -19,11 +19,13 @@ This runbook covers a device and account owned by the tester. Its purpose is to 
 
 Root-only PCAPdroid capture can coexist with a VPN-based tool such as Reqable. This is useful for flow correlation, but the safe default remains the metadata-only Frida probe plus PCAPdroid with no packet dump.
 
-## Why a real ARM64 phone is required
+## Emulator validation and the real-device boundary
 
-The distributed `4.25.0-262` application contains ARM64 native libraries but no x86/x86_64 equivalents. The Android Emulator on the current x86 cloud host cannot execute an ARM64 AVD, and the unaccelerated x86 AVD cannot enter the official app process. Emulator tests therefore prove installation and control wiring only; they do not prove Polestar runtime behavior.
+The distributed `4.25.0-262` application contains ARM64 native libraries but no x86/x86_64 equivalents. The Android Emulator cannot boot an ARM64 AVD on the current x86 cloud host. However, the API 30 Google APIs x86_64 image includes Android Native Bridge (`libndk_translation.so`) and advertises `arm64-v8a` in `ro.product.cpu.abilist`. It therefore provides the required ARM64 translation path inside an x86_64 Android guest.
 
-The target device must meet all of these conditions:
+This is intended for repeatable package-scan, application-startup, JNI-load, root-ADB, Frida and non-account UI smoke tests. As of the baseline date, root/translation and ARM64 package classification are verified, while completed installation, process entry and JNI load remain pending. It is not an ARM64 kernel/CPU environment and it does not replace release-grade testing on a real phone. See [Android ARM64 Native Bridge emulator](ANDROID_ARM64_BRIDGE_EMULATOR.md) for setup and measured limitations.
+
+A real ARM64 phone remains required for the account/vehicle acceptance session. The target device must meet all of these conditions:
 
 1. `ro.product.cpu.abi` is `arm64-v8a`.
 2. `adb shell su -c id` returns root after an explicit device-side grant.

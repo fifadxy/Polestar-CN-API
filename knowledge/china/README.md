@@ -1,6 +1,6 @@
 # Polestar China API knowledge base
 
-Updated: 2026-10-25. Scope: Polestar China Android 4.25.0-262, Hisingen v2.0.10, China native Mac Preview 0.19.5.
+Updated: 2026-10-26. Scope: Polestar China Android 4.25.0-262, Hisingen v2.0.10, China native Mac Preview 0.19.5.
 
 This directory is the **source-of-truth handoff** for subsequent AI/developers. It records observations and verification gaps; it is not a collection of working session secrets.
 
@@ -21,11 +21,12 @@ This directory is the **source-of-truth handoff** for subsequent AI/developers. 
 2. [Endpoints and method inventory](ENDPOINTS_RPC.md)
 3. [Native macOS China session](NATIVE_MAC_SESSION.md)
 4. [Historical vehicle models and Android bridge](STATE_AND_BRIDGE.md)
-5. [Global-to-China capability matrix](FEATURE_MATRIX.md)
-6. [AI handoff and validation protocol](AI_HANDOFF.md)
-7. [Maintenance log](CHANGELOG.md)
+5. [Android emulator runtime validation](ANDROID_RUNTIME_VALIDATION.md)
+6. [Global-to-China capability matrix](FEATURE_MATRIX.md)
+7. [AI handoff and validation protocol](AI_HANDOFF.md)
+8. [Maintenance log](CHANGELOG.md)
 
-The [16-DEX authentication evidence](../../docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md), [branch inventory](../../docs/BRANCH_INVENTORY_AND_0195_PLAN.md), and [comprehensive comparison](../../docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md) provide the implementation and history context.
+The [16-DEX authentication evidence](../../docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md), [ARM64 Native Bridge emulator runbook](../../docs/ANDROID_ARM64_BRIDGE_EMULATOR.md), [branch inventory](../../docs/BRANCH_INVENTORY_AND_0195_PLAN.md), and [comprehensive comparison](../../docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md) provide the implementation and history context.
 
 **Evidence definitions:** VERIFIED (confirmed source or actual runtime), SOURCE_VERIFIED (exact official-client implementation observed), IMPLEMENTED_UNVERIFIED (native code exists but no real-account proof), OBSERVED (host/key/class exists without proven end-to-end access), BRIDGE_ONLY (historical 0.18 path), MAPPING_REQUIRED (not usable directly), DISABLED (safety gate), and NOT_APPLICABLE (region-specific behavior cannot be transferred).
 

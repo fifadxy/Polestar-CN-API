@@ -1,6 +1,6 @@
 # 分支盘点、合并结论与 0.19.5 开发入口
 
-盘点日期：2026-10-25。远端完整 refspec 已抓取；以下结论基于提交图、逐分支文件树、差异和契约测试，不仅依据分支名。
+盘点日期：2026-10-26。远端完整 refspec 已抓取；以下结论基于提交图、逐分支文件树、差异和契约测试，不仅依据分支名。
 
 ## 1. 远端分支与源码状态
 
@@ -29,8 +29,10 @@
 - `Tests/test_native_mac_contract_0195.py`：与 Android 4.25.0 静态证据对齐的离线契约测试。
 - `.github/workflows/build-hisingen-china-0195.yml`：Xcode 27 构建、签名、打包和兼容性 smoke workflow。
 - `Tools/auth_probe/provision_cn_oauth_secret.py`：只为本地 token 刷新导入 OAuth client secret；不参与首次登录。
+- `Tools/auth_probe/*arm64_bridge*` 与 `prepare_tcg_emulator_install.sh`：API 30 x86_64 Native Bridge / root-ADB 模拟器搭建和 TCG 安装准备；不属于 Mac App 运行时。
 - `knowledge/china`：长期维护的能力、认证、端点和交接知识库。
 - `docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`：16 DEX 的可审计证据链，是修订网络契约的首要依据。
+- `knowledge/china/ANDROID_RUNTIME_VALIDATION.md`：模拟器实测边界；当前只证明 root、Native Bridge、APK 字节和 ARM64 包分类，尚未证明 App 进程/JNI。
 
 `Tools/china_bridge` 已删除。它属于 0.18 历史架构，会让读者误以为 native 0.19.x 仍需常驻 Android/localhost bridge；历史说明仍保留在文档和旧提交中。
 

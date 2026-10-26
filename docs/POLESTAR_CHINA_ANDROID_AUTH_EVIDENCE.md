@@ -468,7 +468,7 @@ ChinaAuthorizationCoordinator
 - discovery 是否在生产环境始终保持无认证；
 - `<c3.url>/car-information/car` 的实际状态码和返回模型。
 
-本轮环境没有连接 Android 设备，也没有 ADB 流量入口，因此安装 Reqable 不会产生新的证据。进入上述动态验证时，可使用 Reqable 做脱敏请求结构对照；若 App 的证书固定阻断代理，则只用已有 Root/Frida metadata probe 记录 header 名、URL、状态码和 JSON key，不记录值。
+2026-10-26 已搭建 API 30 x86_64 + Native Bridge 的 root-ADB 模拟器，并确认 `arm64-v8a` 翻译路径及官方 APK 的 ARM64 包分类。但无 KVM 的 TCG 安装被 16 DEX 的安装期处理拖慢并触发 `system_server` Watchdog；截至本次知识库更新，完整安装、App 进程/JNI、Reqable/Frida 流量均未验证，不能据此增加任何认证结论。详见 `knowledge/china/ANDROID_RUNTIME_VALIDATION.md`。后续代理对照仍只记录脱敏结构；若正常证书信任失败，不关闭 pinning、不记录敏感值。
 
 ## 10. 证据强度与当前阻塞
 

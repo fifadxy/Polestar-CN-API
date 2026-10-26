@@ -16,6 +16,7 @@ Research and interoperability tooling for China-region Polestar vehicle data and
 - **Public/official references:** [knowledge/china/OFFICIAL_REFERENCES.md](knowledge/china/OFFICIAL_REFERENCES.md)
 - **Verified Android 4.25.0 authentication evidence:** [docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md](docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md)
 - **Rooted ARM64 validation tooling and runbook:** [docs/ANDROID_ROOT_VALIDATION_TOOLING.md](docs/ANDROID_ROOT_VALIDATION_TOOLING.md)
+- **ARM64 Native Bridge emulator setup:** [docs/ANDROID_ARM64_BRIDGE_EMULATOR.md](docs/ANDROID_ARM64_BRIDGE_EMULATOR.md)
 - **Branch inventory and 0.19.5 development entry:** [docs/BRANCH_INVENTORY_AND_0195_PLAN.md](docs/BRANCH_INVENTORY_AND_0195_PLAN.md)
 - [Global / China API comparison](docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md)
 - [0.19.5 release notes](docs/HISINGEN_CHINA_0.19.5_RELEASE_NOTES.md)

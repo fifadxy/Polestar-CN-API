@@ -2,6 +2,22 @@
 
 This is a living log. Entries describe **what was learned or changed**, the source/verification level, and remaining evidence gaps. Never paste raw auth records or private vehicle identifiers.
 
+## 2026-10-26 — KB version 1.3 / Android Native Bridge emulator
+
+### Verified environment
+
+- Built an Android 11 / API 30 Google APIs x86_64 `userdebug` AVD for a no-KVM x86_64 host.
+- Verified root ADB, an ABI list containing `arm64-v8a`, enabled `libndk_translation.so` and the 64-bit translator file.
+- Verified that PackageManager staged the unchanged official 4.25.0-262 APK with a matching SHA-256 and selected `primaryCpuAbi=arm64-v8a`.
+
+### Measured limits
+
+- The default `speed-profile` install was blocked in `installd.dexopt`; ART reported that `dex2oat` had not finished after 570 seconds, and Watchdog restarted `system_server`.
+- `verify` remained too expensive under TCG. Interrupted transactions produced incomplete component registration and are not counted as successful installation or runtime proof.
+- Confirmed from Android 11 ART source that `extract` is a valid no-AOT/no-verification install filter. A clean AVD was prepared with it, but final installation was paused for user confirmation.
+- Polestar process entry, ARM64 JNI loading, Reqable, Frida, PCAPdroid root mode and all account/vehicle behavior remain NOT YET VERIFIED in the emulator.
+- Recorded the distinction between ADB-root userdebug and Magisk app-facing `su -c`; no real account or private data was used.
+
 ## 2026-10-25 — KB version 1.2 / Hisingen China Native Mac 0.19.5
 
 ### Full Android evidence and branch consolidation

@@ -7,7 +7,7 @@ Purpose: identify only **non-secret request structure** from the official China 
 ## Requirements
 
 - Your own rooted Android device with USB debugging and official Polestar China app \`com.polestar.china.android\`.
-- A real ARM64 device (`arm64-v8a`). The official app's native libraries cannot be validated on the x86 cloud emulator.
+- A real ARM64 device (`arm64-v8a`) for the account/vehicle acceptance session. For ARM64-library and startup smoke tests, the separate API 30 Native Bridge emulator path is documented below.
 - Official PCAPdroid installed on the phone. The tested baseline is 2.0.2.
 - Mac with ADB and Frida CLI; scrcpy is optional for a private visual timeline. Install using:
   \`brew install android-platform-tools pipx\`
@@ -31,6 +31,26 @@ chmod +x *.sh
 \`\`\`
 
 The setup downloads the matching server from official Frida releases for your device ABI. For general references see https://frida.re/docs/android/ . It runs a debugging service as root, so close it after your session; do not leave it exposed to untrusted networks.
+
+### Linux ARM64 Native Bridge emulator
+
+On an x86_64 Linux host, these helpers create and validate an API 30 Google APIs AVD that translates ARM64 native code with `libndk_translation.so`:
+
+```bash
+export ANDROID_SDK_ROOT=/path/to/android-sdk
+export ANDROID_AVD_HOME=/path/to/avd-home
+Tools/auth_probe/setup_arm64_bridge_emulator_linux.sh
+Tools/auth_probe/run_arm64_bridge_emulator_linux.sh
+
+# In a second terminal after Android finishes booting:
+export ANDROID_SERIAL=emulator-5558
+Tools/auth_probe/emulator_native_bridge_preflight.sh
+
+# Optional on a no-KVM/TCG host before installing the 130 MiB APK:
+Tools/auth_probe/prepare_tcg_emulator_install.sh
+```
+
+This guest provides root through `adb root`; it is not a Magisk phone and not a true ARM64 CPU emulator. It is intended for repeatable package, startup/JNI, Frida and non-account UI smoke tests. Current evidence proves root, Native Bridge and ARM64 package classification, but not a completed Polestar process/JNI run; see `knowledge/china/ANDROID_RUNTIME_VALIDATION.md`. Use the real-device workflow above for login, linked vehicles, telemetry and PCAPdroid root-mode acceptance.
 
 ## Capture steps
 

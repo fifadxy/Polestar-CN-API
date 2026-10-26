@@ -1028,3 +1028,10 @@ NOT IMPLEMENTED
 ## Android v0.4.0-beta1 补充
 
 Android 中国区新增模板方法体映射的 TailgateControl、Lock、PreCleaning 与 Climate/Air 只读状态、系统强生物识别门槛和可选后台通知。仅标 IMPLEMENTED_NEEDS_DEVICE_VERIFICATION。Mac/Hisingen 与 Global 当前实现和认证边界不受此 Android 分支改动影响。
+
+
+## 10. v0.7 Android / China Health 对齐（2026-10-26）
+
+- China Android 现在按 Mac/Hisingen 研究接入 `/services.vehiclestates.health.HealthService/GetHealth`。
+- 当前 Hisingen 源码对 Polestar 5.11.1 Health 的解析：四轮胎压报警为 fields 9–12，实际压力为 fields 39–42（kPa），顺序左前/右前/左后/右后；43/44 是参考压力，不可误当四轮读数。
+- Health field 3/4 对应剩余保养天数/里程研究值；Android v0.7 仍以用户指定的本地 365 天 / 20,000 km 规则为业务显示基准，等待 China 实车验证后再决定是否融合官方值。

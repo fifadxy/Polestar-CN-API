@@ -388,6 +388,23 @@ public final class MainActivity extends FragmentActivity {
     rp.leftMargin = dp(4); selector.addView(refresh, rp);
     body.addView(selector, new LinearLayout.LayoutParams(-1, dp(48)));
 
+    LinearLayout utilityRow = row();
+    boolean windowsOpen = v != null && ("1 个开启".equals(v.windows) || "2 个开启".equals(v.windows)
+        || "3 个开启".equals(v.windows) || "4 个开启".equals(v.windows)
+        || (v.windows != null && v.windows.contains("个开启")));
+    TextView windows = utility(
+        tr("车窗 · ", "Windows · ") + (v == null ? tr("未知", "Unknown") : status(v.windows)),
+        windowsOpen, windowsOpen, () -> directControl("windows"));
+    windows.setTag("windows_control_button");
+    windows.setContentDescription(tr("打开或关闭全部车窗 · 当前 ", "Open or close all windows · current ")
+        + (v == null ? tr("未知", "Unknown") : status(v.windows)));
+    utilityRow.addView(windows, new LinearLayout.LayoutParams(0, dp(42), 1));
+    TextView signals = utility(tr("鸣笛 / 闪灯", "Honk / flash"), false, false, this::signalMenu);
+    signals.setTag("signal_control_button");
+    LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, dp(42), 1);
+    sp.leftMargin = dp(8); utilityRow.addView(signals, sp);
+    body.addView(utilityRow, new LinearLayout.LayoutParams(-1, dp(46)));
+
     LinearLayout data = landscape ? column() : body;
     LinearLayout center = landscape ? row() : null;
     if (landscape) {
@@ -570,9 +587,32 @@ public final class MainActivity extends FragmentActivity {
       case "climate-start": zh = "启动空调 · 22°C"; en = "Start climate · 22°C"; break;
       case "climate-stop": zh = "关闭空调"; en = "Stop climate"; break;
       case "air-start": zh = "开启空气净化"; en = "Start purification"; break;
-      default: zh = "关闭空气净化"; en = "Stop purification";
+      case "air-stop": zh = "关闭空气净化"; en = "Stop purification"; break;
+      case "windows-open": zh = "打开全部车窗"; en = "Open all windows"; break;
+      case "windows-close": zh = "关闭全部车窗"; en = "Close all windows"; break;
+      default: zh = action; en = action;
     }
     authenticate(tr(zh, en), action);
+  }
+
+  private void signalMenu() {
+    if (model.busy || authPending || model.selected == null) return;
+    new HapticDialogBuilder(this)
+        .setTitle(tr("鸣笛 / 闪灯", "Honk / flash"))
+        .setItems(
+            new String[] {
+              tr("鸣笛", "Honk"),
+              tr("闪灯", "Flash"),
+              tr("鸣笛并闪灯", "Honk + flash")
+            },
+            (dialog, which) -> {
+              String[] actions = {"honk", "flash", "honk-flash"};
+              String[] zh = {"鸣笛", "闪灯", "鸣笛并闪灯"};
+              String[] en = {"Honk", "Flash", "Honk + flash"};
+              authenticate(tr(zh[which], en[which]), actions[which]);
+            })
+        .setNegativeButton(tr("取消", "Cancel"), null)
+        .show();
   }
 
   private void authenticate(String label, String action) {
@@ -693,6 +733,11 @@ public final class MainActivity extends FragmentActivity {
         p,
         tr("更新时间", "Last update"),
         v.timestampMillis <= 0 ? "--" : android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis).toString());
+    gap(p, 8);
+    MaintenanceSchedule.Status service = MaintenanceSchedule.status(
+        this, AppPreferences.get(this, "vehicle", ""), v);
+    detailRow(p, tr("保养", "Service"), service.summary(AppPreferences.english(this)));
+    p.addView(button(tr("设置上次保养记录", "Set last service record"), this::maintenanceDialog));
     gap(p, 14);
     p.addView(button(tr("切换车辆", "Select vehicle"), this::chooseVehicle));
   }
@@ -717,6 +762,10 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
     gap(p, 8);
     p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));
+    gap(p, 8);
+    p.addView(button(
+        tr("保养设置 · 默认 365天 / 20,000km", "Service · default 365 d / 20,000 km"),
+        this::maintenanceDialog));
     gap(p, 8);
     p.addView(button(tr("主页数据显示 · 最多 12 项", "Home data fields · up to 12"), () -> metricDialog("home_metrics", 12,
         HOME_DEFAULTS)));
@@ -866,6 +915,64 @@ public final class MainActivity extends FragmentActivity {
             muted,
             false));
     p.addView(text("Lato · SIL Open Font License", 12, muted, false));
+  }
+
+  private void maintenanceDialog() {
+    String vehicleKey = AppPreferences.get(this, "vehicle", "");
+    VehicleSnapshot v = model.snapshot;
+    java.time.LocalDate savedDate = MaintenanceSchedule.lastDate(this, vehicleKey);
+    Integer savedKm = MaintenanceSchedule.lastOdometerKm(this, vehicleKey);
+    MaintenanceSchedule.Status current = MaintenanceSchedule.status(this, vehicleKey, v);
+
+    LinearLayout panel = column();
+    panel.setPadding(dp(18), dp(8), dp(18), dp(4));
+    panel.addView(text(
+        tr("默认周期：365天 / 20,000km。到达任一条件即提示保养。该记录仅保存在本机。",
+            "Default interval: 365 days / 20,000 km. Either limit triggers service. This record stays on this phone."),
+        13, muted, false));
+    gap(panel, 12);
+
+    EditText date = field(tr("上次保养日期 YYYY-MM-DD", "Last service date YYYY-MM-DD"), false);
+    date.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE);
+    date.setText(savedDate == null ? "" : savedDate.toString());
+    panel.addView(date, new LinearLayout.LayoutParams(-1, dp(52)));
+    gap(panel, 8);
+
+    EditText odo = field(tr("上次保养里程 km", "Odometer at last service km"), false);
+    odo.setInputType(InputType.TYPE_CLASS_NUMBER);
+    if (savedKm != null) odo.setText(String.valueOf(savedKm));
+    else if (v != null && v.odometerKm != null) odo.setHint(tr("当前 ", "Current ") + v.odometerKm + " km");
+    panel.addView(odo, new LinearLayout.LayoutParams(-1, dp(52)));
+    gap(panel, 10);
+    panel.addView(text(current.detail(AppPreferences.english(this)), 13, ink, false));
+
+    AlertDialog dialog = new HapticDialogBuilder(this)
+        .setTitle(tr("保养记录", "Service record"))
+        .setView(panel)
+        .setPositiveButton(tr("保存", "Save"), null)
+        .setNegativeButton(tr("关闭", "Close"), null)
+        .create();
+    dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+      Haptics.tap(this);
+      try {
+        String dateRaw = date.getText().toString().trim();
+        if (dateRaw.isEmpty()) {
+          MaintenanceSchedule.clear(this, vehicleKey);
+          toast(tr("已清除保养记录", "Service record cleared"));
+        } else {
+          java.time.LocalDate parsed = java.time.LocalDate.parse(dateRaw);
+          String kmRaw = odo.getText().toString().trim();
+          Integer km = kmRaw.isEmpty() ? (v == null ? null : v.odometerKm) : Integer.valueOf(kmRaw);
+          MaintenanceSchedule.save(this, vehicleKey, parsed, km);
+          toast(tr("保养记录已保存", "Service record saved"));
+        }
+        dialog.dismiss();
+        render();
+      } catch (Exception e) {
+        toast(tr("日期或里程格式不正确", "Invalid date or odometer"));
+      }
+    }));
+    dialog.show();
   }
 
   private void widgetLanguageDialog() {

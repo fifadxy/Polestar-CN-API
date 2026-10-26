@@ -1,3 +1,12 @@
+## 2026-10-26 / v0.7.0-beta1 — 胎压、保养与 Widget 自适应
+
+- `HEALTH_SOURCE_VERIFIED`：对照 Mac China KB 与上游 Hisingen，确认 HealthService/GetHealth 的四轮报警字段 9–12、压力字段 39–42 kPa。
+- `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION`：Android 新增 TireSnapshot、Health 读取、四轮胎压位置图；正常显示 ALL GOOD，异常橙色 + !。
+- `MAINTENANCE`：默认 365 天 / 20,000 km；按车辆保存上次保养日期/里程；提供剩余时间、剩余里程及两个剩余百分比。
+- `WIDGET`：默认透明风格；容量扩展为 4×2=8、2×2=4、4×1=4、2×1=2；字体随数据量缩放；新增小字具体更新时间；移除“旧 / Old”。
+- `REMOTE`：车窗与 HonkFlash 入口已接入；瞬时鸣笛/闪灯不伪造车辆持续状态确认。
+- `BUILD`：版本提升至 v0.7.0-beta1；等待本轮 CI 完整 test/lint/assemble 结果后更新最终 APK 校验值。
+
 # 07｜Android 分支增量研究与开发进度
 
 格式：`日期 | 阶段 | 发现/实现 | 证据 | 状态 | 下一步`。每次分析追加，不覆盖过去状态。

@@ -81,6 +81,7 @@ public final class WidgetRenderer {
         int valueSp = dense ? 10 : count >= 5 ? 12 : count >= 3 ? 14 : 16;
         if (size == Size.WIDE) { labelSp = count >= 4 ? 8 : 9; valueSp = count >= 4 ? 11 : 13; }
         if (size == Size.MINI) { labelSp = 8; valueSp = 11; }
+        if (size == Size.SQUARE) { labelSp = 8; valueSp = 11; }
         android.text.SpannableString styled = new android.text.SpannableString(content);
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(labelSp, true), 0, label.length(), 0);
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(valueSp, true), label.length() + separator.length(), content.length(), 0);

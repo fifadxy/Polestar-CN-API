@@ -15,7 +15,7 @@ public final class DiagnosticLog {
     }
     public static synchronized String export() {
         StringBuilder out = new StringBuilder("Polestar Android Companion dev diagnostics\n");
-        out.append("networkApiEnabled=false; remoteCommandsEnabled=false; data=demo\n");
+        out.append("build=0.2.0-alpha1; mainUi=demo; chinaLiveAdapter=alpha; chinaCoreRemote=manual-confirm; globalApi=off\n");
         for (String e : MESSAGES) out.append(e).append('\n');
         return out.toString();
     }

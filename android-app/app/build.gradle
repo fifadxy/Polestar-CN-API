@@ -1,0 +1,29 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'io.github.polestarcn.companion'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.polestarcn.companion'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0-dev1'
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}

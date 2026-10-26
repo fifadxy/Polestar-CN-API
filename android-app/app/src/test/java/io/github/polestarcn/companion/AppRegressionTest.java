@@ -654,6 +654,44 @@ public final class AppRegressionTest {
   }
 
   @Test
+  @Config(qualifiers = "w640dp-h320dp-mdpi")
+  public void bothStylesUseFixedLandscapeLayoutsWithoutClippedControls() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.selected.modelName = "Polestar 2 Long Range Dual Motor";
+    c.selected.modelYear = "2024";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "开启", "关闭")
+        .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
+            3.0, 4, 18, null, 1, 1));
+    AppPreferences.set(activity, "home_metrics", "temperature,target_temperature,tire_status");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+
+    for (String skin : new String[]{UiSkin.SIMPLE, UiSkin.DETAILED}) {
+      UiSkin.set(activity, skin);
+      render.invoke(activity);
+      View root = activity.getWindow().getDecorView();
+      root.measure(View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 640, 320);
+      View content = findTagged(root, "control_pull_content");
+      assertNotNull(content);
+      assertEquals(0, count(content, ScrollView.class));
+      android.graphics.Rect visible = new android.graphics.Rect();
+      assertTrue(content.getGlobalVisibleRect(visible));
+      assertTrue("fixed landscape content stays within viewport for " + skin,
+          visible.bottom <= 320);
+      assertNotNull(findTagged(root, "vi_ambient_glow"));
+    }
+  }
+
+  @Test
   public void tireUiUsesItpmsWarningStateWithoutDisplayingKpa() {
     TireSnapshot tyres = new TireSnapshot(
         new Double[]{250.0, 251.0, 249.0, 252.0},
@@ -751,6 +789,7 @@ public final class AppRegressionTest {
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
   public void bothVehicleControlStylesExposeAmbientGlowAndSelectedMetrics() throws Exception {
+    AppPreferences.set(activity, "language", "zh");
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";

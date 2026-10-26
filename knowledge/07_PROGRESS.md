@@ -51,3 +51,16 @@
 - `KNOWLEDGE_SYNC`：新建 `13_REFERENCE_APK_FIELD_VALIDATION.md`、`14_ANDROID_PARITY_V3_MASTER_PLAN.md`、`15_TOKEN_AND_REMOTE_VALIDATION.md`、`16_ANDROID_BRANCH_GOVERNANCE.md`，并更新 INDEX/API/FEATURE/ROADMAP/VALIDATION/README。
 - `CODE_STATUS_UNCHANGED`：`v0.1.0-dev2` 仍为 DEMO/OFFLINE，未加入真实认证/API/远控；既有成功构建 run `40261229408` 是旧版记录。V3 为计划版本，非新 APK 发布。
 - `SCOPE`：R8、混淆、非必要安全加固仍延期；真实远控后续在授权、确认与逐项验证下实施。
+
+
+## 2026-10-26 / Phase 2 — v0.2.0-alpha1 China 实验实车链路
+
+- `P0_METHOD_LEVEL`：直接复核参考 APK DEX 方法体，确认 China 登录请求体、signed URL 参数/排序/MD5 流程、C3 discovery、车辆发现、Battery/Odometer/Exterior RPC，以及 `invocation.InvocationService` 的空调和解锁请求构造。
+- `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION`：新增 `ChinaPolestarApi`、原始 Protobuf codec、China 登录/refresh、C3 host + vehicle discovery、SOC/Range/Odometer 基础读取、Exterior 锁状态尝试读取。
+- `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION`：新增空调启动/停止、车门解锁；全部需要用户主动确认，网络结果只标“服务器接受/失败/未确认”，不自动重复高影响写请求。
+- `SESSION_SECURITY`：China Session 使用 Android Keystore AES-GCM 加密持久化；密码不持久化；诊断日志不写 Token、手机号、完整 VIN。
+- `COMPATIBILITY_BRIDGE`：参考 APK 的固定兼容签名材料不提交仓库。alpha1 仅在设备端发现包 `app.c3garage.companion` 且 SHA-256 与已验证样本完全一致时，从其 `classes.dex` 运行时定位材料；仅保存在内存。
+- `CI_VERIFIED`：GitHub Actions run [40265773414](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40265773414) 全部通过；head `bcbfaa24e4d81dada749bc3a02d470e9992dcfb0`；artifact `polestar-android-companion-v0.2.0-alpha1-debug`。
+- `BUILD_PASS`：Actions artifact ZIP digest `sha256:81bfd7f3ed628c2711eca906e16e2a8eaf42ee96bd7a36174629b626518d1a08`；解包后的 APK SHA-256 `eac3d5118ed715ab7d5e739fe55b6675472cee4783cda37254cb23e218673a6e`。
+- `NOT_PROJECT_DEVICE_VERIFIED`：本次只证明源码门禁和 APK 编译成功；China 登录、真实车单、SOC/里程及空调/解锁仍需在用户本人授权车辆上逐项实测，不能从参考 APK 的成功外推为本 APK 已成功。
+- `REMAINS`：P4 原版 UI、真实 Widget、完整 Exterior/车窗/尾门/鸣笛闪灯/净化、命令车辆侧回读确认、Token 误报长时测试、C3 Live、PCCS、Global 仍未完成。

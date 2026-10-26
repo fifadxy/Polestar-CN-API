@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Network permission is reserved for a future, separately verified API adapter. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <queries>
+        <package android:name="app.c3garage.companion" />
+    </queries>
     <application
         android:label="Polestar Companion Dev"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
+        <activity
+            android:name=".ChinaLiveActivity"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:screenOrientation="unspecified"

@@ -61,6 +61,9 @@ public enum DisplayMetric {
   public String value(VehicleSnapshot s, boolean includeUnit) {
     return value(s, includeUnit, false);
   }
+  public String value(VehicleSnapshot s, boolean includeUnit, boolean english) {
+    return value(null, s, includeUnit, english);
+  }
   public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
     if (this == TIRE_STATUS) return s.tires.summary(english);

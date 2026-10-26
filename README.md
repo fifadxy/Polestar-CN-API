@@ -2,7 +2,7 @@
 
 **Android 长期主开发分支**：`android-polestar-assistant-main`  
 **总开发计划**：`Android Parity V3.0`（**计划版本号，并非已编译 APK 版本号**）  
-**工程基线**：`v0.1.0-dev2`，独立原生 Android Java 工程，现有代码仍为 **DEMO / OFFLINE**。
+**当前构建**：`v0.2.0-alpha1`，独立原生 Android Java 工程；主界面/Widget 仍保留 DEMO，但已加入 **China 实验实车链路**。
 
 ## 本次复刻计划的实测基础
 
@@ -22,10 +22,11 @@
 ## 当前实际代码与构建状态
 
 - Native Java / Android SDK：AGP 8.5.2、Gradle 8.7、JDK 17、compileSdk35、minSdk26、targetSdk34。
-- 已有：首次 China/Global 选择、车辆总览、演示 SOC/里程/续航、车辆状态示意、标准/紧凑 Widget、日志复制、DEMO/CACHED/LIVE 状态语义与命令状态纯模型。
-- 尚未实现：China 真实登录、Session/Refresh、真实车辆发现/C3读取、空调/解锁/其他远控、真实 Widget 刷新、Global 真实 API、C3 live 等。
-- `CapabilityMatrix.ENABLE_NETWORK_VEHICLE_API=false` 和 `ENABLE_REMOTE_COMMANDS=false` 仍然保持不变，**仅表示当前代码状态**；远控已列为 **V3 P3 核心复刻目标**。
-- 既有 APK `v0.1.0-dev2`：GitHub Actions [run 40261229408](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40261229408) 已成功编译；APK SHA-256 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40`。该运行记录**不能证明真实车辆功能可用**。
+- 已有基础 UI：首次 China/Global 选择、车辆总览、演示 SOC/里程/续航、车辆状态示意、标准/紧凑 Widget、日志复制、DEMO/CACHED/LIVE 状态语义与命令状态模型。
+- `v0.2.0-alpha1` 新增 China 实验链路：手机号+密码登录、Keystore 加密 Session、Token refresh、C3 Host/车辆发现、Battery/Odometer/Exterior 原始 Protobuf 读取、空调启动/停止与车门解锁手动确认调用。
+- 兼容签名材料**不进入 Git**：仅在设备端检测已安装的参考 APK，且 SHA-256 必须匹配已验证样本，再从该 APK 运行时读取；不写日志和持久存储。
+- 主界面/Widget 仍是 DEMO；Global、C3 Live、PCCS、完整 Exterior 字段、其他远控、命令车辆侧确认和原版 UI 复刻仍待后续阶段。
+- `v0.2.0-alpha1`：GitHub Actions [run 40265773414](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40265773414) 已成功编译；Actions artifact `polestar-android-companion-v0.2.0-alpha1-debug`。**构建成功不等于实车链路已经由本项目验证。**
 
 ## 本地 / CI 构建
 

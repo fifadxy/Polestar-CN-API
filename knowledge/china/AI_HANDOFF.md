@@ -1,6 +1,6 @@
 # AI handoff: what another agent needs to continue Polestar China integration
 
-Read this document before editing the project. Updated 2026-10-25.
+Read this document before editing the project. Updated 2026-10-26.
 
 ## Project, branches and sources
 
@@ -11,7 +11,7 @@ Read this document before editing the project. Updated 2026-10-25.
 - Deterministic patch application: `Scripts/apply_hisingen_china_0195.py`.
 - Build automation: `.github/workflows/build-hisingen-china-0195.yml`, Xcode 27, ad-hoc signature, macOS 15 + 26 ARM64 runtime smoke tests.
 - `Tools/china_bridge` was removed from the active tree. Its 0.18 design remains available in history and `STATE_AND_BRIDGE.md` only.
-- Primary protocol evidence: `docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`; documentation: `knowledge/china/`.
+- Primary protocol evidence: `docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`; runtime/build evidence: `docs/ANDROID_CLOUD_RUNTIME_EVIDENCE.md`, `docs/CHINA_ANDROID_APK_PROVENANCE.md`, and `docs/CHINA_LAYOUT_INSPECTOR_RUNTIME_EVIDENCE.md`; documentation: `knowledge/china/`.
 
 ## What is already known
 
@@ -21,6 +21,7 @@ Read this document before editing the project. Updated 2026-10-25.
 4. Source inspection and CI do not establish successful real-account authentication. Phone/SMS, refresh, linked vehicles and each telemetry family are IMPLEMENTED_UNVERIFIED pending a consenting real-account/vehicle run.
 5. Frida observations remain useful comparison evidence for battery values/timestamps but are no longer the Mac transport architecture.
 6. `parkingClimatizationMaxRuntime=30`; `supportsParkingClimatizationDirectStartSettings=false`. Do not add custom duration 5–30 minute functionality.
+7. Polestar 2 does not support or display the charging-port flap button. Type `2` in the generic Android UI model is reserved and all three inspected controller families return unsupported; do not expose this control for Polestar 2.
 
 ## Reliable constraints
 

@@ -19,9 +19,11 @@ This runbook covers a device and account owned by the tester. Its purpose is to 
 
 Root-only PCAPdroid capture can coexist with a VPN-based tool such as Reqable. This is useful for flow correlation, but the safe default remains the metadata-only Frida probe plus PCAPdroid with no packet dump.
 
-## Why a real ARM64 phone is required
+## Why a real ARM64 phone is still required
 
-The distributed `4.25.0-262` application contains ARM64 native libraries but no x86/x86_64 equivalents. The Android Emulator on the current x86 cloud host cannot execute an ARM64 AVD, and the unaccelerated x86 AVD cannot enter the official app process. Emulator tests therefore prove installation and control wiring only; they do not prove Polestar runtime behavior.
+The distributed `4.25.0-262` application contains ARM64 native libraries but no x86/x86_64 equivalents. A `google_apis_x86_64` Android 11 AVD with `libndk_translation` can enter the official Java/UI process when process-start timeouts and unaccelerated dex verification are handled. It has reached `HomeActivity` and `PscnLoginActivity`, loaded all 16 DEX files and accepted a metadata-only Frida attachment. See [ANDROID_CLOUD_RUNTIME_EVIDENCE](ANDROID_CLOUD_RUNTIME_EVIDENCE.md).
+
+That result does not validate the ARM64 native paths. In the cloud run, `libpag.so` failed the x86_64 ELF check and `libvocmo-lib.so` was not loaded. Pure QEMU TCG also required test-only isolation of JPush components. The emulator is useful for Java/Kotlin, Activity/View, ClassLoader and OkHttp metadata work; real ARM64 hardware remains required for native-library behavior and account/vehicle end-to-end acceptance.
 
 The target device must meet all of these conditions:
 

@@ -1,6 +1,6 @@
 # Hisingen Global → China feature mapping and acceptance tests
 
-**Baseline:** Hisingen upstream `v2.0.10`, China Android `4.25.0-262`, native Mac Preview `0.19.5`. Updated 2026-10-25.
+**Baseline:** Hisingen upstream `v2.0.10`, China Android `4.25.0-262`, native Mac Preview `0.19.5`. Updated 2026-10-26.
 
 Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED** = exact official-client contract observed; **IMPLEMENTED-UNVERIFIED** = native Mac code exists but lacks a real-account/vehicle proof; **BRIDGE-ONLY** = historical 0.18 Android-process path; **MAPPING_REQUIRED** = direct method remains unmapped; **DISABLED** = intentionally not executable; **NOT_APPLICABLE** = an EU-only interface cannot be assumed in China.
 
@@ -27,7 +27,8 @@ Legend: **GLOBAL-IMPLEMENTED** = upstream source supports it; **SOURCE-VERIFIED*
 | Global charging timer | GLOBAL-IMPLEMENTED | Chronos service family observed | Native read only; IMPLEMENTED-UNVERIFIED | Authorized response semantics |
 | Climate start/stop | GLOBAL-IMPLEMENTED | CN request class observed | DISABLED | Explicit end-to-end permission and vehicle confirmation |
 | Remote lock/unlock | GLOBAL-IMPLEMENTED | CN exterior controller has method identifiers | DISABLED | Explicit end-to-end permission and vehicle confirmation |
-| Windows/tailgate/honk/flash | GLOBAL-IMPLEMENTED | Methods/capability indicators observed | DISABLED | Command-specific mapped request and test |
+| Windows/tailgate/honk/flash | GLOBAL-IMPLEMENTED | C3 `windowControl`, `tailgateControl` and `honkFlash` request models SOURCE-VERIFIED | DISABLED | Command-specific authorization, ACK and vehicle-state confirmation |
+| Charging-port flap | Model-dependent | Generic Android UI type `2` exists, but Polestar 2 capability excludes it and C3/PCCS/VOCMO controller paths are unsupported | DISABLED for Polestar 2 | Do not expose for Polestar 2; re-evaluate only with a separately verified model |
 | Charging override / write settings | GLOBAL-IMPLEMENTED | Protobuf write request structures observed | DISABLED | Verified permission, model limits and outcome |
 | OTA schedule/install/cancel | GLOBAL-IMPLEMENTED | Global OTA service known; CN unverified | DISABLED | Official compatibility and full consent workflow |
 | Vehicle location / weather / air quality | GLOBAL-IMPLEMENTED | CN LBS/C3 families observed | Native optional reads; IMPLEMENTED-UNVERIFIED | Authorized responses; redact GPS |

@@ -1,6 +1,6 @@
 # 分支盘点、合并结论与 0.19.5 开发入口
 
-盘点日期：2026-10-25。远端完整 refspec 已抓取；以下结论基于提交图、逐分支文件树、差异和契约测试，不仅依据分支名。
+盘点日期：2026-10-26。已再次执行完整 refspec fetch、`ls-remote` 和逐分支 `merge-base` 核对；以下结论基于远端实际 head、提交图、逐分支文件树、差异和契约测试，不仅依据分支名。
 
 ## 1. 远端分支与源码状态
 
@@ -17,8 +17,11 @@
 | `chatgpt/hisingen-china-native-0.19.2` | `640aaa3` | 54 / 15 | native 产品演进线 | 已被 0.19.4 包含 |
 | `chatgpt/hisingen-china-native-0.19.3` | `7b31e31` | 69 / 20 | native 产品演进线 | 已被 0.19.4 包含 |
 | `chatgpt/hisingen-china-native-0.19.4` | `0e2d2f4` | 81 / 26 | 文件最完整的产品基线 | 已通过非快进 merge 纳入集成线 |
+| `integrate/hisingen-china-0.19.5` | `645b167` | 当前集成树 | 0.19.5 唯一开发与交付入口 | 最新；包含分支汇总、脱敏协议修正和 rooted Android 验证工具 |
 
 0.19.4 与加固版 0.19.0 在 `3390375` 后分叉，没有可直接判定为等价的 cherry-pick。整支合并会把后来的挑战页、安装器和构建流水线回退到旧接口，因此选择“0.19.4 骨架 + 经验证的逻辑移植”。
+
+2026-10-26 的 merge-base 复核结果：除 `chatgpt/hisingen-china-build-0.18.1` 和 `chatgpt/hisingen-china-native-0.19.0` 两条已知分叉支线外，其余历史分支 head 都是 `integrate/hisingen-china-0.19.5` 的祖先。两条分叉支线的有效内容已经按本文件所述选择性移植，不能再整支 merge。`main` 与 `android-polestar-china-api` 仍同停在 `6548b2f`，不是当前开发基线。
 
 ## 2. 当前源码布局
 

@@ -9,6 +9,7 @@
 - `REMOTE_STATE`：China 空调启动/停止与解锁进入手动确认通道；UI 区分 `SENDING`、`SERVER_ACCEPTED`、`FAILED`、`UNCONFIRMED`；写操作不自动重试。
 - `SESSION`：继续使用 Android Keystore AES-GCM 保存 Token；显示缓存不保存完整 VIN 或凭证，恢复后标 `CACHED`。
 - `LOCAL_BUILD_VERIFIED`：JDK 17 + Gradle 8.7 + Android SDK 35 执行 `assembleDebug` 成功；交付 APK 2.6 MiB，SHA256 `1398f074cf3ea7527c23134d20db12675762766600be9c32d7175cc6cf14710f`；ZIP 完整性及 APK v2 签名通过。
+- `CI_VERIFIED`：功能提交 `9a84b829d6287ba2c5871891b579f560ee7a2ee6` 已推送至 `android-polestar-assistant-main`；Actions run [`40267795873`](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40267795873) 的模型/安全门、SDK 35、Debug APK 构建、产物检查与上传全部成功。
 - `DEVICE_LIMITATION`：当前执行环境无 USB/KVM，无法完成 T01–T12 真机/模拟器验证；China 能力保持 `DEVICE_VERIFICATION`，Global/C3 Live/PCCS/后台 Worker 仍未实现。
 
 ## 2026-10-26 / Phase 0 — 参考 APK 入库

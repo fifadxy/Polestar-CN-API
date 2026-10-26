@@ -29,7 +29,7 @@
 - Global、C3 Live、PCCS、其他远控、后台定时刷新、命令车辆侧确认和原版 UI 的像素级复刻仍待后续阶段；新项目的 China 实车能力仍需用户设备验证，不能标记为 `PROJECT_DEVICE_VERIFIED`。
 - 当前兼容方式要求设备同时安装 SHA-256 完全匹配的参考 APK；本项目 APK 不内置第三方兼容签名材料。
 - `v0.2.0-alpha1`：GitHub Actions [run 40265773414](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40265773414) 已成功编译；Actions artifact `polestar-android-companion-v0.2.0-alpha1-debug`。**构建成功不等于实车链路已经由本项目验证。**
-- `v0.3.0-alpha2`：本地受控 Android 构建环境成功完成 `assembleDebug`；交付 APK SHA256 `1398f074cf3ea7527c23134d20db12675762766600be9c32d7175cc6cf14710f`，ZIP 完整性与 APK Signature Scheme v2 校验通过。
+- `v0.3.0-alpha2`：本地受控 Android 构建环境成功完成 `assembleDebug`；交付 APK SHA256 `1398f074cf3ea7527c23134d20db12675762766600be9c32d7175cc6cf14710f`，ZIP 完整性与 APK Signature Scheme v2 校验通过。GitHub Actions [run 40267795873](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40267795873) 已成功重建并上传 CI artifact。
 
 ## 本地 / CI 构建
 

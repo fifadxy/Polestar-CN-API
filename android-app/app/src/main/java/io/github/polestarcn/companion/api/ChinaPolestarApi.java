@@ -9,6 +9,7 @@ import io.github.polestarcn.companion.MileageSnapshot;
 import io.github.polestarcn.companion.ExteriorSnapshot;
 import io.github.polestarcn.companion.EnvironmentSnapshot;
 import io.github.polestarcn.companion.ChargingSnapshot;
+import io.github.polestarcn.companion.TireSnapshot;
 import io.github.polestarcn.companion.auth.ReferenceSignatureProvider;
 import io.github.polestarcn.companion.auth.SecureSessionStore;
 import io.grpc.CallOptions;
@@ -320,6 +321,15 @@ public final class ChinaPolestarApi {
       DiagnosticLog.add("Exterior read failed: " + safe(e));
     }
 
+    TireSnapshot tires = TireSnapshot.unknown();
+    try {
+      Map<Integer, Object> health = ProtoWire.nested(
+          stateRpc(s, vin, "services.vehiclestates.health.HealthService", "GetHealth"), 3);
+      tires = TireSnapshot.fromData(health);
+    } catch (Exception e) {
+      DiagnosticLog.add("Health/tyre state unavailable");
+    }
+
     EnvironmentSnapshot environment = EnvironmentSnapshot.fromData(
         readFeatureData(s, vin, true), readFeatureData(s, vin, false));
     return new VehicleSnapshot(
@@ -338,7 +348,7 @@ public final class ChinaPolestarApi {
         false,
         environment.climate,
         environment.air).withMileage(mileage).withExterior(individualExterior).withEnvironment(environment)
-        .withCharging(ChargingSnapshot.fromData(battery));
+        .withCharging(ChargingSnapshot.fromData(battery)).withTires(tires);
   }
 
   private String readFeature(Session s, String vin, boolean climate) {

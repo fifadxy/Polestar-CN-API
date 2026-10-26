@@ -75,8 +75,9 @@ public final class WidgetRenderer {
         String label = metric.shortLabel(en), value = metric.value(c, s, false, en);
         String content = label + "\n" + value;
         int labelSp = count >= 7 ? 8 : count >= 5 ? 9 : count >= 3 ? 10 : 11;
-        int valueSp = count >= 7 ? 11 : count >= 5 ? 12 : count >= 3 ? 14 : size == Size.MINI ? 15 : 16;
+        int valueSp = count >= 7 ? 11 : count >= 5 ? 12 : count >= 3 ? 14 : 16;
         if (size == Size.WIDE) { labelSp = count >= 4 ? 8 : 9; valueSp = count >= 4 ? 11 : 13; }
+        if (size == Size.MINI) { labelSp = 8; valueSp = 11; }
         android.text.SpannableString styled = new android.text.SpannableString(content);
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(labelSp, true), 0, label.length(), 0);
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(valueSp, true), label.length() + 1, content.length(), 0);

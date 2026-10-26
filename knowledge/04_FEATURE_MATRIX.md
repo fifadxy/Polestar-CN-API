@@ -31,3 +31,15 @@
 ## v0.4.0-beta1 增量（覆盖上表当前实现列）
 
 区域弹窗已移除，默认中国区真实登录/车控；手机号密码请求沿用真实服务协议，模板支持一次性 SAF 导入并本机加密。空调启停/门锁/尾箱/净化均实现并需系统强生物识别。新增中英文、日夜模式、英文 Widget、可选常驻通知及 JobScheduler 三十分钟刷新；上述接口仍为 IMPLEMENTED_NEEDS_DEVICE_VERIFICATION，未提升为实车已验证。
+
+
+## v0.7.0-beta1 新增
+
+| 功能 | 当前状态 | 说明 |
+|---|---|---|
+| China 胎压 / iTPMS | IMPLEMENTED_NEEDS_DEVICE_VERIFICATION | HealthService/GetHealth；四轮报警 9–12，压力 39–42 kPa |
+| 胎压四轮位置图 | IMPLEMENTED | 与门窗同一俯视车辆视觉体系；ALL GOOD / 橙色异常 ! |
+| 本地保养周期 | IMPLEMENTED | 默认 365 天 / 20,000 km；按车保存上次保养记录 |
+| 保养剩余天数/里程/% | IMPLEMENTED | 主界面、详情页、Widget 可选 |
+| Widget 自适应数据密度 | IMPLEMENTED | 4×2=8，2×2=4，4×1=4，2×1=2；按数量缩放字体 |
+| Widget 更新时间 | IMPLEMENTED | 仅显示明确时间，不再显示“旧 / Old” |

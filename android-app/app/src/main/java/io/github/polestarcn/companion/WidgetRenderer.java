@@ -73,14 +73,16 @@ public final class WidgetRenderer {
       if (i < count) {
         DisplayMetric metric = selected.get(i);
         String label = metric.shortLabel(en), value = metric.value(c, s, false, en);
-        String content = label + "\n" + value;
-        int labelSp = count >= 7 ? 7 : count >= 5 ? 9 : count >= 3 ? 10 : 11;
-        int valueSp = count >= 7 ? 9 : count >= 5 ? 12 : count >= 3 ? 14 : 16;
+        boolean dense = count >= 7;
+        String separator = dense ? " · " : "\n";
+        String content = label + separator + value;
+        int labelSp = dense ? 8 : count >= 5 ? 9 : count >= 3 ? 10 : 11;
+        int valueSp = dense ? 10 : count >= 5 ? 12 : count >= 3 ? 14 : 16;
         if (size == Size.WIDE) { labelSp = count >= 4 ? 8 : 9; valueSp = count >= 4 ? 11 : 13; }
         if (size == Size.MINI) { labelSp = 8; valueSp = 11; }
         android.text.SpannableString styled = new android.text.SpannableString(content);
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(labelSp, true), 0, label.length(), 0);
-        styled.setSpan(new android.text.style.AbsoluteSizeSpan(valueSp, true), label.length() + 1, content.length(), 0);
+        styled.setSpan(new android.text.style.AbsoluteSizeSpan(valueSp, true), label.length() + separator.length(), content.length(), 0);
         views.setTextViewTextSize(ids[i], android.util.TypedValue.COMPLEX_UNIT_SP, labelSp);
         views.setTextViewText(ids[i], styled); views.setTextColor(ids[i], ink);
         views.setContentDescription(ids[i], metric.label(en) + " · " + metric.value(c, s, true, en));

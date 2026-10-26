@@ -35,6 +35,9 @@ public final class VehicleSnapshotStore {
       o.put("consumptionReportedAt", snapshot.mileage.consumptionReportedAt);
       o.put("doorStates", array(snapshot.exterior.states(false)));
       o.put("windowStates", array(snapshot.exterior.states(true)));
+      o.put("tireWarnings", array(snapshot.tires.warnings()));
+      o.put("tirePressures", doubleArray(snapshot.tires.pressures()));
+      o.put("tireReportedAt", snapshot.tires.reportedAt);
       o.put("temperatureC", snapshot.environment.temperatureC);
       o.put("targetTemperatureC", snapshot.environment.targetTemperatureC);
       o.put("aqi", snapshot.environment.aqi);
@@ -92,6 +95,10 @@ public final class VehicleSnapshotStore {
       if (o.has("doorStates") || o.has("windowStates"))
         snapshot = snapshot.withExterior(new ExteriorSnapshot(
             states(o.optJSONArray("doorStates")), states(o.optJSONArray("windowStates"))));
+      if (o.has("tireWarnings") || o.has("tirePressures"))
+        snapshot = snapshot.withTires(new TireSnapshot(
+            doubles(o.optJSONArray("tirePressures")), states(o.optJSONArray("tireWarnings")),
+            o.optLong("tireReportedAt", 0)));
       snapshot = snapshot.withEnvironment(new EnvironmentSnapshot(snapshot.climate, snapshot.air,
           decimal(o, "temperatureC"), decimal(o, "targetTemperatureC"), decimal(o, "pm25"),
           integer(o, "aqi"), integer(o, "climateRuntimeMinutes"), integer(o, "airRuntimeMinutes"),
@@ -130,6 +137,18 @@ public final class VehicleSnapshotStore {
 
   private static Double decimal(JSONObject o, String key) {
     return o.isNull(key) || !o.has(key) ? null : o.optDouble(key, Double.NaN);
+  }
+
+  private static org.json.JSONArray doubleArray(Double[] values) {
+    org.json.JSONArray out = new org.json.JSONArray();
+    for (Double value : values) out.put(value == null ? JSONObject.NULL : value);
+    return out;
+  }
+  private static Double[] doubles(org.json.JSONArray values) {
+    Double[] out = new Double[4];
+    if (values != null) for (int i = 0; i < Math.min(4, values.length()); i++)
+      if (!values.isNull(i)) out[i] = values.optDouble(i);
+    return out;
   }
 
   private static org.json.JSONArray array(int[] values) {

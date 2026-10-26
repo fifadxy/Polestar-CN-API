@@ -1,5 +1,7 @@
 package io.github.polestarcn.companion;
 
+import android.content.Context;
+
 public enum DisplayMetric {
   BATTERY("battery", "电量", "Battery", "%"), RANGE("range", "续航", "Range", " km"),
   ODOMETER("odometer", "总里程", "Odometer", " km"),
@@ -18,7 +20,12 @@ public enum DisplayMetric {
   CHARGE_POWER("charge_power", "充电功率", "Charging power", " kW"),
   CHARGE_CURRENT("charge_current", "充电电流", "Charging current", " A"),
   CHARGE_ETA("charge_eta", "预计充满", "Time to full", ""),
-  POWER_STATUS("power_status", "电源状态", "Power status", "");
+  POWER_STATUS("power_status", "电源状态", "Power status", ""),
+  TIRE_STATUS("tire_status", "胎压状态", "Tire status", ""),
+  SERVICE_DAYS_LEFT("service_days_left", "保养剩余天数", "Service days left", " d"),
+  SERVICE_KM_LEFT("service_km_left", "保养剩余里程", "Service km left", " km"),
+  SERVICE_TIME_PERCENT("service_time_percent", "保养时间剩余", "Service time left", "%"),
+  SERVICE_KM_PERCENT("service_km_percent", "保养里程剩余", "Service distance left", "%");
   public final String id, zh, en, unit;
   DisplayMetric(String id, String zh, String en, String unit) { this.id = id; this.zh = zh; this.en = en; this.unit = unit; }
   public String label(boolean english) { return english ? en : zh; }
@@ -43,14 +50,35 @@ public enum DisplayMetric {
       case CHARGE_TYPE: return english ? "Type" : "充电类型";
       case CHARGE_ETA: return english ? "Full" : "充满时间";
       case POWER_STATUS: return english ? "Power" : "电源状态";
+      case TIRE_STATUS: return english ? "Tires" : "胎压";
+      case SERVICE_DAYS_LEFT: return english ? "Service d" : "保养天数";
+      case SERVICE_KM_LEFT: return english ? "Service km" : "保养里程";
+      case SERVICE_TIME_PERCENT: return english ? "Time left %" : "时间剩余 %";
+      case SERVICE_KM_PERCENT: return english ? "Distance left %" : "里程剩余 %";
       default: return label(english);
     }
   }
   public String value(VehicleSnapshot s, boolean includeUnit) {
     return value(s, includeUnit, false);
   }
-  public String value(VehicleSnapshot s, boolean includeUnit, boolean english) {
+  public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
+    if (this == TIRE_STATUS) return s.tires.summary(english);
+    if (this == SERVICE_DAYS_LEFT || this == SERVICE_KM_LEFT
+        || this == SERVICE_TIME_PERCENT || this == SERVICE_KM_PERCENT) {
+      if (c == null) return "--";
+      MaintenanceSchedule.Status status = MaintenanceSchedule.status(
+          c, AppPreferences.get(c, "vehicle", ""), s);
+      if (!status.configured) return "--";
+      if (this == SERVICE_DAYS_LEFT) return status.remainingDays() + (includeUnit ? unit : "");
+      if (this == SERVICE_KM_LEFT) {
+        Integer v = status.remainingKm();
+        return v == null ? "--" : v + (includeUnit ? unit : "");
+      }
+      int v = this == SERVICE_TIME_PERCENT
+          ? status.remainingTimePercent() : status.remainingDistancePercent();
+      return v < 0 ? "--" : v + (includeUnit ? unit : "");
+    }
     switch (this) {
       case CHARGE_CONNECTION: return s.chargingDetails.connection(english);
       case CHARGE_TYPE: return s.chargingDetails.type(english);

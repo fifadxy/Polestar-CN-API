@@ -184,6 +184,21 @@ public final class VehicleCoordinator {
               case "air-stop":
                 api.purify(vehicle.vin, false);
                 break;
+              case "windows-open":
+                api.windows(vehicle.vin, true);
+                break;
+              case "windows-close":
+                api.windows(vehicle.vin, false);
+                break;
+              case "honk":
+                api.honkFlash(vehicle.vin, true, false);
+                break;
+              case "flash":
+                api.honkFlash(vehicle.vin, false, true);
+                break;
+              case "honk-flash":
+                api.honkFlash(vehicle.vin, true, true);
+                break;
               default:
                 throw new IllegalArgumentException("Unsupported action");
             }

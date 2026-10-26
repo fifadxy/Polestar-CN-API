@@ -62,3 +62,7 @@ flowchart TD
 正式复刻计划以 `14_ANDROID_PARITY_V3_MASTER_PLAN.md` 为准：将参考 APK `PolestarApi` 的认证、C3 读取和车控拆成独立 `auth/`、`api/`、`vehicle/`、`remote/`，并为原版 UI、Widget、Worker 和 diagnostics 建立统一数据/操作状态源。P1/P2/P3 以参考 APK 用户已证实可用的 China 登录、SOC/里程、空调/解锁为优先级；P6 再逐项回归 Global 和 Streaming。
 
 **v0.3.0-alpha2 状态**：China 登录/Token/C3/三项远控适配器已实现并等待用户设备验证；China 快照通过 `VehicleSnapshotStore` 进入首页和 Widget，恢复后强制标为 `CACHED`。Global 仍使用 `DemoRepository`，C3 Live/PCCS/后台 Worker 与其余远控尚未实现。
+
+## v0.4.0-beta1 当前架构
+
+`MainActivity` 合并登录/默认车控/详情/设置；`VehicleCoordinator` 管理应用级队列与状态，供页面和 `VehicleRefreshJob` 共用；`ResidentService` 是可选静默通知，`BootReceiver` 恢复用户启用的后台选项。区域固定中国区；不存在首次区域弹窗。详见 `docs/ANDROID_V04.md`。

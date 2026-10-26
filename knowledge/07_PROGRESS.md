@@ -2,6 +2,17 @@
 
 格式：`日期 | 阶段 | 发现/实现 | 证据 | 状态 | 下一步`。每次分析追加，不覆盖过去状态。
 
+## 2026-10-26 / v0.4.0-beta1 — 真实登录入口、指纹车控、双语设计与常驻通知
+
+- `USER_CONFIRMED`：区域弹窗移除，固定中国区手机号+密码真实登录；登录后默认车控首页；中英文、日夜模式、英文 Widget；静默常驻通知显示电量、充电、空调/净化和 Token 最近签发/刷新时间。
+- `IMPLEMENTED`：登录/车辆/控制统一 VehicleCoordinator，共享单队列和复用的 gRPC channel；模板可一次性 SAF 导入并本机 Keystore 加密，避免强制安装模板依赖；生产页面不再显示模拟数据。
+- `REMOTE`：系统 BIOMETRIC_STRONG 门槛覆盖门锁、尾箱、空调和净化；一条写指令之后最多四次只读回读；支持 Cancel/Failure/Unknown，不自动重发写操作。
+- `BACKGROUND`：默认关闭的 specialUse 前台通知，LOW 静默保留图标；JobScheduler 约三十分钟批量读取，未使用 WakeLock；开机/覆盖安装恢复已启用选项；锁屏不展示详细状态。
+- `DESIGN`：按用户 PDF 提取官方公共符号，保留明暗比例；原模板 P2 图压缩 WebP；Lato 开源英文/数字与系统中文回退（未声称为 Polestar 专用字库）；小屏/横屏弹性控制布局。
+- `LOCAL_VERIFIED`：JDK17 + Gradle8.7 + SDK35；testDebugUnitTest/assembleDebug/lintDebug 通过；10 个 Robolectric 回归测试零失败（Android26/28、首次启动、320×568/360×640/640×320、深色中文、指纹失败/取消不发送、缓存、通知、导入校验）；Android Lint 0 errors（兼容与样式建议 warning 保留）；纯 Java Proto/状态模型、知识库与源码检查均通过。
+- `APK_VERIFIED`：5,017,338 字节，SHA256 `7ca6938ec456929cea4909237fcb85709a828a5bb529d4b993642c8d6f89a6e7`；ZIP 完整性、aapt 包信息及 APK v2 签名通过；签名证书 SHA256 与已交付 alpha2 完全一致，可覆盖同签名旧版。
+- `LIMITS`：Robolectric 使用测试车况 fixture，仅验证本机 UI/逻辑；云环境没有 USB/KVM 与用户车云账号，不表示真实登录、尾箱/空调/净化车端执行或指纹硬件已实测。Global/Live/PCCS/露营自动化保持未实现。使用说明 docs/ANDROID_V04.md。
+
 ## 2026-10-26 / Phase 2 — v0.3.0-alpha2 协议纠偏与可安装 APK
 
 - `PROTOCOL_FIX`：按参考 APK 方法级证据修正公共参数签名为 `salt + canonical + salt`、`systemVer=Build.DISPLAY`、嵌套 `globleToken` 登录/刷新解析、C3 discovery v1 Accept、状态 RPC VIN field 2 与里程米→公里换算。

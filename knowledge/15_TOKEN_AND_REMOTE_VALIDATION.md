@@ -96,3 +96,7 @@ UNCONFIRMED --只读状态确认--> VEHICLE_CONFIRMED 或保留 UNCONFIRMED
 ```
 
 仅结构示例，不作为已经取得的网络日志。测试样本里不能包含用户标识、Token、完整 VIN 或私人行程。
+
+## v0.4.0-beta1 增量
+
+新增 Lock/TailgateControl/PreCleaning 的模板方法级映射，系统 BIOMETRIC_STRONG 成功后才发送；取消/不可用不发送。单次发送后最多四次只读回读；状态值匹配只说明车辆状态已达目标，不声明获得独立的命令执行回执。通知 Token 时间取最近登录或刷新签发时间，不因车辆 Host 保存而更新。导入兼容参数采用 Keystore AES-GCM，密码不持久化。

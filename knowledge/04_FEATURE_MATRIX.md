@@ -27,3 +27,7 @@
 | 独立源码与构建 | 不适用（参考 APK 是二进制） | v0.3.0-alpha2 `LOCAL_BUILD_VERIFIED`；v2 签名和 ZIP 完整性通过 | P7 后续新版本分别构建/验收 |
 
 **V3.0 是开发总计划版本，不是已经完成的 APK 版本号。** `knowledge/13` 记录参考 APK 用户实测，`knowledge/15` 记录 Token/车控验收，`knowledge/14` 为完整开发总计划。
+
+## v0.4.0-beta1 增量（覆盖上表当前实现列）
+
+区域弹窗已移除，默认中国区真实登录/车控；手机号密码请求沿用真实服务协议，模板支持一次性 SAF 导入并本机加密。空调启停/门锁/尾箱/净化均实现并需系统强生物识别。新增中英文、日夜模式、英文 Widget、可选常驻通知及 JobScheduler 三十分钟刷新；上述接口仍为 IMPLEMENTED_NEEDS_DEVICE_VERIFICATION，未提升为实车已验证。

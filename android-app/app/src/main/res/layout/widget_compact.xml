@@ -1,21 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:orientation="vertical" android:padding="12dp"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="@drawable/widget_background">
-    <TextView android:id="@+id/widget_title" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:textSize="11sp" android:textStyle="bold"
-        android:textColor="#222222" android:text="POLESTAR · DEMO" />
-    <LinearLayout android:orientation="horizontal" android:layout_marginTop="6dp"
-        android:layout_width="match_parent" android:layout_height="wrap_content">
-        <TextView android:id="@+id/widget_soc" android:layout_width="0dp" android:layout_weight="1"
-            android:layout_height="wrap_content" android:textSize="24sp" android:textColor="#171717"
-            android:textStyle="bold" android:text="--%" />
-        <TextView android:id="@+id/widget_range" android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:textColor="#333333" android:textSize="14sp" android:text="-- km" />
+<?xml version="1.0" ?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:orientation="vertical" android:padding="12dp" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/widget_background">
+    <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:textStyle="bold" android:textColor="#222222" android:text="POLESTAR · OFFLINE"/>
+    <LinearLayout android:orientation="horizontal" android:layout_marginTop="6dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:id="@+id/widget_soc" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="24sp" android:textColor="#E88445" android:textStyle="bold" android:text="--%"/>
+        <TextView android:id="@+id/widget_range" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#333333" android:textSize="14sp" android:text="-- km"/>
     </LinearLayout>
-    <TextView android:id="@+id/widget_region" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="4dp"
-        android:textColor="#666666" android:textSize="10sp" android:text="China · OFFLINE" />
+    <TextView android:id="@+id/widget_region" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#666666" android:textSize="10sp" android:text="China · OFFLINE"/>
 </LinearLayout>

@@ -32,3 +32,7 @@
 `方法级拆解(P0) → 授权 China 登录+Token(P1) → Vehicle Discovery/C3 Read(P2) → 用户已证实空调与解锁(P3) → 其他远控逐项验证(P3) → UI/Widget(P4/P5) → Global/Stream/PCCS(P6)`。
 
 每取得新的 RPC/响应字段证据，同时更新 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md` 和 `11_VEHICLE_DATA_DICTIONARY.md`；每个实测结论必须说明测试目标是**参考 APK**还是**本项目 APK**。
+
+## v0.4.0-beta1 方法级增量
+
+参考模板 `PolestarApi.control`：`TailgateControl` 请求 VIN 包裹在 field 1/1，field 2=1 打开/2 关闭；`Lock` field 2=0；`PreCleaning` field 2=1 开启/0 关闭。`ParkingClimatization.GetLatestParkingClimatization` payload 3 内 field 2 与 `PreCleaning.GetLatestPreCleaning` payload 3 内 field 6，枚举 Unknown/On/Off/Pending。以上新增独立实现，保持 NEEDS_DEVICE_VERIFICATION。控制先通过系统强生物识别，调用一次，最多四次只读回读，不自动重发。

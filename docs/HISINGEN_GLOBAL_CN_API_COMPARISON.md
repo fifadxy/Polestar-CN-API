@@ -1024,3 +1024,7 @@ NOT IMPLEMENTED
   R8、混淆、发行加固仍 **DEFERRED**。不向仓库写入账号、令牌、Cookie、真实 VIN 或客户端签名盐。
 
 此附录的第三方 APK 证据，**不能覆盖**本文件对官方 China App C3 Live 的既有验证结论。
+
+## Android v0.4.0-beta1 补充
+
+Android 中国区新增模板方法体映射的 TailgateControl、Lock、PreCleaning 与 Climate/Air 只读状态、系统强生物识别门槛和可选后台通知。仅标 IMPLEMENTED_NEEDS_DEVICE_VERIFICATION。Mac/Hisingen 与 Global 当前实现和认证边界不受此 Android 分支改动影响。

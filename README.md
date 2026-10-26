@@ -1,14 +1,16 @@
-# Polestar Assistant for Android · China / Global
+# Polestar Assistant for Android · China
 
 **Android 长期主开发分支**：`android-polestar-assistant-main`  
 **总开发计划**：`Android Parity V3.0`（**计划版本号，并非已编译 APK 版本号**）  
-**当前构建**：`v0.3.0-alpha2`，独立原生 Android Java 工程；China 实车状态缓存已接入主界面和 Widget，Global 仍为明确标记的 DEMO。
+**当前构建**：`v0.4.0-beta1`，独立原生 Android Java 工程；真实中国区登录入口、默认车辆控制首页、系统生物识别、双语与日夜模式、可选常驻状态通知。Global 不展示为可用功能。
+
+安装与一次性模板导入、通知和指纹说明见 [Android v0.4 使用说明](docs/ANDROID_V04.md)。旧版本进度保留在知识库历史记录。
 
 ## 本次复刻计划的实测基础
 
 用户已在第三方参考 APK `app-release.apk.1.1(1).1` (`app.c3garage.companion`, v0.1.0) 上实际使用 **中国区账号登录、SOC 电量读取、累计里程读取、空调远程控制和车门解锁**。用户另报告：长期使用可能弹出 Token 错误，但实际功能仍可能可用。这些是 `REFERENCE_USER_VERIFIED` 的**参考 APP**行为，**不能说明本独立 Android 工程已经实现**。
 
-本工程目标是完整分析参考 APK 的 Manifest/DEX、UI、资源、C3/Proto、认证/会话、远控、Widget/后台机制，以独立、可维护源码复刻功能；同时解决 Token 误报归因并增强 China/Global 分区。**不直接将反编译源码拼接生产、不复制第三方私有密钥或用户凭证。**
+本工程目标是完整分析参考 APK 的 Manifest/DEX、UI、资源、C3/Proto、认证/会话、远控、Widget/后台机制，以独立、可维护源码复刻功能；同时解决 Token 误报归因并增强 China/Global 分区。**不直接将反编译源码拼接生产、不把第三方兼容签名材料或用户凭证提交源码或构建产物。用户主动导入的兼容参数仅使用本机 Keystore 加密保存。**
 
 ## 推荐阅读
 

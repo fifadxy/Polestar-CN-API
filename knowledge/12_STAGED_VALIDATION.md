@@ -10,7 +10,7 @@
 | APK 签名验证 | Python `cryptography` | 签名 + 摘要通过；不推断开发者身份 | 已完成 |
 | 33 字段提取 | Python DEX | 与 `evidence/apk-vehicle-schema.json` 一致 | 已完成 |
 | 纯 Java 状态测试 | JDK | 7+ 类分类不变量通过 | `scripts/test_models.sh` |
-| Android 编译 | GitHub Actions / SDK | `assembleDebug` 成功且有 `app-debug.apk` | 见 CI 最新运行 |
+| Android 编译 | GitHub Actions / SDK | `assembleDebug` 成功且有 `app-debug.apk` | **CI 已通过**（run `40261229408`） |
 | 首次区域选择 | 模拟器/真机 | 首次弹 China/Global，之后能切换 | **待设备测试** |
 | 车辆首页 | 模拟器/真机 | SOC、续航、里程完整；明示 DEMO/OFFLINE | **待设备测试** |
 | 两种 Widget | 模拟器/真机 | 不截断、区域切换更新，点击打开 App | **待设备测试** |

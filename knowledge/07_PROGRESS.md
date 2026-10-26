@@ -35,3 +35,10 @@
 - `DECISION`：R8、混淆、安全加固、真实远控全部延期；继续独立 Android 分支，不覆盖 Hisingen Mac。
 
 本轮具体 commit SHA、build run、APK 产物以 GitHub Actions 页面及最终交付说明为准。
+
+## 2026-10-26 / Phase 1.2 — Android Debug 编译完成
+
+- `CI_VERIFIED`：Actions Run [`40261229408`](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40261229408) 成功，构建 commit `5f3afc415acfe4ffc2d33fd8613511e51019b7fb`。
+- `BUILD_PASS`：成功生成 `app-debug.apk`（28,951 字节，SHA256 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40`）；人工解包、zip 完整性检查、v2 签名内容摘要检查均通过。
+- `NOT_YET_TESTED`：Android 模拟器/真机 UI、Widget、账户登录、中国区车辆 API、真实控制；不可从编译成功推断行为可用。
+- 新增文档仅补成功记录和签名读取的准确算法位数标注，**不改变参与上述 CI 的 Android 应用源代码**。R8 与后期安全工作仍 `DEFERRED`。

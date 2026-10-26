@@ -46,3 +46,12 @@ GitHub Actions `.github/workflows/android-apk.yml` 为 Debug 构建工作流；�
 - 本轮修改工作流：先执行 `python3 scripts/verify_source.py` 与 `sh scripts/test_models.sh`；从 `$ANDROID_HOME/cmdline-tools/` 定位 `sdkmanager`，在缺 API 35 或 Build Tools 35.0.0 时再安装。是否解决以更新后实际 CI 为准。
 - 新增 `python3 scripts/inspect_vehicle_schema.py <apk>` 和 `python3 scripts/verify_apk_v2.py <apk>`，二者是参考 APK 的只读证据检查，不改变用户 APK。
 - 原始 APK 应用 ID `app.c3garage.companion` 与新工程 `io.github.polestarcn.companion` 不同，新 APK **不能**作为原包同包升级安装；需独立安装。
+
+## 2026-10-26 构建验收：dev2 已生成可下载 APK
+
+- GitHub CI：`https://github.com/fifadxy/Polestar-CN-API/actions/runs/40261229408`，针对 commit `5f3afc415acfe4ffc2d33fd8613511e51019b7fb`。
+- 结果：**SUCCESS**；纯 Java 测试、知识库一致性检查、Android API 35 初始化、Gradle `:app:assembleDebug`、`Check output`、`upload-artifact` 全部通过。
+- 构建产物：`polestar-android-companion-v0.1.0-dev2-debug`（GitHub Actions Artifact），解包后 `app-debug.apk` 大小 **28,951 字节**；SHA-256 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40`。
+- APK ZIP 可读，含 `classes.dex`、`classes2.dex`，二次核查证实后者含 `MainActivity`, `TelemetryStatus`, `OperationState`。APK v2 签名与内容摘要可独立复核通过；证书主体 `CN=Android Debug`，并非参考原 APK 的发布证书。
+- 这是 **debug APK / 离线 DEMO**；目前没有模拟器启动测试、真实登录、C3 状态读取或实车远控成功证据，不能将“编译通过”写成“功能回归全部通过”。
+- 新工程包名不同于原 APK，可并行安装。不同 CI 运行环境产生的 Debug 证书可能变化；如果覆盖安装提示签名冲突，需要采用稳定的本地调试签名或卸载旧版后安装（卸载会删除本地测试数据）。

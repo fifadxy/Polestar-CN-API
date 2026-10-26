@@ -115,7 +115,7 @@ def inspect(path: Path) -> dict:
         'file_sha256': hashlib.sha256(data).hexdigest(),
         'apk_v2_signature': 'VERIFIED',
         'apk_v2_content_digest': 'VERIFIED',
-        'signing_algorithm': 'RSA-3072 / PKCS1v1.5 / SHA-256',
+        'signing_algorithm': f'RSA-{signer_key.key_size} / PKCS1v1.5 / SHA-256',
         'certificate_subject': cert.subject.rfc4514_string(),
         'certificate_issuer': cert.issuer.rfc4514_string(),
         'certificate_sha256': hashlib.sha256(certs[0]).hexdigest(),

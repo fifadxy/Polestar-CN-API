@@ -25,7 +25,7 @@ gradle --no-daemon :app:assembleDebug
 
 输出：`android-app/app/build/outputs/apk/debug/app-debug.apk`
 
-GitHub Actions 工作流 `.github/workflows/android-apk.yml` 也会编译并上传 Debug APK 构建产物；构建是否成功以工作流记录为准。
+GitHub Actions 工作流 `.github/workflows/android-apk.yml` 已在 [run 40261229408](https://github.com/fifadxy/Polestar-CN-API/actions/runs/40261229408) 成功构建 `v0.1.0-dev2`，并上传 Debug APK。APK SHA-256 为 `0e8d417cd6354ecf55ac414492a466ce10d02778e40eb59aa850bdbac0767a40`。目前仅完成构建与静态校验，未进行模拟器/实车使用验证。
 
 ## 双报告审阅 / 阶段成果（2026-10-26）
 

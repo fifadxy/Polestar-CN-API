@@ -10,7 +10,7 @@
 | [02_ARCHITECTURE.md](02_ARCHITECTURE.md) | Android 项目结构、模块职责、模拟/真实接口边界 | v0.1 骨架已落地 |
 | [03_API_RESEARCH.md](03_API_RESEARCH.md) | 登录、Discovery、C3/PCCS、Proto 服务对照 | 映射中 |
 | [04_FEATURE_MATRIX.md](04_FEATURE_MATRIX.md) | 原 APK vs 新工程的功能差异及验证状态 | 持续更新 |
-| [05_BUILD_AND_TEST.md](05_BUILD_AND_TEST.md) | 编译环境、指令、验证步骤、限制 | 初版 |
+| [05_BUILD_AND_TEST.md](05_BUILD_AND_TEST.md) | 编译环境、指令、验证步骤、限制 | dev2 CI 编译通过 |
 | [06_DEFERRED_SECURITY_R8.md](06_DEFERRED_SECURITY_R8.md) | 混淆、安全、权限等优化待办 | **DEFERRED，不执行** |
 | [07_PROGRESS.md](07_PROGRESS.md) | 累计增量更新记录与阶段结果 | 进行中 |
 | [08_ROADMAP.md](08_ROADMAP.md) | 研究/实现优先级、验证条件 | 规划完成 |

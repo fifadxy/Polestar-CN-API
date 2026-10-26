@@ -24,6 +24,7 @@ public final class MainActivity extends FragmentActivity {
   private LinearLayout shell, body;
   private int page = 0, ink, muted, paper, surface, line;
   private final int orange = Color.rgb(255, 107, 0);
+  private final int evGreen = Color.rgb(89, 143, 124);
   private Typeface regular, bold;
   private boolean authPending;
   private int authGeneration;
@@ -159,6 +160,13 @@ public final class MainActivity extends FragmentActivity {
     return d;
   }
 
+  private GradientDrawable oval(int color) {
+    GradientDrawable d = new GradientDrawable();
+    d.setShape(GradientDrawable.OVAL);
+    d.setColor(color);
+    return d;
+  }
+
   private TextView text(String s, int sp, int color, boolean heavy) {
     TextView v = new TextView(this);
     v.setText(s);
@@ -217,12 +225,13 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void palette() {
-    boolean dark = AppPreferences.dark(this);
-    ink = Color.parseColor(dark ? "#F4F4F2" : "#18191A");
-    muted = Color.parseColor(dark ? "#AAAAA7" : "#626560");
-    paper = Color.parseColor(dark ? "#151617" : "#F3F3F1");
+    boolean ev = UiSkin.EV_CONCEPT.equals(UiSkin.get(this));
+    boolean dark = !ev && AppPreferences.dark(this);
+    ink = Color.parseColor(ev ? "#111417" : dark ? "#F4F4F2" : "#18191A");
+    muted = Color.parseColor(ev ? "#7A7E7D" : dark ? "#AAAAA7" : "#626560");
+    paper = Color.parseColor(ev ? "#F7F6F2" : dark ? "#151617" : "#F3F3F1");
     surface = Color.parseColor(dark ? "#292B2D" : "#FFFFFF");
-    line = Color.parseColor(dark ? "#343638" : "#DCDDD7");
+    line = Color.parseColor(ev ? "#E8E6DF" : dark ? "#343638" : "#DCDDD7");
     getWindow().setStatusBarColor(paper);
     getWindow().setNavigationBarColor(paper);
     getWindow()
@@ -242,23 +251,30 @@ public final class MainActivity extends FragmentActivity {
       password = null;
     }
     palette();
-    setTheme(AppPreferences.dark(this) ? R.style.AppThemeDark : R.style.AppThemeLight);
+    setTheme(UiSkin.EV_CONCEPT.equals(UiSkin.get(this)) ? R.style.AppThemeLight
+        : AppPreferences.dark(this) ? R.style.AppThemeDark : R.style.AppThemeLight);
     shell = column();
     shell.setBackgroundColor(paper);
-    LinearLayout header = row();
-    header.setPadding(dp(20), 0, dp(12), 0);
-    ImageView brand = new ImageView(this);
-    brand.setImageDrawable(getApplicationInfo().loadIcon(getPackageManager()));
-    brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
-    brand.setContentDescription("PsAssistant");
-    header.addView(brand, new LinearLayout.LayoutParams(dp(30), dp(30)));
-    TextView name = text("PsAssistant", 17, ink, true);
-    LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, -2, 1);
-    np.leftMargin = dp(12);
-    header.addView(name, np);
-    TextView language = button(AppPreferences.english(this) ? "EN" : "中文", this::languageDialog);
-    header.addView(language, new LinearLayout.LayoutParams(dp(58), dp(48)));
-    shell.addView(header, new LinearLayout.LayoutParams(-1, dp(56)));
+    boolean customDashboard =
+        page == 0 && model.hasSession() && !UiSkin.CURRENT.equals(UiSkin.get(this));
+    if (!customDashboard) {
+      LinearLayout header = row();
+      header.setPadding(dp(20), 0, dp(12), 0);
+      ImageView brand = new ImageView(this);
+      brand.setImageDrawable(getApplicationInfo().loadIcon(getPackageManager()));
+      brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      brand.setContentDescription("PsAssistant");
+      header.addView(brand, new LinearLayout.LayoutParams(dp(30), dp(30)));
+      TextView name = text("PsAssistant", 17, ink, true);
+      LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, -2, 1);
+      np.leftMargin = dp(12);
+      header.addView(name, np);
+      TextView language = button(AppPreferences.english(this) ? "EN" : "中文", this::languageDialog);
+      header.addView(language, new LinearLayout.LayoutParams(dp(58), dp(48)));
+      shell.addView(header, new LinearLayout.LayoutParams(-1, dp(56)));
+    } else {
+      shell.addView(new View(this), new LinearLayout.LayoutParams(1, dp(8)));
+    }
     body = column();
     body.setPadding(dp(18), 0, dp(18), 0);
     shell.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -268,7 +284,9 @@ public final class MainActivity extends FragmentActivity {
     else controls();
     LinearLayout nav = row();
     nav.setPadding(dp(14), dp(6), dp(14), dp(6));
-    String[] names = {tr("车辆控制", "Control"), tr("车况详情", "Details"), tr("设置", "Settings")};
+    String[] names = UiSkin.EV_CONCEPT.equals(UiSkin.get(this))
+        ? new String[]{tr("车辆", "Vehicle"), tr("车况", "Status"), tr("设置", "Settings")}
+        : new String[]{tr("车辆控制", "Control"), tr("车况详情", "Details"), tr("设置", "Settings")};
     for (int i = 0; i < names.length; i++) {
       final int tab = i;
       TextView t =
@@ -374,6 +392,19 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void controls() {
+    String skin = UiSkin.get(this);
+    if (UiSkin.EV_CONCEPT.equals(skin)) {
+      controlsEvConcept();
+      return;
+    }
+    if (UiSkin.LATEST.equals(skin)) {
+      controlsLatest();
+      return;
+    }
+    controlsCurrent();
+  }
+
+  private void controlsCurrent() {
     VehicleSnapshot v = model.snapshot;
     boolean landscape = getResources().getConfiguration().screenWidthDp
         > getResources().getConfiguration().screenHeightDp;
@@ -486,6 +517,332 @@ public final class MainActivity extends FragmentActivity {
     footer.setContentDescription(model.message);
     click(footer, () -> info(tr("车辆状态", "Vehicle status"), model.message + "\n" + stamp));
     body.addView(footer, new LinearLayout.LayoutParams(-1, dp(landscape ? 28 : 32)));
+  }
+
+
+  private void controlsLatest() {
+    VehicleSnapshot v = model.snapshot;
+    LinearLayout p = scrollBody();
+    p.setPadding(0, dp(4), 0, dp(18));
+
+    int heroInk = Color.rgb(246, 246, 243);
+    int heroMuted = Color.rgb(171, 173, 171);
+    int heroBg = Color.rgb(26, 28, 29);
+    LinearLayout hero = column();
+    hero.setTag("latest_dashboard");
+    hero.setPadding(dp(18), dp(16), dp(18), dp(16));
+    hero.setBackground(bg(heroBg, 20));
+    hero.setElevation(dp(2));
+
+    LinearLayout top = row();
+    TextView vehicle = text(v == null ? tr("连接车辆", "Connect vehicle") : v.name, 20, heroInk, true);
+    vehicle.setSingleLine(true);
+    vehicle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    click(vehicle, this::chooseVehicle);
+    top.addView(vehicle, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView refresh = text(model.busy ? "…" : "↻", 25, heroInk, false);
+    refresh.setGravity(Gravity.CENTER);
+    refresh.setMinWidth(dp(48));
+    refresh.setMinHeight(dp(48));
+    click(refresh, () -> model.refresh(null));
+    refresh.setEnabled(!model.busy);
+    top.addView(refresh, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    hero.addView(top);
+
+    LinearLayout heroBody = row();
+    LinearLayout values = column();
+    TextView soc = text(v == null ? "--%" : VehicleSnapshot.metric(v.batteryPercent, "%"), 42, orange, true);
+    values.addView(soc);
+    values.addView(text(tr("电量", "BATTERY"), 10, heroMuted, true));
+    gap(values, 12);
+    values.addView(text(v == null ? "-- km" : VehicleSnapshot.metric(v.rangeKm, " km"), 24, heroInk, false));
+    values.addView(text(tr("预计续航", "EST. RANGE"), 10, heroMuted, true));
+    gap(values, 10);
+    values.addView(text(v == null ? tr("状态未知", "Status unknown") : status(v.charging), 12, heroMuted, false));
+    heroBody.addView(values, new LinearLayout.LayoutParams(0, -1, .43f));
+
+    ImageView car = new ImageView(this);
+    car.setImageResource(R.drawable.vehicle_top);
+    car.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    car.setContentDescription("Polestar 2");
+    click(car, this::exteriorDialog);
+    heroBody.addView(car, new LinearLayout.LayoutParams(0, dp(150), .57f));
+    hero.addView(heroBody, new LinearLayout.LayoutParams(-1, dp(166)));
+
+    LinearLayout heroStatus = row();
+    String bodyState = v == null ? tr("车况未知", "Body unknown")
+        : ExteriorView.hasOpening(v) ? tr("有开启部位", "Opening detected") : tr("车身关闭", "Body closed");
+    String tireState = v == null ? tr("胎压未知", "Tires unknown") : v.tires.summary(AppPreferences.english(this));
+    TextView bodyChip = utility(bodyState, v != null && ExteriorView.hasOpening(v), v != null && ExteriorView.hasOpening(v), this::exteriorDialog);
+    bodyChip.setTextColor(heroInk);
+    bodyChip.setBackground(bg(Color.rgb(47, 49, 50), 10));
+    heroStatus.addView(bodyChip, new LinearLayout.LayoutParams(0, dp(44), 1));
+    TextView tireChip = utility(tireState, false, v != null && v.tires.hasProblem(), this::tireDialog);
+    tireChip.setTextColor(v != null && v.tires.hasProblem() ? orange : heroInk);
+    tireChip.setBackground(bg(Color.rgb(47, 49, 50), 10));
+    LinearLayout.LayoutParams tc = new LinearLayout.LayoutParams(0, dp(44), 1); tc.leftMargin = dp(8);
+    heroStatus.addView(tireChip, tc);
+    hero.addView(heroStatus);
+
+    p.addView(hero, new LinearLayout.LayoutParams(-1, -2));
+    gap(p, 14);
+    p.addView(text(tr("快捷控制", "Quick controls"), 16, ink, true));
+    gap(p, 8);
+    LinearLayout first = row(), second = row();
+    tile(first, tr("门锁", "Door lock"), v == null ? tr("未知", "Unknown") : status(v.lock),
+        "lock", () -> directControl("lock"));
+    tile(first, tr("驻车空调", "Climate"),
+        ClimateRuntime.label(this, v, AppPreferences.get(this, "vehicle", "")),
+        "climate", () -> directControl("climate"));
+    tile(second, tr("尾箱", "Tailgate"), v == null ? tr("未知", "Unknown") : status(v.tailgate),
+        "trunk", () -> directControl("trunk"));
+    tile(second, tr("空气净化", "Air"), v == null ? tr("未知", "Unknown") : status(v.air),
+        "air", () -> directControl("air"));
+    p.addView(first, new LinearLayout.LayoutParams(-1, dp(76)));
+    gap(p, 8);
+    p.addView(second, new LinearLayout.LayoutParams(-1, dp(76)));
+    gap(p, 12);
+
+    LinearLayout utilityOne = row();
+    boolean opening = ExteriorView.hasOpening(v);
+    utilityOne.addView(utility(tr("门窗", "Body"), opening, opening, this::exteriorDialog),
+        new LinearLayout.LayoutParams(0, dp(48), 1));
+    LinearLayout.LayoutParams lpT = new LinearLayout.LayoutParams(0, dp(48), 1); lpT.leftMargin = dp(8);
+    utilityOne.addView(tireUtility(v), lpT);
+    LinearLayout.LayoutParams lpC = new LinearLayout.LayoutParams(0, dp(48), 1); lpC.leftMargin = dp(8);
+    utilityOne.addView(utility(tr("△ 露营", "△ Camp"), CampModeManager.active(this), false, this::campDialog), lpC);
+    p.addView(utilityOne);
+
+    gap(p, 8);
+    LinearLayout utilityTwo = row();
+    boolean windowsOpen = v != null && v.windows != null && v.windows.contains("个开启");
+    utilityTwo.addView(utility(tr("车窗 · ", "Windows · ")
+        + (v == null ? tr("未知", "Unknown") : status(v.windows)),
+        windowsOpen, windowsOpen, () -> directControl("windows")),
+        new LinearLayout.LayoutParams(0, dp(48), 1));
+    LinearLayout.LayoutParams sig = new LinearLayout.LayoutParams(0, dp(48), 1); sig.leftMargin = dp(8);
+    utilityTwo.addView(utility(tr("鸣笛 / 闪灯", "Honk / flash"), false, false, this::signalMenu), sig);
+    p.addView(utilityTwo);
+
+    gap(p, 16);
+    LinearLayout metrics = column();
+    metrics.setPadding(dp(12), dp(12), dp(12), dp(10));
+    metrics.setBackground(bg(surface, 14));
+    metrics.setElevation(dp(1));
+    metrics.addView(text(tr("车辆数据", "Vehicle data"), 15, ink, true));
+    gap(metrics, 8);
+    java.util.List<DisplayMetric> chosen = MetricSelection.read(this, "home_metrics", HOME_DEFAULTS);
+    if (chosen.size() > 8) chosen = chosen.subList(0, 8);
+    addMetricGrid(metrics, v, chosen, false);
+    p.addView(metrics);
+
+    gap(p, 10);
+    String stamp = v == null || v.timestampMillis <= 0 ? tr("更新时间未知", "Update time unknown")
+        : tr("更新 ", "Updated ") + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
+    p.addView(text((model.message.isEmpty() ? "" : model.message + " · ") + stamp, 11, muted, false));
+  }
+
+  private void controlsEvConcept() {
+    VehicleSnapshot v = model.snapshot;
+    LinearLayout p = scrollBody();
+    p.setPadding(0, dp(2), 0, dp(18));
+
+    LinearLayout head = row();
+    LinearLayout titles = column();
+    TextView vehicle = text((v == null ? tr("我的车辆", "My EV") : v.name) + "⌄", 23, ink, true);
+    vehicle.setSingleLine(true);
+    click(vehicle, this::chooseVehicle);
+    titles.addView(vehicle);
+    titles.addView(text(v == null ? tr("中国区 · 等待连接", "China · waiting to connect")
+        : tr("中国区 · 已连接", "China · connected"), 13, muted, false));
+    head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView refresh = text(model.busy ? "…" : "↻", 24, ink, false);
+    refresh.setGravity(Gravity.CENTER);
+    refresh.setMinHeight(dp(48));
+    refresh.setMinWidth(dp(48));
+    click(refresh, () -> model.refresh(null));
+    refresh.setEnabled(!model.busy);
+    head.addView(refresh, new LinearLayout.LayoutParams(dp(48), dp(48)));
+    p.addView(head);
+    gap(p, 16);
+
+    LinearLayout hero = row();
+    LinearLayout stats = column();
+    stats.setGravity(Gravity.CENTER_VERTICAL);
+    String rangeNumber = v == null || v.rangeKm == null ? "--" : String.valueOf(v.rangeKm);
+    LinearLayout rangeLine = row();
+    rangeLine.setGravity(Gravity.BOTTOM);
+    rangeLine.addView(text(rangeNumber, 46, ink, true));
+    TextView km = text(" km", 19, ink, false);
+    LinearLayout.LayoutParams kmp = new LinearLayout.LayoutParams(-2, -2); kmp.bottomMargin = dp(6);
+    rangeLine.addView(km, kmp);
+    stats.addView(rangeLine);
+    stats.addView(text(tr("预计续航", "Est. Range"), 13, muted, false));
+    gap(stats, 12);
+    ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+    bar.setMax(100);
+    bar.setProgress(v == null || v.batteryPercent == null ? 0 : v.batteryPercent);
+    bar.setProgressTintList(android.content.res.ColorStateList.valueOf(evGreen));
+    bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#E6E5E0")));
+    stats.addView(bar, new LinearLayout.LayoutParams(-1, dp(8)));
+    gap(stats, 8);
+    stats.addView(text(v == null ? "--%" : VehicleSnapshot.metric(v.batteryPercent, "%"), 23, ink, true));
+    stats.addView(text("⚡  " + (v == null ? tr("状态未知", "Status unknown") : status(v.charging)), 12, muted, false));
+    hero.addView(stats, new LinearLayout.LayoutParams(0, dp(214), .47f));
+
+    ImageView car = new ImageView(this);
+    car.setImageResource(R.drawable.vehicle_ev_concept);
+    car.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    car.setAdjustViewBounds(true);
+    car.setContentDescription("EV vehicle");
+    click(car, this::exteriorDialog);
+    hero.addView(car, new LinearLayout.LayoutParams(0, dp(214), .53f));
+    p.addView(hero, new LinearLayout.LayoutParams(-1, dp(214)));
+    gap(p, 14);
+
+    LinearLayout controlCard = column();
+    controlCard.setPadding(dp(10), dp(16), dp(10), dp(14));
+    controlCard.setBackground(bg(surface, 20));
+    controlCard.setElevation(dp(2));
+    LinearLayout actions = row();
+    evAction(actions, tr("门锁", "Lock"), v == null ? tr("未知", "Unknown") : status(v.lock),
+        R.drawable.ic_lock, "lock");
+    evAction(actions, tr("空调", "Climate"),
+        ClimateRuntime.label(this, v, AppPreferences.get(this, "vehicle", "")),
+        R.drawable.ic_climate, "climate");
+    evAction(actions, tr("空气净化", "Air Purify"), v == null ? tr("未知", "Unknown") : status(v.air),
+        R.drawable.ic_air, "air");
+    evAction(actions, tr("尾箱", "Trunk"), v == null ? tr("未知", "Unknown") : status(v.tailgate),
+        R.drawable.ic_tailgate, "trunk");
+    controlCard.addView(actions, new LinearLayout.LayoutParams(-1, dp(122)));
+    p.addView(controlCard);
+    gap(p, 10);
+
+    LinearLayout statusCard = row();
+    statusCard.setPadding(dp(10), dp(10), dp(10), dp(10));
+    statusCard.setBackground(bg(surface, 18));
+    statusCard.setElevation(dp(1));
+    boolean locked = v != null && ("已上锁".equals(v.lock) || "已锁".equals(v.lock));
+    boolean windowsClosed = v != null && "全部关闭".equals(v.windows);
+    int tireState = v == null || v.tires == null || !v.tires.hasAnyReport() ? 0 : v.tires.hasProblem() ? -1 : 1;
+    evStatus(statusCard, locked ? tr("已上锁", "Locked") : v == null ? tr("门锁未知", "Lock unknown") : status(v.lock),
+        locked ? 1 : v == null ? 0 : -1, () -> directControl("lock"));
+    evStatus(statusCard, windowsClosed ? tr("车窗关闭", "Windows Closed")
+        : v == null ? tr("车窗未知", "Windows unknown") : status(v.windows),
+        windowsClosed ? 1 : v == null ? 0 : -1, () -> directControl("windows"));
+    evStatus(statusCard, v == null ? tr("胎压未知", "Tires unknown") : v.tires.summary(AppPreferences.english(this)),
+        tireState, this::tireDialog);
+    p.addView(statusCard);
+    gap(p, 12);
+
+    String chargeSub = v == null ? tr("等待车辆数据", "Waiting for vehicle data") : status(v.charging);
+    String chargeMeta = v == null ? "--% · -- km"
+        : VehicleSnapshot.metric(v.batteryPercent, "%") + " · " + VehicleSnapshot.metric(v.rangeKm, " km");
+    p.addView(evInfoCard("⚡", tr("充电", "Charging"), chargeSub, chargeMeta, () -> {
+      page = 1; render();
+    }));
+    gap(p, 10);
+
+    String campState = CampModeManager.active(this) ? tr("露营托管已开启", "Camp hosting enabled")
+        : tr("露营托管未开启", "Camp hosting off");
+    p.addView(evInfoCard("△", tr("露营", "Camping"), campState,
+        tr("通风 · 空调 · 电量保护", "Ventilation · Climate · Battery protection"), this::campDialog));
+    gap(p, 10);
+
+    LinearLayout utilities = row();
+    boolean opening = ExteriorView.hasOpening(v);
+    utilities.addView(utility(tr("门窗详情", "Body details"), opening, opening, this::exteriorDialog),
+        new LinearLayout.LayoutParams(0, dp(48), 1));
+    LinearLayout.LayoutParams sig = new LinearLayout.LayoutParams(0, dp(48), 1); sig.leftMargin = dp(8);
+    utilities.addView(utility(tr("鸣笛 / 闪灯", "Honk / flash"), false, false, this::signalMenu), sig);
+    p.addView(utilities);
+
+    gap(p, 12);
+    String stamp = v == null || v.timestampMillis <= 0 ? tr("更新时间未知", "Update time unknown")
+        : tr("更新 ", "Updated ") + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
+    p.addView(text((model.message.isEmpty() ? "" : model.message + " · ") + stamp, 11, muted, false));
+  }
+
+  private void evAction(LinearLayout parent, String label, String state, int iconRes, String control) {
+    LinearLayout item = column();
+    item.setGravity(Gravity.CENTER);
+    item.setPadding(dp(3), 0, dp(3), 0);
+
+    FrameLayout circle = new FrameLayout(this);
+    circle.setBackground(oval(Color.parseColor("#F4F3EF")));
+    ImageView icon = new ImageView(this);
+    icon.setImageResource(iconRes);
+    icon.setColorFilter(ink);
+    icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    FrameLayout.LayoutParams ip = new FrameLayout.LayoutParams(dp(30), dp(30), Gravity.CENTER);
+    circle.addView(icon, ip);
+    item.addView(circle, new LinearLayout.LayoutParams(dp(64), dp(64)));
+
+    TextView title = text(label, 12, ink, true);
+    title.setGravity(Gravity.CENTER);
+    title.setMaxLines(1);
+    title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2); tp.topMargin = dp(7);
+    item.addView(title, tp);
+    TextView detail = text(state, 10, muted, false);
+    detail.setGravity(Gravity.CENTER);
+    detail.setMaxLines(1);
+    detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    item.addView(detail);
+
+    boolean enabled = !model.busy && model.selected != null;
+    item.setEnabled(enabled);
+    item.setAlpha(enabled ? 1f : .55f);
+    click(item, () -> directControl(control));
+    item.setFocusable(true);
+    item.setContentDescription(label + " · " + state);
+    parent.addView(item, new LinearLayout.LayoutParams(0, -1, 1));
+  }
+
+  private void evStatus(LinearLayout parent, String label, int state, Runnable action) {
+    LinearLayout item = row();
+    item.setGravity(Gravity.CENTER);
+    int circleColor = state > 0 ? evGreen : state < 0 ? orange : Color.parseColor("#B9BBB7");
+    TextView dot = text(state > 0 ? "✓" : state < 0 ? "!" : "•", 12, Color.WHITE, true);
+    dot.setGravity(Gravity.CENTER);
+    dot.setBackground(oval(circleColor));
+    item.addView(dot, new LinearLayout.LayoutParams(dp(27), dp(27)));
+    TextView value = text(label, 11, ink, false);
+    value.setMaxLines(2);
+    value.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(0, -2, 1); vp.leftMargin = dp(6);
+    item.addView(value, vp);
+    click(item, action);
+    parent.addView(item, new LinearLayout.LayoutParams(0, dp(48), 1));
+  }
+
+  private LinearLayout evInfoCard(String symbol, String title, String subtitle, String meta, Runnable action) {
+    LinearLayout card = row();
+    card.setPadding(dp(14), dp(12), dp(12), dp(12));
+    card.setBackground(bg(surface, 18));
+    card.setElevation(dp(2));
+    TextView icon = text(symbol, 23, evGreen, true);
+    icon.setGravity(Gravity.CENTER);
+    icon.setBackground(oval(Color.parseColor("#E8F1EC")));
+    card.addView(icon, new LinearLayout.LayoutParams(dp(58), dp(58)));
+
+    LinearLayout copy = column();
+    copy.setGravity(Gravity.CENTER_VERTICAL);
+    TextView a = text(title, 16, ink, true);
+    TextView b = text(subtitle, 13, muted, false);
+    b.setMaxLines(1); b.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    TextView c = text(meta, 11, muted, false);
+    c.setMaxLines(1); c.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    copy.addView(a); copy.addView(b); copy.addView(c);
+    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, -1, 1); cp.leftMargin = dp(14);
+    card.addView(copy, cp);
+
+    TextView arrow = text("›", 31, muted, false);
+    arrow.setGravity(Gravity.CENTER);
+    card.addView(arrow, new LinearLayout.LayoutParams(dp(28), -1));
+    click(card, action);
+    card.setFocusable(true);
+    return card;
   }
 
   private void addMetricGrid(LinearLayout parent, VehicleSnapshot snapshot,
@@ -785,11 +1142,31 @@ public final class MainActivity extends FragmentActivity {
         .show();
   }
 
+
+  private void skinDialog() {
+    final String[] values = {UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT};
+    String[] labels = {
+        tr("1 · 最新模板", "1 · Latest template"),
+        tr("2 · 当前版本", "2 · Current version"),
+        tr("3 · 此刻图片风格", "3 · EV image concept")
+    };
+    new HapticDialogBuilder(this)
+        .setTitle(tr("界面皮肤", "UI skin"))
+        .setSingleChoiceItems(labels, UiSkin.index(this), (dialog, which) -> {
+          UiSkin.set(this, values[which]);
+          dialog.dismiss();
+          render();
+        })
+        .show();
+  }
+
   private void settings() {
     LinearLayout p = scrollBody();
     p.addView(text(tr("设置", "Settings"), 24, ink, false));
     gap(p, 20);
     p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
+    gap(p, 8);
+    p.addView(button(tr("界面皮肤 · ", "UI skin · ") + UiSkin.label(this, UiSkin.get(this)), this::skinDialog));
     gap(p, 8);
     p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));
     gap(p, 8);

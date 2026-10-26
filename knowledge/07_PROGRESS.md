@@ -1,3 +1,11 @@
+## 2026-10-26 / v0.7.1-beta1 — 三套 UI 皮肤与模板 APK 兼容校验修复
+
+- \`UI_SKINS\`：设置新增三套可持久化皮肤：① 最新模板（新版 Polestar 方向）；② 当前 v0.7 布局原样保留；③ 按用户提供 EV 截图重做的浅色大续航/车辆主视觉/圆形四车控/状态条/充电与露营卡片。
+- \`FEATURE_PRESERVATION\`：新皮肤继续保留门锁、空调、净化、尾箱、车窗、门窗详情、胎压、露营以及鸣笛/闪灯入口，不改变 China Session、Biometric 强校验或远控协议。
+- \`REFERENCE_IMPORT_FIX\`：定位到现用模板 APK 文件 SHA-256 为 \`1e817e29c97ea21b3ed1b78b81325f01c116446d126ee85a4b84a4b3fcb1a031\`，不同于历史样本，但 APK v2 签名完整、证书 SHA-256 仍为 \`a64bcf2456d3a2e920a7620e899e7da74df7bcc39d53f517f43461eaf1166bc7\`。导入校验改为包名 + 已验证签名证书身份，不再把“整包字节完全相同”误当成唯一合法条件。
+- \`SECURITY_BOUNDARY\`：仍拒绝包名错误、签名证书不匹配、DEX 兼容材料定位异常的 APK；不会因为本次兼容修复接受第三方重签名包。
+- \`BUILD\`：版本提升至 v0.7.1-beta1；本轮 GitHub Actions test/lint/assemble 结果以交付记录为准。
+
 ## 2026-10-26 / v0.7.0-beta1 — 胎压、保养与 Widget 自适应
 
 - `HEALTH_SOURCE_VERIFIED`：对照 Mac China KB 与上游 Hisingen，确认 HealthService/GetHealth 的四轮报警字段 9–12、压力字段 39–42 kPa。

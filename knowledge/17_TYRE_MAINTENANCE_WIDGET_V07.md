@@ -48,3 +48,13 @@
 - 缓存胎压仅用于 Widget/显示，完整 VIN 与 Token 不进入显示缓存。
 - 缓存或缺失数据不会自动判断“正常”。
 - 车窗、鸣笛/闪灯仍沿用强生物识别；瞬时鸣笛/闪灯只报告服务器接受/未确认，不伪造持续车况确认。
+
+
+## 5. WindowControl / HonkFlash request correction
+
+Cross-check with upstream Hisingen `PolestarGRPCRemote.swift` and its unit tests confirms:
+- `WindowControl`: field 2 = 1 open all windows; field 2 = 2 close all windows.
+- `HonkFlash`: a **single field-2 enum**, not two booleans: 0 = honk + flash, 1 = honk only, 2 = flash only.
+- Both use the invocation VIN envelope in field 1.
+
+Android v0.7 has been corrected to this mapping. China vehicle execution remains `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION` until the user's authorized vehicle confirms each command.

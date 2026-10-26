@@ -1,6 +1,6 @@
 # Android 项目知识库 · 索引
 
-> 版本 `KB-0.1` · 建立于 2026-10-26 · 持续维护
+> 版本 `KB-0.2` · 建立于 2026-10-26 · 持续维护
 
 本知识库面向 Polestar2 Widget&API Android 分支，与 Mac/Hisingen 分支共用上游 China/Global API 事实，但 Android 运行状态单独记录。
 
@@ -15,6 +15,11 @@
 | [07_PROGRESS.md](07_PROGRESS.md) | 累计增量更新记录与阶段结果 | 进行中 |
 | [08_ROADMAP.md](08_ROADMAP.md) | 研究/实现优先级、验证条件 | 规划完成 |
 | [09_EXTERNAL_ANALYSIS_REVIEW.md](09_EXTERNAL_ANALYSIS_REVIEW.md) | 另一位 AI 建议中可采纳与需核查部分 | 交叉审核 |
+| [10_TWO_REPORTS_RECONCILED.md](10_TWO_REPORTS_RECONCILED.md) | 两份用户上传报告与 APK、原项目事实逐条交叉审阅，含 Gemini 访问边界 | 完成首轮 |
+| [11_VEHICLE_DATA_DICTIONARY.md](11_VEHICLE_DATA_DICTIONARY.md) | 33 个 DEX 车辆字段清单，数据源与新鲜度语义 | 静态确认 |
+| [12_STAGED_VALIDATION.md](12_STAGED_VALIDATION.md) | 纯 Java / CI / 设备 / 真车不同阶段验收条件 | 持续维护 |
+| [evidence/apk-v2-signature.json](evidence/apk-v2-signature.json) | 只读 APK v2 RSA 签名与内容完整性复核结果 | 证据已确认 |
+| [evidence/apk-vehicle-schema.json](evidence/apk-vehicle-schema.json) | 从 DEX 提取参考 APK `Vehicle` 全部 33 字段 | 静态确认 |
 | [evidence/apk-inventory.json](evidence/apk-inventory.json) | 原 APK 自动静态提取结构清单 | 可复现 |
 
 **证据级别**：`APK_CONFIRMED` = 直接从当前 APK 可读二进制验证；`PROJECT_DOC` = 已有项目知识文件记录；`EXTERNAL_ANALYSIS` = 附件中另一 AI 判断但尚未独立复核；`IMPLEMENTED_DEMO` = 新工程有可运行实现但非车机实测；`REAL_DEVICE_VERIFIED` = 真机真实账户/车辆端到端验证。

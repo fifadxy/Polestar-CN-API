@@ -50,3 +50,9 @@ flowchart TD
 - `diagnostics`：脱敏 request-id、状态码、服务耗时与数据来源标签。
 
 **接口设计**：状态来源显式显示 `DEMO`, `CACHED`, `LIVE`；数据为空时显示 `--`，不伪装成零。不同来源的 SOC/里程不得互相覆盖未记录来源的数值。
+
+## 2026-10-26 结构优化增量（NEW_PROJECT_CODE）
+
+新增 `TelemetryStatus.java` 与 `OperationState.java`，分别负责数据新鲜度及车控结果语义。两者都不包含 HTTP、gRPC、Token 或任何实际远控调用。`DemoRepository` 不再把演示记录设置为当前真实采集时间（设置为 `0L`），UI 明示演示/离线；`tests/ModelStateTest.java` 验证上述不变量。
+
+第三方 APK 报告推荐的完整 MVVM、持久化和多车型能力 **暂未实现**；不把“新增模型类”写成“完成架构重构”。参见 `11_VEHICLE_DATA_DICTIONARY.md` / `12_STAGED_VALIDATION.md`。

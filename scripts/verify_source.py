@@ -13,6 +13,9 @@ assert 'minifyEnabled false' in gradle and 'shrinkResources false' in gradle
 assert 'ENABLE_REMOTE_COMMANDS = false' in all_java
 assert 'ENABLE_NETWORK_VEHICLE_API = false' in all_java
 assert 'DEMO / OFFLINE' in all_java
+assert 'classify(boolean isDemo' in all_java
+assert 'VEHICLE_CONFIRMED' in all_java
+assert '0L,' in (main/'java/io/github/polestarcn/companion/DemoRepository.java').read_text()
 assert 'Select Polestar Region' in all_java
 assert 'China' in all_java and 'Global' in all_java
 assert 'android.permission.INTERNET' in manifest

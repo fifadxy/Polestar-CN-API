@@ -25,3 +25,9 @@
 - 调试期间每次按钮操作返回明确反馈；
 - 各个字段显式注明 DEMO / LIVE / CACHE、数据时效；
 - 确定性编译、版本记录、可复制日志与回归测试清单。
+
+## 2026-10-26 交叉审核扩展
+
+新上传的报告 A (`粘贴的文本 (1)(2).txt`) 与 B (`粘贴的文本 (2).txt`) 已整合至 [10_TWO_REPORTS_RECONCILED.md](10_TWO_REPORTS_RECONCILED.md)，重点校正：**Vehicle 33 项，不是 30 项；报告 A/B 关于快照是否全面加密存在不同描述；APK v2 签名已独立复核通过，但不代表发布方为官方**。
+
+新增证据 `evidence/apk-v2-signature.json`、`evidence/apk-vehicle-schema.json`。研究结论与实际源码实现分别管理，未核验的性能节省、可利用性与接口稳定性不能直接升级为事实。

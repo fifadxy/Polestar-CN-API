@@ -1,0 +1,14 @@
+{
+  "file": "app-release.apk.1.1(1).1",
+  "file_sha256": "8cae07a3b5c6050487443914ebb55b1d2f2f26e258f4b369837f2b88de052735",
+  "apk_v2_signature": "VERIFIED",
+  "apk_v2_content_digest": "VERIFIED",
+  "signing_algorithm": "RSA-3072 / PKCS1v1.5 / SHA-256",
+  "certificate_subject": "CN=Polestar 2 Companion",
+  "certificate_issuer": "CN=Polestar 2 Companion",
+  "certificate_sha256": "a64bcf2456d3a2e920a7620e899e7da74df7bcc39d53f517f43461eaf1166bc7",
+  "notes": [
+    "Signature integrity does not identify the real-world app publisher.",
+    "No original app credentials or signing keys are included."
+  ]
+}

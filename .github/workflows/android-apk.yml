@@ -6,6 +6,9 @@ on:
       - feature/android-companion-v0.1
     paths:
       - 'android-app/**'
+      - 'knowledge/**'
+      - 'scripts/**'
+      - 'docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 jobs:
@@ -22,11 +25,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-      - name: Install Android API 35
+      - name: Verify Java model and safety gates
         run: |
-          echo "ANDROID_HOME=${ANDROID_HOME}"
-          sdkmanager --list_installed | head -35
-          sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
+          python3 scripts/verify_source.py
+          python3 scripts/check_knowledge.py
+          sh scripts/test_models.sh
+      - name: Ensure Android API 35 is present
+        run: |
+          test -n "${ANDROID_HOME:-}"
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+            test -n "$SDKMANAGER"
+            "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+          fi
       - name: Build standalone debug APK
         working-directory: android-app
         run: gradle --no-daemon --stacktrace :app:assembleDebug
@@ -34,6 +45,6 @@ jobs:
         run: test -s android-app/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: polestar-android-companion-0.1.0-dev1-debug
+          name: polestar-android-companion-v0.1.0-dev2-debug
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

@@ -27,3 +27,10 @@
 ```
 
 不要把 Global 的 RPC 直接换域名在 China 下调用；不要为了“编译通过”将随机数模拟成实时车辆数据。
+
+## 本轮两份外部报告的增量（未经实车验证）
+
+- 静态字段及符号提示参考 APK 同时使用 `PolestarApi$Session` 的 access / refresh / expiresAt / c3Host，并有 `SESSION_REFRESH_LOCK`、`refreshIfNeeded` 等方法/字段；**不能推断完全兼容官方当前 China Token audience**。
+- 报告 A/B 称其经由固定客户端签名材料生成 `signedUrl`；静态已确认 `SIGN_SALT` 字段和 `signedUrl` 方法名，本知识库 **不提取/保存盐值**，也不在新工程移植第三方登录签名算法。
+- 报告 A/B 认为第三方 APK 大多用一次性 RPC 读状态，并未证实持续 Live；与已有 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md` 中对**官方中国 App**的 C3 Live 运行证据不冲突：两者是不同软件。
+- 33 个参考 APK `Vehicle` 字段只代表模型容器存在，不能以其命名直接生成 China C3 Proto 映射；详细字典见 `11_VEHICLE_DATA_DICTIONARY.md`。

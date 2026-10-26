@@ -56,3 +56,10 @@ Manifest 可见：INTERNET、RECEIVE_BOOT_COMPLETED、USE_BIOMETRIC、USE_FINGER
 - 原 APK 原始源码及真实 Gradle 配置：没有提供，不得根据 APK 伪造。
 - APK 签名者身份、设备兼容/可靠性、接口是否在线：未在当前阶段验证。
 - `PolestarApi.control` 实际可用性、不同车型/地区对应权限：未验证。
+
+## 2026-10-26 增量复核：新增两份报告
+
+- `APK_CONFIRMED`：独立从 APK v2 Signing Block 验证签名算法 `RSA 3072 / PKCS1v1.5 / SHA-256`，并重算内容摘要一致；自签名证书主题 `CN=Polestar 2 Companion`、证书 SHA-256 `a64bcf2456d3a2e920a7620e899e7da74df7bcc39d53f517f43461eaf1166bc7`。仅表示字节完整性，**不表示官方签发**。详见 `evidence/apk-v2-signature.json`。
+- `APK_CONFIRMED`：`PolestarApi$Vehicle` DEX 字段计数 **33**，而非外部报告 B 的 30；详见 `evidence/apk-vehicle-schema.json` 和 `11_VEHICLE_DATA_DICTIONARY.md`。
+- 报告 A/B 关于 AES-GCM 的全链路、固定 MD5 签名算法执行过程、周期任务间隔、真实 API 成功率等，在本次不是独立运行验证。**静态结构证据与报告解释分栏保存**，详见 `10_TWO_REPORTS_RECONCILED.md`。
+- 用户给的 Gemini 分享链接当前无法读取正文；不按未见内容提升确认级别。

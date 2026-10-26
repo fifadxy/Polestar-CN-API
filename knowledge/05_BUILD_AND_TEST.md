@@ -38,3 +38,11 @@ GitHub Actions `.github/workflows/android-apk.yml` 为 Debug 构建工作流；�
 ## 当前环境局限（2026-10-26）
 
 当前交付环境内有 Java 21、Python，但未安装 Android SDK、Gradle、ADB，且容器无法 DNS 访问 Google/Maven 下载站，因此无法在此处本地执行 `assembleDebug`、`adb install`、模拟器验收。可以使用 GitHub Actions 的 SDK 环境或在用户 Mac 编译；以实际 CI 构建日志作为下一状态。
+
+## 2026-10-26 CI 故障与修复记录
+
+- 既往 CI `40260517435` 失败：`android-actions/setup-android@v3` 尝试安装过时 SDK 包 `tools`，未进入 Java 编译。
+- 既往 CI `40260573372` 失败：去掉 action 后调用 `sdkmanager` 时未设置路径，命令未找到；**也未进入 Java 编译**。
+- 本轮修改工作流：先执行 `python3 scripts/verify_source.py` 与 `sh scripts/test_models.sh`；从 `$ANDROID_HOME/cmdline-tools/` 定位 `sdkmanager`，在缺 API 35 或 Build Tools 35.0.0 时再安装。是否解决以更新后实际 CI 为准。
+- 新增 `python3 scripts/inspect_vehicle_schema.py <apk>` 和 `python3 scripts/verify_apk_v2.py <apk>`，二者是参考 APK 的只读证据检查，不改变用户 APK。
+- 原始 APK 应用 ID `app.c3garage.companion` 与新工程 `io.github.polestarcn.companion` 不同，新 APK **不能**作为原包同包升级安装；需独立安装。

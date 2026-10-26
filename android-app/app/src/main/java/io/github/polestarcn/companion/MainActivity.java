@@ -162,7 +162,7 @@ public final class MainActivity extends Activity {
     }
     private void dashboard() {
         VehicleSnapshot state = repository.snapshot(region);
-        sectionHeader(content, "车辆概览", "REGION  /  " + region.english + "  ·  Android Dev v0.1.0");
+        sectionHeader(content, "车辆概览", "REGION  /  " + region.english + "  ·  Android Dev v0.1.0-dev2");
         flag(content, "演示模式 · 未连接真实车辆", "当前全部 SOC、续航、里程和车辆状态均为模拟值。未执行登录或网络请求。", true);
         LinearLayout vehicle = card(content);
         vehicle.addView(text(state.name, 18, INK, true));
@@ -204,7 +204,8 @@ public final class MainActivity extends Activity {
             LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(7);
             remote.addView(blocked,p);
         }
-        TextView ts = text("数据源: " + state.source + "  |  无实时车辆连接",11,SUBTLE,false);
+        TextView ts = text("数据源: " + state.source + "  |  " + TelemetryStatus.classify(
+                state.isDemo, state.source, state.timestampMillis, System.currentTimeMillis(), 15L * 60L * 1000L).description(),11,SUBTLE,false);
         content.addView(ts);
     }
     private void carDetails() {
@@ -248,7 +249,7 @@ public final class MainActivity extends Activity {
         }));
         LinearLayout diag = card(content);
         diag.addView(text("运行诊断",17,INK,true));gap(diag,8);
-        row(diag,"编译版本","0.1.0-dev1");
+        row(diag,"编译版本","0.1.0-dev2");
         row(diag,"网络车辆 API","OFF");
         row(diag,"远程控制","OFF");
         row(diag,"R8 混淆","DEFERRED");
@@ -268,7 +269,7 @@ public final class MainActivity extends Activity {
     }
     private void disabledCommand(String action) {
         DiagnosticLog.add("Blocked remote command: " + action);
-        info("远控未开放", action + " 当前被明确禁用。本次点击没有发送车辆控制指令。");
+        info("远控未开放", action + "：" + OperationState.DISABLED.label + "。本次点击没有发送车辆控制指令。");
     }
     private void showInitialRegionChooser() { showRegionChooser(true); }
     private void showRegionChooser(boolean firstLaunch) {

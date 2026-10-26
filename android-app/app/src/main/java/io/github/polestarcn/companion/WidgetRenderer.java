@@ -17,7 +17,7 @@ public final class WidgetRenderer {
         views.setTextViewText(R.id.widget_title, compact ? "POLESTAR · DEMO" : "POLESTAR COMPANION · DEMO");
         views.setTextViewText(R.id.widget_soc, VehicleSnapshot.metric(snapshot.batteryPercent, "%"));
         views.setTextViewText(R.id.widget_range, VehicleSnapshot.metric(snapshot.rangeKm, " km"));
-        views.setTextViewText(R.id.widget_region, region.english + " · OFFLINE");
+        views.setTextViewText(R.id.widget_region, region.english + " · DEMO / OFFLINE");
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent open = PendingIntent.getActivity(context, widgetId, intent,

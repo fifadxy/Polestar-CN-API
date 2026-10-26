@@ -1003,3 +1003,24 @@ NOT IMPLEMENTED
 ```
 
 而不是为了“看起来完整”而把推测写成事实。
+
+---
+## 2026-10-26 补充：第三方 Android Companion APK 静态研究（非官方 App）
+
+本项目另取得第三方研究用 APK `app.c3garage.companion` v0.1.0（参考样本 SHA-256：
+`8cae07a3b5c6050487443914ebb55b1d2f2f26e258f4b369837f2b88de052735`）。
+**它不是**前文的极星中国官方 App `com.polestar.china.android`，也不是原生 Hisingen。
+只将其当作 API 和 UI 结构的辅助线索，不能把该 APK 静态方法存在认定为官方 API 已经对本项目开放。
+
+- 静态观察到 `https://gw.app.polestar-auto.com`、`/user/api/v2/oauth/login/password`、
+  `/user/api/v2/oauth/refresh-global-token`、`https://cnepmob.volvocars.com.cn` 和 C3
+  Battery/Exterior/Odometer/ParkingClimatization/PreCleaning 服务名。
+  完整参数、Token audience、Proto 字段编号及实际成功率 **MAPPING_REQUIRED**。
+- `PolestarApi$Vehicle` DEX 字段表独立计数为 **33 项**，只是模型字段，不等于验证了 33 项实时数据；
+  如需字段列表，查 `knowledge/11_VEHICLE_DATA_DICTIONARY.md` 与证据 JSON。
+- 该参考 APK 包含远控、Widget、WorkManager 的相关类/方法，但未经本项目真实账户/车辆运行验证。
+  两份外部 AI 报告指出的潜在问题统一收录于 `knowledge/10_TWO_REPORTS_RECONCILED.md`。
+- 2026-10-26 阶段决策：Android 独立工程先采用离线 DEMO，所有真实登录/写入远控暂不接入；
+  R8、混淆、发行加固仍 **DEFERRED**。不向仓库写入账号、令牌、Cookie、真实 VIN 或客户端签名盐。
+
+此附录的第三方 APK 证据，**不能覆盖**本文件对官方 China App C3 Live 的既有验证结论。

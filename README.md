@@ -2,7 +2,7 @@
 
 Research and interoperability tooling for China-region Polestar vehicle data and the **Hisingen China** native macOS preview.
 
-> **Status (2026-10-25):** The historical 0.17.0–0.19.4 patch sets have been consolidated on the 0.19.5 integration line, based on upstream Hisingen v2.0.10. The Mac client has an independent native China phone/SMS session, dedicated Keychain item, linked-vehicle discovery and China C3/PCCS read path. It is **not Bridge mode**. Real-account/vehicle end-to-end validation is still required, and China remote commands remain disabled.
+> **Status (2026-10-26):** All remote branches were re-fetched and compared by commit graph. The historical 0.17.0–0.19.4 patch sets are consolidated on the 0.19.5 integration line, based on upstream Hisingen v2.0.10. The Mac client has an independent native China phone/SMS session, dedicated Keychain item, linked-vehicle discovery and China C3/PCCS read path. It is **not Bridge mode**. Real-account/vehicle end-to-end validation is still required, and China remote commands remain disabled.
 
 ## Start here
 
@@ -15,6 +15,9 @@ Research and interoperability tooling for China-region Polestar vehicle data and
 - **Machine-readable mapping:** [knowledge/china/capabilities.json](knowledge/china/capabilities.json)
 - **Public/official references:** [knowledge/china/OFFICIAL_REFERENCES.md](knowledge/china/OFFICIAL_REFERENCES.md)
 - **Verified Android 4.25.0 authentication evidence:** [docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md](docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md)
+- **Official APK identity and reproducible verification:** [docs/CHINA_ANDROID_APK_PROVENANCE.md](docs/CHINA_ANDROID_APK_PROVENANCE.md)
+- **Cloud ADB/root, UI and metadata-only runtime evidence:** [docs/ANDROID_CLOUD_RUNTIME_EVIDENCE.md](docs/ANDROID_CLOUD_RUNTIME_EVIDENCE.md)
+- **Layout Inspect vehicle-control evidence:** [docs/CHINA_LAYOUT_INSPECTOR_RUNTIME_EVIDENCE.md](docs/CHINA_LAYOUT_INSPECTOR_RUNTIME_EVIDENCE.md)
 - **Rooted ARM64 validation tooling and runbook:** [docs/ANDROID_ROOT_VALIDATION_TOOLING.md](docs/ANDROID_ROOT_VALIDATION_TOOLING.md)
 - **Branch inventory and 0.19.5 development entry:** [docs/BRANCH_INVENTORY_AND_0195_PLAN.md](docs/BRANCH_INVENTORY_AND_0195_PLAN.md)
 - [Global / China API comparison](docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md)

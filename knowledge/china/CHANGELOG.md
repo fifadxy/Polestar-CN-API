@@ -2,6 +2,24 @@
 
 This is a living log. Entries describe **what was learned or changed**, the source/verification level, and remaining evidence gaps. Never paste raw auth records or private vehicle identifiers.
 
+## 2026-10-26 — KB version 1.3 / Android runtime and build provenance
+
+### New evidence
+
+- Re-fetched all 13 remote branches and verified ancestry with `merge-base`; `integrate/hisingen-china-0.19.5` at `645b167` remains the only current integration line. The 0.18.1 and hardened 0.19.0 heads remain intentional divergent archives whose validated changes were selectively ported.
+- Verified the Tencent-distributed official 4.25.0 APK by package/version, v2 signer certificate, complete ZIP and all 16 DEX fingerprints. Added a reusable verifier and hash manifest without committing the APK.
+- Added the real-device Layout Inspect view-creation evidence, UI-to-Interactor mapping and C3 Invocation method/protobuf matrix.
+- Recorded that Polestar 2 does not support or display the charging-port flap control; generic UI type `2` is reserved and all inspected C3/PCCS/VOCMO controller paths report unsupported.
+- Entered the official app Java/UI process on an Android 11 x86_64 userdebug AVD through `libndk_translation`, reached `HomeActivity` and `PscnLoginActivity`, mapped all 16 DEX files and attached Frida 17.24.3.
+- Runtime reflection confirmed the Local + nested `GlobleToken` field shape and loaded AppAuth, OkHttp, Retrofit and RCS auth classes without reading token values.
+- Metadata-only network observation saw three Meizu SDK background routes. No phone, SMS, login, token, VIN, vehicle command or Polestar account request was executed.
+
+### Verification boundary
+
+- The x86_64 AVD did not validate ARM64 native libraries: `libpag.so` failed the ELF architecture check and `libvocmo-lib.so` was not loaded.
+- The TCG run used test-only JPush component isolation, so it is not evidence for production push/background behavior.
+- Real slider, SMS, token issue/refresh, dynamic C3 discovery, linked vehicles and C3/PCCS telemetry remain `IMPLEMENTED_UNVERIFIED`; China remote commands remain disabled.
+
 ## 2026-10-25 — KB version 1.2 / Hisingen China Native Mac 0.19.5
 
 ### Full Android evidence and branch consolidation

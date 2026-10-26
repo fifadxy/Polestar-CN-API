@@ -797,6 +797,14 @@ range                180 km
 
 这些是逆向后的混淆字段名，后续 App 升级可能改变。
 
+## 11.4 Layout Inspect 已确认的车辆控制页边界
+
+**VERIFIED — 真机 Layout Inspect View 创建栈；STATIC-VERIFIED — 官方 APK 4.25.0-262**
+
+车辆控制页由 `CarMainFragment` 和多 Provider 列表构造。已捕获 header/charging progress、command item、control command、climate/switch、Bluetooth Key 与 tips 模块；`CarcontrolMain*Binding`、`CarCommandButton`、`CarSwitchButton` 和 `CarChargingProgressBar` 可作为跨混淆分析入口。
+
+完整 APK 将点击回调继续追踪到闪灯、鸣笛、车锁、后备箱、车窗、空调启停和空气净化的 Interactor/controller。充电口 type `2` 只存在于通用扩展模型；**Polestar 2 的能力配置不包含该按钮，且 C3/PCCS/VOCMO 三类 controller 均返回 unsupported**。详细证据、资源映射和限制见 [极星中国 App Layout Inspect 运行时证据](CHINA_LAYOUT_INSPECTOR_RUNTIME_EVIDENCE.md)。
+
 ---
 
 # 12. China：C3 / VOCMO / PCCS 主备关系
@@ -839,22 +847,38 @@ guess current vehicle state
 
 | 数据 | Global Hisingen | China 已验证 | China Hisingen 当前状态 |
 | --- | --- | --- | --- |
-| 车辆列表 | Mystar `getConsumerCarsV2` + optional VDMS | dynamic `<c3.url>/car-information/car` + Global Access | NOT IMPLEMENTED |
-| SOC | GraphQL battery + C3 BatteryService | C3 battery live/current | MAPPING REQUIRED |
-| 续航 | GraphQL/C3 battery | `ChargeStatusResponseModel` 已确认 km/miles | MAPPING REQUIRED |
-| 充电状态 | C3 battery + GraphQL merge | C3 model 已确认 `Unplugged` 等状态 | MAPPING REQUIRED |
-| 平均能耗 | Global telemetry/domain mapping | China model `cliint` 已确认 | MAPPING REQUIRED |
-| Exterior | C3 `ExteriorService` | C3 live 已观察 | MAPPING REQUIRED |
-| Availability | C3 | 尚未完成 China 独立字段验证 | MAPPING REQUIRED |
-| Health | GraphQL + C3 | 尚未完成完整 China 映射 | MAPPING_REQUIRED |
-| Odometer | GraphQL + C3 | 尚未完成完整 China 映射 | MAPPING_REQUIRED |
-| Climate status | C3 | 已确认 China CarInformation / climate capability 部分信息 | MAPPING_REQUIRED |
-| Target SoC | PCCS Chronos | China PCCS host 已确认，方法级待核 | MAPPING_REQUIRED |
-| Amp limit | PCCS Chronos | 方法级待核 | MAPPING_REQUIRED |
-| Location | C3 / PCCS fallback | C3 LBS host 已观察 | EXPERIMENTAL |
+| 车辆列表 | Mystar `getConsumerCarsV2` + optional VDMS | dynamic `<c3.url>/car-information/car` + Global Access | IMPLEMENTED_UNVERIFIED |
+| SOC | GraphQL battery + C3 BatteryService | C3 battery live/current | IMPLEMENTED_UNVERIFIED |
+| 续航 | GraphQL/C3 battery | `ChargeStatusResponseModel` 已确认 km/miles | IMPLEMENTED_UNVERIFIED |
+| 充电状态 | C3 battery + GraphQL merge | C3 model 已确认 `Unplugged` 等状态 | IMPLEMENTED_UNVERIFIED |
+| 平均能耗 | Global telemetry/domain mapping | China model `cliint` 已确认 | IMPLEMENTED_UNVERIFIED |
+| Exterior | C3 `ExteriorService` | C3 live 已观察 | IMPLEMENTED_UNVERIFIED |
+| Availability | C3 | China C3 family 已确认；真实响应语义待验 | IMPLEMENTED_UNVERIFIED |
+| Health | GraphQL + C3 | China C3 family 已确认；真实响应语义待验 | IMPLEMENTED_UNVERIFIED |
+| Odometer | GraphQL + C3 | China C3 family 已确认；单位/时间戳待验 | IMPLEMENTED_UNVERIFIED |
+| Climate status | C3 | 已确认 China CarInformation / climate capability 部分信息 | IMPLEMENTED_UNVERIFIED |
+| Target SoC | PCCS Chronos | China PCCS host/proto 已确认 | IMPLEMENTED_UNVERIFIED（read only） |
+| Amp limit | PCCS Chronos | China PCCS host/proto 已确认 | IMPLEMENTED_UNVERIFIED（read only） |
+| Location | C3 / PCCS fallback | C3 LBS host 已观察 | IMPLEMENTED_UNVERIFIED；必须脱敏 GPS |
 | Software/OTA | C3 OTA services | 尚未完成 China 端到端 | MAPPING_REQUIRED |
-| Remote lock/unlock | C3 Invocation | 中国区权限和 RPC 尚未完成验证 | MAPPING_REQUIRED |
-| Remote climate | C3 Invocation | 中国请求模型已发现，但需端到端验证 | MAPPING_REQUIRED |
+| Remote lock/unlock | C3 Invocation | `lock` / `unlock` 与 Proto 已静态确认 | DISABLED |
+| Remote climate | C3 Invocation | `climatizationStart` / `climatizationStop` 与 Proto 已静态确认 | DISABLED |
+
+## 13.1 China 远程命令静态 RPC 映射
+
+**STATIC-VERIFIED — 官方 APK `4.25.0-262`；Mac 0.19.5 仍全部 fail-closed**
+
+| 功能 | C3 Invocation 方法 | 请求模型 |
+| --- | --- | --- |
+| 车锁/解锁 | `lock` / `unlock` | `LockRequest` / `UnlockRequest` |
+| 只解锁后备箱 | `unlock` | `UnlockRequest(UNLOCK_TYPE_TRUNK_ONLY)` |
+| 车窗全开/全关 | `windowControl` | `WindowControlRequest(OPEN_ALL/CLOSE_ALL)` |
+| 尾门打开/关闭 | `tailgateControl` | `TailgateControlRequest(OPEN_TAILGATE/CLOSE_TAILGATE)` |
+| 鸣笛/闪灯 | `honkFlash` | `HonkFlashRequest` |
+| 空调启动/停止 | `climatizationStart` / `climatizationStop` | `ClimatizationStartRequest` / `ClimatizationStopRequest` |
+| 空气净化 | `preCleaning` | `PreCleaningRequest` |
+
+方法和 Proto 存在不等于账号具备 command audience，也不等于服务端 ACK 或车辆完成动作。只有逐命令验证权限、请求、ACK 和后续新鲜车辆状态后才能提升状态。
 
 ---
 
@@ -905,21 +929,17 @@ supportsParkingClimatizationDirectStartSettings = false
 
 # 16. 当前 Hisingen China 实现状态
 
-截至本文件首次提交：
+当前基线为 `integrate/hisingen-china-0.19.5`，上游 Hisingen `v2.0.10`。
 
 ## 已完成
 
 - Global Hisingen 原有登录逻辑保留；
-- 增加 `Polestar Sign-In Region…`；
-- 增加：
-  - `Global Polestar ID`
-  - `China Polestar ID · Official Web Sign-In`
-- China web 模式打开官方：
-  `https://www.polestar.cn/zh-cn/auth/login/`
-- WKWebView 使用持久 `WKWebsiteDataStore.default()`；
-- 不主动读取表单密码；
-- 不主动提取 Cookie；
-- 不把网页登录结果伪装成车辆 API 登录成功；
+- 独立 native China 手机/SMS session、专用 Keychain 和 Local/Global token 刷新已实现；
+- China/Global 区域选择会重建 provider，Global 账号与车辆缓存保持隔离；
+- public C3 discovery、动态 `c3.url` 车辆列表、C3/PCCS read path 和 live stream wiring 已实现；
+- 多种车辆列表 JSON 形态、VIN 去重、token 轮换兼容和可选 PCCS capability gate 已实现；
+- Android/localhost Bridge 已从活动源码和构建产物中删除；
+- China 远程命令在 UI capability 与 provider 执行两层保持 fail-closed；
 - 完整解析 Android 4.25.0-262 的 16 个 DEX；
 - 还原滑块 → SMS → phone/password login → Local/Global Token；
 - 还原 Local/Global refresh；
@@ -928,32 +948,28 @@ supportsParkingClimatizationDirectStartSettings = false
 
 ## 尚未完成
 
-- China native first-time login 的 macOS 实现；
-- China C3 authenticated session；
-- China 车辆列表；
-- China Hisingen SOC/续航实时显示；
-- China C3 live stream；
-- China PCCS method mapping；
-- China remote commands；
-- China token refresh lifecycle 的 macOS 实现与动态验证；
-- China session → macOS Keychain 的正式安全模型。
+- 真实账号完成滑块、单次 SMS、Local + Global token 签发；
+- Local/Global token 到期刷新、撤销重试和应用重启恢复；
+- 真实账号的动态 C3 discovery、车辆列表与多车选择；
+- Battery、Exterior、Availability、Odometer、Health 同分钟官方 App 对照；
+- C3 live stream 重连和 PCCS read 的方法级授权验证；
+- China 远程命令授权与车辆结果验证；在此之前继续禁用；
+- Apple Developer ID 签名与 notarization。
 
 ---
 
-# 17. China Hisingen 后续实现建议
+# 17. China Hisingen 后续验证顺序
 
 优先级：
 
-### P0 — Read-only 状态
+### P0 — 账号与只读状态
 
-1. 官方 auth-slider WKWebView，只接收 `sessionId/sig/token`；
-2. `/credcode/send` + `/oauth/login/phone`；
-3. Local/Global Token 分区写入 Keychain；
-4. Local/Global refresh 与 session restore；
-5. C3 discovery；
-6. 动态 `<c3.url>/car-information/car`；
-7. Battery / Exterior / Availability / Odometer / Health；
-8. 统一映射到 Hisingen `VehicleState`。
+1. 使用自有账号完成一次官方 auth-slider → SMS → login；
+2. 只记录状态码、字段名、token family 是否存在与 expiry 行为；
+3. 验证 Keychain restore、Local/Global refresh 和 sign-out 删除；
+4. 验证 public discovery → 动态 `<c3.url>/car-information/car`；
+5. 同分钟对照 Battery / Exterior / Availability / Odometer / Health；
+6. 核对时间戳、单位、stale/unknown 和多车选择。
 
 ### P1 — Live stream
 
@@ -981,10 +997,10 @@ supportsParkingClimatizationDirectStartSettings = false
 - result semantics；
 - vehicle-side confirmation。
 
-在完成验证前一律保持：
+在完成逐命令验证前一律保持：
 
 ```text
-MAPPING_REQUIRED
+DISABLED
 ```
 
 ---
@@ -1083,6 +1099,7 @@ live C3     72 %
 | --- | --- | --- | --- | --- |
 | 2026-10-21 | 1.0 | v2.0.10 | 4.25.0-262 | 首次建立 Global / China API、Token、Host、状态获取完整差异表 |
 | 2026-10-25 | 1.1 | v2.0.10 / China 0.19.3 设计基线 | 4.25.0-262 | 完成 16 DEX 认证、公共头、Token、动态车辆发现证据链；纠正 SMS endpoint 与固定 car-information 地址假设 |
+| 2026-10-26 | 1.2 | v2.0.10 / China 0.19.5 | 4.25.0-262 | 核对全部远端分支；加入 APK 身份、云端 Java/UI 运行时、Layout Inspect、C3 Invocation 映射及 Polestar 2 无充电口按钮结论 |
 
 ---
 
@@ -1124,21 +1141,29 @@ live C3     72 %
 2. **本项目对中国官方 Android App 的静态与动态验证**
    - package: `com.polestar.china.android`
    - version: `4.25.0-262`
+   - APK 身份、签名、商店来源与 DEX 一致性：`docs/CHINA_ANDROID_APK_PROVENANCE.md`
    - 16 个 DEX：Login ViewModel / PscnAccountRepo / Retrofit / OkHttp / Token model / Remote Car Service
    - 认证与车辆发现完整证据链：`docs/POLESTAR_CHINA_ANDROID_AUTH_EVIDENCE.md`
+   - 真机 Layout Inspect View 创建栈与 APK 控制器交叉验证：`docs/CHINA_LAYOUT_INSPECTOR_RUNTIME_EVIDENCE.md`
+   - 云端 ADB/root、Frida、Java/UI 与 metadata-only 网络观察：`docs/ANDROID_CLOUD_RUNTIME_EVIDENCE.md`
    - C3 controller / battery call chain
    - runtime ChargeStatusResponseModel
    - C3/PCCS China Host
    - token preference key names
    - C3 live observations
 
-3. **当前仓库 Hisingen China patch**
-   - China Official Web Sign-In
-   - Global / China region selection
+3. **当前仓库 Hisingen China 0.19.5 集成线**
+   - 分支盘点与选择性移植依据：`docs/BRANCH_INVENTORY_AND_0195_PLAN.md`
+   - native 手机/SMS session、独立 Keychain 与 Local/Global token refresh
+   - Global / China region selection、动态 C3 discovery、C3/PCCS read path
+   - China remote commands fail-closed
 
 当某一项没有完整证据时，本文件必须明确写为：
 
 ```text
+SOURCE_VERIFIED
+IMPLEMENTED_UNVERIFIED
+DISABLED
 STRONG-INFERENCE
 EXPERIMENTAL
 MAPPING_REQUIRED

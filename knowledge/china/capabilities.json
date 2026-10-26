@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-25",
+  "updated": "2026-10-26",
   "baselines": {
     "hisingen": "v2.0.10",
     "china_android": "com.polestar.china.android 4.25.0-262",
@@ -144,7 +144,13 @@
     {
       "name": "remote_windows_tailgate",
       "global": "C3 Invocation",
-      "china": "not verified",
+      "china": "windowControl, tailgateControl and honkFlash request models source-verified; authorization and outcome not verified",
+      "cn_status": "DISABLED"
+    },
+    {
+      "name": "charging_port_flap_polestar2",
+      "global": "model-dependent",
+      "china": "generic UI type reserved; Polestar 2 capability excludes it and inspected controllers are unsupported",
       "cn_status": "DISABLED"
     },
     {

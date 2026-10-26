@@ -85,6 +85,7 @@ public final class WidgetRenderer {
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(labelSp, true), 0, label.length(), 0);
         styled.setSpan(new android.text.style.AbsoluteSizeSpan(valueSp, true), label.length() + separator.length(), content.length(), 0);
         views.setTextViewTextSize(ids[i], android.util.TypedValue.COMPLEX_UNIT_SP, labelSp);
+        views.setInt(ids[i], "setMaxLines", singleLine ? 1 : 2);
         views.setTextViewText(ids[i], styled); views.setTextColor(ids[i], ink);
         views.setContentDescription(ids[i], metric.label(en) + " · " + metric.value(c, s, true, en));
       }

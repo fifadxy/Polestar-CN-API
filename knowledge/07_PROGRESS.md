@@ -1,3 +1,12 @@
+## 2026-10-26 / v0.7.2-beta1 — 控制首页模板式下拉刷新
+
+- \`REFERENCE_APK_CONFIRMED\`：重新核对用户提供模板 APK，确认包含 \`androidx.swiperefreshlayout:swiperefreshlayout:1.1.0\`，DEX 中存在 \`MainActivity$HorizontalSwipeRefreshLayout\`、\`SwipeRefreshLayout$OnRefreshListener\`、\`setOnRefreshListener\` 与 \`setRefreshing\`。
+- \`PULL_TO_REFRESH\`：三套控制首页全部加入顶部下拉刷新；只调用现有 \`VehicleCoordinator.refresh()\`，因此复用 China Session、车辆发现、Battery/Range/Odometer/Exterior/Health 等既有读取链路。
+- \`GESTURE_GUARD\`：新增 \`HorizontalSwipeRefreshLayout\`，明显横向手势不被刷新容器拦截；纵向下拉保持模板式刷新体验。
+- \`TOP_ONLY\`：对嵌套 ScrollView 递归检测 \`canScrollVertically(-1)\`，只有页面已经滚动到顶部时才允许触发下拉刷新。
+- \`STATE\`：车辆读取刷新期间显示刷新指示器；远程控制命令 busy 不伪装成“正在刷新”；busy 状态下再次下拉不会重复叠加网络请求。
+- \`VERSION\`：Android 版本提升至 \`0.7.2-beta1\` / versionCode 72；CI test/lint/assemble 结果以本轮交付记录为准。
+
 ## 2026-10-26 / v0.7.1-beta1 — 三套 UI 皮肤与模板 APK 兼容校验修复
 
 - \`UI_SKINS\`：设置新增三套可持久化皮肤：① 最新模板（新版 Polestar 方向）；② 当前 v0.7 布局原样保留；③ 按用户提供 EV 截图重做的浅色大续航/车辆主视觉/圆形四车控/状态条/充电与露营卡片。

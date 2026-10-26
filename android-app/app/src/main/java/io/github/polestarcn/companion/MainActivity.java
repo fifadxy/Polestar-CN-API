@@ -14,6 +14,7 @@ import android.widget.*;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.FragmentActivity;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import io.github.polestarcn.companion.auth.ReferenceSignatureProvider;
 import java.util.*;
 
@@ -22,6 +23,7 @@ public final class MainActivity extends FragmentActivity {
   private VehicleCoordinator model;
   private final Runnable listener = this::render;
   private LinearLayout shell, body;
+  private HorizontalSwipeRefreshLayout controlRefresh;
   private int page = 0, ink, muted, paper, surface, line;
   private final int orange = Color.rgb(255, 107, 0);
   private final int evGreen = Color.rgb(89, 143, 124);
@@ -392,16 +394,66 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void controls() {
-    String skin = UiSkin.get(this);
-    if (UiSkin.EV_CONCEPT.equals(skin)) {
-      controlsEvConcept();
+    LinearLayout outerBody = body;
+    HorizontalSwipeRefreshLayout refresh = new HorizontalSwipeRefreshLayout(this);
+    controlRefresh = refresh;
+    refresh.setTag("control_pull_refresh");
+    refresh.setColorSchemeColors(
+        UiSkin.EV_CONCEPT.equals(UiSkin.get(this)) ? evGreen : orange);
+    refresh.setProgressBackgroundColorSchemeColor(surface);
+    refresh.setDistanceToTriggerSync(dp(72));
+    refresh.setOnChildScrollUpCallback(
+        (parent, child) -> controlCanScrollUp(child));
+    refresh.setOnRefreshListener(this::requestPullRefresh);
+    refresh.setRefreshing(model.busy && model.activeAction.isEmpty());
+
+    LinearLayout content = column();
+    content.setTag("control_pull_content");
+    refresh.addView(
+        content,
+        new SwipeRefreshLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    outerBody.addView(refresh, new LinearLayout.LayoutParams(-1, -1));
+
+    body = content;
+    try {
+      String skin = UiSkin.get(this);
+      if (UiSkin.EV_CONCEPT.equals(skin)) {
+        controlsEvConcept();
+      } else if (UiSkin.LATEST.equals(skin)) {
+        controlsLatest();
+      } else {
+        controlsCurrent();
+      }
+    } finally {
+      body = outerBody;
+    }
+  }
+
+  private void requestPullRefresh() {
+    HorizontalSwipeRefreshLayout refresh = controlRefresh;
+    if (model.busy) {
+      if (refresh != null) refresh.setRefreshing(model.activeAction.isEmpty());
       return;
     }
-    if (UiSkin.LATEST.equals(skin)) {
-      controlsLatest();
-      return;
+    Haptics.tap(this);
+    DiagnosticLog.add("Vehicle pull-to-refresh");
+    if (refresh != null) refresh.setRefreshing(true);
+    model.refresh(
+        () -> {
+          if (controlRefresh != null) controlRefresh.setRefreshing(false);
+        });
+  }
+
+  private boolean controlCanScrollUp(View view) {
+    if (view.canScrollVertically(-1)) return true;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) {
+        if (controlCanScrollUp(group.getChildAt(i))) return true;
+      }
     }
-    controlsCurrent();
+    return false;
   }
 
   private void controlsCurrent() {

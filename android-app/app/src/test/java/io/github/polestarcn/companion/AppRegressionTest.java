@@ -6,6 +6,7 @@ import android.app.*;
 import android.content.*;
 import android.view.*;
 import android.widget.*;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.io.*;
 import java.lang.reflect.*;
 import org.junit.*;
@@ -547,6 +548,81 @@ public final class AppRegressionTest {
     assertTrue(text.contains("Data updated"));
     assertEquals(Notification.VISIBILITY_PRIVATE, n.visibility);
     assertTrue((n.flags & Notification.FLAG_ONGOING_EVENT) != 0);
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void allThreeSkinsExposeTemplateStylePullToRefresh() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+
+    for (String skin : new String[]{UiSkin.LATEST, UiSkin.CURRENT, UiSkin.EV_CONCEPT}) {
+      UiSkin.set(activity, skin);
+      c.busy = false;
+      c.activeAction = "";
+      render.invoke(activity);
+      View tagged = findTagged(activity.getWindow().getDecorView(), "control_pull_refresh");
+      assertNotNull("pull-to-refresh exists for " + skin, tagged);
+      assertTrue(tagged instanceof HorizontalSwipeRefreshLayout);
+      assertTrue(((HorizontalSwipeRefreshLayout) tagged).isEnabled());
+      assertFalse(((HorizontalSwipeRefreshLayout) tagged).isRefreshing());
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "w360dp-h780dp-mdpi")
+  public void pullRefreshSpinnerTracksVehicleRefreshNotRemoteCommand() throws Exception {
+    VehicleCoordinator c = VehicleCoordinator.get(activity);
+    c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    c.selected.vin = "TEST-FIXTURE";
+    c.snapshot = new VehicleSnapshot("Polestar 2", "masked", 64, 260, 12000, "空闲",
+        "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(),
+        "LIVE", false, "关闭", "关闭");
+    Field signedIn = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signedIn.setAccessible(true);
+    signedIn.setBoolean(c, true);
+    Method render = MainActivity.class.getDeclaredMethod("render");
+    render.setAccessible(true);
+
+    c.busy = true;
+    c.activeAction = "";
+    render.invoke(activity);
+    HorizontalSwipeRefreshLayout refresh =
+        (HorizontalSwipeRefreshLayout) findTagged(
+            activity.getWindow().getDecorView(), "control_pull_refresh");
+    assertTrue(refresh.isRefreshing());
+
+    c.activeAction = "lock";
+    render.invoke(activity);
+    refresh =
+        (HorizontalSwipeRefreshLayout) findTagged(
+            activity.getWindow().getDecorView(), "control_pull_refresh");
+    assertFalse("remote command does not masquerade as data refresh", refresh.isRefreshing());
+    c.busy = false;
+    c.activeAction = "";
+  }
+
+  @Test
+  public void horizontalSwipeRefreshLayoutDoesNotInterceptClearHorizontalGesture() {
+    HorizontalSwipeRefreshLayout layout = new HorizontalSwipeRefreshLayout(activity);
+    FrameLayout child = new FrameLayout(activity);
+    layout.addView(child, new SwipeRefreshLayout.LayoutParams(300, 500));
+    long now = android.os.SystemClock.uptimeMillis();
+    MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 20f, 50f, 0);
+    MotionEvent move = MotionEvent.obtain(now, now + 20, MotionEvent.ACTION_MOVE, 180f, 58f, 0);
+    layout.onInterceptTouchEvent(down);
+    assertFalse(layout.onInterceptTouchEvent(move));
+    down.recycle();
+    move.recycle();
   }
 
   @Test

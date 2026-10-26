@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 71
-        versionName '0.7.1-beta1'
+        versionCode 72
+        versionName '0.7.2-beta1'
     }
     buildTypes {
         debug {
@@ -34,6 +34,7 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'
     implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'io.grpc:grpc-okhttp:1.68.2'
     implementation 'io.grpc:grpc-stub:1.68.2'
 }

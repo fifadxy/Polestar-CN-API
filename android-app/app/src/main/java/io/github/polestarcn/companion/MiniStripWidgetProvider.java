@@ -8,7 +8,7 @@ public final class MiniStripWidgetProvider extends AppWidgetProvider {
     for (int id : ids) WidgetRenderer.update(c, m, id, WidgetRenderer.Size.MINI);
   }
   @Override public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle opts) {
-    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.MINI);
+    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.MINI,opts);
   }
   @Override public void onDisabled(Context context) { ResidentService.scheduleUpdates(context); }
 }

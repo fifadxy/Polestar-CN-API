@@ -8,9 +8,10 @@ public final class UiSkin {
   public static final String NIO_LIKE="niolike";
   public static final String NIO_LIKE_2="niolike2";
   public static final String VOLIKE_POLESTAR="volike_polestar";
+  public static final String PS_DEFAULT="ps_default";
   private UiSkin(){}
   public static final String[] CHOICES={
-      SIMPLE,DETAILED,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2};
+      SIMPLE,DETAILED,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT};
   public static String get(Context c){
     String value=AppPreferences.get(c,"ui_skin",DETAILED);
     for(String choice:CHOICES)if(choice.equals(value))return value;
@@ -31,6 +32,7 @@ public final class UiSkin {
   public static boolean polestarVo(Context c){return VOLIKE_POLESTAR.equals(get(c));}
   public static String label(Context c,String v){
     boolean en=AppPreferences.english(c);
+    if(PS_DEFAULT.equals(v))return en?"PS Default":"PS默认皮肤";
     if(SIMPLE.equals(v))return en?"VoLike Simple":"VoLike 简洁";
     if(DETAILED.equals(v))return en?"VoLike Detailed":"VoLike 详细";
     if(VOLIKE_POLESTAR.equals(v))return en?"VoLike Polestar VI":"VoLike 极星配色";

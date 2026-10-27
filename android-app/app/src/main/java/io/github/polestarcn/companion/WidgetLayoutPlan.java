@@ -4,7 +4,7 @@ package io.github.polestarcn.companion;
 public final class WidgetLayoutPlan {
   public final int count, rows, columns, padding, chargeRows;
   public final boolean wide, title, stacked, progress, chargeTitle;
-  public final float labelSp, valueSp, cellWidthDp;
+  public final float labelSp, valueSp, cellWidthDp, rowHeightDp, typeScale;
 
   public WidgetLayoutPlan(WidgetRenderer.Size size, int requested, int width, int height, float scale) {
     this(size, requested, 0, false, width, height, scale);
@@ -13,8 +13,8 @@ public final class WidgetLayoutPlan {
   public WidgetLayoutPlan(WidgetRenderer.Size size, int requested, int requestedCharge,
       boolean battery, int width, int height, float scale) {
     wide = size == WidgetRenderer.Size.WIDE;
-    scale = Math.max(.8f, scale);
-    padding = size == WidgetRenderer.Size.MINI && height <= 96 && scale > 1.1f ? 0
+    scale = Math.max(.8f, scale);typeScale=scale;
+    padding = height<60?0:size == WidgetRenderer.Size.MINI && height <= 96 && scale > 1.1f ? 0
         : size == WidgetRenderer.Size.MINI || height < 110 ? 2 : 8;
     title = !wide && size != WidgetRenderer.Size.MINI && height >= 130;
     progress = battery;
@@ -35,7 +35,8 @@ public final class WidgetLayoutPlan {
     rows = Math.max(1, (count + columns - 1) / columns);
     cellWidthDp = Math.max(28, (width - 2f * padding - (wide ? 104 : 0)) / columns - 6);
     float row = Math.max(1, available / rows);
-    stacked = row >= 34 * scale;
+    rowHeightDp=row;
+    stacked = row >= 42 * scale;
     labelSp = 10;
     float ideal = count <= 1 ? 30 : count <= 2 ? 24 : count <= 4 ? 20 : 16;
     valueSp = Math.max(12, Math.min(ideal,

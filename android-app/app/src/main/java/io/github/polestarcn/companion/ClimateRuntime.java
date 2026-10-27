@@ -97,7 +97,10 @@ public final class ClimateRuntime {
     if (s == null) return "--";
     boolean en = AppPreferences.english(c);
     List<String> parts = new ArrayList<>();
-    if ("开启".equals(s.climate)) parts.add((en ? "Left " : "剩余 ") + shortLabel(c, s, vehicleHash, en));
+    if ("开启".equals(s.climate)) {
+      Integer reported=vehicleRemainingMinutes(s),estimated=fallbackMinutes(c,vehicleHash);
+      parts.add(reported==null&&estimated==null?(en?"Remaining time unavailable":"剩余时间暂无"):reported!=null&&reported==0?(en?"Runtime elapsed; refresh to verify":"预计时间已到，请刷新确认"):(en?"Left ":"剩余 ")+shortLabel(c,s,vehicleHash,en));
+    }
     if (s.environment.temperatureC != null)
       parts.add((en ? "Cabin " : "车内 ") + EnvironmentSnapshot.temperatureText(s.environment.temperatureC, true));
     if (s.environment.targetTemperatureC != null)

@@ -23,7 +23,7 @@ public class HealthLocationV078Test {
  @Test public void unknownAndOmittedChecksNeverBecomeMeasuredNormal(){
   Map<Integer,Object> fields=health();fields.remove(8);fields.put(6,0L);fields.put(7,99L);fields.put(14,0L);
   VehicleHealthSnapshot h=VehicleHealthSnapshot.fromData(fields,TireSnapshot.fromData(fields));assertEquals(-1,h.oil);assertEquals(-1,h.brakeFluid);assertEquals(-1,h.coolant);assertEquals(-1,h.exteriorLights);
-  assertEquals("All Good!",VehicleCondition.summary(snapshot(h),true,true));
+  assertEquals("All Good！",VehicleCondition.summary(snapshot(h),true,true));
  }
  @Test public void eachExtendedWarningReachesUnifiedVehicleCondition(){
   for(int field:new int[]{5,6,7,8,14}){Map<Integer,Object> fields=health();fields.put(field,2L);VehicleHealthSnapshot h=VehicleHealthSnapshot.fromData(fields,TireSnapshot.fromData(fields));assertTrue("field "+field,h.hasProblem());assertTrue(VehicleCondition.problem(snapshot(h),true));}
@@ -33,7 +33,7 @@ public class HealthLocationV078Test {
   VehicleSnapshot v=snapshot(VehicleHealthSnapshot.fromData(health(),TireSnapshot.unknown()));
   assertEquals("75 d",DisplayMetric.SERVICE_DAYS_LEFT.value(c,v,true,true));assertEquals("14959 km",DisplayMetric.SERVICE_KM_LEFT.value(c,v,true,true));
   assertEquals("21%",DisplayMetric.SERVICE_TIME_PERCENT.value(c,v,true,true));assertEquals("75%",DisplayMetric.SERVICE_KM_PERCENT.value(c,v,true,true));
-  AppPreferences.set(c,"maintenance_interval_days","750");assertEquals("10%",DisplayMetric.SERVICE_TIME_PERCENT.value(c,v,true,true));
+  AppPreferences.set(c,"maintenance_interval_days","750");assertEquals("21%",DisplayMetric.SERVICE_TIME_PERCENT.value(c,v,true,true));
   assertEquals(v.health.reportedAt,DisplayMetric.SERVICE_TIME_PERCENT.reportedAt(v));assertEquals(v.mileage.reportedAt,DisplayMetric.TA_DISTANCE.reportedAt(v));
  }
  @Test public void fullHealthCacheKeepsSourceTimeAndCounters(){

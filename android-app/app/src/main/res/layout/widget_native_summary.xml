@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_summary" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:id="@+id/widget_card_header" android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+      <ImageView android:id="@+id/widget_brand" android:layout_width="16dp" android:layout_height="16dp" android:layout_marginEnd="5dp" android:scaleType="fitCenter" android:contentDescription="@null"/>
+      <TextView android:id="@+id/widget_title" style="@style/WidgetCaption" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="11sp"/>
+      <ImageView android:id="@+id/widget_card_location" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_location" android:scaleType="fitCenter" android:contentDescription="Parked location"/>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_area" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+      <ImageView android:id="@+id/widget_car" android:layout_width="70dp" android:layout_height="match_parent" android:layout_marginEnd="4dp" android:scaleType="fitCenter" android:src="@drawable/vehicle_hero" android:contentDescription="Polestar 2" android:visibility="gone"/>
+    <LinearLayout android:id="@+id/widget_metrics" android:orientation="vertical" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+    <LinearLayout android:id="@+id/widget_metric_row0" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent">
+            <TextView android:id="@+id/widget_metric0" style="@style/WidgetMetric" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="--" />
+            <ImageView android:id="@+id/widget_soc_progress" android:layout_width="match_parent" android:layout_height="2dp" android:layout_marginStart="3dp" android:layout_marginEnd="3dp" android:scaleType="fitXY" android:contentDescription="@null" android:visibility="gone" />
+        </LinearLayout>
+        <TextView android:id="@+id/widget_metric1" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row1" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric2" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric3" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row2" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric4" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric5" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row3" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric6" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric7" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row4" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric8" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric9" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_metric_row5" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <TextView android:id="@+id/widget_metric10" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+        <TextView android:id="@+id/widget_metric11" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:text="--" />
+    </LinearLayout>
+    </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_service_band" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+      <LinearLayout android:id="@+id/widget_service_time_cell" android:orientation="vertical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:paddingEnd="3dp">
+        <TextView android:id="@+id/widget_service_time_text" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <ImageView android:id="@+id/widget_service_time_bar" android:layout_width="match_parent" android:layout_height="2dp" android:scaleType="fitXY" android:contentDescription="@null" />
+      </LinearLayout>
+      <LinearLayout android:id="@+id/widget_service_distance_cell" android:orientation="vertical" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:paddingStart="3dp">
+        <TextView android:id="@+id/widget_service_distance_text" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <ImageView android:id="@+id/widget_service_distance_bar" android:layout_width="match_parent" android:layout_height="2dp" android:scaleType="fitXY" android:contentDescription="@null" />
+      </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_charging_section" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone">
+        <ImageView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="1dp" android:layout_marginBottom="1dp" android:background="#44777A7C" />
+        <TextView android:id="@+id/widget_charging_title" style="@style/WidgetCaption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Charging" android:visibility="gone" />
+        <LinearLayout android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <ImageView android:id="@+id/widget_charging_icon" android:layout_width="16dp" android:layout_height="16dp" android:layout_marginEnd="4dp" android:src="@drawable/ic_charge" android:contentDescription="@null" />
+            <TextView android:id="@+id/widget_charging_data" style="@style/WidgetMetric" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:paddingStart="0dp" android:paddingEnd="0dp" android:textSize="12sp" android:maxLines="3" />
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/widget_refresh_row" android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+      <ImageView android:id="@+id/widget_refresh_icon" android:layout_width="12dp" android:layout_height="12dp" android:layout_marginEnd="3dp" android:src="@drawable/ic_refresh" android:contentDescription="@null" />
+      <TextView android:id="@+id/widget_region" style="@style/WidgetCaption" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="--" />
+    </LinearLayout>
+</LinearLayout>

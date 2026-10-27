@@ -10,7 +10,7 @@ public final class DataWidgetProvider extends AppWidgetProvider {
     for (int id : ids) WidgetRenderer.update(c, m, id, WidgetRenderer.Size.DATA);
   }
   @Override public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle options) {
-    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.DATA);
+    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.DATA,options);
   }
   @Override public void onDisabled(Context context) { ResidentService.scheduleUpdates(context); }
 }

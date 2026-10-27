@@ -32,7 +32,8 @@ public final class SkinPreviewView extends View {
     boolean dark = AppPreferences.dark(getContext());
     boolean nio = UiSkin.NIO_LIKE.equals(skin) || UiSkin.NIO_LIKE_2.equals(skin);
     boolean green = UiSkin.NIO_LIKE.equals(skin);
-    boolean polestar = UiSkin.VOLIKE_POLESTAR.equals(skin);
+    boolean psDefault=UiSkin.PS_DEFAULT.equals(skin);
+    boolean polestar = UiSkin.VOLIKE_POLESTAR.equals(skin)||psDefault;
     boolean detailed = UiSkin.DETAILED.equals(skin) || polestar;
 
     int base = dark ? 0xFF141618 : nio ? (green ? 0xFFF1F8FA : 0xFFF3F3F1)
@@ -45,7 +46,13 @@ public final class SkinPreviewView extends View {
 
     paint.setColor(base); canvas.drawRoundRect(0,0,300,164,17,17,paint);
 
-    if (nio) {
+    if(psDefault){
+      drawText(canvas,"Polestar 2",14,12,20,text,true);drawText(canvas,"78%",22,12,47,text,true);drawText(canvas,"312 km",17,192,47,text,false);
+      paint.setColor(accent);canvas.drawRect(12,53,220,56,paint);
+      if(car!=null){float h=65,w=h*car.getWidth()/(float)car.getHeight();canvas.drawBitmap(car,null,new RectF(150-w/2,61,150+w/2,126),paint);}
+      drawText(canvas,"All Good！",12,116,139,accent,false);
+      for(int i=0;i<4;i++){paint.setColor(card);float x=8+i*73;canvas.drawRoundRect(x,145,x+67,160,4,4,paint);paint.setColor(accent);canvas.drawCircle(x+33,152,3,paint);}
+    }else if (nio) {
       paint.setColor(card);canvas.drawRoundRect(8,8,145,155,14,14,paint);
       paint.setColor(card);canvas.drawRoundRect(153,8,292,155,14,14,paint);
       drawText(canvas,"Polestar 2",15,18,27,text,true);

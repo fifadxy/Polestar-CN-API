@@ -9,7 +9,7 @@ public final class CompactWidgetProvider extends AppWidgetProvider {
     for (int id : ids) WidgetRenderer.update(c, m, id, WidgetRenderer.Size.SQUARE);
   }
   @Override public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle opts) {
-    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.SQUARE);
+    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.SQUARE,opts);
   }
   @Override public void onDisabled(Context context) { ResidentService.scheduleUpdates(context); }
 }

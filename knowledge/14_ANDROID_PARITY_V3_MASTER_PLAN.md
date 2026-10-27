@@ -87,3 +87,8 @@ android-app/app/src/main/java/io/github/polestarcn/companion/
 ## 2026-10-27 v0.7.8 当前增量
 
 当前 Android v0.7.8 在 P2/P3 显示层加入新参考 Health/停车位置，保养百分比与时长估算明示来源；仍不实现远程复位。后续优先同车实测，而非用 Global 或旧公开 schema 推断 China 能力。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。
+
+
+## 2026-10-27 v0.8.3 当前增量
+
+基于最新v0.8.2/9744759，恢复PS默认并保留VoLike新布局；自动保养只用Health剩余值，历史手动记录不再补充显示。地图共用精简网页，并新增默认关闭的手机前台位置授权；无后台定位。所有Widget改用原生文字/按钮与等比车图，新增PSeu、自选数据、统一粗体/字号及精确尺寸适配。按钮资源和后续迭代参考Psa图标规范v1。协议/实车证据标签不因此升级。详见 [v0.8.3统一知识](28_V083_UI_WIDGET_MAP_ICONS.md)。

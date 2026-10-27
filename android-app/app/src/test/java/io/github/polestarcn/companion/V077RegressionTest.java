@@ -46,7 +46,7 @@ public class V077RegressionTest {
     View root=render();View status=root.findViewWithTag("vehicle_status_button");assertTrue(text(status,"车况"));
     assertTrue(status.getContentDescription().toString().contains("请检查车辆"));
     AppPreferences.set(activity,"show_tire_status","off");root=render();status=root.findViewWithTag("vehicle_status_button");
-    assertTrue(text(status,"车况"));assertTrue(status.getContentDescription().toString().contains("All Good!"));
+    assertTrue(text(status,"All Good！"));assertTrue(status.getContentDescription().toString().contains("All Good！"));
     assertEquals(fields,AppPreferences.get(activity,"home_metrics",""));assertEquals(VehicleHealthSnapshot.WARNING,model.snapshot.health.tirePressure);
     invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
     assertFalse(text(dialog.getWindow().getDecorView(),"胎压告警"));dialog.dismiss();

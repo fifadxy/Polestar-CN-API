@@ -1072,3 +1072,8 @@ Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 �
 ## 2026-10-27 Android v0.7.9 地图显示层
 
 按用户最新选择，用官方 https://uri.amap.com/marker 位置网页替代需 Key 的 staticmap；App 二级弹窗使用受限系统 WebView，不改变 Mac 工程或 China c3Lbs 坐标轴（1经度/2纬度）。读取失败不清会话，独立4秒 RPC 截止，按选中VIN读取并丢弃切车/退出后的旧结果。无地图 SDK、新定位权限或后台地图；网页开销/可用性和坐标偏移仍需实机验证。见 [v0.7.9](../knowledge/26_V079_KEYLESS_PARKING_WEB.md)。
+
+
+## 2026-10-27 Android v0.8.3 显示层
+
+基于9744759：保养公里/天/工时仅用GetLatestHealth已确认字段，不再用本地保养记录填补，百分比固定参考周期而非新发现的车辆百分比。地图仍由c3Lbs读取，网页覆盖层精简；新增默认关闭、明确系统授权的手机前台位置，仅向可信高德网页开放，无后台定位。新PSeu/Widget原生适配与公用图标不改变China远控协议。Mac功能代码不变。见 [Android知识28](../knowledge/28_V083_UI_WIDGET_MAP_ICONS.md)。

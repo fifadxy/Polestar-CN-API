@@ -28,3 +28,8 @@
 `China C3 LBS coordinate system requires real-car verification`。沿用参考 dev=0，不自行二次偏移。报告时间与 stale 标志保留；定位始终称“最后停车位置”，不称实时位置。地址/POI 没有独立证据，不制造地址或做额外逆地理编码。
 
 Debug/Preview 各140项测试通过，Lint无错误，Release/Preview已编译并验证v2签名。新回归覆盖协议轴/请求/超时、失败不影响主状态、切车/退出不串车、URI fallback、旧 Key 清理、拒绝手机定位、无 JS bridge、WebView 生命周期与四皮肤中英日夜/小屏横屏。发布校验值和最终测试数量见 [v0.7.9 更新说明](../docs/Psa_v079_Update.md)。
+
+
+## 2026-10-27 v0.8.3 当前增量
+
+基于最新v0.8.2/9744759，恢复PS默认并保留VoLike新布局；自动保养只用Health剩余值，历史手动记录不再补充显示。地图共用精简网页，并新增默认关闭的手机前台位置授权；无后台定位。所有Widget改用原生文字/按钮与等比车图，新增PSeu、自选数据、统一粗体/字号及精确尺寸适配。按钮资源和后续迭代参考Psa图标规范v1。协议/实车证据标签不因此升级。详见 [v0.8.3统一知识](28_V083_UI_WIDGET_MAP_ICONS.md)。

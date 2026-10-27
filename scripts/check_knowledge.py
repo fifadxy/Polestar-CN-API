@@ -50,3 +50,8 @@ print('PASS: v0.7.8 reference health, remaining service and c3Lbs axis mapping')
 assert '](26_V079_KEYLESS_PARKING_WEB.md)' in index
 assert (root / 'docs/Psa_v079_Update.md').is_file()
 print('PASS: v0.7.9 key-free map documentation indexed')
+
+assert '](28_V083_UI_WIDGET_MAP_ICONS.md)' in index
+assert (root / 'docs/Psa_Button_Icon_Design_Specification_v1.md').is_file()
+assert (root / 'branding/android/icons/Psa_Control_Icon_Catalog_v1.svg').is_file()
+print('PASS: v0.8.3 UI, native widgets, location opt-in and icon specification indexed')

@@ -28,13 +28,13 @@ final class ParkingWebPreview {
     try{
       web=new WebView(context);web.setTag("parking_webview");web.setSaveEnabled(false);web.setSaveFromParentEnabled(false);web.setBackgroundColor(PsaDesign.surface(dark));
       WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
-      settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(false);
+      settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(MapLocationPermission.enabled(context));
       settings.setCacheMode(WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
       settings.setSupportMultipleWindows(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setMediaPlaybackRequiresUserGesture(true);
       settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(dark);
       CookieManager.getInstance().setAcceptCookie(false);CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
       web.setWebChromeClient(new WebChromeClient(){
-        @Override public void onGeolocationPermissionsShowPrompt(String origin,GeolocationPermissions.Callback callback){callback.invoke(origin,false,false);}
+        @Override public void onGeolocationPermissionsShowPrompt(String origin,GeolocationPermissions.Callback callback){callback.invoke(origin,MapLocationPermission.allowOrigin(context,origin),false);}
         @Override public void onPermissionRequest(PermissionRequest request){request.deny();}
       });
       web.setWebViewClient(new WebViewClient(){
@@ -43,7 +43,9 @@ final class ParkingWebPreview {
           if(request.isForMainFrame()&&request.hasGesture())openExternal.run();return true;
         }
         @Override public void onPageStarted(WebView v,String url,Bitmap icon){if(!closed){failed=false;status.setVisibility(View.VISIBLE);status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));}}
-        @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);}}
+        @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
+          if(allowedPage(Uri.parse(url))){v.evaluateJavascript(compactScript(context),null);
+            String distance=resourceScript(context,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,%s);",point.latitude,point.longitude,AppPreferences.english(context)?"true":"false",MapLocationPermission.enabled(context)?"true":"false");v.evaluateJavascript(distance,null);}}}
         @Override public void onReceivedError(WebView v,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())fail();}
         @Override public void onReceivedHttpError(WebView v,WebResourceRequest request,WebResourceResponse error){if(request.isForMainFrame())fail();}
       });
@@ -55,6 +57,15 @@ final class ParkingWebPreview {
     FrameLayout.LayoutParams message=new FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP);view.addView(status,message);
     if(!failed)status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));
   }
+  private static String compactScript(Context context){return resourceScript(context,R.raw.parking_map_compact);}
+  private static String resourceScript(Context context,int resource){
+    try(java.io.InputStream input=context.getResources().openRawResource(resource);
+        java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream()){
+      byte[] buffer=new byte[2048];int n;while((n=input.read(buffer))!=-1)bytes.write(buffer,0,n);
+      return new String(bytes.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);
+    }catch(java.io.IOException unavailable){return "void 0";}
+  }
+  void refreshPhoneLocation(){if(!closed&&web!=null){web.getSettings().setGeolocationEnabled(MapLocationPermission.enabled(view.getContext()));try{GeolocationPermissions.getInstance().clearAll();}catch(RuntimeException unavailable){}web.reload();}}
   static boolean allowedPage(Uri uri){
     if(uri==null||!"https".equalsIgnoreCase(uri.getScheme()))return false;
     String host=uri.getHost();if(host==null)return false;host=host.toLowerCase(Locale.US);

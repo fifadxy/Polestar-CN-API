@@ -1,6 +1,6 @@
 # Android Polestar Assistant 主线知识库 · 索引
 
-> 版本 `KB-0.8.2 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
+> 版本 `KB-0.8.3 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
 
 本目录是 **Polestar2 Widget&API** 独立 Android 子项目的长期知识库。`main` 为 GitHub 仓库默认主分支，本项目专属的 Android 主线是 `android-polestar-assistant-main`，不修改 Mac/Hisingen 的独立工程。
 
@@ -34,6 +34,7 @@
 | [24_V077_NIOLIKE_VI_CHARGING.md](24_V077_NIOLIKE_VI_CHARGING.md) | NIOlike 日夜皮肤、静态 VI、胎压显示与充电门控 | v0.7.7 实现 |
 | [25_V078_CONDITION_LOCATION_TRIP.md](25_V078_CONDITION_LOCATION_TRIP.md) | 四套皮肤、健康/保养、c3Lbs 高德预览与行程来源冲突 | v0.7.8 实现 |
 | [26_V079_KEYLESS_PARKING_WEB.md](26_V079_KEYLESS_PARKING_WEB.md) | 免 Key 官方地图网页、WebView限制、错误隔离和实测边界 | v0.7.9 实现 |
+| [28_V083_UI_WIDGET_MAP_ICONS.md](28_V083_UI_WIDGET_MAP_ICONS.md) | PS默认、自动保养、精简地图/可选定位、PSeu/粗体/原生Widget与图标 | v0.8.3 实现 |
 | [evidence/reference-20261027-mapping.json](evidence/reference-20261027-mapping.json) | 最新参考 APK 元数据与健康/位置方法映射 | 静态确认 + 用户参考实测 |
 | [evidence/apk-v2-signature.json](evidence/apk-v2-signature.json) | 参考 APK 签名及内容摘要证据 | 已验证 |
 | [evidence/apk-vehicle-schema.json](evidence/apk-vehicle-schema.json) | 33 字段独立提取 | 已验证 |

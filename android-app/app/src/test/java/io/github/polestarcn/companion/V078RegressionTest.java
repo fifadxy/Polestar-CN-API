@@ -46,12 +46,12 @@ public class V078RegressionTest {
  }
  private void export(View v,String name,int w,int h)throws Exception{File dir=new File("build/reports/previews/v078");dir.mkdirs();Bitmap b=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas cv=new Canvas(b);cv.scale(2,2);v.draw(cv);try(FileOutputStream out=new FileOutputStream(new File(dir,name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();}
  private void matrix(int w,int h)throws Exception{
-  for(float font:new float[]{1f,1.3f,1.56f})for(String lang:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.VOLIKE_POLESTAR,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2}){
+  for(float font:new float[]{1f,1.3f,1.56f})for(String lang:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.VOLIKE_POLESTAR,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2,UiSkin.PS_DEFAULT}){
    AppPreferences.set(activity,"language",lang);AppPreferences.set(activity,"theme",theme);UiSkin.set(activity,skin);View root=render(w,h,font),content=root.findViewWithTag("control_pull_content");try{fits(content,UiSkin.nioLayout(activity));}catch(AssertionError e){export(root,"failure-"+skin+"-"+w+"-"+font,w,h);throw new AssertionError(skin+" "+w+"x"+h+" font="+font+" "+lang+" "+theme,e);}assertEquals(4,tagged(content,"control_tile"));
-   LinearLayout summary=root.findViewWithTag("vehicle_status_button");TextView label=(TextView)summary.getChildAt(1);assertEquals(lang.equals("zh")?"车况":"Status",label.getText().toString());
+   LinearLayout summary=root.findViewWithTag("vehicle_status_button");TextView label=(TextView)summary.getChildAt(1);assertEquals("All Good！",label.getText().toString());
    VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("%"));
    View chargePulse=root.findViewWithTag("charging_pulse");assertNotNull(chargePulse);assertEquals(View.VISIBLE,chargePulse.getVisibility());
-   if(!UiSkin.nioLayout(activity)&&font==1f&&w==360){assertNotNull(root.findViewWithTag("volike_hero"));assertEquals(4,tagged(root,"volike_control_circle"));}
+   if(!UiSkin.nioLayout(activity)&&!UiSkin.PS_DEFAULT.equals(skin)&&font==1f&&w==360){assertNotNull(root.findViewWithTag("volike_hero"));assertEquals(4,tagged(root,"volike_control_circle"));}
    View nav=root.findViewWithTag("bottom_nav");assertNotNull(nav);java.util.List<View> navButtons=new java.util.ArrayList<>();collectTagged(nav,"bottom_nav_button",navButtons);assertEquals(3,navButtons.size());
    assertTrue("left rounded-screen safe area",absoluteLeft(navButtons.get(0))>=18);assertTrue("right rounded-screen safe area",absoluteLeft(navButtons.get(2))+navButtons.get(2).getWidth()<=w-18);
    if(UiSkin.nioLayout(activity)&&font==1&&w==360){java.util.List<View> circles=new java.util.ArrayList<>();collectTagged(content,"shortcut_circle",circles);assertTrue(circles.size()>=4);int top=absoluteTop(circles.get(0));for(int n=1;n<4;n++)assertTrue("NIO shortcut circles align",Math.abs(absoluteTop(circles.get(n))-top)<=1);assertTrue(tagged(content,"shortcut_label")>=2);assertTrue(tagged(content,"shortcut_feedback")>=2);export(root,skin+"-"+theme+"-"+lang,w,h);}
@@ -60,8 +60,8 @@ public class V078RegressionTest {
  @Test public void appFontAndSystemFontTogetherFitPortraitAndLandscape()throws Exception{matrix(320,568);matrix(640,320);}
  @Test public void allSkinsExportAtNormalSizeAndRemainSingleLine()throws Exception{matrix(360,780);}
  @Test public void conditionSummaryIncludesBodyWarningsButPartialReportingCanBeGood(){
-  assertEquals("All Good!",VehicleCondition.summary(model.snapshot,true,true));
-  VehicleSnapshot opening=model.snapshot.withExterior(new ExteriorSnapshot(new int[]{1,2,2,2},new int[]{2,2,2,2}));assertTrue(VehicleCondition.problem(opening,true));assertNotEquals("All Good!",VehicleCondition.summary(opening,true,true));
+  assertEquals("All Good！",VehicleCondition.summary(model.snapshot,true,true));
+  VehicleSnapshot opening=model.snapshot.withExterior(new ExteriorSnapshot(new int[]{1,2,2,2},new int[]{2,2,2,2}));assertTrue(VehicleCondition.problem(opening,true));assertNotEquals("All Good！",VehicleCondition.summary(opening,true,true));
   VehicleSnapshot none=new VehicleSnapshot("car","masked",60,200,null,"未知","未知","未知","未知","未知",1,"LIVE",false);assertFalse(VehicleCondition.reported(none,true));
  }
  @Test public void vehicleStatusShowsServicePercentagesAndBarsOnFirstPage()throws Exception{

@@ -23,6 +23,6 @@ public final class VehicleCondition {
   }
   public static String summary(VehicleSnapshot v,boolean english,boolean tyres) {
     return problem(v,tyres)?(english?"Check vehicle":"请检查车辆")
-        :reported(v,tyres)?"All Good!":(english?"Unavailable":"未上报");
+        :reported(v,tyres)?"All Good！":(english?"Unavailable":"未上报");
   }
 }

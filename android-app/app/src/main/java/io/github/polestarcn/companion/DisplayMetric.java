@@ -83,10 +83,10 @@ public enum DisplayMetric {
       case ODOMETER: case TA_DISTANCE: case TM_DISTANCE: case TA_SPEED: case TM_SPEED:
       case TA_DURATION: case TM_DURATION: case SINCE_CHARGE_DISTANCE: case SINCE_CHARGE_SPEED:
       return s.mileage.reportedAt;
-      case SERVICE_KM_LEFT: case SERVICE_KM_PERCENT:return s.health.serviceKmLeft!=null?s.health.reportedAt:s.mileage.reportedAt;
+      case SERVICE_KM_LEFT: case SERVICE_KM_PERCENT:return s.health.serviceKmLeft!=null?s.health.reportedAt:0;
       case TA_CONSUMPTION: case TM_CONSUMPTION: case SINCE_CHARGE_CONSUMPTION: return s.mileage.consumptionReportedAt;
       case SERVICE_HOURS_LEFT:return s.health.reportedAt;
-      case SERVICE_DAYS_LEFT: case SERVICE_TIME_PERCENT: return s.health.serviceDaysLeft!=null?s.health.reportedAt:System.currentTimeMillis();
+      case SERVICE_DAYS_LEFT: case SERVICE_TIME_PERCENT: return s.health.serviceDaysLeft!=null?s.health.reportedAt:0;
       default: return s.timestampMillis;
     }
   }
@@ -102,7 +102,6 @@ public enum DisplayMetric {
     if (this == TIRE_STATUS) return s.tires.summary(english);
     if(this==SERVICE_HOURS_LEFT)return ServiceReading.number(s.health.serviceHoursLeft,includeUnit?unit:"");
     if(this==SERVICE_DAYS_LEFT||this==SERVICE_KM_LEFT||this==SERVICE_TIME_PERCENT||this==SERVICE_KM_PERCENT) {
-      if(c==null)return "--";
       Integer value=this==SERVICE_DAYS_LEFT?ServiceReading.days(c,s):this==SERVICE_KM_LEFT?ServiceReading.km(c,s)
           :this==SERVICE_TIME_PERCENT?ServiceReading.timePercent(c,s):ServiceReading.distancePercent(c,s);
       return ServiceReading.number(value,includeUnit?unit:"");

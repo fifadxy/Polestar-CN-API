@@ -51,9 +51,10 @@ assert 'TailgateControl' in all_java
 print('PASS: source structure, real UI gating, biometric controls, private sessions and widgets; Java count',len(java))
 
 
-assert not any(p in manifest for p in ['ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION','ACCESS_BACKGROUND_LOCATION'])
+assert 'ACCESS_BACKGROUND_LOCATION' not in manifest
+assert 'ACCESS_FINE_LOCATION' in manifest and 'ACCESS_COARSE_LOCATION' in manifest
 assert 'restapi.amap.com/v3/staticmap' not in all_java
 assert 'addJavascriptInterface' not in all_java
 assert 'https://uri.amap.com/marker' in all_java
 assert not any('com.amap.api' in line for line in gradle.splitlines())
-print('PASS: key-free official map URI, no phone location permission, map SDK or JavaScript bridge')
+print('PASS: key-free official map URI, optional foreground location, no map SDK or JavaScript bridge')

@@ -47,7 +47,7 @@ public class VoLikeV081Test {
     if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)collect(((ViewGroup)v).getChildAt(i),tag,out);
   }
   @Test public void polestarPaletteHasAnIndependentFifthSkin(){
-    assertEquals(5,UiSkin.CHOICES.length);
+    assertEquals(6,UiSkin.CHOICES.length);
     UiSkin.set(activity,UiSkin.VOLIKE_POLESTAR);
     assertEquals(UiSkin.VOLIKE_POLESTAR,UiSkin.get(activity));
     assertEquals(2,UiSkin.index(activity));
@@ -60,7 +60,7 @@ public class VoLikeV081Test {
     assertNotNull(dialog);
     java.util.List<View> previews=new java.util.ArrayList<>();
     collect(dialog.getWindow().getDecorView(),"skin_preview",previews);
-    assertEquals(5,previews.size());
+    assertEquals(6,previews.size());
     for(View preview:previews)assertTrue(preview instanceof SkinPreviewView);
     dialog.dismiss();
   }

@@ -100,7 +100,7 @@ public class WidgetV077Test {
     View root=render(WidgetRenderer.Size.SQUARE,150,170,snapshot("空闲"));
     assertEquals("tire_status,vehicle_status,battery",AppPreferences.get(c,key,""));
     TextView aggregate=root.findViewById(R.id.widget_metric1);
-    assertTrue(aggregate.getContentDescription().toString().contains("All Good!"));
+    assertTrue(aggregate.getContentDescription().toString().contains("All Good！"));
     assertTrue(((TextView)root.findViewById(R.id.widget_metric0)).getText().toString().contains("63"));
     textFits(root);
   }

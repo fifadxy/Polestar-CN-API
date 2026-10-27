@@ -17,3 +17,6 @@ magick branding/android/psassistant-icon-master.png -resize 512x512 -define webp
 ```
 
 The high-resolution master belongs in this branding directory and is not packaged in the APK. APK resources use only the smaller runtime copy.
+
+
+按钮公用资源及后续迭代遵循 [Psa 按钮图标规范 v1](../../docs/Psa_Button_Icon_Design_Specification_v1.md)，图册见 icons/Psa_Control_Icon_Catalog_v1.svg。该规范以用户新增参考为依据；启动器黑武士图标保持原约定。

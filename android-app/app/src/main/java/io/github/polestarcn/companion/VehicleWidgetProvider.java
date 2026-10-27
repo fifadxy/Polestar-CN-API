@@ -9,7 +9,7 @@ public final class VehicleWidgetProvider extends AppWidgetProvider {
     for (int id : ids) WidgetRenderer.update(c, m, id, WidgetRenderer.Size.LARGE);
   }
   @Override public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle opts) {
-    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.LARGE);
+    WidgetRenderer.update(c, m, id, WidgetRenderer.Size.LARGE,opts);
   }
   @Override public void onDisabled(Context context) { ResidentService.scheduleUpdates(context); }
 }

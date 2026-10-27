@@ -26,6 +26,7 @@
 9. [09_ANDROID_PERMISSIONS_BACKGROUND_AND_SECURITY.md](09_ANDROID_PERMISSIONS_BACKGROUND_AND_SECURITY.md) — Android 权限、后台连接与安全。
 10. [10_IDENTITY_AND_OEM_AUTHORIZATION_GATES.md](10_IDENTITY_AND_OEM_AUTHORIZATION_GATES.md) — **当前 China Session 的身份缺口及 OEM 准入**。
 11. [11_EVIDENCE_TEST_MATRIX.md](11_EVIDENCE_TEST_MATRIX.md) — 静态、模拟器、OEM、车辆的分层证据和验收。
+12. [12_V083_INTEGRATION_HANDOFF.md](12_V083_INTEGRATION_HANDOFF.md) — **已基于 Android v0.8.3 主线创建独立集成分支，避免旧研究代码覆盖新 UI**。
 
 其他文件：
 - [../evidence/apk_4250_summary.json](../evidence/apk_4250_summary.json) — 脱敏摘要与构建记录。

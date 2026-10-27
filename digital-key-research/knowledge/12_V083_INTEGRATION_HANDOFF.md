@@ -51,7 +51,7 @@ digital-key-research/scripts/run_android_ui_smoke.sh
 
 状态：
 - Android v0.8.3 构建和安全测试：已在 CI Run 40474095279 通过。
-- Root Android 14 AVD 的隔离包名启动/截图：以该 Run 的 `emulator-smoke` 完成状态为准（未完成前不宣称成功）。
+- Root Android 14 AVD 隔离包名安装、启动、UI 检查、截图：**已验证通过**（Run 40474095279，ADB root、安装 Success、当前前台 Activity、截图均得到证据）。
 - OEM 新设备授权、证书签发、P319 真正配对：全部尚未启用、尚未验证。
 
 ## 下一阶段合入准入
@@ -63,3 +63,13 @@ digital-key-research/scripts/run_android_ui_smoke.sh
 4. 后续若要加入真实 OEM SDK，必须经厂商许可、新设备正常注册和实车配对的单独 Go/No-Go，不能因为本轮集成成功就声称钥匙移植成功。
 
 **研究知识库与应用代码应持续分离：** 原静态分析、公开资料、厂商疑点始终更新研究分支的知识库；与最新主线适配的新代码只更新 v0.8.3 集成分支，等待验证后择机合并。
+## 真实交付记录（2026-10-27）
+
+- Workflow Run：`40474095279`（Android v0.8.3 分支，两个 Job 均成功）
+- GitHub artifact：`psassistant-v083-digital-key-lab-debug` + `psassistant-v083-digital-key-lab-screenshot`
+- APK 经过本轮 Debug 编译并通过 Android 14 Root AVD 安装测试，文件大小 `4801173` bytes。
+- APK 原文件 SHA-256：`a2b111804ab1e4f733b02ae1ad340e3ce05b0b9e87b4edb27fab41b6cc811c27`
+- 诊断截图 SHA-256：`7a8277c22b669453fb7c429b3f6a09c94f2cfef2fe8e5b42a369e9ab0586e062`
+- Activity：`io.github.polestarcn.companion.digitalkeylab/io.github.polestarcn.companion.digitalkey.DigitalKeyResearchActivity`
+- 屏幕观察：No Bluetooth CONNECT permission 时显示 UNKNOWN，不因未授权崩溃；OEM not connected、Vehicle not verified、Working key NO。按钮前后景对比度问题已经在集成 branch 处理。
+- 设备端未进行任何车端连接、PAK 设备注册或真实钥匙认证。即使 Root AVD 运行通过，也**不能声称具有可用数字钥匙**。

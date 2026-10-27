@@ -97,7 +97,8 @@ public class V076RegressionTest {
     invoke("onModelChanged");assertSame(card,tag(activity.getWindow().getDecorView(),"control_tile"));
     assertSame("charging visibility reuses its existing section",charging,tag(activity.getWindow().getDecorView(),"charging_section"));
     assertEquals("returning to idle hides the charging section",View.GONE,charging.getVisibility());
-    assertEquals(Color.rgb(255,107,0),((android.graphics.drawable.GradientDrawable)card.getBackground()).getColor().getDefaultColor());
+    View circle=card.findViewWithTag("volike_control_circle");assertNotNull(circle);
+    assertEquals(Color.rgb(255,107,0),((android.graphics.drawable.GradientDrawable)circle.getBackground()).getColor().getDefaultColor());
   }
   @Test public void countdownUsesReportTimeAndNeverClaimsVehicleStoppedAtExpiry() {
     long now=System.currentTimeMillis();VehicleSnapshot s=fixture(now);

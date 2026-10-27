@@ -773,7 +773,7 @@ public final class MainActivity extends FragmentActivity {
     int columns=detailed?Math.min(6,count):Math.min(4,count);
     int rows=(count+columns-1)/columns;int rowHeight=dp(landscape?32:36);
     LinearLayout group=column();group.setTag("volike_metrics");
-    group.setPadding(dp(2),dp(2),dp(2),dp(2));
+    group.setPadding(dp(2),0,dp(2),0);
     for(int start=0;start<count;start+=columns){
       LinearLayout row=row();
       for(int j=0;j<columns;j++){
@@ -798,7 +798,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout card=row();card.setTag("volike_quick_actions");card.setPadding(dp(5),dp(4),dp(5),dp(4));
     GradientDrawable frame=bg(surface,landscape?16:22);frame.setStroke(dp(1),line);card.setBackground(frame);
     for(String control:new String[]{"lock","climate","air","trunk"})addVoControl(card,control,landscape);
-    parent.addView(card,new LinearLayout.LayoutParams(-1,dp(landscape?52:72)));
+    parent.addView(card,new LinearLayout.LayoutParams(-1,dp(landscape?58:72)));
   }
 
   private void addVoControl(LinearLayout parent,String control,boolean landscape) {
@@ -837,7 +837,7 @@ public final class MainActivity extends FragmentActivity {
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       condition.setText(tr("车况","Status"));condition.refreshService();
       ((GradientDrawable)condition.getBackground()).setStroke(dp(1),warn?orange:line);
-      boolean active=CampModeManager.active(this);((GradientDrawable)camp.getBackground()).setColor(active?voGreen():surface);
+      boolean active=CampModeManager.active(this)||"STOPPING".equals(CampModeManager.phase(this));((GradientDrawable)camp.getBackground()).setColor(active?voGreen():surface);
       camp.setTextColor(active?Color.WHITE:ink);
     });
     int h=dp(landscape?46:56);

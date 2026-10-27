@@ -53,6 +53,7 @@ public final class AppRegressionTest {
   }
 
   @Test public void controlColorsFollowVehicleStateRatherThanPendingTap() throws Exception {
+    AppPreferences.set(activity,"theme","light"); UiSkin.set(activity,UiSkin.DETAILED);
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     c.selected.vin = "TEST-FIXTURE";
@@ -60,19 +61,27 @@ public final class AppRegressionTest {
     c.snapshot = new VehicleSnapshot("fixture", "masked", 60, 250, 12000, "空闲", "全部关闭",
         "全部关闭", "已打开", "未锁", System.currentTimeMillis(), "LIVE", false, "开启", "开启");
     Method render = MainActivity.class.getDeclaredMethod("render"); render.setAccessible(true); render.invoke(activity);
-    assertTileColors(activity.getWindow().getDecorView(), android.graphics.Color.rgb(255, 107, 0));
+    java.util.List<View> circles=new java.util.ArrayList<>();collectTagged(activity.getWindow().getDecorView(),"volike_control_circle",circles);
+    assertEquals(4,circles.size());
+    int orange=0,green=0;
+    for(View circle:circles){int color=drawableColor(circle);if(color==android.graphics.Color.rgb(255,107,0))orange++;if(color==android.graphics.Color.parseColor("#5E8D7A"))green++;}
+    assertEquals("unlock and open trunk use warning orange",2,orange);assertEquals("active climate and air use VoLike green",2,green);
+
     c.snapshot = new VehicleSnapshot("fixture", "masked", 60, 250, 12000, "空闲", "全部关闭",
         "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(), "LIVE", false, "关闭", "关闭");
     c.busy = true; c.activeAction = "climate-start"; c.operation = OperationState.SENDING;
     render.invoke(activity);
-    assertTileColors(activity.getWindow().getDecorView(), android.graphics.Color.WHITE);
+    circles.clear();collectTagged(activity.getWindow().getDecorView(),"volike_control_circle",circles);
+    for(View circle:circles)assertEquals("pending command does not fake active vehicle state",
+        android.graphics.Color.parseColor("#F1F0EC"),drawableColor(circle));
     c.busy = false;
   }
-  private static void assertTileColors(View view, int color) {
-    if ("control_tile".equals(view.getTag()))
-      assertEquals(color, ((android.graphics.drawable.GradientDrawable) view.getBackground()).getColor().getDefaultColor());
-    if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++)
-      assertTileColors(((ViewGroup) view).getChildAt(i), color);
+  private static int drawableColor(View view){
+    return ((android.graphics.drawable.GradientDrawable)view.getBackground()).getColor().getDefaultColor();
+  }
+  private static void collectTagged(View view,String tag,java.util.List<View> out){
+    if(tag.equals(view.getTag()))out.add(view);
+    if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)collectTagged(((ViewGroup)view).getChildAt(i),tag,out);
   }
 
   @Test
@@ -319,7 +328,9 @@ public final class AppRegressionTest {
     View root = (View) ((View) field.get(activity)).getParent();
     root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
     root.layout(0, 0, 360, 780);
-    assertTrue(((TextView) findTagged(root, "exterior_button")).getText().toString().contains("!"));
+    assertEquals("车况",((TextView)findTagged(root,"exterior_button")).getText().toString());
+    View status=findTagged(root,"vehicle_status_button");assertNotNull(status);
+    assertTrue(status.getContentDescription().toString().contains("请检查车辆"));
     assertTrue(ExteriorView.hasOpening(model.snapshot));
     savePage(root, null, "v062-home.png");
     Method doors = MainActivity.class.getDeclaredMethod("exteriorDialog"); doors.setAccessible(true); doors.invoke(activity);
@@ -333,7 +344,7 @@ public final class AppRegressionTest {
     activity.getSharedPreferences("camp_status", 0).edit().putString("phase", "STOPPING").commit();
     render.invoke(activity);
     View campButton = findTagged(activity.getWindow().getDecorView(), "camp_button");
-    assertEquals(android.graphics.Color.rgb(255, 107, 0),
+    assertEquals(android.graphics.Color.parseColor("#5E8D7A"),
         ((android.graphics.drawable.GradientDrawable) campButton.getBackground()).getColor().getDefaultColor());
   }
 

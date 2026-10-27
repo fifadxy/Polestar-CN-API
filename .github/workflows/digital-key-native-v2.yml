@@ -1,0 +1,65 @@
+name: Digital Key Native V2 Loader
+
+on:
+  push:
+    branches:
+      - feature/android-digital-key-native-v2-20261027
+    paths:
+      - 'android-app/**'
+      - 'digital-key-research/**'
+      - '.github/workflows/digital-key-native-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-loader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build native V2 loader APK
+        shell: bash
+        run: gradle -p android-app :app:assembleDebug --stacktrace
+
+      - name: Confirm V2 package and source loader
+        shell: bash
+        run: |
+          test -s android-app/app/build/outputs/apk/debug/app-debug.apk
+          grep -q "System.loadLibrary" android-app/app/src/main/java/io/github/polestarcn/companion/digitalkey/NativeLibraryProbe.java
+          grep -q "digitalkeyv2" android-app/app/build.gradle
+
+      - name: Collect Android signing/build tools
+        shell: bash
+        run: |
+          set -eux
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          BT="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          mkdir -p native-v2-tools
+          cp "$BT/apksigner" native-v2-tools/
+          cp "$BT/zipalign" native-v2-tools/
+          cp -r "$BT/lib" native-v2-tools/lib
+          test -s "$HOME/.android/debug.keystore"
+          cp "$HOME/.android/debug.keystore" native-v2-tools/debug.keystore
+          printf '%s\n' "$BT" > native-v2-tools/build-tools-source.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psassistant-digital-key-native-v2-loader
+          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-signing-tools-v2
+          path: native-v2-tools/
+          if-no-files-found: error

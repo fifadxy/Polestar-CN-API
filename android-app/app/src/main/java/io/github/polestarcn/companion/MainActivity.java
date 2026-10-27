@@ -1036,7 +1036,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout row=row();row.setTag("volike_utilities");
     VehicleConditionButton condition=conditionButton(tr("车况","Status"));
     TextView windows=utility(tr("车窗","Windows"),false,false,()->directControl("windows"));windows.setTag("windows_control_button");
-    TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);camp.setTag("camp_button");
+    TextView camp=utility(tr("露营模式","Camping mode"),false,false,this::campDialog);camp.setTag("camp_button");utilityIcon(camp,R.drawable.ic_camp_clock_vi);camp.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
     TextView signal=utility(tr("寻车","Find car"),false,false,this::signalMenu);signal.setTag("signal_control_button");
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
@@ -1186,7 +1186,7 @@ public final class MainActivity extends FragmentActivity {
       boolean opened=VehicleCondition.problem(model.snapshot,showTires()),active=CampModeManager.active(this);
       bodyButton.setText(tr("车况","Status")+(opened?" !":""));
       ((GradientDrawable)bodyButton.getBackground()).setStroke(dp(1),opened?orange:line);bodyButton.setTextColor(opened?accentText():ink);bodyButton.refreshService();
-      ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);tintUtilityIcon(camp);
+      ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);camp.setSingleLine(false);camp.setMaxLines(2);camp.setText(tr("露营模式","Camping mode")+(active?"\n"+RuntimeLabels.camp(this):""));tintUtilityIcon(camp);
     });
     utilities.addView(bodyButton,new LinearLayout.LayoutParams(0,dp(58),1));
     LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(6);utilities.addView(camp,cp);parent.addView(utilities);
@@ -1259,8 +1259,8 @@ public final class MainActivity extends FragmentActivity {
         String label = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Status")
             : kind.equals("health") ? (good ? "ALL GOOD" : tr("车况", "Health"))
             : kind.equals("camp") ? tr("露营模式", "Camping") : tr("寻车", "Find car");
-        view.setMaxLines(good ? 2 : 1);view.setAutoSizeTextTypeUniformWithConfiguration(8,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
-        view.setText(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))?"":good ? "ALL\nGOOD" : label + (warn ? " !" : ""));
+        view.setMaxLines(good || kind.equals("camp") && active ? 2 : 1);view.setAutoSizeTextTypeUniformWithConfiguration(8,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
+        view.setText(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))?"":good ? "ALL\nGOOD" : label + (warn ? " !" : "") + (kind.equals("camp")&&active?"\n"+RuntimeLabels.camp(this):""));
         GradientDrawable background = (GradientDrawable) view.getBackground();
         background.setColor(active ? orange : surface);
         background.setStroke(dp(1), active || good ? orange : line);
@@ -1304,8 +1304,9 @@ public final class MainActivity extends FragmentActivity {
     if (control.equals("climate") && v != null && "开启".equals(v.climate)) {
       if (compact) return ClimateRuntime.shortLabel(this, v, AppPreferences.get(this, "vehicle", ""),
           AppPreferences.english(this)).replace("分钟", "分");
-      return tr("运行中", "Running");
+      return RuntimeLabels.climate(this,v,AppPreferences.get(this,"vehicle",""));
     }
+    if(control.equals("air") && v != null && "开启".equals(v.air))return RuntimeLabels.air(this,v);
     return status(controlRaw(control));
   }
 
@@ -1367,7 +1368,7 @@ public final class MainActivity extends FragmentActivity {
           ? tr("运行中 · ","Running · ") + controlFeedback(control,true) : controlFeedback(control, compact));
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
-          : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
+          : control.equals("air") ? RuntimeLabels.air(this,model.snapshot)+" · PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
       support.setText(nioSkin() && !compact && control.equals("climate")
           ? tr("目标 ","Target ") + DisplayMetric.TARGET_TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)) : detail); support.setTextColor(known ? color : muted);

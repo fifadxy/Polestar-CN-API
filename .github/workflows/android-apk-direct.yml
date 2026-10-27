@@ -1,4 +1,5 @@
 name: Android Companion Direct APK
+# build latest branch head directly
 on:
   push:
     branches:

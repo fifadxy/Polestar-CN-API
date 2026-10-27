@@ -1032,7 +1032,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout item=column();item.setTag("control_tile");item.setGravity(Gravity.CENTER);
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
     boolean timedControl=control.equals("climate")||control.equals("air");
-    int size=dp(landscape?20:32);circle.setBackground(oval(viSoft()));
+    int size=dp(landscape?20:30);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock:control.equals("climate")?R.drawable.ic_climate
         :control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     circle.addView(icon,new FrameLayout.LayoutParams(dp(landscape?17:22),dp(landscape?17:22),Gravity.CENTER));
@@ -1425,7 +1425,7 @@ public final class MainActivity extends FragmentActivity {
     }
     if (!compact) {
       boolean timedControl=control.equals("climate")||control.equals("air");
-      card.addView(support,new LinearLayout.LayoutParams(-1,timedControl?textLineHeight(12)+dp(4):-2));
+      card.addView(support,new LinearLayout.LayoutParams(-1,timedControl?2*textLineHeight(10)+dp(4):-2));
     }
     bindDashboard(() -> {
       String raw = controlRaw(control);icon.setImageResource(controlIcon(control,raw));

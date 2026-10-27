@@ -42,8 +42,8 @@ public class V077RegressionTest {
   }
   @Test public void tyreVisibilityChangesOnlyPresentationAndPreservesSavedFields() throws Exception {
     String fields="tire_status,vehicle_status,odometer";AppPreferences.set(activity,"home_metrics",fields);AppPreferences.set(activity,"experimental_tire","on");
-    View root=render();assertFalse(text(root.findViewWithTag("vehicle_status_button"),"All Good!"));
-    AppPreferences.set(activity,"show_tire_status","off");root=render();assertTrue(text(root.findViewWithTag("vehicle_status_button"),"All Good!"));
+    View root=render();assertTrue(text(root.findViewWithTag("vehicle_status_button"),"车况 !"));
+    AppPreferences.set(activity,"show_tire_status","off");root=render();assertTrue(text(root.findViewWithTag("vehicle_status_button"),"车况"));assertFalse(text(root.findViewWithTag("vehicle_status_button"),"车况 !"));
     assertEquals(fields,AppPreferences.get(activity,"home_metrics",""));assertEquals(VehicleHealthSnapshot.WARNING,model.snapshot.health.tirePressure);
     invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
     assertFalse(text(dialog.getWindow().getDecorView(),"胎压告警"));dialog.dismiss();

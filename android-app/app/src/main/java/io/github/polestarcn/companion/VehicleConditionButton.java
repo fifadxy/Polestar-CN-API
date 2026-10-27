@@ -27,7 +27,7 @@ public final class VehicleConditionButton extends TextView {
     showDistance = distancePercent != null;
     boolean bars = showTime || showDistance;
     float d = getResources().getDisplayMetrics().density;
-    setPadding((int) (4*d), (int) (bars ? 3*d : 2*d), (int) (4*d), (int) (bars ? 31*d : 2*d));
+    setPadding((int) (4*d), (int) (bars ? 3*d : 2*d), (int) (4*d), (int) (bars ? 24*d : 2*d));
     StringBuilder description = new StringBuilder(String.valueOf(getText()));
     if (showTime) description.append(" · ")
         .append(AppPreferences.tr(getContext(), "保养时间 ", "Service time "))

@@ -21,7 +21,7 @@ public class V078RegressionTest {
   model.snapshot=new VehicleSnapshot("Polestar 2","masked",63,230,65845,"充电中","全部关闭","全部关闭","已关闭","已上锁",now,"LIVE",false,"开启","开启")
     .withHealth(new VehicleHealthSnapshot(1,-1,-1,now,1,1,-1,-1,1,931,75,14959)).withMileage(new MileageSnapshot(65845000L,100.5,25.2,45.0,35.0,18.5,21.5,now,now))
     .withEnvironment(new EnvironmentSnapshot("开启","开启",23.0,22.0,3.0,4,18,null,now,now)).withCharging(new ChargingSnapshot(1,2,4,180,6000.0,29.0));
-  AppPreferences.set(activity,"condition_service_time","off");AppPreferences.set(activity,"condition_service_distance","off");
+  AppPreferences.set(activity,"condition_service_time","on");AppPreferences.set(activity,"condition_service_distance","on");
   AppPreferences.set(activity,"home_metrics","odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,temperature,aqi,ta_duration,tm_duration,since_charge_distance");
  }
  @After public void stop(){base.stop();}
@@ -60,6 +60,9 @@ public class V078RegressionTest {
  @Test public void vehicleStatusShowsServicePercentagesAndBarsOnFirstPage()throws Exception{
   AppPreferences.set(activity,"language","zh");invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);
   View root=dialog.getWindow().getDecorView();assertTrue(text(root,"保养进度"));assertTrue(text(root,"时间剩余"));assertTrue(text(root,"里程剩余"));assertEquals(2,tagged(root,"service_progress_bar"));assertTrue(text(root,"21%"));assertTrue(text(root,"75%"));dialog.dismiss();
+  AppPreferences.set(activity,"condition_service_time","off");AppPreferences.set(activity,"condition_service_distance","off");View dashboard=render(360,780,1f);
+  VehicleConditionButton condition=dashboard.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));assertTrue(condition.getContentDescription().toString().contains("75%"));
+  AppPreferences.set(activity,"condition_service_time","on");AppPreferences.set(activity,"condition_service_distance","on");
  }
  @Test public void vehicleMetricAndNavigationUseShortStatusName(){
   assertEquals("车况",DisplayMetric.VEHICLE_STATUS.label(false));assertEquals("车况",DisplayMetric.VEHICLE_STATUS.shortLabel(false));

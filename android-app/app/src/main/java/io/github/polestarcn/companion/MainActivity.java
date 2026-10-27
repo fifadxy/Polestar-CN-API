@@ -903,7 +903,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       boolean good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(good?"All Good！":tr("车况","Status")+(warn?" !":""));
+      label.setText(warn?tr("请注意车辆状况！","Check vehicle!"):good?"All Good！":tr("车况","Status"));
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);
       int color=warn?orange:good?voAccent():muted;symbol.setColorFilter(color);
       symbol.setVisibility(good||warn?View.VISIBLE:View.INVISIBLE);
@@ -950,7 +950,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       boolean good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(good?"All Good！":tr("车况","Status")+(warn?" !":""));
+      label.setText(warn?tr("请注意车辆状况！","Check vehicle!"):good?"All Good！":tr("车况","Status"));
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);
       int color=warn?orange:good?voAccent():muted;symbol.setColorFilter(color);
       symbol.setVisibility(good||warn?View.VISIBLE:View.INVISIBLE);
@@ -1144,7 +1144,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       VehicleHealthSnapshot h=model.snapshot==null?VehicleHealthSnapshot.unknown():model.snapshot.health;
       boolean warn=VehicleCondition.problem(model.snapshot,showTires()),good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(good?"All Good！":tr("车况","Status")+(warn?" !":""));label.setTextColor(good||warn?accentText():muted);
+      label.setText(warn?tr("请注意车辆状况！","Check vehicle!"):good?"All Good！":tr("车况","Status"));label.setTextColor(good||warn?accentText():muted);
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);symbol.setColorFilter(good||warn?accentText():muted);
       symbol.setVisibility(good||warn?View.VISIBLE:View.GONE);
       health.setContentDescription(tr("车况","Status")+" · "+VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));
@@ -1234,7 +1234,7 @@ public final class MainActivity extends FragmentActivity {
           : kind.equals("body") ? this::vehicleStatusDialog : kind.equals("health") ? this::vehicleStatusDialog
           : kind.equals("camp") ? this::campDialog : this::signalMenu;
       String initialLabel = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Status")
-          : kind.equals("health") ? tr("车况", "Health") : kind.equals("camp") ? tr("露营", "Camp") : tr("寻车", "Find car");
+          : kind.equals("health") ? tr("车况", "Health") : kind.equals("camp") ? tr("露营模式", "Camping") : tr("寻车", "Find car");
       TextView view = kind.equals("body")?conditionButton(initialLabel):utility(initialLabel, false, false, action);
       view.setTextSize(11);
 
@@ -1257,8 +1257,8 @@ public final class MainActivity extends FragmentActivity {
         boolean good = kind.equals("health") && v != null && v.health.allGood();
         String label = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Status")
             : kind.equals("health") ? (good ? "ALL GOOD" : tr("车况", "Health"))
-            : kind.equals("camp") ? tr("露营", "Camp") : tr("寻车", "Find car");
-        view.setMaxLines(good ? 2 : 1);
+            : kind.equals("camp") ? tr("露营模式", "Camping") : tr("寻车", "Find car");
+        view.setMaxLines(good ? 2 : 1);view.setAutoSizeTextTypeUniformWithConfiguration(8,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
         view.setText(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))?"":good ? "ALL\nGOOD" : label + (warn ? " !" : ""));
         GradientDrawable background = (GradientDrawable) view.getBackground();
         background.setColor(active ? orange : surface);
@@ -1312,7 +1312,7 @@ public final class MainActivity extends FragmentActivity {
     String label = control.equals("lock") ? tr("门锁", "Lock") : control.equals("climate")
         ? tr(compact ? "空调" : "驻车空调", "Climate") : control.equals("trunk") ? tr("尾箱", "Trunk")
         : tr(compact ? "净化" : "空气净化", "Air");
-    LinearLayout card = column(); card.setGravity(compact?Gravity.CENTER_VERTICAL:Gravity.TOP);
+    LinearLayout card = column(); card.setGravity(Gravity.CENTER);
     card.setTag("control_tile"); card.setPadding(dp(compact ? 3 : 10), dp(4), dp(compact ? 3 : 8), dp(4));
     GradientDrawable background = bg(surface, nioSkin() ? 16 : 8); card.setBackground(background);
     ImageView icon = new ImageView(this);
@@ -1344,7 +1344,7 @@ public final class MainActivity extends FragmentActivity {
       heading.addView(title, tp); card.addView(heading); gap(card, 2);
       if (nioSkin() && (control.equals("climate")||control.equals("air"))) {
         TextView temperature=liveText(() -> control.equals("air")?("AQI "+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
-            :model.snapshot==null ? "--°C":DisplayMetric.TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),22,ink,true);
+            :model.snapshot==null ? "--°C":DisplayMetric.TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),14,ink,true);
         card.addView(temperature);
       }
     }
@@ -1356,9 +1356,9 @@ public final class MainActivity extends FragmentActivity {
       boolean active = "开启".equals(raw) || "未锁".equals(raw) || "已打开".equals(raw) || "未关严".equals(raw);
       boolean known = active || "关闭".equals(raw) || "已上锁".equals(raw) || "已锁".equals(raw) || "已关闭".equals(raw);
       int activeColor = nioColors() && (control.equals("climate") || control.equals("air")) ? Color.rgb(0,191,185) : orange;
-      background.setColor(nioSkin() ? surface : known ? active ? orange : Color.WHITE : surface);
+      background.setColor(nioSkin() ? (active ? activeColor : surface) : known ? active ? orange : Color.WHITE : surface);
       background.setStroke(dp(1), controlSending(control) || nioSkin() && active ? activeColor : nioSkin() ? line : known ? Color.TRANSPARENT : line);
-      int color = nioSkin() ? ink : known ? Color.rgb(21,22,23) : ink;
+      int color = nioSkin() ? (active?Color.rgb(21,22,23):ink) : known ? Color.rgb(21,22,23) : ink;
       icon.setColorFilter(nioSkin() && active ? activeColor : color);
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(color); feedback.setTextColor(color);

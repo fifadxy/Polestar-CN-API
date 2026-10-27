@@ -11,6 +11,11 @@ public enum DisplayMetric {
   TM_DISTANCE("tm_distance", "Since Reset · TM 距离", "Since Reset · TM distance", " km"),
   TM_SPEED("tm_speed", "TM 平均速度", "TM · AVG Speed", " km/h"),
   TM_CONSUMPTION("tm_consumption", "TM 百公里能耗", "TM · Average Consumption", " kWh/100 km"),
+  TA_DURATION("ta_duration", "TA 行驶时间（估算）", "TA driving time (estimated)", ""),
+  TM_DURATION("tm_duration", "TM 行驶时间（估算）", "TM driving time (estimated)", ""),
+  SINCE_CHARGE_DISTANCE("since_charge_distance", "充电后行程距离", "Since charge distance", " km"),
+  SINCE_CHARGE_SPEED("since_charge_speed", "充电后平均速度", "Since charge average speed", " km/h"),
+  SINCE_CHARGE_CONSUMPTION("since_charge_consumption", "充电后平均能耗", "Since charge consumption", " kWh/100 km"),
   TEMPERATURE("temperature", "车内温度", "Cabin temperature", " °C"),
   TARGET_TEMPERATURE("target_temperature", "空调目标温度", "Climate target", " °C"),
   AQI("aqi", "空气质量 AQI", "Air quality · AQI", " AQI"),
@@ -23,6 +28,7 @@ public enum DisplayMetric {
   POWER_STATUS("power_status", "电源状态", "Power status", ""),
   VEHICLE_STATUS("vehicle_status", "车辆状态", "Vehicle status", ""),
   TIRE_STATUS("tire_status", "胎压状态", "Tire status", ""),
+  SERVICE_HOURS_LEFT("service_hours_left", "保养剩余工时", "Service engine hours left", " h"),
   SERVICE_DAYS_LEFT("service_days_left", "保养剩余天数", "Service days left", " d"),
   SERVICE_KM_LEFT("service_km_left", "保养剩余里程", "Service km left", " km"),
   SERVICE_TIME_PERCENT("service_time_percent", "保养时间剩余", "Service time left", "%"),
@@ -32,6 +38,11 @@ public enum DisplayMetric {
   public String label(boolean english) { return english ? en : zh; }
   public String shortLabel(boolean english) {
     switch (this) {
+      case TA_DURATION: return english ? "TA time ~" : "TA 时长 ~";
+      case TM_DURATION: return english ? "TM time ~" : "TM 时长 ~";
+      case SINCE_CHARGE_DISTANCE: return english ? "SC km" : "充电后 km";
+      case SINCE_CHARGE_SPEED: return "SC km/h";
+      case SINCE_CHARGE_CONSUMPTION: return "SC kWh/100km";
       case TA_DISTANCE: return "TA · km";
       case TM_DISTANCE: return "TM · km";
       case TA_SPEED: return "TA · km/h";
@@ -53,6 +64,7 @@ public enum DisplayMetric {
       case POWER_STATUS: return english ? "Power" : "电源状态";
       case VEHICLE_STATUS: return english ? "Vehicle" : "车辆状态";
       case TIRE_STATUS: return english ? "Tires" : "胎压";
+      case SERVICE_HOURS_LEFT: return english ? "Service h" : "保养工时";
       case SERVICE_DAYS_LEFT: return english ? "Service d" : "保养天数";
       case SERVICE_KM_LEFT: return english ? "Service km" : "保养里程";
       case SERVICE_TIME_PERCENT: return english ? "Time left %" : "时间剩余 %";
@@ -69,9 +81,12 @@ public enum DisplayMetric {
       case TEMPERATURE: case TARGET_TEMPERATURE: return s.environment.climateReportedAt;
       case AQI: case PM25: return s.environment.airReportedAt;
       case ODOMETER: case TA_DISTANCE: case TM_DISTANCE: case TA_SPEED: case TM_SPEED:
-      case SERVICE_KM_LEFT: case SERVICE_KM_PERCENT: return s.mileage.reportedAt;
-      case TA_CONSUMPTION: case TM_CONSUMPTION: return s.mileage.consumptionReportedAt;
-      case SERVICE_DAYS_LEFT: case SERVICE_TIME_PERCENT: return System.currentTimeMillis();
+      case TA_DURATION: case TM_DURATION: case SINCE_CHARGE_DISTANCE: case SINCE_CHARGE_SPEED:
+      return s.mileage.reportedAt;
+      case SERVICE_KM_LEFT: case SERVICE_KM_PERCENT:return s.health.serviceKmLeft!=null?s.health.reportedAt:s.mileage.reportedAt;
+      case TA_CONSUMPTION: case TM_CONSUMPTION: case SINCE_CHARGE_CONSUMPTION: return s.mileage.consumptionReportedAt;
+      case SERVICE_HOURS_LEFT:return s.health.reportedAt;
+      case SERVICE_DAYS_LEFT: case SERVICE_TIME_PERCENT: return s.health.serviceDaysLeft!=null?s.health.reportedAt:System.currentTimeMillis();
       default: return s.timestampMillis;
     }
   }
@@ -83,22 +98,14 @@ public enum DisplayMetric {
   }
   public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
-    if (this == VEHICLE_STATUS) return s.health.summary(english, c == null || AppPreferences.visible(c, "show_tire_status", true));
+    if (this == VEHICLE_STATUS) return VehicleCondition.summary(s,english,c == null || AppPreferences.visible(c,"show_tire_status",true));
     if (this == TIRE_STATUS) return s.tires.summary(english);
-    if (this == SERVICE_DAYS_LEFT || this == SERVICE_KM_LEFT
-        || this == SERVICE_TIME_PERCENT || this == SERVICE_KM_PERCENT) {
-      if (c == null) return "--";
-      MaintenanceSchedule.Status status = MaintenanceSchedule.status(
-          c, AppPreferences.get(c, "vehicle", ""), s);
-      if (!status.configured) return "--";
-      if (this == SERVICE_DAYS_LEFT) return status.remainingDays() + (includeUnit ? unit : "");
-      if (this == SERVICE_KM_LEFT) {
-        Integer v = status.remainingKm();
-        return v == null ? "--" : v + (includeUnit ? unit : "");
-      }
-      int v = this == SERVICE_TIME_PERCENT
-          ? status.remainingTimePercent() : status.remainingDistancePercent();
-      return v < 0 ? "--" : v + (includeUnit ? unit : "");
+    if(this==SERVICE_HOURS_LEFT)return ServiceReading.number(s.health.serviceHoursLeft,includeUnit?unit:"");
+    if(this==SERVICE_DAYS_LEFT||this==SERVICE_KM_LEFT||this==SERVICE_TIME_PERCENT||this==SERVICE_KM_PERCENT) {
+      if(c==null)return "--";
+      Integer value=this==SERVICE_DAYS_LEFT?ServiceReading.days(c,s):this==SERVICE_KM_LEFT?ServiceReading.km(c,s)
+          :this==SERVICE_TIME_PERCENT?ServiceReading.timePercent(c,s):ServiceReading.distancePercent(c,s);
+      return ServiceReading.number(value,includeUnit?unit:"");
     }
     switch (this) {
       case CHARGE_CONNECTION: return s.chargingDetails.connection(english);
@@ -117,6 +124,9 @@ public enum DisplayMetric {
     if (this == RANGE) return s.rangeKm == null ? "--" : s.rangeKm + (includeUnit ? unit : "");
     if (this == ODOMETER) return s.mileage.totalMeters == null ? "--" :
         (s.mileage.totalMeters / 1000L) + (includeUnit ? unit : "");
+    if (this == TA_DURATION || this == TM_DURATION) return MileageSnapshot.durationText(
+        this == TA_DURATION ? MileageSnapshot.estimatedMinutes(s.mileage.automaticKm,s.mileage.automaticAverageSpeed)
+            : MileageSnapshot.estimatedMinutes(s.mileage.manualKm,s.mileage.manualAverageSpeed),english);
     Double value;
     switch (this) {
       case TA_DISTANCE: value = s.mileage.automaticKm; break;
@@ -124,8 +134,12 @@ public enum DisplayMetric {
       case TA_SPEED: value = s.mileage.automaticAverageSpeed; break;
       case TM_SPEED: value = s.mileage.manualAverageSpeed; break;
       case TA_CONSUMPTION: value = s.mileage.automaticConsumption; break;
+      case SINCE_CHARGE_DISTANCE: value = s.mileage.sinceChargeKm; break;
+      case SINCE_CHARGE_SPEED: value = s.mileage.sinceChargeAverageSpeed; break;
+      case SINCE_CHARGE_CONSUMPTION: value = s.mileage.sinceChargeConsumption; break;
       default: value = s.mileage.manualConsumption;
     }
-    return MileageSnapshot.decimalText(value, includeUnit ? unit : "");
+    return (this == TA_CONSUMPTION && value!=null && s.mileage.automaticConsumptionEstimated ? "~" : "")
+        + MileageSnapshot.decimalText(value, includeUnit ? unit : "");
   }
 }

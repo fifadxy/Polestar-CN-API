@@ -90,3 +90,8 @@ Android 已新增 `HealthService/GetHealth` 只读调用。四轮顺序按左前
 ## v0.7.6 传输与时间来源
 
 Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 秒截止时间；读失败不影响其他车况。枚举 0/未知值不映射为正常；来源定义与中国区边界见 knowledge/23。空调分钟和原报告时间共同用于展示倒计时，推算不写回车辆。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+当前 Health 主路径为 GetLatestHealth UNARY；只有 UNIMPLEMENTED 才回退 GetHealth SERVER_STREAMING。最新参考已证实 China 该主路径；旧“参考未出现 Health”的结论只适用于旧样本。独立 c3Lbs/GetLastParkedLocation 已加入按需读取；停车预览可选高德静态 API。Battery12 与上游容量解释冲突，禁止独立作为 TA 能耗。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

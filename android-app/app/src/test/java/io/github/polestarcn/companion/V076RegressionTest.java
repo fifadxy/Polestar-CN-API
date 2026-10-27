@@ -46,6 +46,7 @@ public class V076RegressionTest {
     Configuration c=new Configuration(activity.getResources().getConfiguration());c.fontScale=scale;
     android.util.DisplayMetrics dm=activity.getResources().getDisplayMetrics();dm.scaledDensity=dm.density*scale;
     activity.getResources().updateConfiguration(c,dm);
+    activity.getApplicationContext().getResources().updateConfiguration(c,dm);
   }
   private View tag(View v,String tag) {return v.findViewWithTag(tag);}
   private void assertTextFits(View v) {
@@ -62,12 +63,12 @@ public class V076RegressionTest {
     if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)assertControls(g.getChildAt(i),found);}
   }
   private void preview(View v,String name,int w,int h) throws Exception {
-    File dir=new File("build/reports/previews/v077");dir.mkdirs();Bitmap b=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas cv=new Canvas(b);cv.scale(2,2);v.draw(cv);
+    File dir=new File("build/reports/previews/v078");dir.mkdirs();Bitmap b=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas cv=new Canvas(b);cv.scale(2,2);v.draw(cv);
     try(FileOutputStream out=new FileOutputStream(new File(dir,name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();
   }
   private void check(int w,int h,float scale) throws Exception {
     font(scale);
-    for(String language:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE}){
+    for(String language:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2}){
       AppPreferences.set(activity,"language",language);AppPreferences.set(activity,"theme",theme);UiSkin.set(activity,skin);
       View root=render(w,h);int[] found={0};assertControls(root,found);assertEquals(4,found[0]);
       View content=tag(root,"control_pull_content");assertNotNull(content);

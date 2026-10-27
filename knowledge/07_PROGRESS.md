@@ -153,3 +153,8 @@ v0.7.5 Actions 40348312346 完成并上传 artifact 12661514910 后，以 fa81ac
 ## 2026-10-27 · v0.7.7-beta1
 
 新增设置可切换 NIOlike 日夜皮肤；移除动态光效；车图下方 Health 汇总与可隐藏胎压；充电仅在启动/进行时独立分组；SOC 横条与旁侧续航、系统字体和 Widget 同步。Debug/Preview 各 102 项项目回归、Lint 与 Release/Preview 编译通过，APK v2 签名验证通过；账号/实车/手表与耗电未实测。详见 [本版知识库](24_V077_NIOLIKE_VI_CHARGING.md) 和 [更新说明](../docs/Psa_v077_Update.md)。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+从 v0.7.7/e28f857 迭代；交叉核对最新 China 参考和 Mac f50820b，新增完整车况/保养、四套皮肤字体与位置二级预览。TA 不再使用可能为容量的 field12 独立读数；可印证则显示，无证据仍 --。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

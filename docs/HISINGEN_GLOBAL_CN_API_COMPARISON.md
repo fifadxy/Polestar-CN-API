@@ -1055,3 +1055,15 @@ Android China 分支已使用同名 `HealthService/GetHealth`，v0.7.5 同一次
 ## Android v0.7.6 读取策略更新
 
 Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 秒截止时间；按车辆缓存 5 分钟并保留原时间。玻璃水/12V 未指定枚举不再视为正常。该修复只落实已核查的传输/字段定义，不表示中国极星实车验证完成。空调倒计时仅本地展示，不发送远程停止请求。
+
+
+## 2026-10-27 Android v0.7.8 最新参考增量
+
+对照 Mac China `integrate/hisingen-china-0.19.5` 的 f50820bd9c34c3bc56d18b51543c60ddcc6bde91 和上游 Hisingen v2.0.10；不修改 Mac 功能。最新用户参考 APK 0.1.20261027.081805 已确认 China 可用，现明确：
+
+- Health 主路径 `GetLatestHealth` UNARY；旧 GetHealth 流式为 UNIMPLEMENTED 回退。Health payload 2/3/4 分别为**剩余**小时/天/km，新增健康项见 Android KB25；旧本地保养为唯一来源的记录已过时。
+- 独立 c3Lbs.grpcHost → dtlinternet.DtlInternetService/GetLastParkedLocation，请求1 VIN，响应payload2，1经度/2纬度/3时间戳。Android 四套皮肤新增按需二级预览；高德是可选用户 Key 静态图，无后台定位。
+- 旧公开 Battery12=TA平均能耗，与当前上游 Battery12=电池容量冲突。Android 只采纳独立 TA Wh/同源距离/时间可印证的数据，计算值标 ~，缺失/冲突 --。Mac China 当前没有原始 TA/TM 行驶时长，Android 距离/均速估算同样标 ~。
+- REFERENCE_USER_VERIFIED 仅属于参考 APK；Android 合成测试与构建不代表新的实车协议验证。油液未上报、iTPMS数值、坐标系统/地图偏移和真实 TA 能量仍有验收边界。
+
+映射与证据：[Android v0.7.8](../knowledge/25_V078_CONDITION_LOCATION_TRIP.md)。

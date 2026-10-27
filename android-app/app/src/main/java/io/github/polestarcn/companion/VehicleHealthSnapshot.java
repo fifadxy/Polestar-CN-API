@@ -20,9 +20,19 @@ public final class VehicleHealthSnapshot {
   public final int washerFluid;
   public final int tirePressure;
   public final long reportedAt;
+  public final int maintenance,brakeFluid,coolant,oil,exteriorLights;
+  public final Integer serviceHoursLeft,serviceDaysLeft,serviceKmLeft;
 
   public VehicleHealthSnapshot(
       int lowVoltageBattery, int washerFluid, int tirePressure, long reportedAt) {
+    this(lowVoltageBattery,washerFluid,tirePressure,reportedAt,UNKNOWN,UNKNOWN,UNKNOWN,UNKNOWN,UNKNOWN,null,null,null);
+  }
+  public VehicleHealthSnapshot(int lowVoltageBattery,int washerFluid,int tirePressure,long reportedAt,
+      int maintenance,int brakeFluid,int coolant,int oil,int exteriorLights,
+      Integer serviceHoursLeft,Integer serviceDaysLeft,Integer serviceKmLeft) {
+    this.maintenance=normalize(maintenance);this.brakeFluid=normalize(brakeFluid);this.coolant=normalize(coolant);
+    this.oil=normalize(oil);this.exteriorLights=normalize(exteriorLights);
+    this.serviceHoursLeft=counter(serviceHoursLeft);this.serviceDaysLeft=counter(serviceDaysLeft);this.serviceKmLeft=counter(serviceKmLeft);
     this.lowVoltageBattery = normalize(lowVoltageBattery);
     this.washerFluid = normalize(washerFluid);
     this.tirePressure = normalize(tirePressure);
@@ -45,9 +55,28 @@ public final class VehicleHealthSnapshot {
             ? UNKNOWN
             : tires.hasProblem() ? WARNING : tires.allGood() ? OK : UNKNOWN;
     return new VehicleHealthSnapshot(
-        lowVoltage, washer, tyre, ProtoWire.timestampMillis(health, 1));
+        lowVoltage,washer,tyre,ProtoWire.timestampMillis(health,1),state(ProtoWire.integer(health,5),11),
+        state(ProtoWire.integer(health,6),3),state(ProtoWire.integer(health,7),2),state(ProtoWire.integer(health,8),8),
+        lights(health),ProtoWire.integer(health,2),ProtoWire.integer(health,3),ProtoWire.integer(health,4));
   }
 
+  private static Integer counter(Integer value){return value==null||value<0?null:value;}
+  private static int state(Integer raw,int maximum) {
+    return raw==null||raw<1||raw>maximum?UNKNOWN:raw==1?OK:WARNING;
+  }
+  private static int lights(Map<Integer,Object> data) {
+    boolean reported=false,unknown=false;
+    for(int field=14;field<=35;field++) {
+      if(field==29)continue;Integer raw=ProtoWire.integer(data,field);if(raw==null)continue;
+      if(raw==2)return WARNING;if(raw==1)reported=true;else unknown=true;
+    }
+    for(Object value:ProtoWire.nested(data,46).values())if(value instanceof Number) {
+      int raw=((Number)value).intValue();if(raw==2)return WARNING;if(raw==1)reported=true;else unknown=true;
+    }
+    return reported&&!unknown?OK:UNKNOWN;
+  }
+  private int[] otherStates(){return new int[]{maintenance,brakeFluid,coolant,oil,exteriorLights};}
+  public boolean serviceOverdue(){return serviceHoursLeft!=null&&serviceHoursLeft<0||serviceDaysLeft!=null&&serviceDaysLeft<0||serviceKmLeft!=null&&serviceKmLeft<0;}
   private static int normalize(int value) {
     return value == OK || value == WARNING ? value : UNKNOWN;
   }
@@ -59,16 +88,20 @@ public final class VehicleHealthSnapshot {
   public String summary(boolean english) { return summary(english, true); }
 
   public boolean hasAnyReport(boolean includeTires) {
+    for(int state:otherStates())if(state!=UNKNOWN)return true;
     return lowVoltageBattery != UNKNOWN || washerFluid != UNKNOWN || includeTires && tirePressure != UNKNOWN;
   }
   public boolean hasProblem(boolean includeTires) {
-    return lowVoltageBattery == WARNING || washerFluid == WARNING || includeTires && tirePressure == WARNING;
+    for(int state:otherStates())if(state==WARNING)return true;
+    return serviceOverdue()||lowVoltageBattery == WARNING || washerFluid == WARNING || includeTires && tirePressure == WARNING;
   }
   public boolean allGood(boolean includeTires) {
+    if(hasProblem(includeTires))return false;
     return lowVoltageBattery == OK && washerFluid == OK && (!includeTires || tirePressure == OK);
   }
   public int issueCount(boolean includeTires) {
-    return (lowVoltageBattery == WARNING ? 1 : 0) + (washerFluid == WARNING ? 1 : 0)
+    int extra=0;for(int state:otherStates())if(state==WARNING)extra++;
+    return extra+(lowVoltageBattery == WARNING ? 1 : 0) + (washerFluid == WARNING ? 1 : 0)
         + (includeTires && tirePressure == WARNING ? 1 : 0);
   }
   public String summary(boolean english, boolean includeTires) {

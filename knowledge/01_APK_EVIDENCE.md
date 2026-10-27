@@ -67,3 +67,8 @@ Manifest 可见：INTERNET、RECEIVE_BOOT_COMPLETED、USE_BIOMETRIC、USE_FINGER
 ## 2026-10-26 / Android Assistant Parity V3.0：新增用户实车反馈
 
 原先“`PolestarApi.control` 实际可用性未验证”是本项目此前**仅凭静态 APK**的历史观察；现用户明确反馈参考 APK 的 **China 登录、SOC、里程、空调远控、车门解锁已经在实际车辆上成功使用**，故这些功能新增 `REFERENCE_USER_VERIFIED` 级别。这个标签不替代本项目的 `PROJECT_DEVICE_VERIFIED`；其他远控操作和车型兼容仍需分别实测。用户还报告偶发 Token 提示与实际操作能力不完全一致，根因待查，见 `13_REFERENCE_APK_FIELD_VALIDATION.md`。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+新样本 0.1.20261027.081805（SHA f468c76eae50cfe753d62d6efd4a4706efb084a9bceb7ec26e0fa0fca6a161c6）已方法级复核。证实 GetLatestHealth unary 与独立 c3Lbs 停车位置，见新映射 JSON。旧样本 33 字段证据保留。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

@@ -26,6 +26,21 @@ public final class VehicleCoordinator {
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
 
+  public boolean locationBusy;
+  private int locationGeneration;
+  public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete) {
+    if(locationBusy||!signedIn||selected==null)return;
+    String vin=selected.vin;int generation=locationGeneration;locationBusy=true;changed();
+    io.execute(()->{
+      LocationSnapshot result=null;String error="";
+      try{result=api.readLastParkedLocation(vin);}catch(Exception e){error=tr("暂时无法读取停车位置，请稍后重试","Parking location is unavailable. Try again later.");}
+      LocationSnapshot location=result;String message=error;
+      main.post(()->{locationBusy=false;changed();
+        if(generation==locationGeneration&&signedIn&&selected!=null&&vin.equals(selected.vin))complete.accept(location,message);
+      });
+    });
+  }
+
   public boolean hasSession() {
     return signedIn;
   }
@@ -270,6 +285,7 @@ public final class VehicleCoordinator {
   }
 
   public void logout() {
+    locationGeneration++;
     if (busy) return;
     signedIn = false;
     CampModeManager.clear(context);

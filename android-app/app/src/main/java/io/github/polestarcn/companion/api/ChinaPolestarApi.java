@@ -97,6 +97,7 @@ public final class ChinaPolestarApi {
     public String refresh = "";
     public long expiresAt;
     public String c3Host;
+    public String c3LbsHost;
     public long revision;
   }
 
@@ -363,13 +364,18 @@ public final class ChinaPolestarApi {
     HealthCache cache = healthCache.get(vin);
     if (cache != null && now < cache.expires) return cache.fields;
     try {
-      Map<Integer, Object> reply = ProtoWire.decode(invoke(s, vin,
-          "services.vehiclestates.health.HealthService", "GetHealth",
-          ProtoWire.stringField(2, vin), true));
-      Object returned = reply.get(1);
+      byte[] body;
+      try {body=invoke(s,vin,"services.vehiclestates.health.HealthService","GetLatestHealth",ProtoWire.stringField(2,vin));}
+      catch(Exception latest){
+        if(latest.getMessage()==null||!latest.getMessage().contains("UNIMPLEMENTED"))throw latest;
+        body=invoke(s,vin,"services.vehiclestates.health.HealthService","GetHealth",ProtoWire.stringField(2,vin),true);
+      }
+      Map<Integer,Object> reply=ProtoWire.decode(body);
+      Object returned = reply.get(2);
       if (returned instanceof byte[] && !vin.equals(new String((byte[]) returned, StandardCharsets.UTF_8)))
         throw new IllegalStateException("Health vehicle mismatch");
       Map<Integer, Object> fields = ProtoWire.nested(reply, 3);
+      if(fields.isEmpty())throw new IllegalStateException("Health empty reply");
       healthCache.put(vin, new HealthCache(fields, now + 5 * 60_000L));
       return fields;
     } catch (Exception e) {
@@ -510,7 +516,9 @@ public final class ChinaPolestarApi {
 
   private byte[] invoke(Session s, String vin, String service, String method, byte[] request,
       boolean firstStream) throws Exception {
-    String host = s.c3Host;
+    return invokeOnHost(s,s.c3Host,vin,service,method,request,firstStream);
+  }
+  private byte[] invokeOnHost(Session s,String host,String vin,String service,String method,byte[] request,boolean firstStream) throws Exception {
     if (host == null || host.isEmpty()) throw new Exception("C3 host missing");
     String cleanHost = host.replace("https://", "").replace("http://", "");
     int port = 443;
@@ -571,12 +579,28 @@ public final class ChinaPolestarApi {
       return ClientCalls.blockingUnaryCall(
           authenticated,
           descriptor,
-          CallOptions.DEFAULT.withDeadlineAfter(12, TimeUnit.SECONDS),
+          CallOptions.DEFAULT.withDeadlineAfter(service.endsWith(".HealthService")?4:12, TimeUnit.SECONDS),
           request);
     } catch (StatusRuntimeException e) {
       throw new Exception(
           "C3 " + e.getStatus().getCode() + ": " + first(e.getStatus().getDescription(), "无描述"), e);
     }
+  }
+
+  public io.github.polestarcn.companion.LocationSnapshot readLastParkedLocation(String vin) throws Exception {
+    Session session=refreshIfNeeded(requireSession());ensureC3LbsHost(session);
+    Map<Integer,Object> reply=ProtoWire.decode(invokeOnHost(session,session.c3LbsHost,vin,
+        "dtlinternet.DtlInternetService","GetLastParkedLocation",ProtoWire.stringField(1,vin),false));
+    io.github.polestarcn.companion.LocationSnapshot location=io.github.polestarcn.companion.LocationSnapshot.fromReply(reply);
+    if(location==null)throw new Exception("Location unavailable");return location;
+  }
+  private void ensureC3LbsHost(Session session) throws Exception {
+    if(session.c3LbsHost!=null&&!session.c3LbsHost.isEmpty())return;
+    Object value=request(DISCOVERY,"GET",null,null,null,ACCEPT_C3);
+    JSONObject lbs=value instanceof JSONObject?((JSONObject)value).optJSONObject("c3Lbs"):null;
+    String host=lbs==null?"":lbs.optString("grpcHost","");
+    if(!host.matches("(?i)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+volvocars\\.com\\.cn"))throw new Exception("LBS host unavailable");
+    session.c3LbsHost=host;SecureSessionStore.save(context,session);
   }
 
   private void ensureC3Host(Session s) throws Exception {

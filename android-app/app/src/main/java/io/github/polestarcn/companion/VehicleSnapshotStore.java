@@ -24,6 +24,11 @@ public final class VehicleSnapshotStore {
       put(o, "rangeKm", snapshot.rangeKm);
       put(o, "odometerKm", snapshot.odometerKm);
       o.put("mileageSchema", 1);
+      o.put("consumptionSchema", 2);
+      o.put("automaticConsumptionEstimated",snapshot.mileage.automaticConsumptionEstimated);
+      o.put("sinceChargeKm",snapshot.mileage.sinceChargeKm);
+      o.put("sinceChargeAverageSpeed",snapshot.mileage.sinceChargeAverageSpeed);
+      o.put("sinceChargeConsumption",snapshot.mileage.sinceChargeConsumption);
       o.put("odometerMeters", snapshot.mileage.totalMeters);
       o.put("tripManualKm", snapshot.mileage.manualKm);
       o.put("tripAutomaticKm", snapshot.mileage.automaticKm);
@@ -42,6 +47,9 @@ public final class VehicleSnapshotStore {
       o.put("healthWasher", snapshot.health.washerFluid);
       o.put("healthTire", snapshot.health.tirePressure);
       o.put("healthReportedAt", snapshot.health.reportedAt);
+      o.put("healthMaintenance",snapshot.health.maintenance);o.put("healthBrake",snapshot.health.brakeFluid);
+      o.put("healthCoolant",snapshot.health.coolant);o.put("healthOil",snapshot.health.oil);o.put("healthLights",snapshot.health.exteriorLights);
+      o.put("serviceHoursLeft",snapshot.health.serviceHoursLeft);o.put("serviceDaysLeft",snapshot.health.serviceDaysLeft);o.put("serviceKmLeft",snapshot.health.serviceKmLeft);
       o.put("temperatureC", snapshot.environment.temperatureC);
       o.put("targetTemperatureC", snapshot.environment.targetTemperatureC);
       o.put("aqi", snapshot.environment.aqi);
@@ -108,7 +116,9 @@ public final class VehicleSnapshotStore {
             o.optInt("health12v", VehicleHealthSnapshot.UNKNOWN),
             o.optInt("healthWasher", VehicleHealthSnapshot.UNKNOWN),
             o.optInt("healthTire", VehicleHealthSnapshot.UNKNOWN),
-            o.optLong("healthReportedAt", 0)));
+            o.optLong("healthReportedAt",0),o.optInt("healthMaintenance",-1),o.optInt("healthBrake",-1),
+            o.optInt("healthCoolant",-1),o.optInt("healthOil",-1),o.optInt("healthLights",-1),
+            integer(o,"serviceHoursLeft"),integer(o,"serviceDaysLeft"),integer(o,"serviceKmLeft")));
       snapshot = snapshot.withEnvironment(new EnvironmentSnapshot(snapshot.climate, snapshot.air,
           decimal(o, "temperatureC"), decimal(o, "targetTemperatureC"), decimal(o, "pm25"),
           integer(o, "aqi"), integer(o, "climateRuntimeMinutes"), integer(o, "airRuntimeMinutes"),
@@ -123,8 +133,10 @@ public final class VehicleSnapshotStore {
       return snapshot.withMileage(new MileageSnapshot(total,
           decimal(o, "tripManualKm"), decimal(o, "tripAutomaticKm"),
           decimal(o, "manualAverageSpeed"), decimal(o, "automaticAverageSpeed"),
-          decimal(o, "manualConsumption"), decimal(o, "automaticConsumption"),
-          o.optLong("mileageReportedAt", 0), o.optLong("consumptionReportedAt", 0)));
+          decimal(o, "manualConsumption"), o.optInt("consumptionSchema",0)>=2 ? decimal(o,"automaticConsumption") : null,
+          o.optLong("mileageReportedAt",0),o.optLong("consumptionReportedAt",0),
+          decimal(o,"sinceChargeKm"),decimal(o,"sinceChargeAverageSpeed"),decimal(o,"sinceChargeConsumption"),
+          o.optBoolean("automaticConsumptionEstimated",false)));
     } catch (Exception e) {
       clearChina(context);
       DiagnosticLog.add("Display snapshot cache discarded");

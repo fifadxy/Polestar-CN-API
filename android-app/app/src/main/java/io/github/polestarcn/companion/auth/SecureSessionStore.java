@@ -35,6 +35,7 @@ public final class SecureSessionStore {
     o.put("expiresAt", s.expiresAt);
     o.put("c3Host", s.c3Host == null ? "" : s.c3Host);
     o.put("revision", s.revision);
+    o.put("c3LbsHost",s.c3LbsHost==null?"":s.c3LbsHost);
     byte[] ivAndCipher = encrypt(o.toString().getBytes(StandardCharsets.UTF_8));
     context
         .getSharedPreferences(PREF, Context.MODE_PRIVATE)
@@ -57,6 +58,7 @@ public final class SecureSessionStore {
       s.expiresAt = o.optLong("expiresAt", 0L);
       s.c3Host = emptyToNull(o.optString("c3Host", ""));
       s.revision = o.optLong("revision", 0L);
+      s.c3LbsHost=emptyToNull(o.optString("c3LbsHost",""));
       if (s.access.isEmpty()) return null;
       return s;
     } catch (Exception e) {

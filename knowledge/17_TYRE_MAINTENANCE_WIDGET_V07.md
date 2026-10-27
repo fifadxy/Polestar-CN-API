@@ -58,3 +58,8 @@ Cross-check with upstream Hisingen `PolestarGRPCRemote.swift` and its unit tests
 - Both use the invocation VIN envelope in field 1.
 
 Android v0.7 has been corrected to this mapping. China vehicle execution remains `IMPLEMENTED_NEEDS_DEVICE_VERIFICATION` until the user's authorized vehicle confirms each command.
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+本文件是 v0.7 历史记录；当前改为优先显示车辆 Health 剩余保养字段，缺失才本地回退，百分比仍相对于用户配置周期估算。当前主 RPC GetLatestHealth，胎压数值仍实验性。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

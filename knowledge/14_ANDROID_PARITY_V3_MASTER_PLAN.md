@@ -82,3 +82,8 @@ android-app/app/src/main/java/io/github/polestarcn/companion/
 - P6–P7：区域回归矩阵、全部 APK 构建记录和剩余缺陷表。
 
 每阶段完整记录源码改动、构建/实测证据、失败与待解决项到 `07_PROGRESS.md`，修改接口时同步 `03_API_RESEARCH.md`、`docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+当前 Android v0.7.8 在 P2/P3 显示层加入新参考 Health/停车位置，保养百分比与时长估算明示来源；仍不实现远程复位。后续优先同车实测，而非用 Global 或旧公开 schema 推断 China 能力。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

@@ -66,3 +66,8 @@ flowchart TD
 ## v0.4.0-beta1 当前架构
 
 `MainActivity` 合并登录/默认车控/详情/设置；`VehicleCoordinator` 管理应用级队列与状态，供页面和 `VehicleRefreshJob` 共用；`ResidentService` 是可选静默通知，`BootReceiver` 恢复用户启用的后台选项。区域固定中国区；不存在首次区域弹窗。详见 `docs/ANDROID_V04.md`。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+新增 VehicleCondition/ServiceReading 汇总层、UiTypography 字体上下文、LocationSnapshot 内存模型；高德 StaticMapPreview 与 SecureMapPreferences 独立，不增加 SDK/后台定位。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

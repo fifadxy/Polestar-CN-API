@@ -261,7 +261,7 @@ public final class AppRegressionTest {
     org.robolectric.shadows.ShadowFingerprintManager fingerprint = org.robolectric.Shadows.shadowOf(
         activity.getSystemService(android.hardware.fingerprint.FingerprintManager.class));
     fingerprint.setIsHardwareDetected(true); fingerprint.setHasEnrolledFingerprints(true);
-    for (String skin : new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE}) {
+    for (String skin : new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2}) {
     UiSkin.set(activity,skin);
     checkLayout(360, 640);
     java.util.List<View> tiles = new java.util.ArrayList<>(); collectTiles(activity.getWindow().getDecorView(), tiles);

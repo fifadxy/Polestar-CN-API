@@ -55,3 +55,8 @@ R8、混淆及非必要安全加固按 `06_DEFERRED_SECURITY_R8.md` 延期，不
 ## 2026-10-27 · v0.7.7-beta1
 
 新增设置可切换 NIOlike 日夜皮肤；移除动态光效；车图下方 Health 汇总与可隐藏胎压；充电仅在启动/进行时独立分组；SOC 横条与旁侧续航、系统字体和 Widget 同步。Debug/Preview 各 102 项项目回归、Lint 与 Release/Preview 编译通过，APK v2 签名验证通过；账号/实车/手表与耗电未实测。详见 [本版知识库](24_V077_NIOLIKE_VI_CHARGING.md) 和 [更新说明](../docs/Psa_v077_Update.md)。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+新增检查门槛：最新参考用户实测仅标 REFERENCE_USER_VERIFIED；123 项合成测试只验证模型/布局。必须单独实车核对油液缺失、保养剩余、地图位置、TA能量一致性；无真实 Key，不声称在线高德图已成功。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

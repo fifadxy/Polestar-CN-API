@@ -8,6 +8,12 @@ import android.content.DialogInterface;
 final class HapticDialogBuilder extends AlertDialog.Builder {
   private final Context context;
   HapticDialogBuilder(Context context) { super(context); this.context = context; }
+  @Override public AlertDialog.Builder setView(android.view.View view) {
+    if(view instanceof android.widget.LinearLayout) {
+      android.widget.ScrollView scroll=new android.widget.ScrollView(context);scroll.addView(view);return super.setView(scroll);
+    }
+    return super.setView(view);
+  }
   @Override public AlertDialog create() {
     AlertDialog dialog = super.create();
     dialog.setOnShowListener(ignored -> {
@@ -23,6 +29,7 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
     return dialog;
   }
   private void style(android.view.View view) {
+    view.setHapticFeedbackEnabled(false);
     if(view instanceof android.widget.TextView) ((android.widget.TextView)view).setTypeface(PsaDesign.regular());
     if(view instanceof android.widget.CheckedTextView) {
       android.widget.CheckedTextView choice=(android.widget.CheckedTextView)view;
@@ -42,6 +49,9 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
   }
   @Override public AlertDialog.Builder setNegativeButton(CharSequence text, DialogInterface.OnClickListener listener) {
     return super.setNegativeButton(text, click(listener));
+  }
+  @Override public AlertDialog.Builder setNeutralButton(CharSequence text,DialogInterface.OnClickListener listener) {
+    return super.setNeutralButton(text,click(listener));
   }
   @Override public AlertDialog.Builder setItems(CharSequence[] items, DialogInterface.OnClickListener listener) {
     return super.setItems(items, click(listener));

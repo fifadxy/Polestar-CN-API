@@ -55,3 +55,8 @@
 - APK 静态基础：`01_APK_EVIDENCE.md`、`knowledge/evidence/`、`10_TWO_REPORTS_RECONCILED.md`。
 - 当前本工程：`04_FEATURE_MATRIX.md`、`05_BUILD_AND_TEST.md`、`12_STAGED_VALIDATION.md`。
 - Global / 官方 China 区 API 研究：`docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，**与第三方参考 APK 的实测能力不自动等同**。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+用户确认新上传参考 0.1.20261027.081805 中国区正常（REFERENCE_USER_VERIFIED），包含扩展健康、931h/75d/14959km 剩余保养及停车位置。新项目只完成独立映射与合成验证，此参考结论不转移为 PROJECT_DEVICE_VERIFIED。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

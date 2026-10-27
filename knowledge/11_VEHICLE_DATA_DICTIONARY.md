@@ -37,3 +37,8 @@
 - 对照官方车辆 UI：实际电池、续航、里程、开闭状态；分层标记 `MAPPING_REQUIRED -> VERIFIED_READ`，不跳级。
 
 当真实接口接入后，可将目前的字段群划分到多个模块，保持 Android / Mac 独立运行与各自区域 Token 边界。不能直接把 Global 的字段路径当 China 的 Proto 定义。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+旧 33 字段表仍是历史参考结构。扩展字典见 25：health 2/3/4=剩余小时/天/km，5保养、6制动液、7冷却液、8可选机油、13雨刮液、38低压电池、14–35/46灯光。c3Lbs 点位 longitude=1/latitude=2。Battery12 不能独立判 TA 能耗，TA/TM 时长是带 ~ 的估算。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

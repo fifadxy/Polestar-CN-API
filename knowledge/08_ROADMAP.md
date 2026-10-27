@@ -18,3 +18,8 @@
 **功能优先级**：首个可用里程碑聚焦 China 登录、SOC、里程、空调控制、车门解锁、Token 误报；再补完整 UI/Widget 和其他可用的远控操作；最后 Global/C3 Live/PCCS 拓展。
 
 **持续约束**：R8、混淆、可选安全加固和正式发布适配 `DEFERRED`；但会话隔离、用户确认、敏感日志脱敏、不会重复下发不确定写命令是必需的正确性保障。参见 `14_ANDROID_PARITY_V3_MASTER_PLAN.md`、`15_TOKEN_AND_REMOTE_VALIDATION.md` 和 `16_ANDROID_BRANCH_GOVERNANCE.md`。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+本轮实现车况/保养、NIOlike2、字体与地图二级预览。下一验收：参考同一车辆对照 GetLatestHealth、剩余保养语义、停车坐标偏移、高德 Key/额度、TA 独立能量与时长估算；随后实测 OPPO Watch X2 及耗电。不得把未知字段补成正常。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

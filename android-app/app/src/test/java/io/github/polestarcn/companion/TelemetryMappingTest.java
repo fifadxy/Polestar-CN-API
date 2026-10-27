@@ -47,7 +47,7 @@ public class TelemetryMappingTest {
     MileageSnapshot s = MileageSnapshot.fromReply(ProtoWire.decode(ProtoWire.bytesField(3, odo)))
         .withConsumption(ProtoWire.decode(battery));
     assertEquals(45.0, s.manualAverageSpeed, 0.001); assertEquals(35.0, s.automaticAverageSpeed, 0.001);
-    assertEquals(18.5, s.manualConsumption, 0.001); assertEquals(21.5, s.automaticConsumption, 0.001);
+    assertEquals(18.5, s.manualConsumption, 0.001); assertNull("uncorroborated field 12 is ambiguous",s.automaticConsumption);
     assertEquals(1_800_000_000_500L, s.consumptionReportedAt);
     assertNull(MileageSnapshot.unknown().automaticConsumption);
   }

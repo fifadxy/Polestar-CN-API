@@ -55,3 +55,8 @@ GitHub Actions `.github/workflows/android-apk.yml` 为 Debug 构建工作流；�
 - APK ZIP 可读，含 `classes.dex`、`classes2.dex`，二次核查证实后者含 `MainActivity`, `TelemetryStatus`, `OperationState`。APK v2 签名与内容摘要可独立复核通过；证书主体 `CN=Android Debug`，并非参考原 APK 的发布证书。
 - 这是 **debug APK / 离线 DEMO**；目前没有模拟器启动测试、真实登录、C3 状态读取或实车远控成功证据，不能将“编译通过”写成“功能回归全部通过”。
 - 新工程包名不同于原 APK，可并行安装。不同 CI 运行环境产生的 Debug 证书可能变化；如果覆盖安装提示签名冲突，需要采用稳定的本地调试签名或卸载旧版后安装（卸载会删除本地测试数据）。
+
+
+## 2026-10-27 v0.7.8 当前增量
+
+v0.7.8 Debug/Preview 各 123 项回归，四套皮肤中英日夜、小屏/横屏、合成倍率 1.56、12 项字段、保养条和 48dp Widget 触区。构建输出与签名见更新说明；合成通过不能代表车辆或高德在线成功。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。

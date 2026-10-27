@@ -38,3 +38,11 @@ assert 'REFERENCE_USER_VERIFIED' in (kb / '13_REFERENCE_APK_FIELD_VALIDATION.md'
 assert 'android-polestar-assistant-main' in (kb / '16_ANDROID_BRANCH_GOVERNANCE.md').read_text(encoding='utf-8')
 assert 'P3' in (kb / '14_ANDROID_PARITY_V3_MASTER_PLAN.md').read_text(encoding='utf-8')
 print('PASS: V3 Android parity knowledge, 33 field schema, reference evidence, branch and deferred safety work')
+
+latest = json.loads((kb / 'evidence/reference-20261027-mapping.json').read_text(encoding='utf-8'))
+assert latest['reference']['version_code'] == 215223485
+assert latest['health']['remaining_service_fields'] == {'hours': 2, 'days': 3, 'km': 4}
+assert latest['location']['longitude_field'] == 1 and latest['location']['latitude_field'] == 2
+assert '](' + '25_V078_CONDITION_LOCATION_TRIP.md)' in index
+assert 'PROJECT_DEVICE_VERIFIED' in (kb / '25_V078_CONDITION_LOCATION_TRIP.md').read_text(encoding='utf-8')
+print('PASS: v0.7.8 reference health, remaining service and c3Lbs axis mapping')

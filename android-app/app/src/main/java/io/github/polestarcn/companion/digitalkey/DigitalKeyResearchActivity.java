@@ -70,6 +70,7 @@ public final class DigitalKeyResearchActivity extends Activity {
 
   private void render() {
     DigitalKeyEnvironment.Result result = DigitalKeyEnvironment.inspect(this);
+    NativeLibraryProbe.Result nativeState = NativeLibraryProbe.inspect(this, false);
 
     ScrollView scroll = new ScrollView(this);
     scroll.setFillViewport(true);
@@ -110,6 +111,14 @@ public final class DigitalKeyResearchActivity extends Activity {
 
     root.addView(text("P319 environment check / 基础环境: "
         + (result.p319EnvironmentReady() ? "PASS" : "NOT READY"), 16, INK));
+
+    root.addView(text("NATIVE SDK V2 / 原厂原生库", 17, INK));
+    for (NativeLibraryProbe.Item item : nativeState.items) {
+      root.addView(text(item.library + " packaged / 已打包: "
+          + yesNo(item.packaged), 14, item.packaged ? INK : ORANGE));
+    }
+    root.addView(text("VOCMO Java bridge / Java 绑定类: "
+        + yesNo(nativeState.vocmoJavaBridgePresent), 14, MUTED));
     root.addView(text("OEM integration / 厂商 SDK: NOT CONNECTED / 未接入", 15, ORANGE));
     root.addView(text("Vehicle pairing / 车辆配对: NOT VERIFIED / 未验证", 15, ORANGE));
     root.addView(text("Working digital key / 可用数字钥匙: "
@@ -123,9 +132,28 @@ public final class DigitalKeyResearchActivity extends Activity {
       root.addView(button("申请附近设备权限 / Request nearby permissions",
           this::requestNearbyPermissions));
     }
+    root.addView(button("加载原厂 Native SDK / Load bundled native SDK", this::loadNativeSdk));
     root.addView(button("重新检查 / Refresh", this::render));
     root.addView(button("返回 / Back", this::finish));
     setContentView(scroll);
+  }
+
+  private void loadNativeSdk() {
+    NativeLibraryProbe.Result result = NativeLibraryProbe.inspect(this, true);
+    StringBuilder message = new StringBuilder();
+    for (NativeLibraryProbe.Item item : result.items) {
+      message.append(item.library).append(": ")
+          .append(item.loaded ? "LOADED" : (item.packaged ? "LOAD FAILED" : "NOT PACKAGED"));
+      if (!item.error.isEmpty()) message.append("\n").append(item.error);
+      message.append("\n\n");
+    }
+    message.append("VOCMO Java bridge: ")
+        .append(result.vocmoJavaBridgePresent ? "PRESENT" : "MISSING");
+    new android.app.AlertDialog.Builder(this)
+        .setTitle("Native SDK V2")
+        .setMessage(message.toString().trim())
+        .setPositiveButton("OK", null)
+        .show();
   }
 
   private void requestNearbyPermissions() {

@@ -1111,8 +1111,9 @@ public final class MainActivity extends FragmentActivity {
       addDashboardUtilities(body,landscape); if(!landscape)gap(body,4);
       boolean fourAcross=simple||compact;
       String[] order=simple?new String[]{"lock","climate","air","trunk"}:new String[]{"lock","climate","trunk","air"};
-      int height=fourAcross?(landscape?Math.max(dp(48),dp(8)+2*textLineHeight(10)):Math.max(dp(68),dp(nioSkin()?46:34)+2*textLineHeight(10)))
-          :dp(22)+textLineHeight(14)+textLineHeight(12)+textLineHeight(11);
+      int height=fourAcross?(landscape?Math.max(dp(64),dp(8)+3*textLineHeight(10))
+          :Math.max(dp(nioSkin()?92:78),dp(nioSkin()?46:34)+3*textLineHeight(10)))
+          :Math.max(dp(98),dp(22)+textLineHeight(14)+2*textLineHeight(12)+2*textLineHeight(10));
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
         body.addView(actions,new LinearLayout.LayoutParams(-1,height)); if(i==0&&!fourAcross)gap(body,4);
@@ -1177,7 +1178,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout features=row();
     addDashboardControl(features,"climate",false,false);
     addDashboardControl(features,"air",false,false);
-    parent.addView(features,new LinearLayout.LayoutParams(-1,Math.max(dp(84),textLineHeight(14)+textLineHeight(22)+textLineHeight(12)+textLineHeight(11)+dp(8))));gap(parent,5);
+    parent.addView(features,new LinearLayout.LayoutParams(-1,Math.max(dp(110),textLineHeight(14)+textLineHeight(14)+2*textLineHeight(12)+2*textLineHeight(11)+dp(10))));gap(parent,5);
     LinearLayout utilities=row();
     VehicleConditionButton bodyButton=conditionButton(tr("车况","Status"));
     TextView camp=utility(tr("露营模式","Camping mode"),false,false,this::campDialog);camp.setTag("camp_button");utilityIcon(camp,R.drawable.ic_camp_clock_vi);camp.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
@@ -1309,9 +1310,29 @@ public final class MainActivity extends FragmentActivity {
     return status(controlRaw(control));
   }
 
+  /** Short, deterministic content for narrow climate tiles. Never rely on ellipsis for runtimes. */
+  private String climateTileFeedback() {
+    VehicleSnapshot v=model.snapshot;
+    if(v==null||!"开启".equals(v.climate)) return controlFeedback("climate",true);
+    String remaining=ClimateRuntime.shortLabel(this,v,AppPreferences.get(this,"vehicle",""),AppPreferences.english(this))
+        .replace("分钟","分").replace("小时","时").replace(" min","m").replace(" h ","h");
+    if("运行中".equals(remaining)||"Running".equals(remaining))
+      return tr("运行中\n时间未知","On\nTime unknown");
+    if("待更新".equals(remaining)||"Check status".equals(remaining))
+      return tr("运行中\n待更新","On\nRefresh");
+    return tr("运行中\n剩余","On\nLeft ") + remaining;
+  }
+
+  private String climateTileTemperatures(VehicleSnapshot v) {
+    if(v==null)return "";
+    String target=DisplayMetric.TARGET_TEMPERATURE.value(this,v,true,AppPreferences.english(this));
+    String cabin=DisplayMetric.TEMPERATURE.value(this,v,true,AppPreferences.english(this));
+    return tr("目标 ","Target ")+target+"\n"+tr("车内 ","Cabin ")+cabin;
+  }
+
   private void addDashboardControl(LinearLayout parent, String control, boolean compact, boolean circles) {
     String label = control.equals("lock") ? tr("门锁", "Lock") : control.equals("climate")
-        ? tr(compact ? "空调" : "驻车空调", "Climate") : control.equals("trunk") ? tr("尾箱", "Trunk")
+        ? tr("空调", "Climate") : control.equals("trunk") ? tr("尾箱", "Trunk")
         : tr(compact ? "净化" : "空气净化", "Air");
     LinearLayout card = column(); card.setGravity(Gravity.CENTER);
     card.setTag("control_tile"); card.setPadding(dp(compact ? 3 : 10), dp(4), dp(compact ? 3 : 8), dp(4));
@@ -1325,7 +1346,19 @@ public final class MainActivity extends FragmentActivity {
     TextView feedback = text("", compact ? 10 : 12, ink, false);feedback.setTag("control_feedback_"+control);
     TextView support = text("", 11, muted, false);
     for (TextView v : new TextView[]{title, feedback, support}) {
-      v.setMaxLines(1); v.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      if(control.equals("climate")||control.equals("air")){
+        // Climate may contain a runtime: allow two complete lines instead of "...".
+        v.setSingleLine(false);
+        v.setMaxLines(v==title?1:2);
+        v.setEllipsize(null);
+        v.setHorizontallyScrolling(false);
+        v.setIncludeFontPadding(false);
+        v.setGravity(Gravity.CENTER);
+        v.setAutoSizeTextTypeUniformWithConfiguration(v==support?8:9, v==title?12:12,
+            1,android.util.TypedValue.COMPLEX_UNIT_SP);
+      }else{
+        v.setMaxLines(1);v.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      }
     }
     boolean horizontalCompact=compact && getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
     if (compact) {
@@ -1366,14 +1399,19 @@ public final class MainActivity extends FragmentActivity {
       icon.setColorFilter(color);
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(color); feedback.setTextColor(color);
-      feedback.setText(nioSkin() && !compact && control.equals("climate") && "开启".equals(raw)
-          ? tr("运行中 · ","Running · ") + controlFeedback(control,true) : controlFeedback(control, compact));
+      feedback.setText(control.equals("climate") && "开启".equals(raw)
+          ? climateTileFeedback() : controlFeedback(control, compact));
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
           : control.equals("air") ? RuntimeLabels.air(this,model.snapshot)+" · PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
-      support.setText(nioSkin() && !compact && control.equals("climate")
-          ? tr("目标 ","Target ") + DisplayMetric.TARGET_TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)) : detail); support.setTextColor(known ? color : muted);
+      support.setText(control.equals("climate") && model.snapshot!=null
+          ? nioSkin() ? tr("目标 ","Target ")+DisplayMetric.TARGET_TEMPERATURE.value(
+              this,model.snapshot,true,AppPreferences.english(this)) : climateTileTemperatures(model.snapshot)
+          : control.equals("air") ? (model.snapshot==null?"":tr("AQI ","AQI ")+
+                (model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
+          : detail);
+      support.setTextColor(known ? color : muted);
       card.setEnabled(!model.busy && !model.commandPending && model.selected != null);
       card.setAlpha(card.isEnabled() ? 1f : .55f);
       card.setContentDescription(label + " · " + controlFeedback(control, compact) + " · " + detail);

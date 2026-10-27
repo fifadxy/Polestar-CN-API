@@ -721,7 +721,7 @@ public final class MainActivity extends FragmentActivity {
       }
     }
     TextView footer=liveText(this::dashboardStamp,9,muted,false); footer.setGravity(Gravity.CENTER_VERTICAL);
-    click(footer,()->info(tr("车辆状态","Vehicle status"),dashboardStamp()));
+    click(footer,()->info(tr("车况","Vehicle status"),dashboardStamp()));
     if(!landscape)body.addView(footer,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(4))); dashboardReady=true;
   }
 
@@ -737,11 +737,11 @@ public final class MainActivity extends FragmentActivity {
     ImageView symbol=new ImageView(this); symbol.setTag("health_symbol");
     boolean compact=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp
         ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
-    int summarySp=compact?18:30;
+    int summarySp=compact?15:24;
     TextView label=text("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);
     health.addView(symbol,new LinearLayout.LayoutParams(dp(18),dp(18)));
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.leftMargin=dp(5);health.addView(label,lp);
-    click(health,this::vehicleStatusDialog);health.setContentDescription(tr("查看车辆状态","View vehicle health"));
+    click(health,this::vehicleStatusDialog);health.setContentDescription(tr("查看车况","View vehicle status"));
     bindDashboard(()->{
       VehicleHealthSnapshot h=model.snapshot==null?VehicleHealthSnapshot.unknown():model.snapshot.health;
       boolean warn=VehicleCondition.problem(model.snapshot,showTires()),good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;

@@ -68,7 +68,7 @@ public class V076RegressionTest {
   }
   private void check(int w,int h,float scale) throws Exception {
     font(scale);
-    for(String language:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2}){
+    for(String language:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.VOLIKE_POLESTAR,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2}){
       AppPreferences.set(activity,"language",language);AppPreferences.set(activity,"theme",theme);UiSkin.set(activity,skin);
       View root=render(w,h);int[] found={0};assertControls(root,found);assertEquals(4,found[0]);
       View content=tag(root,"control_pull_content");assertNotNull(content);

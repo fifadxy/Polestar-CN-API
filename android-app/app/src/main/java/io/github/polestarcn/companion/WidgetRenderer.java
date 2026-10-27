@@ -68,6 +68,8 @@ public final class WidgetRenderer {
       Bitmap backing, VehicleSnapshot snapshot) {
     c=c.getApplicationContext();
     VehicleSnapshot s = AppState.region(c) == Region.CHINA ? snapshot : null;
+    if (!VoLikeWidgetRenderer.CLASSIC.equals(VoLikeWidgetRenderer.style(c)))
+      return VoLikeWidgetRenderer.createViews(c,id,size,width,height,s);
     int layout = size == Size.DATA ? R.layout.widget_data : size == Size.LARGE ? R.layout.widget_standard
         : size == Size.SQUARE ? R.layout.widget_compact : size == Size.WIDE ? R.layout.widget_wide : R.layout.widget_mini;
     RemoteViews views = new RemoteViews(c.getPackageName(), layout);

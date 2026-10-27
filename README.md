@@ -1,6 +1,6 @@
 # PsAssistant for Android
 
-当前版本：**v0.8.0-beta1**（versionCode 81）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.1-beta1**（versionCode 82）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
@@ -20,6 +20,15 @@ Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩
 - 四套手机皮肤在真实充电状态下统一显示“正在充电”动态能量条；动画只在充电卡可见并附着窗口时运行。
 - 手表预览新增 **Volvo 风格**，可与 Psa 风格切换，并继续支持圆屏 / 方屏预览。
 - VoLike 核心按钮下方不再堆叠说明文字，状态通过颜色、图标和车况/充电区域表达。
+
+## v0.8.1 VoLike 多配色、Widget 与可视化选择器
+
+- 控制页保留 VoLike 简洁/详细并新增独立 **VoLike 极星配色**，使用黑白灰与 Polestar Orange，不再以 Volvo Green 表达电量/充电状态。
+- VoLike 简洁版可在设置中独立隐藏 4 个主控按钮的文字，图标和无障碍操作描述保留；默认显示文字，升级不改变用户操作习惯。
+- 皮肤选择器以五张实际绘制的 Polestar 2、SOC、续航、快捷键布局缩略图替代文字单选列表，选中状态明确。日/夜皮肤共用车型资源。
+- 桌面 Widget 新增可独立切换的 **经典、自定义数据显示 / VoLike 简洁 / VoLike 详细 / 极星 VI** 风格，不受手机皮肤限制。新样式使用原生 Canvas 绘制静态 Polestar 2 与电量/续航/充电状态，四个快捷入口保留验证门锁/空调与只读充电/停车位置。
+- 充电时所有手机皮肤保留仅在后端确认充电会话时工作的能量脉冲，并修复大字号条件下的充电剩余时间行高裁切；非充电状态无额外持续动画。
+- 手表 Volvo/Psa 皮肤继续以手机预览为准，当前仓库尚未生成可安装的独立 Wear OS APK。
 
 ## 当前功能
 

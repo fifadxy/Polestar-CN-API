@@ -1,3 +1,14 @@
+## 2026-10-27 / v0.8.1-beta1 — VoLike 极星配色、可切换 Widget、皮肤缩略预览
+
+- `SOURCE_BASE`：从 `0.8.0-beta1` / commit `7f562261` 连续演进；其 CI Run #96 未通过，继续修复充电字串在 1.56× 字体下的真实行高问题，不通过删测试规避。
+- `FIVE_UI_SKINS`：VoLike 简洁、VoLike 详细、VoLike 极星配色、NIOlike、NIOlike2；手机 UI 版本选择独立保存。极星配色复用详细布局但改用 Polestar 黑白灰与橙色点缀。
+- `SKIN_PREVIEW`：使用实际车辆资源的 `SkinPreviewView` 在选择器内渲染每个皮肤的布局缩略图，点击卡片选择并应用；全部皮肤日/夜复用原车图资源。
+- `SIMPLE_LABELS`：设置 `volike_simple_labels`，默认 ON；OFF 后 4 个 VoLike 简洁主控仅显示圆形图标，`contentDescription` 仍提供具体动作与状态。
+- `WIDGET_DESIGN`：`widget_design` 与手机 `ui_skin` 独立：`classic`、`volike_simple`、`volike_detailed`、`volike_polestar`。使用 `VoLikeWidgetRenderer` + 纯 RemoteViews 布局，不依赖地图 SDK/WebView/运行时网络图片。门锁/空调仍走原生物识别安全链；充电为只读状态，定位打开现有安全的停车位置详情。
+- `CHARGING_MOTION`：仅 `ChargingVisibility.shouldShow(snapshot)` 返回真时展示 `ChargingPulseView`；非充电隐藏并取消动画，显示大小独立适配系统大字号。
+- `WATCH_SCOPE`：已有 `WatchPreviewView` 支持 Volvo/Psa 预览；不谎称独立 WearOS 程序已交付。
+- `VERSION`：`versionName=0.8.1-beta1`, `versionCode=82`。
+
 ## 2026-10-26 / v0.7.5-beta1 — 车辆信息二级化、Health 聚合与动态密度 VI
 
 - `PRIMARY_IDENTITY`：两套控制页主标题只显示车型；年份与 VIN 从主界面移除，点击车型进入二级“车辆详情”查看完整车型、年款和 VIN，再从该菜单切换车辆。

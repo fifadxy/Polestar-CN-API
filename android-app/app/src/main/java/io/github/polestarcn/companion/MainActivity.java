@@ -101,6 +101,8 @@ public final class MainActivity extends FragmentActivity {
     String request = i.getStringExtra("widget_action");
     i.removeExtra("widget_action");
     if ("refresh".equals(request)) { Haptics.tap(this); page = 0; render(); model.refreshUser(null); return; }
+    if ("location".equals(request)) { page=0; render(); if(model.hasSession()&&model.selected!=null)
+      locationDialog();else toast(tr("请先连接车辆","Connect vehicle first"));return; }
     if (!"lock-choice".equals(request) && !"climate-choice".equals(request)) return;
     page = 0;
     render();
@@ -309,7 +311,7 @@ public final class MainActivity extends FragmentActivity {
       paper = Color.parseColor(dark ? "#101722" : "#F4F9FC");
       surface = Color.parseColor(dark ? "#1C2532" : "#FFFFFF");
       line = Color.parseColor(dark ? "#384252" : "#DFE8EE");
-    } else if (voLike()) {
+    } else if (voLike() && !voPolestar()) {
       paper = Color.parseColor(dark ? "#111514" : "#F3EEE8");
       surface = Color.parseColor(dark ? "#1B211F" : "#FCF9F5");
       line = Color.parseColor(dark ? "#35403C" : "#E3DBD3");
@@ -498,7 +500,7 @@ public final class MainActivity extends FragmentActivity {
     HorizontalSwipeRefreshLayout refresh = new HorizontalSwipeRefreshLayout(this);
     controlRefresh = refresh;
     refresh.setTag("control_pull_refresh");
-    refresh.setColorSchemeColors(voLike()?voGreen():orange);
+    refresh.setColorSchemeColors(voLike()?voAccent():orange);
     refresh.setProgressBackgroundColorSchemeColor(surface);
     refresh.setDistanceToTriggerSync(dp(72));
     refresh.setOnChildScrollUpCallback(
@@ -518,7 +520,7 @@ public final class MainActivity extends FragmentActivity {
     try {
       String skin = UiSkin.get(this);
       if (UiSkin.nioLayout(this)) buildDashboard(true);
-      else buildVoLikeDashboard(UiSkin.DETAILED.equals(skin));
+      else buildVoLikeDashboard(UiSkin.DETAILED.equals(skin)||UiSkin.VOLIKE_POLESTAR.equals(skin));
     } finally {
       body = outerBody;
     }
@@ -603,8 +605,10 @@ public final class MainActivity extends FragmentActivity {
 
   private boolean nioSkin() { return UiSkin.nioLayout(this); }
   private boolean nioColors() { return UiSkin.nioColors(this); }
-  private boolean voLike() { String skin=UiSkin.get(this); return UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin); }
+  private boolean voLike() { String skin=UiSkin.get(this); return UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin)||UiSkin.VOLIKE_POLESTAR.equals(skin); }
+  private boolean voPolestar() { return UiSkin.polestarVo(this); }
   private int voGreen() { return Color.parseColor(AppPreferences.dark(this) ? "#79B79F" : "#5E8D7A"); }
+  private int voAccent() { return voPolestar() ? orange : voGreen(); }
   private boolean showTires() { return AppPreferences.visible(this, "show_tire_status", true); }
   private int accentText() { return PsaDesign.accentText(AppPreferences.dark(this)); }
 
@@ -617,7 +621,7 @@ public final class MainActivity extends FragmentActivity {
     ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
     bar.setTag("vi_progress"); bar.setMax(100); styleViProgress(bar);
     if (nioColors()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(32,196,121)));
-    else if (voLike()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voGreen()));
+    else if (voLike()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
     bindDashboard(() -> bar.setProgress(model.snapshot == null || model.snapshot.batteryPercent == null ? 0 : model.snapshot.batteryPercent));
     gap(soc, 3); soc.addView(bar, new LinearLayout.LayoutParams(-1, dp(3)));
     headline.addView(soc, new LinearLayout.LayoutParams(0, -2, 1));
@@ -637,21 +641,24 @@ public final class MainActivity extends FragmentActivity {
 
     LinearLayout row=row();
     ImageView icon=new ImageView(this);icon.setImageResource(R.drawable.ic_charge);
-    int chargeAccent=voLike()?voGreen():nioColors()?Color.rgb(32,196,121):accentText();
+    int chargeAccent=voLike()?voAccent():nioColors()?Color.rgb(32,196,121):accentText();
     icon.setColorFilter(chargeAccent);row.addView(icon,new LinearLayout.LayoutParams(dp(20),dp(20)));
 
     LinearLayout lines=column();lines.setPadding(dp(7),0,0,0);
+    float fontScale=getResources().getConfiguration().fontScale;
+    int chargeSp=fontScale>1.4f?8:compact?9:11;
+    int detailSp=fontScale>1.3f?8:9;
     TextView state=liveText(()->{
       VehicleSnapshot v=model.snapshot;boolean en=AppPreferences.english(this);
       return tr("正在充电","Charging")+" · "+DisplayMetric.CHARGE_POWER.value(this,v,true,en)
           +" · "+DisplayMetric.CHARGE_ETA.value(this,v,true,en);
-    },11,ink,true);
+    },chargeSp,ink,true);
     TextView values=liveText(()->{
       VehicleSnapshot v=model.snapshot;boolean en=AppPreferences.english(this);
       return DisplayMetric.CHARGE_TYPE.value(this,v,true,en)+" · "
           +DisplayMetric.CHARGE_CURRENT.value(this,v,true,en)+" · "
           +DisplayMetric.CHARGE_CONNECTION.value(this,v,true,en);
-    },9,muted,false);
+    },detailSp,muted,false);
     lines.addView(state);lines.addView(values);values.setVisibility(compact?View.GONE:View.VISIBLE);
     row.addView(lines,new LinearLayout.LayoutParams(0,-2,1));section.addView(row);
 
@@ -664,7 +671,7 @@ public final class MainActivity extends FragmentActivity {
           +DisplayMetric.CHARGE_POWER.value(this,model.snapshot,true,AppPreferences.english(this)):"");
     });
     click(section,this::chargingDialog);
-    int h=Math.max(dp(compact?38:48),textLineHeight(11)+(compact?0:textLineHeight(9))+dp(15));
+    int h=Math.max(dp(compact?40:48),textLineHeight(chargeSp)+(compact?0:textLineHeight(detailSp))+dp(20));
     parent.addView(section,new LinearLayout.LayoutParams(-1,h));
   }
 
@@ -735,7 +742,7 @@ public final class MainActivity extends FragmentActivity {
     soc.setTag("battery_soc");socRow.addView(soc);
     TextView caption=text(tr(" 电量"," Battery"),landscape?9:10,muted,false);socRow.addView(caption);data.addView(socRow);
     ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setTag("vi_progress");bar.setMax(100);
-    styleViProgress(bar);bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voGreen()));
+    styleViProgress(bar);bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
     bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));
     data.addView(bar,new LinearLayout.LayoutParams(-1,dp(3)));
     top.addView(data,new LinearLayout.LayoutParams(0,-1,.78f));
@@ -758,7 +765,7 @@ public final class MainActivity extends FragmentActivity {
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       boolean good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);
-      int color=warn?orange:good?voGreen():muted;symbol.setColorFilter(color);
+      int color=warn?orange:good?voAccent():muted;symbol.setColorFilter(color);
       symbol.setVisibility(good||warn?View.VISIBLE:View.INVISIBLE);
       summary.setText((model.snapshot==null?"--":status(model.snapshot.lock))+" · "
           +(model.snapshot==null?"--":status(model.snapshot.windows)));
@@ -812,12 +819,16 @@ public final class MainActivity extends FragmentActivity {
     circle.addView(icon,new FrameLayout.LayoutParams(dp(landscape?17:22),dp(landscape?17:22),Gravity.CENTER));
     item.addView(circle,new LinearLayout.LayoutParams(size,size));
     TextView label=text(title,landscape?8:9,ink,false);label.setGravity(Gravity.CENTER);label.setSingleLine(true);
-    item.addView(label,new LinearLayout.LayoutParams(-1,textLineHeight(landscape?8:9)+dp(1)));
+    boolean hideTitle=UiSkin.SIMPLE.equals(UiSkin.get(this))
+        && !AppPreferences.visible(this,"volike_simple_labels",true);
+    label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
+    label.setTag("volike_control_label");
+    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(landscape?8:9)+dp(1)));
     bindDashboard(()->{
       String raw=controlRaw(control);
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
       boolean warning=control.equals("lock")&&"未锁".equals(raw)||control.equals("trunk")&&active;
-      int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voGreen():viSoft());
+      int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
       item.setEnabled(!model.busy&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
@@ -837,7 +848,7 @@ public final class MainActivity extends FragmentActivity {
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       condition.setText(tr("车况","Status"));condition.refreshService();
       ((GradientDrawable)condition.getBackground()).setStroke(dp(1),warn?orange:line);
-      boolean active=CampModeManager.active(this)||"STOPPING".equals(CampModeManager.phase(this));((GradientDrawable)camp.getBackground()).setColor(active?voGreen():surface);
+      boolean active=CampModeManager.active(this)||"STOPPING".equals(CampModeManager.phase(this));((GradientDrawable)camp.getBackground()).setColor(active?voAccent():surface);
       camp.setTextColor(active?Color.WHITE:ink);
     });
     int h=dp(landscape?46:56);
@@ -1476,20 +1487,36 @@ public final class MainActivity extends FragmentActivity {
 
 
   private void skinDialog() {
-    final String[] values = {UiSkin.SIMPLE, UiSkin.DETAILED, UiSkin.NIO_LIKE, UiSkin.NIO_LIKE_2};
-    String[] labels = {
-        tr("1 · VoLike 简洁", "1 · VoLike Simple"),
-        tr("2 · VoLike 详细", "2 · VoLike Detailed"), "3 · NIOlike", "4 · NIOlike2 · Psa VI"
-    };
-    new HapticDialogBuilder(this)
-        .setTitle(tr("界面皮肤", "UI skin"))
-        .setSingleChoiceItems(labels, UiSkin.index(this), (dialog, which) -> {
-          UiSkin.set(this, values[which]);
-          dialog.dismiss();
-          WidgetRenderer.refreshAll(this);
-          recreate();
-        })
-        .show();
+    LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
+    ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);
+    final AlertDialog[] dialog={null};
+    for(String skin:UiSkin.CHOICES){
+      LinearLayout option=column();option.setTag("skin_picker_option_"+skin);
+      option.setPadding(dp(6),dp(5),dp(6),dp(5));
+      GradientDrawable frame=bg(surface,16);
+      frame.setStroke(dp(UiSkin.get(this).equals(skin)?2:1),
+          UiSkin.get(this).equals(skin)?voAccent():line);
+      option.setBackground(frame);
+      TextView title=text(UiSkin.label(this,skin)
+          +(UiSkin.get(this).equals(skin)?"  ✓":""),14,ink,true);
+      title.setGravity(Gravity.CENTER_VERTICAL);
+      option.addView(title,new LinearLayout.LayoutParams(-1,dp(28)));
+      SkinPreviewView preview=new SkinPreviewView(this,skin);
+      preview.setSelectedSkin(UiSkin.get(this).equals(skin));
+      option.addView(preview,new LinearLayout.LayoutParams(-1,dp(138)));
+      click(option,()->{
+        UiSkin.set(this,skin);
+        WidgetRenderer.refreshAll(this);
+        if(dialog[0]!=null)dialog[0].dismiss();
+        recreate();
+      });
+      panel.addView(option);
+      gap(panel,7);
+    }
+    scroller.addView(panel);
+    dialog[0]=new HapticDialogBuilder(this).setTitle(tr("皮肤选择 · 预览","Choose skin · preview"))
+        .setView(scroller).setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog[0].show();
   }
 
   private void fontDialog() {
@@ -1515,7 +1542,17 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
     gap(p, 8);
     p.addView(button(tr("界面皮肤 · ", "UI skin · ") + UiSkin.label(this, UiSkin.get(this)), this::skinDialog));
-    gap(p, 8);
+    gap(p, 8);    Switch simpleLabels=new Switch(this);
+    simpleLabels.setTag("volike_simple_labels");
+    simpleLabels.setText(tr("VoLike 简洁版：显示按钮文字","VoLike Simple: show control labels"));
+    simpleLabels.setTextColor(ink);
+    simpleLabels.setMinHeight(dp(48));
+    simpleLabels.setChecked(AppPreferences.visible(this,"volike_simple_labels",true));
+    simpleLabels.setOnCheckedChangeListener((v,on)->{
+      Haptics.tap(this);AppPreferences.set(this,"volike_simple_labels",on?"on":"off");render();
+    });
+    p.addView(simpleLabels);
+    gap(p,8);
     p.addView(button(tr("停车位置与地图","Parking location and maps"),()->info(tr("停车位置与地图","Parking location and maps"),
         tr("首页位置图标可打开内嵌高德网页，预览最后停车位置，无需高德 Key。下方按钮可打开高德 App、网页或系统地图。不会读取手机 GPS 或后台跟踪。",
         "Use the home location icon for an embedded Amap web preview of the last parked position. No key needed. The button opens Amap, its website, or a system map. No phone GPS or background tracking."))));gap(p,8);
@@ -1571,7 +1608,9 @@ public final class MainActivity extends FragmentActivity {
     gap(p, 8);
     p.addView(button(tr("手表皮肤 · ", "Watch skin · ") + watchSkinLabel()
         + tr(" · 圆屏 / 方屏", " · round / square"), this::watchPreview));
-    gap(p, 8);
+    gap(p, 8);    p.addView(button(tr("Widget 风格 · ","Widget design · ")+
+        VoLikeWidgetRenderer.label(this,VoLikeWidgetRenderer.style(this)),this::widgetDesignDialog));
+    gap(p,8);
     p.addView(button(tr("Widget 语言 · 中文 / English", "Widget language · 中文 / English"),
         this::widgetLanguageDialog));
     gap(p, 8);
@@ -1769,6 +1808,39 @@ public final class MainActivity extends FragmentActivity {
       }
     }));
     dialog.show();
+  }
+
+  private void widgetDesignDialog() {
+    String[] options={VoLikeWidgetRenderer.CLASSIC,VoLikeWidgetRenderer.SIMPLE,
+        VoLikeWidgetRenderer.DETAILED,VoLikeWidgetRenderer.POLESTAR};
+    LinearLayout panel=column();panel.setPadding(dp(8),dp(6),dp(8),dp(6));
+    ScrollView scroll=new ScrollView(this);
+    final AlertDialog[] dialog={null};
+    for(String style:options) {
+      LinearLayout row=column();row.setTag("widget_style_option_"+style);
+      row.setPadding(dp(7),dp(5),dp(7),dp(5));
+      GradientDrawable frame=bg(surface,14);
+      frame.setStroke(dp(1),VoLikeWidgetRenderer.style(this).equals(style)?orange:line);
+      row.setBackground(frame);
+      TextView label=text(VoLikeWidgetRenderer.label(this,style),14,ink,true);
+      row.addView(label);
+      ImageView preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      preview.setTag("widget_style_preview");
+      preview.setImageBitmap(VoLikeWidgetRenderer.preview(this,model.snapshot,style,300,165));
+      row.addView(preview,new LinearLayout.LayoutParams(-1,dp(108)));
+      click(row,()->{
+        AppPreferences.set(this,"widget_design",style);
+        WidgetRenderer.refreshAll(this);
+        if(dialog[0]!=null)dialog[0].dismiss();
+        render();
+      });
+      panel.addView(row);gap(panel,7);
+    }
+    scroll.addView(panel);
+    dialog[0]=new HapticDialogBuilder(this)
+        .setTitle(tr("Widget 风格 · 预览","Widget style · preview")).setView(scroll)
+        .setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog[0].show();
   }
 
   private void widgetLanguageDialog() {

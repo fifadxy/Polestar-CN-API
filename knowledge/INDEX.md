@@ -1,6 +1,6 @@
 # Android Polestar Assistant 主线知识库 · 索引
 
-> 版本 `KB-0.7.9 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
+> 版本 `KB-0.8.1 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
 
 本目录是 **Polestar2 Widget&API** 独立 Android 子项目的长期知识库。`main` 为 GitHub 仓库默认主分支，本项目专属的 Android 主线是 `android-polestar-assistant-main`，不修改 Mac/Hisingen 的独立工程。
 
@@ -13,6 +13,7 @@
 | [05_BUILD_AND_TEST.md](05_BUILD_AND_TEST.md) | 编译环境、历史 CI 与验证记录 | 历史 Debug CI 通过 |
 | [06_DEFERRED_SECURITY_R8.md](06_DEFERRED_SECURITY_R8.md) | R8、混淆和非必要安全优化后期池 | `DEFERRED` |
 | [07_PROGRESS.md](07_PROGRESS.md) | 项目研究、开发和分支同步流水 | 持续追加 |
+| [24_VOLIKE_WIDGET_SKIN_V081.md](24_VOLIKE_WIDGET_SKIN_V081.md) | VoLike 极星配色、五皮肤视觉预览、按钮文字开关、桌面 Widget 可切换渲染 | v0.8.1 |
 | [08_ROADMAP.md](08_ROADMAP.md) | P0–P7 复刻开发优先级和里程碑 | V3 规划 |
 | [09_EXTERNAL_ANALYSIS_REVIEW.md](09_EXTERNAL_ANALYSIS_REVIEW.md) | 外部 AI 建议独立核对 | 已审核 |
 | [10_TWO_REPORTS_RECONCILED.md](10_TWO_REPORTS_RECONCILED.md) | 两份 APK 报告交叉验证与证据边界 | 已审核 |

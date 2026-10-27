@@ -54,8 +54,11 @@ public class V077RegressionTest {
   }
   @Test public void settingsCanSelectThirdSkinAndReuseItsSavedIdentity() throws Exception {
     invoke("skinDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-    assertEquals(4,dialog.getListView().getAdapter().getCount());
-    dialog.getListView().performItemClick(null,2,2);assertEquals(UiSkin.NIO_LIKE,UiSkin.get(activity));assertEquals(2,UiSkin.index(activity));
+    assertNotNull(dialog.getWindow().getDecorView().findViewWithTag("skin_picker_option_"+UiSkin.SIMPLE));
+    assertNotNull(dialog.getWindow().getDecorView().findViewWithTag("skin_picker_option_"+UiSkin.VOLIKE_POLESTAR));
+    assertNotNull(dialog.getWindow().getDecorView().findViewWithTag("skin_picker_option_"+UiSkin.NIO_LIKE));
+    dialog.getWindow().getDecorView().findViewWithTag("skin_picker_option_"+UiSkin.NIO_LIKE).performClick();
+    assertEquals(UiSkin.NIO_LIKE,UiSkin.get(activity));assertEquals(3,UiSkin.index(activity));
     assertEquals("NIOlike",UiSkin.label(activity,UiSkin.get(activity)));
     assertTrue(render().findViewWithTag("polestar_vehicle") instanceof VehicleHeroView);
   }

@@ -441,7 +441,9 @@ public final class WidgetRenderer {
   }
 
   private static CharSequence primaryText(Context c,DisplayMetric metric,VehicleSnapshot snapshot,boolean english,WidgetLayoutPlan plan,float font){
-    String value=metricValue(c,metric,snapshot,true,english);float sp=Math.max(8,Math.min(36,plan.rowHeightDp/(1.5f*plan.typeScale)));float scale=c.getResources().getDisplayMetrics().scaledDensity*font;
+    String value=metricValue(c,metric,snapshot,true,english);
+    // Reserve real font ascent/descent and RemoteViews padding: width-only fitting can still clip vertically.
+    float sp=Math.max(8,Math.min(36,plan.rowHeightDp/(1.85f*plan.typeScale)));float scale=c.getResources().getDisplayMetrics().scaledDensity*font;
     android.text.TextPaint paint=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);paint.setTypeface(android.graphics.Typeface.create("sans-serif",AppPreferences.visible(c,"widget_bold",false)?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL));
     float width=plan.cellWidthDp*c.getResources().getDisplayMetrics().density;paint.setTextSize(sp*scale);while(sp>8&&paint.measureText(value)>width){sp-=.5f;paint.setTextSize(sp*scale);}
     android.text.SpannableString text=new android.text.SpannableString(value);text.setSpan(new android.text.style.RelativeSizeSpan(sp/10f),0,text.length(),0);return text;

@@ -1193,6 +1193,13 @@ public final class MainActivity extends FragmentActivity {
     icon.setBounds(0,0,dp(16),dp(16));view.setCompoundDrawablesRelative(icon,null,null,null);view.setCompoundDrawablePadding(dp(4));view.setGravity(Gravity.CENTER);
   }
 
+  private void utilityIconTop(TextView view,int resource) {
+    android.graphics.drawable.Drawable icon=getDrawable(resource).mutate();
+    icon.setTint(ink);icon.setBounds(0,0,dp(14),dp(14));
+    view.setCompoundDrawablesRelative(null,icon,null,null);
+    view.setCompoundDrawablePadding(dp(2));view.setGravity(Gravity.CENTER);
+  }
+
   private void tintUtilityIcon(TextView view){for(android.graphics.drawable.Drawable icon:view.getCompoundDrawablesRelative())if(icon!=null)icon.setTint(view.getCurrentTextColor());}
 
   private VehicleConditionButton conditionButton(String title) {
@@ -1274,7 +1281,13 @@ public final class MainActivity extends FragmentActivity {
       view.setTextSize(11);
 
       view.setPadding(dp(3), dp(2), dp(3), dp(2));view.setGravity(Gravity.CENTER);
-      if(kind.equals("camp")){utilityIcon(view,R.drawable.ic_camp_clock_vi);view.setGravity(Gravity.CENTER);view.setEllipsize(null);}
+      if(kind.equals("camp")){
+        boolean narrow=getResources().getConfiguration().screenWidthDp<=360
+            ||getResources().getConfiguration().fontScale>1.2f;
+        if(narrow)utilityIconTop(view,R.drawable.ic_camp_clock_vi);else utilityIcon(view,R.drawable.ic_camp_clock_vi);
+        view.setGravity(Gravity.CENTER);view.setEllipsize(null);
+        view.setAutoSizeTextTypeUniformWithConfiguration(narrow?6:8,narrow?10:12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
+      }
       if(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))) {
         android.graphics.drawable.Drawable glyph=getDrawable(kind.equals("windows")?R.drawable.ic_window:R.drawable.ic_horn).mutate();glyph.setTint(ink);
         GradientDrawable circle=oval(Color.TRANSPARENT);circle.setStroke(dp(1),line);
@@ -1294,8 +1307,11 @@ public final class MainActivity extends FragmentActivity {
         String label = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Status")
             : kind.equals("health") ? (good ? "ALL GOOD" : tr("车况", "Health"))
             : kind.equals("camp") ? tr("露营模式", "Camping") : tr("寻车", "Find car");
-        view.setMaxLines(good || kind.equals("camp") && active ? 2 : 1);view.setAutoSizeTextTypeUniformWithConfiguration(8,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
-        view.setText(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))?"":good ? "ALL\nGOOD" : label + (warn ? " !" : "") + (kind.equals("camp")&&active?"\n"+RuntimeLabels.camp(this):""));
+        boolean camping=kind.equals("camp");
+        view.setSingleLine(camping&&!active);
+        view.setMaxLines(good || camping&&active ? 2 : 1);
+        if(!camping)view.setAutoSizeTextTypeUniformWithConfiguration(8,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
+        view.setText(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))?"":good ? "ALL\nGOOD" : label + (warn ? " !" : "") + (camping&&active?"\n"+RuntimeLabels.camp(this):""));
         GradientDrawable background = (GradientDrawable) view.getBackground();
         background.setColor(active ? orange : surface);
         background.setStroke(dp(1), active || good ? orange : line);

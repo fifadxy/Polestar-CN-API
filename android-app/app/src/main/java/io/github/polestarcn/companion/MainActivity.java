@@ -1746,6 +1746,11 @@ public final class MainActivity extends FragmentActivity {
     gap(p,8);
     p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));
     gap(p, 8);
+    // Independent, read-only digital-key feasibility screen. No PAK commands.
+    p.addView(button(tr("数字钥匙 · 环境检测（研究）", "Digital key · research diagnostics"),
+        () -> startActivity(new Intent(
+            this, io.github.polestarcn.companion.digitalkey.DigitalKeyResearchActivity.class))));
+    gap(p, 8);
     p.addView(button(
         tr("保养设置 · 默认 365天 / 20,000km", "Service · default 365 d / 20,000 km"),
         this::maintenanceDialog));

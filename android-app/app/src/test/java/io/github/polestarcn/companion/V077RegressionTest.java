@@ -44,7 +44,7 @@ public class V077RegressionTest {
     AppPreferences.set(activity,"language","zh");
     String fields="tire_status,vehicle_status,odometer";AppPreferences.set(activity,"home_metrics",fields);AppPreferences.set(activity,"experimental_tire","on");
     View root=render();View status=root.findViewWithTag("vehicle_status_button");assertTrue(text(status,"车况"));
-    assertTrue(status.getContentDescription().toString().contains("请检查车辆"));
+    assertTrue(status.getContentDescription().toString().contains("请注意车辆状况！"));
     AppPreferences.set(activity,"show_tire_status","off");root=render();status=root.findViewWithTag("vehicle_status_button");
     assertTrue(text(status,"All Good！"));assertTrue(status.getContentDescription().toString().contains("All Good！"));
     assertEquals(fields,AppPreferences.get(activity,"home_metrics",""));assertEquals(VehicleHealthSnapshot.WARNING,model.snapshot.health.tirePressure);

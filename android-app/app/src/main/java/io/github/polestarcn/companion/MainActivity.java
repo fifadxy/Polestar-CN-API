@@ -1655,6 +1655,16 @@ public final class MainActivity extends FragmentActivity {
     gap(p, 3);
   }
 
+  private void detailWarningRow(LinearLayout panel,String key,String value,boolean warning) {
+    int rowIndex=panel.getChildCount();
+    detailRow(panel,key,value);
+    if(warning){
+      LinearLayout row=(LinearLayout)panel.getChildAt(rowIndex);
+      TextView label=(TextView)row.getChildAt(0),body=(TextView)row.getChildAt(1);
+      label.setTextColor(orange);body.setTextColor(orange);
+    }
+  }
+
   private void detailMore(LinearLayout parent,String title,Runnable action) {
     TextView more=button(title+"  ›",action);more.setTag("detail_more");more.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
     GradientDrawable frame=bg(surface,nioSkin()?12:4);frame.setStroke(dp(1),line);more.setBackground(frame);parent.addView(more);gap(parent,8);
@@ -2157,19 +2167,19 @@ public final class MainActivity extends FragmentActivity {
   private void vehicleStatusDialog() {
     VehicleSnapshot v=model.snapshot;if(v==null)return;
     boolean english=AppPreferences.english(this);LinearLayout panel=detailPanel();
-    detailRow(panel,tr("车况","Status"),VehicleCondition.summary(v,english,showTires()));
+    detailWarningRow(panel,tr("车况","Status"),VehicleCondition.summary(v,english,showTires()),VehicleCondition.problem(v,showTires()));
     detailSection(panel,tr("保养进度","Service progress"));
-    detailRow(panel,tr("保养状态","Maintenance"),VehicleHealthSnapshot.label(v.health.maintenance,english));
+    detailWarningRow(panel,tr("保养状态","Maintenance"),VehicleHealthSnapshot.label(v.health.maintenance,english),v.health.maintenance==VehicleHealthSnapshot.WARNING);
     detailRow(panel,tr("剩余天数","Days left"),ServiceReading.number(ServiceReading.days(this,v)," d"));
     detailRow(panel,tr("剩余里程","Distance left"),ServiceReading.number(ServiceReading.km(this,v)," km"));
     serviceProgress(panel,tr("时间剩余","Time remaining"),ServiceReading.timePercent(this,v));
     serviceProgress(panel,tr("里程剩余","Distance remaining"),ServiceReading.distancePercent(this,v));
     detailSection(panel,tr("车辆检查","Vehicle checks"));
-    detailRow(panel,tr("12V 电瓶","12 V battery"),VehicleHealthSnapshot.label(v.health.lowVoltageBattery,english));
+    detailWarningRow(panel,tr("12V 电瓶","12 V battery"),VehicleHealthSnapshot.label(v.health.lowVoltageBattery,english),v.health.lowVoltageBattery==VehicleHealthSnapshot.WARNING);
     detailMore(panel,tr("雨刮液 · ","Washer fluid · ")+VehicleHealthSnapshot.label(v.health.washerFluid,english),this::healthMoreDialog);
-    if(showTires())detailRow(panel,tr("胎压告警","Tyre warning"),VehicleHealthSnapshot.label(v.health.tirePressure,english));
+    if(showTires())detailWarningRow(panel,tr("胎压告警","Tyre warning"),VehicleHealthSnapshot.label(v.health.tirePressure,english),v.health.tirePressure==VehicleHealthSnapshot.WARNING);
     detailMore(panel,tr("液位 / 灯光 / 更多保养数据","Fluids / lights / more service data"),this::healthMoreDialog);
-    detailRow(panel,tr("门 / 窗 / 尾箱","Doors / windows / tailgate"),status(v.doors)+" · "+status(v.windows)+" · "+status(v.tailgate));
+    detailWarningRow(panel,tr("门 / 窗 / 尾箱","Doors / windows / tailgate"),status(v.doors)+" · "+status(v.windows)+" · "+status(v.tailgate),VehicleCondition.problem(v,false)&&!v.health.hasProblem(false));
     detailMore(panel,tr("四门 / 四窗位置状态","Door & window positions"),this::exteriorDialog);
     if(showTires()&&AppPreferences.visible(this,"experimental_tire",false))detailMore(panel,tr("四轮 iTPMS · 实验性","Four-wheel iTPMS · experimental"),this::tireDialog);
     else if(showTires())panel.addView(text(tr("四轮胎压详情默认隐藏，可在设置中开启实验性视图。","Four-wheel tyre details are hidden by default; enable the experimental view in Settings."),11,muted,false));

@@ -13,6 +13,8 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import io.github.polestarcn.companion.VehicleCoordinator;
+import io.github.polestarcn.companion.auth.SecureSessionStore;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,6 +74,22 @@ public final class DigitalKeyResearchActivity extends Activity {
     DigitalKeyEnvironment.Result result = DigitalKeyEnvironment.inspect(this);
     NativeLibraryProbe.Result nativeState = NativeLibraryProbe.inspect(this, false);
 
+    boolean accountSession = SecureSessionStore.hasSession(this);
+    VehicleCoordinator coordinator = VehicleCoordinator.get(this);
+    boolean vehicleSelected =
+        accountSession && coordinator.selected != null && coordinator.selected.vin != null;
+    boolean nativePrerequisites = nativeState.glAlgorithmBridgePresent
+        && nativeState.passiveSchemaCount == 3;
+    for (NativeLibraryProbe.Item item : nativeState.items) {
+      nativePrerequisites = nativePrerequisites && item.packaged;
+    }
+    AuthorizedFlowAssessment flow =
+        AuthorizedFlowAssessment.observed(
+            accountSession,
+            vehicleSelected,
+            false,
+            nativePrerequisites);
+
     ScrollView scroll = new ScrollView(this);
     scroll.setFillViewport(true);
     scroll.setBackgroundColor(Color.rgb(15, 17, 19));
@@ -125,6 +143,24 @@ public final class DigitalKeyResearchActivity extends Activity {
     root.addView(text("Passive schemas / PassiveEntry 资源: "
         + nativeState.passiveSchemaCount + "/3", 14,
         nativeState.passiveSchemaCount == 3 ? INK : MUTED));
+    root.addView(text("V2.1 AUTHORIZED FLOW / 授权链检查", 17, INK));
+    root.addView(text("Account session / 账号会话: "
+        + yesNo(flow.completed(AuthorizedFlowAssessment.Stage.ACCOUNT_LOGIN)), 14,
+        flow.completed(AuthorizedFlowAssessment.Stage.ACCOUNT_LOGIN) ? INK : ORANGE));
+    root.addView(text("Vehicle selected / 已发现车辆: "
+        + yesNo(flow.completed(AuthorizedFlowAssessment.Stage.VEHICLE_DISCOVERY)), 14,
+        flow.completed(AuthorizedFlowAssessment.Stage.VEHICLE_DISCOVERY) ? INK : ORANGE));
+    root.addView(text("OEM key identity / 厂商钥匙身份: "
+        + yesNo(flow.completed(AuthorizedFlowAssessment.Stage.OEM_IDENTITY)), 14, ORANGE));
+    root.addView(text("Native prerequisites / Native 前置资源: "
+        + yesNo(nativePrerequisites), 14, nativePrerequisites ? INK : ORANGE));
+    root.addView(text("First blocked stage / 首个阻塞阶段: "
+        + AuthorizedFlowAssessment.label(flow.firstBlockedStage()), 14, ORANGE));
+    root.addView(text(
+        "本页只读取本应用现有会话/车辆选择和本地资源状态；不会自动登录、发现车辆或推进受保护的数字钥匙阶段。\n"
+        + "This page only reads existing app state and local resources; protected key stages are not advanced.",
+        12, MUTED));
+
     root.addView(text("OEM integration / 厂商 SDK: NOT CONNECTED / 未接入", 15, ORANGE));
     root.addView(text("Vehicle pairing / 车辆配对: NOT VERIFIED / 未验证", 15, ORANGE));
     root.addView(text("Working digital key / 可用数字钥匙: "

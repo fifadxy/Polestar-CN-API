@@ -716,7 +716,7 @@ public final class MainActivity extends FragmentActivity {
     location.setScaleType(ImageView.ScaleType.CENTER_INSIDE);location.setPadding(dp(9),dp(9),dp(9),dp(9));location.setTag("vehicle_location");
     click(location,this::locationDialog);bindDashboard(()->{location.setEnabled(!model.locationBusy&&!model.busy&&!model.commandPending&&model.selected!=null);location.setAlpha(location.isEnabled()?1f:.45f);});
     ImageView refresh=new ImageView(this);refresh.setImageResource(R.drawable.ic_refresh);refresh.setColorFilter(ink);refresh.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-    refresh.setPadding(dp(9),dp(9),dp(9),dp(9));refresh.setTag("refresh_vehicle");click(refresh,()->model.refreshUser(null));
+    refresh.setPadding(dp(9),dp(9),dp(9),dp(9));refresh.setTag("refresh_vehicle");refresh.setBackground(null);click(refresh,()->model.refreshUser(null));
     bindDashboard(()->{refresh.setEnabled(!model.busy);refresh.setAlpha(refresh.isEnabled()?1f:.45f);});
     head.addView(parkingCaption(),new LinearLayout.LayoutParams(dp(68),-1));
     head.addView(location,new LinearLayout.LayoutParams(dp(40),-1));head.addView(refresh,new LinearLayout.LayoutParams(dp(40),-1));
@@ -1065,7 +1065,7 @@ public final class MainActivity extends FragmentActivity {
     else head.addView(name,new LinearLayout.LayoutParams(0,-2,1));
     ImageView refresh = new ImageView(this); refresh.setImageResource(R.drawable.ic_refresh);
     refresh.setColorFilter(ink); refresh.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-    refresh.setPadding(dp(12),dp(12),dp(12),dp(12)); refresh.setTag("refresh_vehicle");
+    refresh.setPadding(dp(12),dp(12),dp(12),dp(12)); refresh.setTag("refresh_vehicle");refresh.setBackground(null);
     GradientDrawable refreshFrame=bg(Color.TRANSPARENT,nioSkin()?24:8);refreshFrame.setStroke(dp(1),line);refresh.setBackground(refreshFrame);
     click(refresh,()->model.refreshUser(null));
     refresh.setContentDescription(tr("刷新车辆状态","Refresh vehicle status"));
@@ -1181,7 +1181,7 @@ public final class MainActivity extends FragmentActivity {
     parent.addView(features,new LinearLayout.LayoutParams(-1,Math.max(dp(84),textLineHeight(14)+textLineHeight(22)+textLineHeight(12)+textLineHeight(11)+dp(8))));gap(parent,5);
     LinearLayout utilities=row();
     VehicleConditionButton bodyButton=conditionButton(tr("车况","Status"));
-    TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);camp.setTag("camp_button");
+    TextView camp=utility(tr("露营模式","Camping mode"),false,false,this::campDialog);camp.setTag("camp_button");utilityIcon(camp,R.drawable.ic_camp_clock_vi);camp.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
     bindDashboard(()->{
       boolean opened=VehicleCondition.problem(model.snapshot,showTires()),active=CampModeManager.active(this);
       bodyButton.setText(tr("车况","Status")+(opened?" !":""));
@@ -1340,7 +1340,7 @@ public final class MainActivity extends FragmentActivity {
         card.addView(title,new LinearLayout.LayoutParams(-1,nioSkin()?textLineHeight(10)+dp(1):-2));}
       feedback.setGravity(Gravity.CENTER);
     } else {
-      LinearLayout heading = row();
+      LinearLayout heading = row();heading.setGravity(Gravity.CENTER_VERTICAL);
       heading.addView(icon, new LinearLayout.LayoutParams(dp(20), dp(20)));
       LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1); tp.leftMargin = dp(5);
       heading.addView(title, tp); card.addView(heading); gap(card, 2);

@@ -96,3 +96,17 @@ The original APK evidence already indicates the same dependency chain:
 account identity -> VOCMO/device enrolment -> vehicle-confirmed certificate exchange -> catalogue -> PassiveEntry -> P319 Phone-as-Key.
 
 V2.1 now mirrors the whole sequence rather than stopping at BLE/native-library checks, while preserving the trust boundary that makes a new vehicle key legitimate.
+
+
+## Local V2.1 resource-complete build
+
+Built from the exact user-provided 4.25.0 APK plus the latest V2 loader:
+
+- final file: `PsAssistant_v0.8.3_DigitalKey_NativeV2.1_ResourceComplete.apk`
+- size: **9,551,730 bytes**
+- SHA-256: `6944e944c72288df339626e5231c7b70f3a2f2c166ae37ca23d530ab3f418691`
+- APK v2/v3 signature verification: PASS
+- native libraries: 2/2 exact hash match
+- protocol assets: **25/25** extracted and packaged
+- account implementation remains the current China phone + password login path
+- protected key stages remain gated by real OEM/vehicle authorization

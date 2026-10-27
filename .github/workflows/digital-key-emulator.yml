@@ -24,8 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout research branch
+      - name: Checkout research branch HEAD (avoid synthetic PR merge)
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Host virtualization diagnostics
         shell: bash

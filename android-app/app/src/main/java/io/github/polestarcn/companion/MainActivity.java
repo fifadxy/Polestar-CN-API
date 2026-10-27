@@ -1803,6 +1803,11 @@ public final class MainActivity extends FragmentActivity {
     gap(p,8);
     p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));
     gap(p, 8);
+    p.addView(button(tr("数字钥匙 · 环境检测（研究）", "Digital key · research diagnostics"),
+        () -> startActivity(new Intent(
+            this, io.github.polestarcn.companion.digitalkey.DigitalKeyResearchActivity.class))));
+    gap(p, 8);
+
     p.addView(button(
         tr("车辆保养 · 自动读取", "Vehicle service · automatic"),
         this::maintenanceDialog));

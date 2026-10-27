@@ -7,7 +7,7 @@
 - **APK_CONFIRMED**：直接解析上传 APK 的清单、DEX 类型/方法或调用关系。
 - **PUBLIC_DOCUMENTED**：官方车主手册、官方隐私说明、Android 开发文档。
 - **CODE_LAB_VERIFIED**：不涉及真实汽车的本地纯 Java / 静态脚本测试通过。
-- **EMULATOR_PENDING**：未在 Android 模拟器实际启动官方 APK。
+- **EMULATOR_VERIFIED**：Android 14 / KVM / ADB root / BLE / Keystore 实验环境已真实运行；官方 APK 动态运行仍单独标记。
 - **VEHICLE_PENDING**：未在本人授权车辆上验证配对、无感进入和启动。
 - **UNVERIFIED_HYPOTHESIS**：需后续测试，不作为可移植的证据。
 
@@ -17,7 +17,7 @@
 2. [02_PORTABILITY_DECISION.md](02_PORTABILITY_DECISION.md)：迁移路线、SDK 授权限制、当前结论。
 3. [03_ROOT_EMULATOR_RUNBOOK.md](03_ROOT_EMULATOR_RUNBOOK.md)：ARM64 Root 模拟器安全实验与验收。
 4. [04_SECURITY_AND_ACCEPTANCE.md](04_SECURITY_AND_ACCEPTANCE.md)：禁止项、权限、证据门槛与实车验收。
-5. [05_PUBLIC_SOURCES.md](05_PUBLIC_SOURCES.md)：公开文档与发布依据。
+5. [05_PUBLIC_SOURCES.md](05_PUBLIC_SOURCES.md)：公开文档与发布依据。\n6. [06_ORIGINAL_APK_DEEP_ANALYSIS.md](06_ORIGINAL_APK_DEEP_ANALYSIS.md)：直接基于用户上传 4.25.0 APK 的 provisioning / pairing 主链与移植判断。
 6. [../evidence/apk_4250_summary.json](../evidence/apk_4250_summary.json)：无凭据元数据、证据及完成状态。
 7. [../lab/README.md](../lab/README.md)：可编译的非联网门控模型与测试。
 

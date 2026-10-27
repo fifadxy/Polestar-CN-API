@@ -1784,6 +1784,14 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this))));gap(p,8);
     p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
     gap(p, 8);
+    p.addView(
+        button(
+            tr("数字钥匙 · 独立版诊断", "Digital Key · Standalone diagnostics"),
+            () -> startActivity(
+                new Intent(
+                    this,
+                    io.github.polestarcn.companion.digitalkey.DigitalKeyResearchActivity.class))));
+    gap(p, 8);
     p.addView(button(tr("界面皮肤 · ", "UI skin · ") + UiSkin.label(this, UiSkin.get(this)), this::skinDialog));
     gap(p, 8);    Switch simpleLabels=new Switch(this);
     simpleLabels.setTag("volike_simple_labels");

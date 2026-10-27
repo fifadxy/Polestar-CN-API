@@ -1284,9 +1284,11 @@ public final class MainActivity extends FragmentActivity {
       if(kind.equals("camp")){
         boolean narrow=getResources().getConfiguration().screenWidthDp<=360
             ||getResources().getConfiguration().fontScale>1.2f;
-        if(narrow)utilityIconTop(view,R.drawable.ic_camp_clock_vi);else utilityIcon(view,R.drawable.ic_camp_clock_vi);
+        // Keep the clock glyph on the leading edge in every skin; shrink text instead of
+        // moving the icon so landscape height and shared icon semantics stay stable.
+        utilityIcon(view,R.drawable.ic_camp_clock_vi);
         view.setGravity(Gravity.CENTER);view.setEllipsize(null);
-        view.setAutoSizeTextTypeUniformWithConfiguration(narrow?6:8,narrow?10:12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
+        view.setAutoSizeTextTypeUniformWithConfiguration(narrow?5:8,narrow?8:12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
       }
       if(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))) {
         android.graphics.drawable.Drawable glyph=getDrawable(kind.equals("windows")?R.drawable.ic_window:R.drawable.ic_horn).mutate();glyph.setTint(ink);

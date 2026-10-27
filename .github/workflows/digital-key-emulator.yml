@@ -7,6 +7,12 @@ on:
     paths:
       - '.github/workflows/digital-key-emulator.yml'
       - 'digital-key-research/**'
+  pull_request:
+    branches:
+      - android-polestar-assistant-main
+    paths:
+      - '.github/workflows/digital-key-emulator.yml'
+      - 'digital-key-research/**'
   workflow_dispatch:
 
 permissions:

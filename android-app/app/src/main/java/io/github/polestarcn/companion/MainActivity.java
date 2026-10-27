@@ -777,7 +777,12 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void addVoMetricGrid(LinearLayout parent,java.util.List<DisplayMetric> chosen,boolean detailed,boolean landscape) {
-    int max=detailed?12:4;int count=Math.min(max,chosen.size());if(count==0)return;
+    int max=detailed?12:4;
+    // At 1.5x+ type on a 320dp-high landscape phone, prioritize one
+    // readable metric row. Saved selection remains untouched.
+    if(landscape && getResources().getConfiguration().fontScale>1.4f)
+      max=Math.min(max,6);
+    int count=Math.min(max,chosen.size());if(count==0)return;
     int columns=detailed?Math.min(6,count):Math.min(4,count);
     int rows=(count+columns-1)/columns;
     int rowHeight=Math.max(dp(landscape?32:36),

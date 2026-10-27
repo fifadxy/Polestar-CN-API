@@ -398,8 +398,8 @@ public final class MainActivity extends FragmentActivity {
       navFrame.setStroke(dp(1), i == page ? line : Color.TRANSPARENT);
       t.setBackground(navFrame);
       t.setTextColor(i == page ? orange : muted);
-      if (i < 2) {
-        int resource = i == 0 ? R.drawable.ic_notification : R.drawable.ic_nav_vehicle_data_ref;
+      if (i < 3) {
+        int resource = i == 0 ? R.drawable.ic_notification : i == 1 ? R.drawable.ic_nav_vehicle_data_ref : R.drawable.ic_settings_list_vi;
         android.graphics.drawable.Drawable navIcon = getDrawable(resource).mutate();
         navIcon.setTint(i == page ? orange : muted);
         navIcon.setBounds(0, 0, dp(compactNav ? 19 : 21), dp(compactNav ? 19 : 21));
@@ -1238,7 +1238,8 @@ public final class MainActivity extends FragmentActivity {
       TextView view = kind.equals("body")?conditionButton(initialLabel):utility(initialLabel, false, false, action);
       view.setTextSize(11);
 
-      view.setPadding(dp(3), dp(2), dp(3), dp(2));
+      view.setPadding(dp(3), dp(2), dp(3), dp(2));view.setGravity(Gravity.CENTER);
+      if(kind.equals("camp")){utilityIcon(view,R.drawable.ic_camp_clock_vi);view.setGravity(Gravity.CENTER);}
       if(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))) {
         android.graphics.drawable.Drawable glyph=getDrawable(kind.equals("windows")?R.drawable.ic_window:R.drawable.ic_horn).mutate();glyph.setTint(ink);
         GradientDrawable circle=oval(Color.TRANSPARENT);circle.setStroke(dp(1),line);

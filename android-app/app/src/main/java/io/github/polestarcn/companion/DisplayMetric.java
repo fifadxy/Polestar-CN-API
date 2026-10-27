@@ -26,7 +26,7 @@ public enum DisplayMetric {
   CHARGE_CURRENT("charge_current", "充电电流", "Charging current", " A"),
   CHARGE_ETA("charge_eta", "预计充满", "Time to full", ""),
   POWER_STATUS("power_status", "电源状态", "Power status", ""),
-  VEHICLE_STATUS("vehicle_status", "车辆状态", "Vehicle status", ""),
+  VEHICLE_STATUS("vehicle_status", "车况", "Vehicle status", ""),
   TIRE_STATUS("tire_status", "胎压状态", "Tire status", ""),
   SERVICE_HOURS_LEFT("service_hours_left", "保养剩余工时", "Service engine hours left", " h"),
   SERVICE_DAYS_LEFT("service_days_left", "保养剩余天数", "Service days left", " d"),
@@ -62,7 +62,7 @@ public enum DisplayMetric {
       case CHARGE_TYPE: return english ? "Type" : "充电类型";
       case CHARGE_ETA: return english ? "Full" : "充满时间";
       case POWER_STATUS: return english ? "Power" : "电源状态";
-      case VEHICLE_STATUS: return english ? "Vehicle" : "车辆状态";
+      case VEHICLE_STATUS: return english ? "Status" : "车况";
       case TIRE_STATUS: return english ? "Tires" : "胎压";
       case SERVICE_HOURS_LEFT: return english ? "Service h" : "保养工时";
       case SERVICE_DAYS_LEFT: return english ? "Service d" : "保养天数";

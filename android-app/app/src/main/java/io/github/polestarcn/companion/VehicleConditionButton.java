@@ -1,45 +1,95 @@
 package io.github.polestarcn.companion;
+
 import android.content.Context;
 import android.graphics.*;
 import android.widget.TextView;
 import java.util.function.Supplier;
-/** Compact optional remaining-service bars inside the same condition button in every skin. */
+
+/** Compact vehicle-condition button with automatic remaining-service percentage bars. */
 public final class VehicleConditionButton extends TextView {
-  private boolean showTime,showDistance;private Integer timePercent,distancePercent;
-  private final Supplier<VehicleSnapshot> snapshot;private final android.text.TextPaint paint=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
-  public VehicleConditionButton(Context c,Supplier<VehicleSnapshot> source){super(c);setIncludeFontPadding(false);snapshot=source;paint.setTypeface(PsaDesign.regular());}
-  private boolean time(){return showTime;}
-  private boolean distance(){return showDistance;}
-  public void refreshService(){
-    timePercent=ServiceReading.timePercent(getContext(),snapshot.get());distancePercent=ServiceReading.distancePercent(getContext(),snapshot.get());
-    showTime=AppPreferences.visible(getContext(),"condition_service_time",false)&&timePercent!=null;
-    showDistance=AppPreferences.visible(getContext(),"condition_service_distance",false)&&distancePercent!=null;
-    boolean bars=time()||distance();float d=getResources().getDisplayMetrics().density;
-    setPadding((int)(3*d),(int)(bars?3*d:2*d),(int)(3*d),(int)(bars?21*d:2*d));
-    setContentDescription(getText()+" · "+(time()?"Service time left "+ServiceReading.number(ServiceReading.timePercent(getContext(),snapshot.get()),"%")+" · ":"")
-        +(distance()?"Service distance left "+ServiceReading.number(ServiceReading.distancePercent(getContext(),snapshot.get()),"%")+" · ":"")
-        +AppPreferences.tr(getContext(),"比例按设置周期估算，点按查看完整车况","Percentages use configured service cycles. Tap for full condition."));invalidate();
+  private boolean showTime, showDistance;
+  private Integer timePercent, distancePercent;
+  private final Supplier<VehicleSnapshot> snapshot;
+  private final android.text.TextPaint paint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
+
+  public VehicleConditionButton(Context c, Supplier<VehicleSnapshot> source) {
+    super(c);
+    setIncludeFontPadding(false);
+    snapshot = source;
+    paint.setTypeface(PsaDesign.regular());
   }
-  @Override protected void onDraw(Canvas canvas){
-    int count=(time()?1:0)+(distance()?1:0);
-    float density=getResources().getDisplayMetrics().density,heading=count>0?getHeight()-21*density:getHeight();
-    paint.setTypeface(getTypeface());paint.setTextSize(getTextSize());paint.setColor(getCurrentTextColor());paint.setTextAlign(Paint.Align.CENTER);
-    Paint.FontMetrics metrics=paint.getFontMetrics();float height=metrics.descent-metrics.ascent;
-    if(height>heading-4*density){paint.setTextSize(paint.getTextSize()*Math.max(.5f,(heading-4*density)/height));metrics=paint.getFontMetrics();}
-    CharSequence title=android.text.TextUtils.ellipsize(getText(),paint,Math.max(0,getWidth()-8*density),android.text.TextUtils.TruncateAt.END);
-    canvas.drawText(title.toString(),getWidth()/2f,(heading-metrics.descent-metrics.ascent)/2f,paint);
-    if(count==0)return;
-    float d=getResources().getDisplayMetrics().density,w=(getWidth()-8*d)/count;int index=0;
-    if(time())bar(canvas,index++,w,timePercent,"d");
-    if(distance())bar(canvas,index,w,distancePercent,"km");
+
+  public void refreshService() {
+    VehicleSnapshot vehicle = snapshot.get();
+    timePercent = ServiceReading.timePercent(getContext(), vehicle);
+    distancePercent = ServiceReading.distancePercent(getContext(), vehicle);
+    showTime = timePercent != null;
+    showDistance = distancePercent != null;
+    boolean bars = showTime || showDistance;
+    float d = getResources().getDisplayMetrics().density;
+    setPadding((int) (4*d), (int) (bars ? 3*d : 2*d), (int) (4*d), (int) (bars ? 31*d : 2*d));
+    StringBuilder description = new StringBuilder(String.valueOf(getText()));
+    if (showTime) description.append(" · ")
+        .append(AppPreferences.tr(getContext(), "保养时间 ", "Service time "))
+        .append(ServiceReading.number(timePercent, "%"));
+    if (showDistance) description.append(" · ")
+        .append(AppPreferences.tr(getContext(), "保养里程 ", "Service distance "))
+        .append(ServiceReading.number(distancePercent, "%"));
+    description.append(" · ")
+        .append(AppPreferences.tr(getContext(), "点按查看车况", "Tap for vehicle status"));
+    setContentDescription(description.toString());
+    invalidate();
   }
-  private void bar(Canvas c,int index,float width,Integer percent,String unit){
-    float d=getResources().getDisplayMetrics().density,left=4*d+index*width;
-    paint.setTextSize(8*getResources().getDisplayMetrics().scaledDensity);paint.setTextAlign(Paint.Align.CENTER);paint.setColor(getCurrentTextColor());
-    String label=(width<45*d?"":unit+" ")+ServiceReading.number(percent,"%");
-    float measured=paint.measureText(label);if(measured>width-5*d)paint.setTextSize(paint.getTextSize()*(width-5*d)/measured);
-    c.drawText(label,left+width/2,getHeight()-7*d,paint);
-    paint.setColor(PsaDesign.line(AppPreferences.dark(getContext())));c.drawRect(left,getHeight()-4*d,left+width-3*d,getHeight()-2*d,paint);
-    if(percent!=null){paint.setColor(VehicleCondition.problem(snapshot.get(),AppPreferences.visible(getContext(),"show_tire_status",true))?getCurrentTextColor():PsaDesign.ORANGE);c.drawRect(left,getHeight()-4*d,left+(width-3*d)*percent/100f,getHeight()-2*d,paint);}
+
+  @Override protected void onDraw(Canvas canvas) {
+    int count = (showTime ? 1 : 0) + (showDistance ? 1 : 0);
+    float d = getResources().getDisplayMetrics().density;
+    float heading = count > 0 ? getHeight() - 31*d : getHeight();
+
+    paint.setTypeface(getTypeface());
+    paint.setTextSize(getTextSize());
+    paint.setColor(getCurrentTextColor());
+    paint.setTextAlign(Paint.Align.CENTER);
+    Paint.FontMetrics metrics = paint.getFontMetrics();
+    float height = metrics.descent - metrics.ascent;
+    if (height > heading - 4*d) {
+      paint.setTextSize(paint.getTextSize() * Math.max(.5f, (heading - 4*d) / height));
+      metrics = paint.getFontMetrics();
+    }
+    CharSequence title = android.text.TextUtils.ellipsize(
+        getText(), paint, Math.max(0, getWidth() - 10*d), android.text.TextUtils.TruncateAt.END);
+    canvas.drawText(title.toString(), getWidth()/2f,
+        (heading - metrics.descent - metrics.ascent)/2f, paint);
+    if (count == 0) return;
+
+    float width = (getWidth() - 10*d) / count;
+    int index = 0;
+    if (showTime) drawBar(canvas, index++, width, timePercent,
+        AppPreferences.tr(getContext(), "时间", "Time"));
+    if (showDistance) drawBar(canvas, index, width, distancePercent,
+        AppPreferences.tr(getContext(), "里程", "Distance"));
+  }
+
+  private void drawBar(Canvas canvas, int index, float width, Integer percent, String labelName) {
+    float d = getResources().getDisplayMetrics().density;
+    float left = 5*d + index*width;
+    paint.setTypeface(PsaDesign.regular());
+    paint.setTextSize(8 * getResources().getDisplayMetrics().scaledDensity);
+    paint.setTextAlign(Paint.Align.CENTER);
+    paint.setColor(getCurrentTextColor());
+    String label = labelName + " " + ServiceReading.number(percent, "%");
+    float measured = paint.measureText(label);
+    if (measured > width - 6*d) paint.setTextSize(paint.getTextSize() * (width - 6*d) / measured);
+    canvas.drawText(label, left + width/2f, getHeight() - 13*d, paint);
+
+    float trackRight = left + width - 4*d;
+    float top = getHeight() - 8*d, bottom = getHeight() - 5*d;
+    paint.setColor(PsaDesign.line(AppPreferences.dark(getContext())));
+    canvas.drawRoundRect(left, top, trackRight, bottom, 1.5f*d, 1.5f*d, paint);
+    if (percent != null) {
+      paint.setColor(PsaDesign.ORANGE);
+      float progressRight = left + (trackRight-left) * percent / 100f;
+      canvas.drawRoundRect(left, top, progressRight, bottom, 1.5f*d, 1.5f*d, paint);
+    }
   }
 }

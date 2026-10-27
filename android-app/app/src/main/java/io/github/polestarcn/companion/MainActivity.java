@@ -361,11 +361,14 @@ public final class MainActivity extends FragmentActivity {
     else if (!model.hasSession()) login();
     else if (page == 1) details();
     else controls();
+    boolean compactNav = getResources().getConfiguration().screenWidthDp > getResources().getConfiguration().screenHeightDp
+        || getResources().getConfiguration().screenHeightDp < 680 || getResources().getConfiguration().fontScale > 1.2f;
     LinearLayout nav = row();
-    nav.setPadding(dp(14), dp(2), dp(14), dp(2));
+    nav.setTag("bottom_nav");
+    nav.setPadding(dp(compactNav ? 18 : 22), dp(3), dp(compactNav ? 18 : 22), dp(5));
     String[] names = UiSkin.SIMPLE.equals(UiSkin.get(this))
         ? new String[]{tr("车辆", "Vehicle"), tr("车况", "Status"), tr("设置", "Settings")}
-        : new String[]{tr("车辆控制", "Control"), tr("车况详情", "Details"), tr("设置", "Settings")};
+        : new String[]{tr("车辆控制", "Control"), tr("车况", "Status"), tr("设置", "Settings")};
     for (int i = 0; i < names.length; i++) {
       final int tab = i;
       TextView t =
@@ -375,11 +378,16 @@ public final class MainActivity extends FragmentActivity {
                 page = tab;
                 render();
               });
-      t.setBackground(bg(i == page ? surface : paper, 6));
+      t.setTag("bottom_nav_button");
+      GradientDrawable navFrame = bg(i == page ? surface : paper, 12);
+      navFrame.setStroke(dp(1), i == page ? line : Color.TRANSPARENT);
+      t.setBackground(navFrame);
       t.setTextColor(i == page ? orange : muted);
-      nav.addView(t, new LinearLayout.LayoutParams(0, -1, 1));
+      LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(0, -1, 1);
+      nlp.leftMargin = dp(3); nlp.rightMargin = dp(3);
+      nav.addView(t, nlp);
     }
-    shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(getResources().getConfiguration().screenWidthDp > getResources().getConfiguration().screenHeightDp ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f ? 48 : 60)));
+    shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(compactNav ? 52 : 64)));
     disableSystemHaptics(shell);setContentView(shell);
   }
 
@@ -737,9 +745,10 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       VehicleHealthSnapshot h=model.snapshot==null?VehicleHealthSnapshot.unknown():model.snapshot.health;
       boolean warn=VehicleCondition.problem(model.snapshot,showTires()),good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));label.setTextColor(good||warn?accentText():muted);
+      label.setText(tr("车况","Status")+(warn?" !":""));label.setTextColor(good||warn?accentText():muted);
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);symbol.setColorFilter(good||warn?accentText():muted);
       symbol.setVisibility(good||warn?View.VISIBLE:View.GONE);
+      health.setContentDescription(tr("车况","Status")+" · "+VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));
     });
     box.addView(health,new LinearLayout.LayoutParams(-1,Math.max(dp(32),textLineHeight(summarySp)+dp(8))));
     return box;
@@ -765,33 +774,49 @@ public final class MainActivity extends FragmentActivity {
     addDashboardControl(features,"air",false,false);
     parent.addView(features,new LinearLayout.LayoutParams(-1,Math.max(dp(84),textLineHeight(14)+textLineHeight(22)+textLineHeight(12)+textLineHeight(11)+dp(8))));gap(parent,5);
     LinearLayout utilities=row();
-    VehicleConditionButton bodyButton=conditionButton(tr("车辆状况","Vehicle condition"));
+    VehicleConditionButton bodyButton=conditionButton(tr("车况","Status"));
     TextView camp=utility(tr("露营模式","Camping mode"),false,false,this::campDialog);camp.setTag("camp_button");
     bindDashboard(()->{
       boolean opened=VehicleCondition.problem(model.snapshot,showTires()),active=CampModeManager.active(this);
-      bodyButton.setText(tr("车辆状况","Vehicle condition")+(opened?" !":""));
+      bodyButton.setText(tr("车况","Status")+(opened?" !":""));
       ((GradientDrawable)bodyButton.getBackground()).setStroke(dp(1),opened?orange:line);bodyButton.setTextColor(opened?accentText():ink);bodyButton.refreshService();
       ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);
     });
-    utilities.addView(bodyButton,new LinearLayout.LayoutParams(0,dp(48),1));
-    LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(48),1);cp.leftMargin=dp(6);utilities.addView(camp,cp);parent.addView(utilities);
+    utilities.addView(bodyButton,new LinearLayout.LayoutParams(0,dp(58),1));
+    LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(6);utilities.addView(camp,cp);parent.addView(utilities);
   }
 
   private void addNioOrb(LinearLayout parent,ImageView icon) {
+    boolean landscape=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
+    int size=landscape?32:38, slotHeight=landscape?36:42;
+    FrameLayout slot=new FrameLayout(this);slot.setTag("shortcut_orb_slot");
     FrameLayout circle=new FrameLayout(this);circle.setTag("shortcut_circle");
     GradientDrawable outline=oval(Color.TRANSPARENT);outline.setStroke(dp(1),line);circle.setBackground(outline);
-    FrameLayout.LayoutParams image=new FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER);circle.addView(icon,image);
-    int size=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp?28:36;
-    parent.addView(circle,new LinearLayout.LayoutParams(dp(size),dp(size)));
+    FrameLayout.LayoutParams image=new FrameLayout.LayoutParams(dp(22),dp(22),Gravity.CENTER);circle.addView(icon,image);
+    slot.addView(circle,new FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER));
+    if(parent.getOrientation()==LinearLayout.HORIZONTAL)
+      parent.addView(slot,new LinearLayout.LayoutParams(dp(size+8),dp(slotHeight)));
+    else parent.addView(slot,new LinearLayout.LayoutParams(-1,dp(slotHeight)));
   }
 
   private void addNioShortcut(LinearLayout parent,String kind,int drawable,String title,Runnable action) {
     LinearLayout card=column();card.setGravity(Gravity.CENTER);card.setBackground(bg(surface,16));
     card.setTag(kind.equals("windows")?"windows_control_button":"signal_control_button");
     ImageView image=new ImageView(this);image.setImageResource(drawable);image.setColorFilter(ink);addNioOrb(card,image);
-    TextView label=text(title,10,ink,false);label.setGravity(Gravity.CENTER);card.addView(label,new LinearLayout.LayoutParams(-1,-2));click(card,action);
-    bindDashboard(()->{boolean warning=kind.equals("windows")&&model.snapshot!=null&&model.snapshot.windows.contains("个开启");
-      label.setText(title+(warning?" !":""));image.setColorFilter(warning?accentText():ink);});
+    TextView label=text(title,10,ink,false);label.setTag("shortcut_label");label.setGravity(Gravity.CENTER);
+    TextView feedback=text("",9,muted,false);feedback.setTag("shortcut_feedback");feedback.setGravity(Gravity.CENTER);
+    label.setSingleLine(true);feedback.setSingleLine(true);
+    card.addView(label,new LinearLayout.LayoutParams(-1,textLineHeight(10)+dp(1)));
+    card.addView(feedback,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(1)));
+    click(card,action);
+    bindDashboard(()->{
+      boolean warning=kind.equals("windows")&&model.snapshot!=null&&model.snapshot.windows!=null&&model.snapshot.windows.contains("个开启");
+      label.setText(title+(warning?" !":""));
+      feedback.setText(kind.equals("windows")
+          ? (model.snapshot==null?tr("未知","Unknown"):status(model.snapshot.windows))
+          : tr("操作","Action"));
+      feedback.setTextColor(warning?accentText():muted);image.setColorFilter(warning?accentText():ink);
+    });
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(5);parent.addView(card,lp);
   }
 
@@ -802,7 +827,7 @@ public final class MainActivity extends FragmentActivity {
       Runnable action = kind.equals("windows") ? () -> directControl("windows")
           : kind.equals("body") ? this::vehicleStatusDialog : kind.equals("health") ? this::vehicleStatusDialog
           : kind.equals("camp") ? this::campDialog : this::signalMenu;
-      String initialLabel = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Vehicle")
+      String initialLabel = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Status")
           : kind.equals("health") ? tr("车况", "Health") : kind.equals("camp") ? tr("露营", "Camp") : tr("鸣笛", "Signal");
       TextView view = kind.equals("body")?conditionButton(initialLabel):utility(initialLabel, false, false, action);
       view.setTextSize(11);
@@ -823,7 +848,7 @@ public final class MainActivity extends FragmentActivity {
         boolean active = warn || kind.equals("camp") && (CampModeManager.active(this)
             || "STOPPING".equals(CampModeManager.phase(this)));
         boolean good = kind.equals("health") && v != null && v.health.allGood();
-        String label = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Vehicle")
+        String label = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("车况", "Status")
             : kind.equals("health") ? (good ? "ALL GOOD" : tr("车况", "Health"))
             : kind.equals("camp") ? tr("露营", "Camp") : tr("鸣笛", "Signal");
         view.setMaxLines(good ? 2 : 1);
@@ -839,7 +864,8 @@ public final class MainActivity extends FragmentActivity {
         view.setContentDescription(label + " · " + details);
         if(view instanceof VehicleConditionButton)((VehicleConditionButton)view).refreshService();
       });
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Math.max(dp(landscape ? 40 : 48),(AppPreferences.visible(this,"condition_service_time",false)||AppPreferences.visible(this,"condition_service_distance",false))?textLineHeight(11)+dp(24):0), 1);
+      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
+          kind.equals("body") ? dp(landscape ? 48 : 58) : dp(landscape ? 40 : 48), 1);
       if (utilities.getChildCount() > 0) lp.leftMargin = dp(4);
       utilities.addView(view, lp);
     }
@@ -895,7 +921,8 @@ public final class MainActivity extends FragmentActivity {
         if(nioSkin())addNioOrb(heading,icon);else heading.addView(icon,new LinearLayout.LayoutParams(dp(24),dp(24)));
         LinearLayout words=column();words.addView(title);words.addView(feedback);heading.addView(words);card.addView(heading);}
       else {if(nioSkin())addNioOrb(card,icon);else card.addView(icon,new LinearLayout.LayoutParams(dp(24),dp(24)));
-        title.setGravity(Gravity.CENTER);card.addView(title,new LinearLayout.LayoutParams(-1,-2));}
+        title.setGravity(Gravity.CENTER);
+        card.addView(title,new LinearLayout.LayoutParams(-1,nioSkin()?textLineHeight(10)+dp(1):-2));}
       feedback.setGravity(Gravity.CENTER);
     } else {
       LinearLayout heading = row();
@@ -908,7 +935,8 @@ public final class MainActivity extends FragmentActivity {
         card.addView(temperature);
       }
     }
-    if(!horizontalCompact)card.addView(feedback, new LinearLayout.LayoutParams(-1, -2));
+    if(!horizontalCompact)card.addView(feedback,
+        new LinearLayout.LayoutParams(-1,nioSkin()&&compact?textLineHeight(10)+dp(1):-2));
     if (!compact) card.addView(support, new LinearLayout.LayoutParams(-1, -2));
     bindDashboard(() -> {
       String raw = controlRaw(control);
@@ -1227,13 +1255,13 @@ public final class MainActivity extends FragmentActivity {
         detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
       detailMore(panel,tr("更多充电 · 电源状态","More charging · power status"),this::chargingDialog);
     }
-    detailSection(panel,tr("车辆状况","Vehicle condition"));
+    detailSection(panel,tr("车况","Vehicle status"));
     detailRow(panel,tr("车门 / 车窗","Doors / windows"),status(v.doors)+" · "+status(v.windows));
     detailRow(panel,tr("尾箱","Tailgate"),status(v.tailgate));
     detailRow(panel,tr("12V 电瓶","12 V battery"),VehicleHealthSnapshot.label(v.health.lowVoltageBattery,AppPreferences.english(this)));
     detailRow(panel,tr("玻璃水","Washer fluid"),VehicleHealthSnapshot.label(v.health.washerFluid,AppPreferences.english(this)));
     if(showTires())detailRow(panel,tr("胎压告警","Tyre warning"),VehicleHealthSnapshot.label(v.health.tirePressure,AppPreferences.english(this)));
-    detailMore(panel,tr("车辆状况详情","Vehicle condition details"),this::vehicleStatusDialog);
+    detailMore(panel,tr("车况详情","Vehicle status details"),this::vehicleStatusDialog);
     detailSection(panel,tr("空调与空气","Climate & air"));
     detailRow(panel,tr("空调","Climate"),status(v.climate));detailRow(panel,tr("空气净化","Air purification"),status(v.air));
     for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.TEMPERATURE,DisplayMetric.AQI,DisplayMetric.PM25})
@@ -1316,12 +1344,9 @@ public final class MainActivity extends FragmentActivity {
         tr("车辆控制页数据显示 · 最多 12 项", "Vehicle control data · up to 12"),
         () -> metricDialog("home_metrics", 12, HOME_DEFAULTS)));
     gap(p, 8);
-    for(String[] setting:new String[][]{{"condition_service_time","车况按钮：保养剩余时间 % 和进度条","Condition button: service time % and bar"},
-        {"condition_service_distance","车况按钮：保养剩余里程 % 和进度条","Condition button: service distance % and bar"}}) {
-      Switch toggle=new Switch(this);toggle.setText(tr(setting[1],setting[2]));toggle.setTextColor(ink);toggle.setMinHeight(dp(48));
-      toggle.setChecked(AppPreferences.visible(this,setting[0],false));toggle.setOnCheckedChangeListener((button,on)->{
-        Haptics.tap(this);AppPreferences.set(this,setting[0],on?"on":"off");WidgetRenderer.refreshAll(this);});p.addView(toggle);
-    }
+    p.addView(text(tr("车况按钮会在有保养数据时自动显示时间 / 里程剩余百分比与进度条。",
+        "The Status button automatically shows service time / distance percentages and bars when data is available."),12,muted,false));
+    gap(p,8);
     Switch tireVisibility = new Switch(this);
     tireVisibility.setTag("show_tire_status");
     tireVisibility.setText(tr("显示胎压状态（含车况汇总）", "Show tyre status (including health summary)"));
@@ -1628,19 +1653,25 @@ public final class MainActivity extends FragmentActivity {
   private void vehicleStatusDialog() {
     VehicleSnapshot v=model.snapshot;if(v==null)return;
     boolean english=AppPreferences.english(this);LinearLayout panel=detailPanel();
-    detailRow(panel,tr("已上报项目","Reported checks"),VehicleCondition.summary(v,english,showTires()));
-    detailRow(panel,tr("保养","Maintenance"),VehicleHealthSnapshot.label(v.health.maintenance,english));
+    detailRow(panel,tr("车况","Status"),VehicleCondition.summary(v,english,showTires()));
+    detailSection(panel,tr("保养进度","Service progress"));
+    detailRow(panel,tr("保养状态","Maintenance"),VehicleHealthSnapshot.label(v.health.maintenance,english));
+    detailRow(panel,tr("剩余天数","Days left"),ServiceReading.number(ServiceReading.days(this,v)," d"));
+    detailRow(panel,tr("剩余里程","Distance left"),ServiceReading.number(ServiceReading.km(this,v)," km"));
+    serviceProgress(panel,tr("时间剩余","Time remaining"),ServiceReading.timePercent(this,v));
+    serviceProgress(panel,tr("里程剩余","Distance remaining"),ServiceReading.distancePercent(this,v));
+    detailSection(panel,tr("车辆检查","Vehicle checks"));
     detailRow(panel,tr("12V 电瓶","12 V battery"),VehicleHealthSnapshot.label(v.health.lowVoltageBattery,english));
     detailMore(panel,tr("雨刮液 · ","Washer fluid · ")+VehicleHealthSnapshot.label(v.health.washerFluid,english),this::healthMoreDialog);
     if(showTires())detailRow(panel,tr("胎压告警","Tyre warning"),VehicleHealthSnapshot.label(v.health.tirePressure,english));
-    detailMore(panel,tr("液位 / 灯光 / 保养剩余","Fluids / lights / service remaining"),this::healthMoreDialog);
+    detailMore(panel,tr("液位 / 灯光 / 更多保养数据","Fluids / lights / more service data"),this::healthMoreDialog);
     detailRow(panel,tr("门 / 窗 / 尾箱","Doors / windows / tailgate"),status(v.doors)+" · "+status(v.windows)+" · "+status(v.tailgate));
     detailMore(panel,tr("四门 / 四窗位置状态","Door & window positions"),this::exteriorDialog);
     if(showTires()&&AppPreferences.visible(this,"experimental_tire",false))detailMore(panel,tr("四轮 iTPMS · 实验性","Four-wheel iTPMS · experimental"),this::tireDialog);
     else if(showTires())panel.addView(text(tr("四轮胎压详情默认隐藏，可在设置中开启实验性视图。","Four-wheel tyre details are hidden by default; enable the experimental view in Settings."),11,muted,false));
-    panel.addView(text(tr("All Good! 表示已上报项目未发现告警；部分项目可能尚未上报。12V 与玻璃水是告警状态，不是电压或液位读数。",
-        "All Good! means no issue was found in reported checks; some checks may be unavailable. 12 V and washer fluid are warnings, not voltage or fluid-level measurements."),12,muted,false));
-    detailDialog(tr("车辆状况","Vehicle condition"),panel);
+    panel.addView(text(tr("车况汇总只代表已上报项目；12V 与玻璃水是告警状态，不是电压或液位读数。保养百分比按设置周期估算。",
+        "Status covers reported checks only. 12 V and washer fluid are warning states, not measured levels. Service percentages use the configured cycle."),12,muted,false));
+    detailDialog(tr("车况","Vehicle status"),panel);
   }
 
   private void healthMoreDialog() {
@@ -1658,12 +1689,12 @@ public final class MainActivity extends FragmentActivity {
         +MaintenanceSchedule.intervalKm(this)+" km"+tr(" 周期估算，不是车辆直接上报的百分比。缺失或不适用的项目显示 --。机油未上报不代表故障，纯电车型可能不适用。",
         " cycles, not a vehicle-reported percentage. Unavailable items show --. Missing oil data does not imply a fault; it may not apply to an EV."),12,muted,false));
     detailMore(panel,tr("调整保养周期 / 本地记录","Set service cycle / local record"),this::maintenanceDialog);
-    detailDialog(tr("完整车辆状况","Full vehicle condition"),panel);
+    detailDialog(tr("完整车况","Full vehicle status"),panel);
   }
   private void serviceProgress(LinearLayout panel,String label,Integer value) {
     detailRow(panel,label,ServiceReading.number(value,"%"));ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
-    styleViProgress(bar);bar.setMax(100);bar.setProgress(value==null?0:value);bar.setVisibility(value==null?View.GONE:View.VISIBLE);
-    panel.addView(bar,new LinearLayout.LayoutParams(-1,dp(3)));gap(panel,6);
+    styleViProgress(bar);bar.setTag("service_progress_bar");bar.setMax(100);bar.setProgress(value==null?0:value);bar.setVisibility(value==null?View.GONE:View.VISIBLE);
+    panel.addView(bar,new LinearLayout.LayoutParams(-1,dp(4)));gap(panel,7);
   }
 
   private void tireDialog() {

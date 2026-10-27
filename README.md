@@ -1,12 +1,18 @@
 # PsAssistant for Android
 
-当前版本：**v0.7.9-beta1**（versionCode 79）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.7.9-beta2**（versionCode 80）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
 支持中国区手机号/密码登录。首次使用需要导入已验证的原模板 APK，或在本机安装匹配样本；兼容参数与会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
 
 [v0.7.9 更新说明](docs/Psa_v079_Update.md)记录免 Key 的内嵌高德网页、位置错误隔离和验证边界；保留上一版车况、行程与四套皮肤。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
+
+## v0.7.9 beta2 UI 优化
+
+- 全部皮肤统一使用“车况”入口；车况页直接显示保养剩余时间 / 里程百分比与进度条。
+- NIOlike / NIOlike2 快捷圆形图标使用固定对齐槽，标题与状态文字采用统一双行基线。
+- 底部车辆 / 车况 / 设置三按钮增加圆角屏安全边距、按钮间距与统一边框。
 
 ## 当前功能
 

@@ -21,7 +21,7 @@ public class V078RegressionTest {
   model.snapshot=new VehicleSnapshot("Polestar 2","masked",63,230,65845,"充电中","全部关闭","全部关闭","已关闭","已上锁",now,"LIVE",false,"开启","开启")
     .withHealth(new VehicleHealthSnapshot(1,-1,-1,now,1,1,-1,-1,1,931,75,14959)).withMileage(new MileageSnapshot(65845000L,100.5,25.2,45.0,35.0,18.5,21.5,now,now))
     .withEnvironment(new EnvironmentSnapshot("开启","开启",23.0,22.0,3.0,4,18,null,now,now)).withCharging(new ChargingSnapshot(1,2,4,180,6000.0,29.0));
-  AppPreferences.set(activity,"condition_service_time","on");AppPreferences.set(activity,"condition_service_distance","on");
+  AppPreferences.set(activity,"condition_service_time","off");AppPreferences.set(activity,"condition_service_distance","off");
   AppPreferences.set(activity,"home_metrics","odometer,ta_distance,ta_speed,ta_consumption,tm_distance,tm_speed,tm_consumption,temperature,aqi,ta_duration,tm_duration,since_charge_distance");
  }
  @After public void stop(){base.stop();}
@@ -31,6 +31,9 @@ public class V078RegressionTest {
   View v=activity.getWindow().getDecorView();v.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));v.layout(0,0,w,h);return v;
  }
  private int tagged(View v,String tag){int n=tag.equals(v.getTag())?1:0;if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)n+=tagged(g.getChildAt(i),tag);}return n;}
+ private void collectTagged(View v,String tag,java.util.List<View> out){if(tag.equals(v.getTag()))out.add(v);if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)collectTagged(g.getChildAt(i),tag,out);}}
+ private int absoluteLeft(View v){int x=0;View current=v;while(current!=null){x+=current.getLeft();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return x;}
+ private int absoluteTop(View v){int y=0;View current=v;while(current!=null){y+=current.getTop();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return y;}
  private void fits(View v,boolean single){if(v.getVisibility()!=View.VISIBLE)return;
   if(v instanceof TextView){TextView t=(TextView)v;if(t.getText().length()>0&&t.getLayout()!=null){assertTrue(t.getText()+" height="+t.getHeight()+" text="+t.getLayout().getHeight(),t.getLayout().getHeight()<=t.getHeight()-t.getCompoundPaddingTop()-t.getCompoundPaddingBottom());if(single)assertTrue(t.getText().toString(),t.getLineCount()<=1);}}
   if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++){View child=g.getChildAt(i);if(child.getVisibility()==View.GONE)continue;assertTrue("child bottom "+child.getTag()+" "+child.getBottom()+" parent="+g.getHeight(),child.getBottom()<=g.getHeight());fits(child,single);}}
@@ -39,8 +42,11 @@ public class V078RegressionTest {
  private void matrix(int w,int h)throws Exception{
   for(float font:new float[]{1f,1.3f,1.56f})for(String lang:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE,UiSkin.NIO_LIKE_2}){
    AppPreferences.set(activity,"language",lang);AppPreferences.set(activity,"theme",theme);UiSkin.set(activity,skin);View root=render(w,h,font),content=root.findViewWithTag("control_pull_content");try{fits(content,UiSkin.nioLayout(activity));}catch(AssertionError e){export(root,"failure-"+skin+"-"+w+"-"+font,w,h);throw new AssertionError(skin+" "+w+"x"+h+" font="+font+" "+lang+" "+theme,e);}assertEquals(4,tagged(content,"control_tile"));
-   LinearLayout summary=root.findViewWithTag("vehicle_status_button");TextView label=(TextView)summary.getChildAt(1),soc=root.findViewWithTag("battery_soc");assertEquals("All Good!",label.getText().toString());assertEquals(soc.getTextSize(),label.getTextSize(),.01);
-   if(UiSkin.nioLayout(activity)&&font==1&&w==360){assertTrue(tagged(content,"shortcut_circle")>=4);export(root,skin+"-"+theme+"-"+lang,w,h);}
+   LinearLayout summary=root.findViewWithTag("vehicle_status_button");TextView label=(TextView)summary.getChildAt(1);assertEquals(lang.equals("zh")?"车况":"Status",label.getText().toString());
+   VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("%"));
+   View nav=root.findViewWithTag("bottom_nav");assertNotNull(nav);java.util.List<View> navButtons=new java.util.ArrayList<>();collectTagged(nav,"bottom_nav_button",navButtons);assertEquals(3,navButtons.size());
+   assertTrue("left rounded-screen safe area",absoluteLeft(navButtons.get(0))>=18);assertTrue("right rounded-screen safe area",absoluteLeft(navButtons.get(2))+navButtons.get(2).getWidth()<=w-18);
+   if(UiSkin.nioLayout(activity)&&font==1&&w==360){java.util.List<View> circles=new java.util.ArrayList<>();collectTagged(content,"shortcut_circle",circles);assertTrue(circles.size()>=4);int top=absoluteTop(circles.get(0));for(int n=1;n<4;n++)assertTrue("NIO shortcut circles align",Math.abs(absoluteTop(circles.get(n))-top)<=1);assertTrue(tagged(content,"shortcut_label")>=2);assertTrue(tagged(content,"shortcut_feedback")>=2);export(root,skin+"-"+theme+"-"+lang,w,h);}
   }
  }
  @Test public void appFontAndSystemFontTogetherFitPortraitAndLandscape()throws Exception{matrix(320,568);matrix(640,320);}
@@ -49,6 +55,13 @@ public class V078RegressionTest {
   assertEquals("All Good!",VehicleCondition.summary(model.snapshot,true,true));
   VehicleSnapshot opening=model.snapshot.withExterior(new ExteriorSnapshot(new int[]{1,2,2,2},new int[]{2,2,2,2}));assertTrue(VehicleCondition.problem(opening,true));assertNotEquals("All Good!",VehicleCondition.summary(opening,true,true));
   VehicleSnapshot none=new VehicleSnapshot("car","masked",60,200,null,"未知","未知","未知","未知","未知",1,"LIVE",false);assertFalse(VehicleCondition.reported(none,true));
+ }
+ @Test public void vehicleStatusShowsServicePercentagesAndBarsOnFirstPage()throws Exception{
+  AppPreferences.set(activity,"language","zh");invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);
+  View root=dialog.getWindow().getDecorView();assertTrue(text(root,"保养进度"));assertTrue(text(root,"时间剩余"));assertTrue(text(root,"里程剩余"));assertEquals(2,tagged(root,"service_progress_bar"));assertTrue(text(root,"21%"));assertTrue(text(root,"75%"));dialog.dismiss();
+ }
+ @Test public void vehicleMetricAndNavigationUseShortStatusName(){
+  assertEquals("车况",DisplayMetric.VEHICLE_STATUS.label(false));assertEquals("车况",DisplayMetric.VEHICLE_STATUS.shortLabel(false));
  }
  @Test public void fontPrefsAreIndependentAndWrapNativeDialogsWithSystemScaling(){
   UiSkin.set(activity,UiSkin.NIO_LIKE);AppPreferences.set(activity,UiTypography.key(activity),"120");assertEquals(120,UiTypography.percent(activity,UiTypography.key(activity)));

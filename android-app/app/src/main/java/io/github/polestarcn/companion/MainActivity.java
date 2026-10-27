@@ -1121,7 +1121,7 @@ public final class MainActivity extends FragmentActivity {
     // system font sizes without clipping. Keep the 12-item user selection intact;
     // show the six highest-priority entries on this viewport and retain the rest
     // in the vehicle data/details page.
-    if (landscape && config.screenHeightDp<=360 && config.fontScale>1.15f && chosen.size()>6)
+    if (landscape && config.screenHeightDp<=360 && chosen.size()>6)
       chosen=new java.util.ArrayList<>(chosen.subList(0,6));
     if (landscape) {
       LinearLayout middle=row();

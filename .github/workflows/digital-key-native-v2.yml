@@ -45,6 +45,10 @@ jobs:
           grep -q "System.loadLibrary" android-app/app/src/main/java/io/github/polestarcn/companion/digitalkey/NativeLibraryProbe.java
           grep -q "digitalkeyv2" android-app/app/build.gradle
 
+      - name: Run V2.1 evidence-gate unit tests
+        shell: bash
+        run: gradle -p android-app :app:testDebugUnitTest --stacktrace
+
       - name: Collect Android signing/build tools
         shell: bash
         run: |

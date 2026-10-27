@@ -119,6 +119,9 @@ public final class DigitalKeyResearchActivity extends Activity {
     }
     root.addView(text("VOCMO Java bridge / Java 绑定类: "
         + yesNo(nativeState.vocmoJavaBridgePresent), 14, MUTED));
+    root.addView(text("GLBLE Java bridge / JNI 注册类: "
+        + yesNo(nativeState.glAlgorithmBridgePresent), 14,
+        nativeState.glAlgorithmBridgePresent ? INK : ORANGE));
     root.addView(text("Passive schemas / PassiveEntry 资源: "
         + nativeState.passiveSchemaCount + "/3", 14,
         nativeState.passiveSchemaCount == 3 ? INK : MUTED));

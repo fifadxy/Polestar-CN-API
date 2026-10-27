@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   emulator-lab:
@@ -49,6 +50,8 @@ jobs:
           fi
 
       - name: Boot Android 14 Google APIs emulator and verify ADB/root
+        id: emulator
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -91,6 +94,32 @@ jobs:
       - name: Run non-operational digital-key gate tests
         shell: bash
         run: sh digital-key-research/scripts/run_lab_tests.sh | tee digital-key-research/runtime/lab.txt
+
+      - name: Report diagnostics to draft PR
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EMULATOR_OUTCOME: ${{ steps.emulator.outcome }}
+        shell: bash
+        run: |
+          set -u
+          REPORT="$RUNNER_TEMP/digital-key-emulator-report.md"
+          {
+            echo '## Digital Key Emulator Lab'
+            echo
+            echo "Emulator step: **${EMULATOR_OUTCOME}**"
+            echo
+            for f in digital-key-research/runtime/host.txt digital-key-research/runtime/emulator.txt digital-key-research/runtime/lab.txt; do
+              if [ -f "$f" ]; then
+                echo "### $(basename "$f")"
+                echo '```text'
+                sed -n '1,180p' "$f"
+                echo '```'
+              fi
+            done
+          } > "$REPORT"
+          gh pr comment "$PR_NUMBER" --body-file "$REPORT"
 
       - name: Upload emulator diagnostics
         if: always()

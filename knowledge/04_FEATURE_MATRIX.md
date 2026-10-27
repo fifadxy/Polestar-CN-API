@@ -48,3 +48,8 @@
 ## v0.7.6 增量验收
 
 简洁/详细一页界面、12 项数据显示、130% 字号、中英文/日夜/横屏、最小 Widget 时间与触区、空调倒计时、Health 首条流式取消及短时缓存均有回归覆盖。保持 v0.7.5 车辆 Health 聚合与实验性四轮开关。新增固定 Release 签名构建入口；不同来源签名的覆盖更新需单独核验。实现与构建通过不等于 PROJECT_DEVICE_VERIFIED。
+
+
+## 2026-10-27 · v0.7.7-beta1
+
+新增设置可切换 NIOlike 日夜皮肤；移除动态光效；车图下方 Health 汇总与可隐藏胎压；充电仅在启动/进行时独立分组；SOC 横条与旁侧续航、系统字体和 Widget 同步。Debug/Preview 各 102 项项目回归、Lint 与 Release/Preview 编译通过，APK v2 签名验证通过；账号/实车/手表与耗电未实测。详见 [本版知识库](24_V077_NIOLIKE_VI_CHARGING.md) 和 [更新说明](../docs/Psa_v077_Update.md)。

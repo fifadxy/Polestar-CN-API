@@ -8,6 +8,32 @@ import android.content.DialogInterface;
 final class HapticDialogBuilder extends AlertDialog.Builder {
   private final Context context;
   HapticDialogBuilder(Context context) { super(context); this.context = context; }
+  @Override public AlertDialog create() {
+    AlertDialog dialog = super.create();
+    dialog.setOnShowListener(ignored -> {
+      android.widget.ListView list=dialog.getListView();
+      if(list!=null) {
+        list.setOnHierarchyChangeListener(new android.view.ViewGroup.OnHierarchyChangeListener() {
+          public void onChildViewAdded(android.view.View parent,android.view.View child){ style(child); }
+          public void onChildViewRemoved(android.view.View parent,android.view.View child){}
+        });
+        style(list);
+      }
+    });
+    return dialog;
+  }
+  private void style(android.view.View view) {
+    if(view instanceof android.widget.TextView) ((android.widget.TextView)view).setTypeface(PsaDesign.regular());
+    if(view instanceof android.widget.CheckedTextView) {
+      android.widget.CheckedTextView choice=(android.widget.CheckedTextView)view;
+      choice.setCheckMarkDrawable(io.github.polestarcn.companion.R.drawable.vi_checkbox);
+      choice.setCheckMarkTintList(android.content.res.ColorStateList.valueOf(PsaDesign.accentText(AppPreferences.dark(context))));
+    }
+    if(view instanceof android.view.ViewGroup) {
+      android.view.ViewGroup group=(android.view.ViewGroup)view;
+      for(int i=0;i<group.getChildCount();i++)style(group.getChildAt(i));
+    }
+  }
   private DialogInterface.OnClickListener click(DialogInterface.OnClickListener listener) {
     return (d, which) -> { Haptics.tap(context); if (listener != null) listener.onClick(d, which); };
   }

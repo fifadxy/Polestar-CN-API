@@ -12,7 +12,7 @@ public final class WatchPreviewView extends View {
   private final VehicleSnapshot snapshot;
   private boolean round = true;
   public WatchPreviewView(Context context, VehicleSnapshot snapshot) {
-    super(context); this.snapshot = snapshot;
+    super(context); this.snapshot = snapshot; paint.setTypeface(PsaDesign.regular());
     setContentDescription("Watch layout preview, not a running watch application");
   }
   public void setRound(boolean value) { round = value; invalidate(); }
@@ -26,7 +26,7 @@ public final class WatchPreviewView extends View {
     canvas.save(); canvas.translate((getWidth() - 192 * scale) / 2, (getHeight() - 192 * scale) / 2);
     canvas.scale(scale, scale); paint.setColor(Color.BLACK); paint.setStyle(Paint.Style.FILL);
     if (round) canvas.drawCircle(96, 96, 96, paint);
-    else canvas.drawRoundRect(0, 0, 192, 192, 22, 22, paint);
+    else canvas.drawRoundRect(0, 0, 192, 192, 8, 8, paint);
     word(canvas, "PsAssistant", 12, 96, 37, Color.LTGRAY);
     word(canvas, snapshot == null ? "--%" : VehicleSnapshot.metric(snapshot.batteryPercent, "%"), 36, 96, 78, Color.WHITE);
     word(canvas, snapshot == null ? "-- km" : VehicleSnapshot.metric(snapshot.rangeKm, " km"), 14, 96, 101, Color.LTGRAY);
@@ -34,9 +34,9 @@ public final class WatchPreviewView extends View {
     boolean unlocked = snapshot != null && "未锁".equals(snapshot.lock);
     boolean climate = snapshot != null && "开启".equals(snapshot.climate);
     paint.setColor(unlocked ? Color.rgb(255,107,0) : Color.WHITE);
-    canvas.drawRoundRect(40, 116, 88, 164, 18, 18, paint);
+    canvas.drawRoundRect(40, 116, 88, 164, 6, 6, paint);
     paint.setColor(climate ? Color.rgb(255,107,0) : Color.WHITE);
-    canvas.drawRoundRect(104, 116, 152, 164, 18, 18, paint);
+    canvas.drawRoundRect(104, 116, 152, 164, 6, 6, paint);
     word(canvas, en ? "Lock" : "门锁", 12, 64, 145, Color.BLACK);
     word(canvas, en ? "AC" : "空调", 12, 128, 145, Color.BLACK);
     canvas.restore();

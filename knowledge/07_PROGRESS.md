@@ -148,3 +148,8 @@
 ## 2026-10-26 v0.7.6-beta1
 
 v0.7.5 Actions 40348312346 完成并上传 artifact 12661514910 后，以 fa81ac5 为基线开始修复。完成一页自适应布局、主控制状态/配色、空调展示倒计时、最小 Widget 更新时间和字体、局部更新、Health 首条流式读取和缓存、车辆列表缓存及动画生命周期。同步 Psa_v076_Update.md 与 knowledge/23。保留远控验证/延迟回读、不重发与露营阈值。Release 使用保留签名；旧 CI APK 与该签名不同，覆盖升级需原签名。
+
+
+## 2026-10-27 · v0.7.7-beta1
+
+新增设置可切换 NIOlike 日夜皮肤；移除动态光效；车图下方 Health 汇总与可隐藏胎压；充电仅在启动/进行时独立分组；SOC 横条与旁侧续航、系统字体和 Widget 同步。Debug/Preview 各 102 项项目回归、Lint 与 Release/Preview 编译通过，APK v2 签名验证通过；账号/实车/手表与耗电未实测。详见 [本版知识库](24_V077_NIOLIKE_VI_CHARGING.md) 和 [更新说明](../docs/Psa_v077_Update.md)。

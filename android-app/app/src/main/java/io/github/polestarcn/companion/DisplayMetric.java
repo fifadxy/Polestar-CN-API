@@ -83,7 +83,7 @@ public enum DisplayMetric {
   }
   public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
-    if (this == VEHICLE_STATUS) return s.health.summary(english);
+    if (this == VEHICLE_STATUS) return s.health.summary(english, c == null || AppPreferences.visible(c, "show_tire_status", true));
     if (this == TIRE_STATUS) return s.tires.summary(english);
     if (this == SERVICE_DAYS_LEFT || this == SERVICE_KM_LEFT
         || this == SERVICE_TIME_PERCENT || this == SERVICE_KM_PERCENT) {

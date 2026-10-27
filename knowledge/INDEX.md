@@ -1,6 +1,6 @@
 # Android Polestar Assistant 主线知识库 · 索引
 
-> 版本 `KB-0.7.6 / Android Parity V3.0` · 2026-10-26 · 主线 `android-polestar-assistant-main`
+> 版本 `KB-0.7.7 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
 
 本目录是 **Polestar2 Widget&API** 独立 Android 子项目的长期知识库。`main` 为 GitHub 仓库默认主分支，本项目专属的 Android 主线是 `android-polestar-assistant-main`，不修改 Mac/Hisingen 的独立工程。
 
@@ -29,6 +29,7 @@
 | [21_TWO_SKINS_CLIMATE_V074.md](21_TWO_SKINS_CLIMATE_V074.md) | 两套皮肤、详细风格重排、动态 VI 与空调剩余时间 | v0.7.4 实现 |
 | [22_VEHICLE_HEALTH_UI_V075.md](22_VEHICLE_HEALTH_UI_V075.md) | VIN 二级菜单、车辆状态聚合、12V/玻璃水/iTPMS 与动态密度 UI | v0.7.5 实现 |
 | [23_V076_STABILITY_WIDGET_RUNTIME.md](23_V076_STABILITY_WIDGET_RUNTIME.md) | v0.7.5 核查、首页/Widget/倒计时/流式读取与固定签名 | v0.7.6 实现 |
+| [24_V077_NIOLIKE_VI_CHARGING.md](24_V077_NIOLIKE_VI_CHARGING.md) | NIOlike 日夜皮肤、静态 VI、胎压显示与充电门控 | v0.7.7 实现 |
 | [evidence/apk-v2-signature.json](evidence/apk-v2-signature.json) | 参考 APK 签名及内容摘要证据 | 已验证 |
 | [evidence/apk-vehicle-schema.json](evidence/apk-vehicle-schema.json) | 33 字段独立提取 | 已验证 |
 | [evidence/apk-inventory.json](evidence/apk-inventory.json) | APK 静态清单 | 可复现 |
@@ -37,6 +38,6 @@
 
 `APK_CONFIRMED` 仅代表 APK 字节/类/方法/字段存在；`REFERENCE_USER_VERIFIED` 代表**用户亲测参考 APK**功能可用；`EXTERNAL_ANALYSIS` 代表外部报告判断；`IMPLEMENTED_DEMO` 代表新代码只有演示模型；`CI_VERIFIED` 代表可编译；`PROJECT_DEVICE_VERIFIED` 才代表**本项目新 APK 在授权车辆上端到端成功**；`PLANNED` 或 `MAPPING_REQUIRED` 代表待开发。
 
-**当前状态**：Android v0.7.6-beta1 已实现真实 China 登录与车况/远控协议，并有本地构建与回归验证；尚未完成本轮账号、车辆和手表端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
+**当前状态**：Android v0.7.7-beta1 已实现真实 China 登录与车况/远控协议，并有本地构建与回归验证；尚未完成本轮账号、车辆和手表端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
 
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。

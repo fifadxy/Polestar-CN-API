@@ -261,6 +261,8 @@ public final class AppRegressionTest {
     org.robolectric.shadows.ShadowFingerprintManager fingerprint = org.robolectric.Shadows.shadowOf(
         activity.getSystemService(android.hardware.fingerprint.FingerprintManager.class));
     fingerprint.setIsHardwareDetected(true); fingerprint.setHasEnrolledFingerprints(true);
+    for (String skin : new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE}) {
+    UiSkin.set(activity,skin);
     checkLayout(360, 640);
     java.util.List<View> tiles = new java.util.ArrayList<>(); collectTiles(activity.getWindow().getDecorView(), tiles);
     Field pending = MainActivity.class.getDeclaredField("authPending"); pending.setAccessible(true);
@@ -281,6 +283,7 @@ public final class AppRegressionTest {
       assertFalse(pending.getBoolean(activity));
       assertFalse(VehicleCoordinator.get(activity).busy);
       assertEquals(OperationState.NOT_SENT, VehicleCoordinator.get(activity).operation);
+    }
     }
   }
 
@@ -485,7 +488,7 @@ public final class AppRegressionTest {
 
   @Test public void completeTelemetrySurvivesCacheAndWidgetLanguageIsIndependent() {
     VehicleSnapshot v = new VehicleSnapshot("fixture", "masked", 63, 230, 65845,
-        "充电中", "全部关闭", "全部关闭", "已关闭", "已上锁", 1000, "LIVE", false)
+        "充电中", "全部关闭", "全部关闭", "已关闭", "已上锁", System.currentTimeMillis(), "LIVE", false)
         .withMileage(new MileageSnapshot(65_845_000L, 100.5, 25.25, 45.0, 35.0, 18.5, 21.5, 1000, 1000))
         .withEnvironment(new EnvironmentSnapshot("关闭", "关闭", -4.5, 22.0, 3.0, 4, 25, 8, 1000, 1000))
         .withExterior(new ExteriorSnapshot(new int[]{1,2,3,-1}, new int[]{2,1,2,2}))
@@ -504,7 +507,7 @@ public final class AppRegressionTest {
     AppPreferences.set(activity, WidgetRenderer.metricKey(WidgetRenderer.Size.MINI), "charge_connection");
     View widget = WidgetRenderer.createViews(activity, 1234, WidgetRenderer.Size.MINI)
         .apply(activity, new FrameLayout(activity));
-    assertTrue(((TextView) widget.findViewById(R.id.widget_metric0)).getText().toString().contains("Connected"));
+    assertTrue(widget.findViewById(R.id.widget_charging_section).getContentDescription().toString().contains("Connected"));
     assertFalse(AppPreferences.english(activity)); assertTrue(AppPreferences.widgetEnglish(activity));
   }
 
@@ -688,7 +691,7 @@ public final class AppRegressionTest {
       assertTrue(content.getGlobalVisibleRect(visible));
       assertTrue("fixed landscape content stays within viewport for " + skin,
           visible.bottom <= 320);
-      assertNotNull(findTagged(root, "vi_ambient_glow"));
+      assertStaticVehicleSummary(root);
     }
   }
 
@@ -789,7 +792,7 @@ public final class AppRegressionTest {
 
   @Test
   @Config(qualifiers = "w360dp-h780dp-mdpi")
-  public void bothVehicleControlStylesExposeAmbientGlowAndSelectedMetrics() throws Exception {
+  public void bothVehicleControlStylesExposeStaticSummaryAndSelectedMetrics() throws Exception {
     AppPreferences.set(activity, "language", "zh");
     VehicleCoordinator c = VehicleCoordinator.get(activity);
     c.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
@@ -815,7 +818,7 @@ public final class AppRegressionTest {
       root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
           View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
       root.layout(0, 0, 360, 780);
-      assertNotNull(findTagged(root, "vi_ambient_glow"));
+      assertStaticVehicleSummary(root);
       assertTrue(hasText(root, "车内 °C"));
       assertTrue(hasText(root, "目标 °C"));
     }
@@ -958,9 +961,10 @@ public final class AppRegressionTest {
       ViewGroup group = (ViewGroup) content;
       View last = group.getChildAt(group.getChildCount() - 1);
       assertTrue(last.getBottom() <= content.getHeight());
-      View glow = findTagged(root, "vi_ambient_glow");
-      assertNotNull(glow);
-      assertTrue("ambient band is integrated, not a 3dp line", glow.getHeight() >= 16);
+      assertStaticVehicleSummary(root);
+      View charging = findTagged(root, "charging_section");
+      assertNotNull(charging);
+      assertEquals("idle charge telemetry stays hidden", View.GONE, charging.getVisibility());
     }
   }
 
@@ -1000,6 +1004,34 @@ public final class AppRegressionTest {
     } finally {
       temp.delete();
     }
+  }
+
+  @Test
+  public void decorativeGlowClassIsNotShipped() throws Exception {
+    try {
+      Class.forName("io.github.polestarcn.companion.ViAmbientGlowView", false,
+          MainActivity.class.getClassLoader());
+      fail("Decorative glow implementation must be removed from this build");
+    } catch (ClassNotFoundException expected) {
+      // The removed class cannot allocate an animator or retain rendering work.
+    }
+  }
+
+  private static void assertStaticVehicleSummary(View root) {
+    assertNull("decorative glow is absent", findTagged(root, "vi_ambient_glow"));
+    View car = findTagged(root, "polestar_vehicle");
+    View summary = findTagged(root, "vehicle_status_button");
+    assertNotNull(car);
+    assertTrue("vehicle summary pairs an icon and text", summary instanceof LinearLayout);
+    assertTrue(((LinearLayout) summary).getChildCount() >= 2);
+    assertTrue(count(summary, TextView.class) >= 1);
+    assertTrue("vehicle summary is below the vehicle image",
+        absoluteTop(summary) >= absoluteTop(car) + car.getHeight());
+    View progress = findTagged(root, "vi_progress");
+    assertTrue("both styles retain a battery bar", progress instanceof ProgressBar);
+    android.graphics.Rect visible = new android.graphics.Rect();
+    assertTrue("vehicle summary is visible", summary.getGlobalVisibleRect(visible));
+    assertEquals("entire vehicle summary remains visible", summary.getHeight(), visible.height());
   }
 
   private static boolean hasText(View view, String text) {

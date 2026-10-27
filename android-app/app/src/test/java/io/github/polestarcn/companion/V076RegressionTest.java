@@ -62,15 +62,25 @@ public class V076RegressionTest {
     if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)assertControls(g.getChildAt(i),found);}
   }
   private void preview(View v,String name,int w,int h) throws Exception {
-    File dir=new File("build/reports/previews/v076");dir.mkdirs();Bitmap b=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas cv=new Canvas(b);cv.scale(2,2);v.draw(cv);
+    File dir=new File("build/reports/previews/v077");dir.mkdirs();Bitmap b=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas cv=new Canvas(b);cv.scale(2,2);v.draw(cv);
     try(FileOutputStream out=new FileOutputStream(new File(dir,name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();
   }
   private void check(int w,int h,float scale) throws Exception {
     font(scale);
-    for(String language:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED}){
+    for(String language:new String[]{"zh","en"})for(String theme:new String[]{"light","dark"})for(String skin:new String[]{UiSkin.SIMPLE,UiSkin.DETAILED,UiSkin.NIO_LIKE}){
       AppPreferences.set(activity,"language",language);AppPreferences.set(activity,"theme",theme);UiSkin.set(activity,skin);
       View root=render(w,h);int[] found={0};assertControls(root,found);assertEquals(4,found[0]);
       View content=tag(root,"control_pull_content");assertNotNull(content);
+      assertNull("decorative glow is removed",tag(root,"vi_ambient_glow"));
+      View car=tag(root,"polestar_vehicle"),summary=tag(root,"vehicle_status_button");
+      assertNotNull(car);assertTrue(summary instanceof LinearLayout);
+      int[] carLocation=new int[2],summaryLocation=new int[2];
+      car.getLocationOnScreen(carLocation);summary.getLocationOnScreen(summaryLocation);
+      assertTrue("summary stays below the car image",summaryLocation[1]>=carLocation[1]+car.getHeight());
+      assertTrue(tag(root,"vi_progress") instanceof ProgressBar);
+      assertEquals(63,((ProgressBar)tag(root,"vi_progress")).getProgress());
+      View charging=tag(root,"charging_section");assertNotNull(charging);
+      assertEquals("fresh charging fixture has a dedicated section",View.VISIBLE,charging.getVisibility());
       assertTextFits(content);
       ViewGroup group=(ViewGroup)content;for(int i=0;i<group.getChildCount();i++)assertTrue("content child outside "+skin,group.getChildAt(i).getBottom()<=content.getHeight());
       preview(root,skin+"-"+w+"x"+h+"-"+language+"-"+theme,w,h);
@@ -81,8 +91,11 @@ public class V076RegressionTest {
   @Test @Config(qualifiers="w360dp-h780dp-mdpi") public void twoSkinsAndThemesFit() throws Exception {check(360,780,1f);}
   @Test @Config(qualifiers="w360dp-h780dp-mdpi") public void stateUpdatesKeepExistingViewsAndChangeFeedback() throws Exception {
     AppPreferences.set(activity,"language","zh");View root=render(360,780);View card=tag(root,"control_tile");
+    View charging=tag(root,"charging_section");assertNotNull(charging);assertEquals(View.VISIBLE,charging.getVisibility());
     model.snapshot=new VehicleSnapshot("Polestar 2","masked",64,240,65845,"空闲","全部关闭","全部关闭","已关闭","未锁",System.currentTimeMillis(),"LIVE",false,"关闭","关闭");
     invoke("onModelChanged");assertSame(card,tag(activity.getWindow().getDecorView(),"control_tile"));
+    assertSame("charging visibility reuses its existing section",charging,tag(activity.getWindow().getDecorView(),"charging_section"));
+    assertEquals("returning to idle hides the charging section",View.GONE,charging.getVisibility());
     assertEquals(Color.rgb(255,107,0),((android.graphics.drawable.GradientDrawable)card.getBackground()).getColor().getDefaultColor());
   }
   @Test public void countdownUsesReportTimeAndNeverClaimsVehicleStoppedAtExpiry() {

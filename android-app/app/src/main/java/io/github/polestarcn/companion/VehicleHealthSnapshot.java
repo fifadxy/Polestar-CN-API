@@ -52,33 +52,30 @@ public final class VehicleHealthSnapshot {
     return value == OK || value == WARNING ? value : UNKNOWN;
   }
 
-  public boolean hasAnyReport() {
-    return lowVoltageBattery != UNKNOWN || washerFluid != UNKNOWN || tirePressure != UNKNOWN;
-  }
+  public boolean hasAnyReport() { return hasAnyReport(true); }
+  public boolean hasProblem() { return hasProblem(true); }
+  public boolean allGood() { return allGood(true); }
+  public int issueCount() { return issueCount(true); }
+  public String summary(boolean english) { return summary(english, true); }
 
-  public boolean hasProblem() {
-    return lowVoltageBattery == WARNING || washerFluid == WARNING || tirePressure == WARNING;
+  public boolean hasAnyReport(boolean includeTires) {
+    return lowVoltageBattery != UNKNOWN || washerFluid != UNKNOWN || includeTires && tirePressure != UNKNOWN;
   }
-
-  public boolean allGood() {
-    return lowVoltageBattery == OK && washerFluid == OK && tirePressure == OK;
+  public boolean hasProblem(boolean includeTires) {
+    return lowVoltageBattery == WARNING || washerFluid == WARNING || includeTires && tirePressure == WARNING;
   }
-
-  public int issueCount() {
-    int n = 0;
-    if (lowVoltageBattery == WARNING) n++;
-    if (washerFluid == WARNING) n++;
-    if (tirePressure == WARNING) n++;
-    return n;
+  public boolean allGood(boolean includeTires) {
+    return lowVoltageBattery == OK && washerFluid == OK && (!includeTires || tirePressure == OK);
   }
-
-  public String summary(boolean english) {
-    if (hasProblem()) {
-      int count = issueCount();
-      return english ? "Needs attention · " + count : "需检查 · " + count + "项";
-    }
-    if (allGood()) return english ? "ALL GOOD" : "正常";
-    return hasAnyReport() ? (english ? "Partially reported" : "部分已上报")
+  public int issueCount(boolean includeTires) {
+    return (lowVoltageBattery == WARNING ? 1 : 0) + (washerFluid == WARNING ? 1 : 0)
+        + (includeTires && tirePressure == WARNING ? 1 : 0);
+  }
+  public String summary(boolean english, boolean includeTires) {
+    if (hasProblem(includeTires)) return english ? "Needs attention · " + issueCount(includeTires)
+        : "需检查 · " + issueCount(includeTires) + "项";
+    if (allGood(includeTires)) return "ALL GOOD";
+    return hasAnyReport(includeTires) ? (english ? "Partially reported" : "部分已上报")
         : (english ? "Unavailable" : "未上报");
   }
 

@@ -20,17 +20,17 @@ public final class ExteriorView extends View {
   public ExteriorView(Context context, VehicleSnapshot state) {
     super(context); this.state = state;
     english = AppPreferences.english(context); dark = AppPreferences.dark(context);
-    ink = Color.parseColor(dark ? "#F4F4F2" : "#18191A");
-    muted = Color.parseColor(dark ? "#AAAAA7" : "#626560");
-    surface = Color.parseColor(dark ? "#292B2D" : "#FFFFFF");
-    line = Color.parseColor(dark ? "#45484A" : "#DCDDD7");
+    ink = PsaDesign.ink(dark);
+    muted = PsaDesign.muted(dark);
+    surface = PsaDesign.surface(dark);
+    line = PsaDesign.line(dark);
     vehicle = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.vehicle_top);
     if (dark && vehicle != null) {
       ColorMatrix m = new ColorMatrix(new float[] {
-          .14f,0,0,0,10, 0,.14f,0,0,10, 0,0,.14f,0,10, 0,0,0,1,0});
+          .4f,0,0,0,10, 0,.4f,0,0,10, 0,0,.4f,0,10, 0,0,0,1,0});
       vehicle.setColorFilter(new ColorMatrixColorFilter(m));
     }
-    paint.setTypeface(getResources().getFont(R.font.lato_regular));
+    paint.setTypeface(PsaDesign.regular());
     StringBuilder description = new StringBuilder(english ? "Front at top. " : "车头朝上。");
     for (int i = 0; i < 4; i++) description.append(position(i)).append(english ? " door " : "门 ")
         .append(AppPreferences.status(context, ExteriorSnapshot.label(value(false, i))))

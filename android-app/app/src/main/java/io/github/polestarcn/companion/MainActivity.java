@@ -1137,8 +1137,8 @@ public final class MainActivity extends FragmentActivity {
       addDashboardUtilities(body,landscape); if(!landscape)gap(body,4);
       boolean fourAcross=simple||compact;
       String[] order=simple?new String[]{"lock","climate","air","trunk"}:new String[]{"lock","climate","trunk","air"};
-      int height=fourAcross?(landscape?Math.max(dp(64),dp(8)+3*textLineHeight(10))
-          :Math.max(dp(nioSkin()?92:78),dp(nioSkin()?46:34)+3*textLineHeight(10)))
+      int height=fourAcross?(landscape?Math.max(dp(nioSkin()?72:64),dp(nioSkin()?14:8)+3*textLineHeight(10))
+          :Math.max(dp(nioSkin()?100:78),dp(nioSkin()?52:34)+3*textLineHeight(10)))
           :Math.max(dp(98),dp(22)+textLineHeight(14)+2*textLineHeight(12)+2*textLineHeight(10));
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
@@ -1408,7 +1408,8 @@ public final class MainActivity extends FragmentActivity {
       if (nioSkin() && (control.equals("climate")||control.equals("air"))) {
         TextView temperature=liveText(() -> control.equals("air")?("AQI "+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
             :model.snapshot==null ? "--°C":DisplayMetric.TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),control.equals("air")?11:14,ink,true);
-        card.addView(temperature);
+        temperature.setGravity(Gravity.CENTER);
+        card.addView(temperature,new LinearLayout.LayoutParams(-1,textLineHeight(14)+dp(2)));
       }
     }
     if(!horizontalCompact){

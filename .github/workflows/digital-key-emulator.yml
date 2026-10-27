@@ -49,6 +49,10 @@ jobs:
             sudo chmod 666 /dev/kvm || true
           fi
 
+      - name: Fetch exact Polestar China 4.25.0 APK
+        shell: bash
+        run: sh digital-key-research/scripts/fetch_reference_apk.sh
+
       - name: Boot Android 14 Google APIs emulator and verify ADB/root
         id: emulator
         continue-on-error: true
@@ -82,7 +86,7 @@ jobs:
             echo
             echo "Emulator step: **${EMULATOR_OUTCOME}**"
             echo
-            for f in digital-key-research/runtime/host.txt digital-key-research/runtime/emulator.txt digital-key-research/runtime/lab.txt; do
+            for f in digital-key-research/runtime/host.txt digital-key-research/runtime/apk-fetch.txt digital-key-research/runtime/emulator.txt digital-key-research/runtime/lab.txt; do
               if [ -f "$f" ]; then
                 echo "### $(basename "$f")"
                 echo '```text'

@@ -10,7 +10,8 @@
     "native_so_count": 17,
     "abis": [
       "arm64-v8a"
-    ]
+    ],
+    "md5": "d66b01f6b6cf8cdbda0d226ae0926c60"
   },
   "static_findings": {
     "pak_interface": "com.volvocars.phoneaskey",
@@ -37,9 +38,13 @@
   "validation": {
     "static": "confirmed",
     "lab": "16 cases passed",
-    "emulator": "not run (missing ADB/emulator)",
+    "emulator": "verified: Android 14 userdebug, KVM, adb root uid=0, SELinux enforcing, BLE/GATT and Keystore2/KeyMint present",
     "oem_approval": "unverified",
-    "real_vehicle": "not verified"
+    "real_vehicle": "not verified",
+    "native_bridge": "verified: x86_64 guest exposes arm64-v8a with libndk_translation.so",
+    "apk_runtime": "pending: exact uploaded APK bytes not yet delivered to CI runner",
+    "workflow_run": 40466401363,
+    "draft_pr": 2
   },
   "scope": "sanitized metadata only; no private keys or extracted SDK binaries"
 }

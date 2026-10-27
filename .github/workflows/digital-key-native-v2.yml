@@ -8,6 +8,13 @@ on:
       - 'android-app/**'
       - 'digital-key-research/**'
       - '.github/workflows/digital-key-native-v2.yml'
+  pull_request:
+    branches:
+      - android-polestar-assistant-main
+    paths:
+      - 'android-app/**'
+      - 'digital-key-research/**'
+      - '.github/workflows/digital-key-native-v2.yml'
   workflow_dispatch:
 
 permissions:

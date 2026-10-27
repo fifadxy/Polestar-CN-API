@@ -22,7 +22,7 @@ public final class VehicleCondition {
     return "全部关闭".equals(v.doors)||"全部关闭".equals(v.windows)||"已关闭".equals(v.tailgate)||problem(v,tyres);
   }
   public static String summary(VehicleSnapshot v,boolean english,boolean tyres) {
-    return problem(v,tyres)?(english?"Check vehicle":"请检查车辆")
+    return problem(v,tyres)?(english?"Please check vehicle status!":"请注意车辆状况！")
         :reported(v,tyres)?"All Good！":(english?"Unavailable":"未上报");
   }
 }

@@ -27,3 +27,8 @@ Debug/Preview各166项测试通过，0失败/0跳过，Lint无错误，签名构
 公开示例网页验证浮层隐藏、卡48px、距离行16px和署名保留；这不代表本项目实车位置、GPS/高德距离或所有OEM桌面都已验证。手机位置是新增可选授权，替代历史“永不读取手机位置”的绝对描述；默认行为仍拒绝。保养自动显示替代历史本地记录主导逻辑。新图标规范优先于旧示意，但不更改协议和授权事实。
 
 来源：[Android Widget官方布局](https://developer.android.com/develop/ui/views/appwidgets/layouts)、[高德URI](https://lbs.amap.com/api/uri-api/guide/mobile-web/point)。PROJECT_DEVICE_VERIFIED仍待用户设备/车辆验收。
+
+
+## v0.8.4 当前增量 · 2026-10-27
+
+[KB29](29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)与[更新说明](../docs/Psa_v084_Update.md)记录新母版/昼夜通知、30000km与合并保养周期、C3 TargetSoC只读字段、首次协议、5/10/15/20秒四次回读和非阻塞等待。历史20000km、单次15秒回读与黑武士启动器约定被本轮授权替代。实车TargetSoC/平台桌面昼夜刷新仍待验收。

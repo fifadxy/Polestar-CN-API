@@ -8,6 +8,7 @@ public final class VehicleRefreshJob extends JobService {
 
   @Override
   public boolean onStartJob(JobParameters p) {
+    if(!FirstUseConsent.accepted(this))return false;
     stopped = false;
     if ((!AppPreferences.enabled(this) && !WidgetRenderer.hasWidgets(this))
         || !VehicleCoordinator.get(this).hasSession()) return false;

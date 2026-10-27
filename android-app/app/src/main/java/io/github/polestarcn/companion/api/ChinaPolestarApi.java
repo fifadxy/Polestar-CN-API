@@ -55,6 +55,7 @@ public final class ChinaPolestarApi {
   private final ReferenceSignatureProvider signatureProvider;
   private ManagedChannel sharedChannel;
   private String sharedHost;
+  private final Map<String,Long> targetSocUnavailableUntil=new java.util.concurrent.ConcurrentHashMap<>();
   private final Map<String, HealthCache> healthCache = new java.util.concurrent.ConcurrentHashMap<>();
   private static final class HealthCache {
     final Map<Integer, Object> fields; final long expires;
@@ -181,14 +182,14 @@ public final class ChinaPolestarApi {
     if (s.access.isEmpty()) throw new Exception("登录成功响应中没有 C3 global token");
     s.expiresAt = System.currentTimeMillis() + Math.max(60L, expires) * 1000L;
     s.revision = System.currentTimeMillis();
-    healthCache.clear();
+    healthCache.clear();targetSocUnavailableUntil.clear();
     SecureSessionStore.save(context, s);
     DiagnosticLog.add("China login accepted; session stored securely");
     return s;
   }
 
   public void logout() {
-    healthCache.clear();
+    healthCache.clear();targetSocUnavailableUntil.clear();
     close();
     SecureSessionStore.clear(context);
     DiagnosticLog.add("China session cleared");
@@ -303,6 +304,15 @@ public final class ChinaPolestarApi {
     long capturedAt = ProtoWire.timestampMillis(battery, 1);
     if (capturedAt > System.currentTimeMillis() + 300_000L) capturedAt = 0;
 
+    ChargingSnapshot chargeDetails=ChargingSnapshot.fromData(battery);
+    if(System.currentTimeMillis()>=targetSocUnavailableUntil.getOrDefault(vin,0L))try {
+      Map<Integer,Object> targetReply=ProtoWire.decode(invoke(s,vin,"chronos.services.v1.TargetSocService","GetLatestTargetSoc",
+          ProtoWire.bytesField(1,ProtoWire.concat(ProtoWire.stringField(1,java.util.UUID.randomUUID().toString()),ProtoWire.stringField(2,vin)))));
+      Object replyVin=targetReply.get(2);if(replyVin instanceof byte[]&&!vin.equals(new String((byte[])replyVin,java.nio.charset.StandardCharsets.UTF_8)))throw new Exception("Target SoC vehicle mismatch");
+      chargeDetails=chargeDetails.withTarget(targetReply);targetSocUnavailableUntil.remove(vin);
+    }catch(Exception unavailable){if(targetSocUnavailableUntil.size()>=16)targetSocUnavailableUntil.clear();targetSocUnavailableUntil.put(vin,System.currentTimeMillis()+300_000L);DiagnosticLog.add("Target SoC optional read unavailable");}
+
+
     MileageSnapshot mileage = MileageSnapshot.unknown();
     try {
       mileage = MileageSnapshot.fromReply(stateRpc(
@@ -356,7 +366,7 @@ public final class ChinaPolestarApi {
         false,
         environment.climate,
         environment.air).withMileage(mileage).withExterior(individualExterior).withEnvironment(environment)
-        .withCharging(ChargingSnapshot.fromData(battery)).withTires(tires).withHealth(vehicleHealth);
+        .withCharging(chargeDetails).withTires(tires).withHealth(vehicleHealth);
   }
 
   private Map<Integer, Object> readHealth(Session s, String vin) {
@@ -579,7 +589,7 @@ public final class ChinaPolestarApi {
       return ClientCalls.blockingUnaryCall(
           authenticated,
           descriptor,
-          CallOptions.DEFAULT.withDeadlineAfter((service.endsWith(".HealthService")||service.equals("dtlinternet.DtlInternetService"))?4:12, TimeUnit.SECONDS),
+          CallOptions.DEFAULT.withDeadlineAfter((service.endsWith(".TargetSocService")||service.endsWith(".HealthService")||service.equals("dtlinternet.DtlInternetService"))?4:12, TimeUnit.SECONDS),
           request);
     } catch (StatusRuntimeException e) {
       throw new Exception(

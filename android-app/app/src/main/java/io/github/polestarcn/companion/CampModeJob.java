@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class CampModeJob extends JobService {
   private final java.util.Map<Integer, AtomicBoolean> tasks = new java.util.HashMap<>();
   @Override public boolean onStartJob(JobParameters parameters) {
+    if(!FirstUseConsent.accepted(this))return false;
     AtomicBoolean token = new AtomicBoolean(false);
     tasks.put(parameters.getJobId(), token);
     VehicleCoordinator.get(this).checkCamp(token, () -> {
@@ -17,6 +18,7 @@ public final class CampModeJob extends JobService {
     return true;
   }
   @Override public boolean onStopJob(JobParameters parameters) {
+    if(!FirstUseConsent.accepted(this))return false;
     AtomicBoolean token = tasks.remove(parameters.getJobId());
     if (token != null) token.set(true);
     return false;

@@ -66,9 +66,9 @@ public class V078RegressionTest {
  }
  @Test public void vehicleStatusShowsServicePercentagesAndBarsOnFirstPage()throws Exception{
   AppPreferences.set(activity,"language","zh");invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);
-  View root=dialog.getWindow().getDecorView();assertTrue(text(root,"保养进度"));assertTrue(text(root,"时间剩余"));assertTrue(text(root,"里程剩余"));assertEquals(2,tagged(root,"service_progress_bar"));assertTrue(text(root,"21%"));assertTrue(text(root,"75%"));dialog.dismiss();
+  View root=dialog.getWindow().getDecorView();assertTrue(text(root,"保养进度"));assertTrue(text(root,"时间剩余"));assertTrue(text(root,"里程剩余"));assertEquals(2,tagged(root,"service_progress_bar"));assertTrue(text(root,"21%"));assertTrue(text(root,"50%"));dialog.dismiss();
   AppPreferences.set(activity,"condition_service_time","off");AppPreferences.set(activity,"condition_service_distance","off");View dashboard=render(360,780,1f);
-  VehicleConditionButton condition=dashboard.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));assertTrue(condition.getContentDescription().toString().contains("75%"));
+  VehicleConditionButton condition=dashboard.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));assertTrue(condition.getContentDescription().toString().contains("21%"));
   AppPreferences.set(activity,"condition_service_time","on");AppPreferences.set(activity,"condition_service_distance","on");
  }
  @Test public void vehicleMetricAndNavigationUseShortStatusName(){

@@ -1,3 +1,5 @@
+当前增量：**v0.8.4-beta1**，见[图标、保养与四次回读](29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)。与历史记录冲突时以此页为准。
+
 # Android Polestar Assistant 主线知识库 · 索引
 
 > 版本 `KB-0.8.3 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`

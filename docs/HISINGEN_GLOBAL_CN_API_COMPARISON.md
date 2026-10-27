@@ -1077,3 +1077,8 @@ Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 �
 ## 2026-10-27 Android v0.8.3 显示层
 
 基于9744759：保养公里/天/工时仅用GetLatestHealth已确认字段，不再用本地保养记录填补，百分比固定参考周期而非新发现的车辆百分比。地图仍由c3Lbs读取，网页覆盖层精简；新增默认关闭、明确系统授权的手机前台位置，仅向可信高德网页开放，无后台定位。新PSeu/Widget原生适配与公用图标不改变China远控协议。Mac功能代码不变。见 [Android知识28](../knowledge/28_V083_UI_WIDGET_MAP_ICONS.md)。
+
+
+## Android v0.8.4 Target SoC补充证据
+
+中国官方classes7.dex证实C3 `chronos.services.v1.TargetSocService/GetLatestTargetSoc`（非PCCS前缀），请求嵌套ChronosRequest(id1,vin2)，响应TargetSoc3目标百分比1、更新时间3，pending4不作为当前值。Android可选4秒只读实现与缺失限流见[KB29](../knowledge/29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)；静态映射通过，不冒充中国实车验收。最新模板保养剩余映射不变，参考里程按用户设定统一30000km。

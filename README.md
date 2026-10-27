@@ -1,6 +1,6 @@
 # PsAssistant for Android
 
-当前版本：**v0.8.3-beta1**（versionCode 84）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.4-beta1**（versionCode 85）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
@@ -8,7 +8,11 @@ Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
 
-## v0.8.3 当前功能增量
+## v0.8.4 当前功能增量
+
+[完整更新说明](docs/Psa_v084_Update.md)：确认的黑白车辆图标/系统通知、车况露营无icon等大按钮、30000km与合并保养周期、独立只读充电上限、首次勾选协议、寻车、单行停车点、5/10/15/20秒回读及等待进度。见[图标规范v2](docs/Psa_Icon_Design_Specification_v2.md)及[KB29](knowledge/29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)。街道逆地理编码仍需正式API；当前免Key地图不伪造地址。
+
+## v0.8.3 历史功能增量
 
 - 共六套手机皮肤，新增PS默认；正常车况固定All Good！与矢量勾，车况/露营及控制图标共用新[Psa按钮图标规范](docs/Psa_Button_Icon_Design_Specification_v1.md)。
 - 保养剩余公里/天/工时直接读取车辆报告，不需要手动记录。百分比是365天/20000km参考比例，未上报保留--。

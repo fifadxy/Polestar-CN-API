@@ -49,6 +49,7 @@ public final class VehicleSnapshotStore {
       o.put("healthReportedAt", snapshot.health.reportedAt);
       o.put("healthMaintenance",snapshot.health.maintenance);o.put("healthBrake",snapshot.health.brakeFluid);
       o.put("healthCoolant",snapshot.health.coolant);o.put("healthOil",snapshot.health.oil);o.put("healthLights",snapshot.health.exteriorLights);
+      o.put("targetSocPercent",snapshot.chargingDetails.targetPercent);o.put("targetSocReportedAt",snapshot.chargingDetails.targetReportedAt);
       o.put("serviceHoursLeft",snapshot.health.serviceHoursLeft);o.put("serviceDaysLeft",snapshot.health.serviceDaysLeft);o.put("serviceKmLeft",snapshot.health.serviceKmLeft);
       o.put("temperatureC", snapshot.environment.temperatureC);
       o.put("targetTemperatureC", snapshot.environment.targetTemperatureC);
@@ -125,7 +126,7 @@ public final class VehicleSnapshotStore {
           o.optLong("climateReportedAt", 0), o.optLong("airReportedAt", 0)));
       snapshot = snapshot.withCharging(new ChargingSnapshot(integer(o, "chargerConnection"),
           integer(o, "chargingType"), integer(o, "chargerPowerStatus"), integer(o, "timeToFullMinutes"),
-          decimal(o, "powerWatts"), decimal(o, "currentAmps")));
+          decimal(o, "powerWatts"), decimal(o, "currentAmps"),integer(o,"targetSocPercent"),o.optLong("targetSocReportedAt",0)));
       // v0.5.0 cached the wrong protobuf branch. Never promote that value into corrected mileage.
       if (o.optInt("mileageSchema", 0) != 1) return snapshot;
       Long total = !o.has("odometerMeters") || o.isNull("odometerMeters")

@@ -55,3 +55,7 @@ assert '](28_V083_UI_WIDGET_MAP_ICONS.md)' in index
 assert (root / 'docs/Psa_Button_Icon_Design_Specification_v1.md').is_file()
 assert (root / 'branding/android/icons/Psa_Control_Icon_Catalog_v1.svg').is_file()
 print('PASS: v0.8.3 UI, native widgets, location opt-in and icon specification indexed')
+
+assert (root/"knowledge/29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md").is_file()
+assert (root/"docs/Psa_Icon_Design_Specification_v2.md").is_file()
+print("PASS: v0.8.4 target SoC evidence, consent, service cycle and four readback slots indexed")

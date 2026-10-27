@@ -84,7 +84,7 @@ public final class ResidentService extends Service {
             new Intent(c, MainActivity.class),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     return new Notification.Builder(c, CHANNEL)
-        .setSmallIcon(R.drawable.ic_status)
+        .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle(title)
         .setContentText(detail + " · " + timestamps)
         .setStyle(new Notification.BigTextStyle().bigText(detail + "\n" + timestamps))

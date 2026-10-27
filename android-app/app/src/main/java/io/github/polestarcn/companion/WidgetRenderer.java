@@ -115,8 +115,8 @@ public final class WidgetRenderer {
     if(pseu&&(type.equals("range")||type.equals("car"))&&main.remove(DisplayMetric.RANGE))main.add(0,DisplayMetric.RANGE);
     boolean battery = main.contains(DisplayMetric.BATTERY);
     boolean serviceSelected=selected.contains(DisplayMetric.VEHICLE_STATUS);
-    Integer timeLeft=ServiceReading.timePercent(c,s),distanceLeft=ServiceReading.distancePercent(c,s);
-    boolean serviceTime=serviceSelected&&height>=135&&timeLeft!=null&&AppPreferences.visible(c,"condition_service_time",false);
+    Integer timeLeft=ServiceReading.cyclePercent(c,s),distanceLeft=null;
+    boolean serviceTime=serviceSelected&&height>=135&&timeLeft!=null;
     boolean serviceDistance=serviceSelected&&height>=135&&distanceLeft!=null&&AppPreferences.visible(c,"condition_service_distance",false);
     boolean serviceBand=serviceTime||serviceDistance;
     float requestedFont=widgetFont(c,size,height);
@@ -194,14 +194,14 @@ public final class WidgetRenderer {
       int text=metric==0?R.id.widget_service_time_text:R.id.widget_service_distance_text;
       int bar=metric==0?R.id.widget_service_time_bar:R.id.widget_service_distance_bar;
       Integer percent=metric==0?timeLeft:distanceLeft;
-      widgetText(views,c,text,(metric==0?"d ":"km ")+ServiceReading.number(percent,"%"));
+      widgetText(views,c,text,(metric==0?AppPreferences.widgetTr(c,"保养周期 ","Service cycle "):"km ")+ServiceReading.number(percent,"%"));
       views.setTextColor(text,secondary);views.setTextViewTextSize(text,android.util.TypedValue.COMPLEX_UNIT_SP,10*font);
       if(percent!=null)views.setImageViewBitmap(bar,batteryBar(percent,PsaDesign.ORANGE,white));
     }
     views.setContentDescription(R.id.widget_service_band,AppPreferences.widgetTr(c,"保养剩余比例（按参考周期估算） · ","Service remaining (reference-cycle estimate) · ")
-        +(serviceTime?"d "+timeLeft+"% ":"")+(serviceDistance?"km "+distanceLeft+"%":""));
+        +(serviceTime?AppPreferences.widgetTr(c,"保养周期 ","Service cycle ")+timeLeft+"% ":"")+(serviceDistance?"km "+distanceLeft+"%":""));
     java.util.List<DisplayMetric> timestampFields=new java.util.ArrayList<>(shown);
-    if(serviceTime)timestampFields.add(DisplayMetric.SERVICE_TIME_PERCENT);if(serviceDistance)timestampFields.add(DisplayMetric.SERVICE_KM_PERCENT);
+    if(serviceTime)timestampFields.add(DisplayMetric.SERVICE_CYCLE);if(serviceDistance)timestampFields.add(DisplayMetric.SERVICE_KM_PERCENT);
     String updated = updatedText(c,s,timestampFields,size);
     int hidden = Math.max(0, Math.min(capacity(size), main.size() + charging.size()) - shown.size());
     if (hidden > 0) updated += " · +" + hidden;
@@ -224,7 +224,7 @@ public final class WidgetRenderer {
     views.setOnClickPendingIntent(R.id.widget_action_climate, pending(c, id, size, "climate-choice"));
     if(styled){
       views.setViewVisibility(R.id.widget_card_header,plan.title?android.view.View.VISIBLE:android.view.View.GONE);
-      views.setImageViewResource(R.id.widget_brand,AppPreferences.dark(c)?R.drawable.brand_light:R.drawable.brand_dark);
+      views.setImageViewResource(R.id.widget_brand,R.drawable.ic_notification);views.setInt(R.id.widget_brand,"setColorFilter",ink);
       views.setInt(R.id.widget_card_location,"setColorFilter",ink);views.setOnClickPendingIntent(R.id.widget_card_location,pending(c,id,size,"location"));
       views.setViewVisibility(R.id.widget_car,car?android.view.View.VISIBLE:android.view.View.GONE);
       boolean extras=width>=240&&!horizontal;

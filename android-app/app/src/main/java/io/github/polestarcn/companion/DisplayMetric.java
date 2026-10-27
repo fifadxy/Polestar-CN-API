@@ -20,6 +20,8 @@ public enum DisplayMetric {
   TARGET_TEMPERATURE("target_temperature", "空调目标温度", "Climate target", " °C"),
   AQI("aqi", "空气质量 AQI", "Air quality · AQI", " AQI"),
   PM25("pm25", "PM2.5", "PM2.5", " µg/m³"),
+  CHARGE_LIMIT("charge_limit", "充电上限", "Charge limit", "%"),
+  SERVICE_CYCLE("service_cycle", "保养周期剩余", "Service cycle remaining", "%"),
   CHARGE_CONNECTION("charge_connection", "充电连接", "Charger connection", ""),
   CHARGE_TYPE("charge_type", "充电类型", "Charging type", ""),
   CHARGE_POWER("charge_power", "充电功率", "Charging power", " kW"),
@@ -76,6 +78,8 @@ public enum DisplayMetric {
   public long reportedAt(VehicleSnapshot s) {
     if (s == null) return 0;
     switch (this) {
+      case CHARGE_LIMIT:return s.chargingDetails.targetReportedAt;
+      case SERVICE_CYCLE:return s.health.reportedAt;
       case VEHICLE_STATUS: return s.health.reportedAt;
       case TIRE_STATUS: return s.tires.reportedAt;
       case TEMPERATURE: case TARGET_TEMPERATURE: return s.environment.climateReportedAt;
@@ -98,6 +102,8 @@ public enum DisplayMetric {
   }
   public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
+    if(this==CHARGE_LIMIT)return ServiceReading.number(s.chargingDetails.targetPercent,includeUnit?unit:"");
+    if(this==SERVICE_CYCLE)return ServiceReading.number(ServiceReading.cyclePercent(c,s),includeUnit?unit:"");
     if (this == VEHICLE_STATUS) return VehicleCondition.summary(s,english,c == null || AppPreferences.visible(c,"show_tire_status",true));
     if (this == TIRE_STATUS) return s.tires.summary(english);
     if(this==SERVICE_HOURS_LEFT)return ServiceReading.number(s.health.serviceHoursLeft,includeUnit?unit:"");

@@ -32,7 +32,7 @@ public class HealthLocationV078Test {
  @Test public void vehicleServiceReadingsOverrideLocalRecordsButPercentagesUseConfiguredCycles(){
   VehicleSnapshot v=snapshot(VehicleHealthSnapshot.fromData(health(),TireSnapshot.unknown()));
   assertEquals("75 d",DisplayMetric.SERVICE_DAYS_LEFT.value(c,v,true,true));assertEquals("14959 km",DisplayMetric.SERVICE_KM_LEFT.value(c,v,true,true));
-  assertEquals("21%",DisplayMetric.SERVICE_TIME_PERCENT.value(c,v,true,true));assertEquals("75%",DisplayMetric.SERVICE_KM_PERCENT.value(c,v,true,true));
+  assertEquals("21%",DisplayMetric.SERVICE_TIME_PERCENT.value(c,v,true,true));assertEquals("50%",DisplayMetric.SERVICE_KM_PERCENT.value(c,v,true,true));
   AppPreferences.set(c,"maintenance_interval_days","750");assertEquals("21%",DisplayMetric.SERVICE_TIME_PERCENT.value(c,v,true,true));
   assertEquals(v.health.reportedAt,DisplayMetric.SERVICE_TIME_PERCENT.reportedAt(v));assertEquals(v.mileage.reportedAt,DisplayMetric.TA_DISTANCE.reportedAt(v));
  }

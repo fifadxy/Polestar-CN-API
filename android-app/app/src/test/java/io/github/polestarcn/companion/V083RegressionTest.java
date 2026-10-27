@@ -26,7 +26,7 @@ public class V083RegressionTest {
  @Test public void unknownClimateDurationHasAnExplicitReadableExplanation(){AppPreferences.set(activity,"language","en");assertTrue(ClimateRuntime.detail(activity,model.snapshot,"fixture").contains("Remaining time unavailable"));}
  @Test public void vehicleServiceNeverRequiresOrUsesLocalHistory(){
   AppPreferences.set(activity,"vehicle","fixture");MaintenanceSchedule.save(activity,"fixture",LocalDate.of(2000,1,1),1);AppPreferences.set(activity,"maintenance_interval_days","750");AppPreferences.set(activity,"maintenance_interval_km","99999");
-  assertEquals(Integer.valueOf(14959),ServiceReading.km(activity,model.snapshot));assertEquals(Integer.valueOf(75),ServiceReading.days(activity,model.snapshot));assertEquals(Integer.valueOf(75),ServiceReading.distancePercent(activity,model.snapshot));assertEquals(Integer.valueOf(21),ServiceReading.timePercent(activity,model.snapshot));
+  assertEquals(Integer.valueOf(14959),ServiceReading.km(activity,model.snapshot));assertEquals(Integer.valueOf(75),ServiceReading.days(activity,model.snapshot));assertEquals(Integer.valueOf(50),ServiceReading.distancePercent(activity,model.snapshot));assertEquals(Integer.valueOf(21),ServiceReading.timePercent(activity,model.snapshot));
   VehicleSnapshot missing=model.snapshot.withHealth(VehicleHealthSnapshot.unknown());assertNull(ServiceReading.km(activity,missing));assertNull(ServiceReading.days(activity,missing));assertEquals(0,DisplayMetric.SERVICE_KM_LEFT.reportedAt(missing));assertEquals(0,DisplayMetric.SERVICE_DAYS_LEFT.reportedAt(missing));
  }
  @Test public void serviceDialogIsReadOnlyAndUsesVehicleValues()throws Exception{invoke("maintenanceDialog");View root=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().getWindow().getDecorView();assertEquals(0,count(root,EditText.class));assertEquals("14959 km",DisplayMetric.SERVICE_KM_LEFT.value(activity,model.snapshot,true,true));}
@@ -40,7 +40,7 @@ public class V083RegressionTest {
   for(String skin:UiSkin.CHOICES)for(String lang:new String[]{"zh","en"}){UiSkin.set(activity,skin);AppPreferences.set(activity,"language",lang);View root=render();LinearLayout status=root.findViewWithTag("vehicle_status_button");assertNotNull(status);assertEquals("All Good！",((TextView)status.getChildAt(1)).getText().toString());assertEquals(View.VISIBLE,status.findViewWithTag("health_symbol").getVisibility());
    ImageView climate=root.findViewWithTag("control_icon_climate"),air=root.findViewWithTag("control_icon_air");assertNotNull(skin,climate);assertNotNull(skin,air);assertEquals(climate.getWidth(),air.getWidth());assertEquals(climate.getHeight(),air.getHeight());
    if(UiSkin.nioLayout(activity)){assertEquals(absoluteTop(climate),absoluteTop(air));assertEquals(absoluteTop(root.findViewWithTag("control_title_climate")),absoluteTop(root.findViewWithTag("control_title_air")));}
-   TextView camp=root.findViewWithTag("camp_button");assertNotNull(camp);assertNotNull(camp.getCompoundDrawablesRelative()[0]);VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("75%"));
+   TextView camp=root.findViewWithTag("camp_button");assertNotNull(camp);assertNull(camp.getCompoundDrawablesRelative()[0]);VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));
   }
  }
  @Test public void mapLocationNeedsBothOptInAndSystemPermission(){

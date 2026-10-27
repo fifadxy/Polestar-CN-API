@@ -34,6 +34,7 @@ public final class AppRegressionTest {
     Field f = VehicleCoordinator.class.getDeclaredField("instance");
     f.setAccessible(true);
     f.set(null, null);
+    org.robolectric.RuntimeEnvironment.getApplication().getSharedPreferences("legal",0).edit().putBoolean("accepted_disclaimer_v1",true).commit();
     controller = Robolectric.buildActivity(MainActivity.class).setup();
     activity = controller.get();
   }

@@ -677,3 +677,8 @@ The optimized 22-page PDF specifically revises the widget pages to avoid collisi
 | [S17] | [Android Developers — Wear OS Tile Design Principles](https://developer.android.com/design/ui/wear/guides/m2-5/surfaces/tiles-principles) | One primary task per tile; avoid duplicating the system app icon. |
 
 **Copyright and intended use (optimized edition):** Polestar names and published artwork are the property of their respective rights holders. This is an independently authored research/design-reference document, not a brand certification, agency deliverable or claim of access to Polestar's proprietary Figma files. Use externally hosted images for reference; request licensed production assets from the rights holder for app distribution.
+
+
+## Psa Android v0.8.4 user-approved amendment
+
+The monochrome front-car master, launcher/notification rules, lock/tailgate glyphs and icon-free equal-size condition/camping buttons now follow [Psa Icon Specification v2](Psa_Icon_Design_Specification_v2.md). This supersedes conflicting earlier launcher-icon guidance; protocol and consent behavior follow [v0.8.4](Psa_v084_Update.md).

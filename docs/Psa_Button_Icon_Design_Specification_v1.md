@@ -4,7 +4,7 @@
 
 ## 母版与证据
 
-这是依据用户提供图片制作的**独立实现资源**，不是官方原始矢量母版。App 开启图标复用仓库现有 brand_light / brand_dark PNG；桌面启动器继续使用用户指定的黑武士图标。不得把控制中心星形图标替换成启动器图标，也不改变已有车辆图片比例。
+这是历史v1参考。v0.8.4起App/通知/Widget标识、锁与尾箱、车况和露营以[Psa图标规范v2](Psa_Icon_Design_Specification_v2.md)为准，旧黑武士和星形开启图标约定已被用户新确认稿替代。车辆图片比例仍保持。
 
 ![Psa control icon catalog](../branding/android/icons/Psa_Control_Icon_Catalog_v1.svg)
 

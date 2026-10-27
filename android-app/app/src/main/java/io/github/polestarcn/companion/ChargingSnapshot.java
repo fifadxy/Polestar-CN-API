@@ -8,11 +8,23 @@ import java.util.Locale;
 public final class ChargingSnapshot {
   public final Integer connection, type, powerStatus, minutesToFull;
   public final Double powerWatts, currentAmps;
+  public final Integer targetPercent; public final long targetReportedAt;
   public ChargingSnapshot(Integer connection, Integer type, Integer powerStatus,
       Integer minutesToFull, Double powerWatts, Double currentAmps) {
+    this(connection,type,powerStatus,minutesToFull,powerWatts,currentAmps,null,0);
+  }
+  public ChargingSnapshot(Integer connection,Integer type,Integer powerStatus,Integer minutesToFull,Double powerWatts,Double currentAmps,Integer target,long at){
+    this.targetPercent=target!=null&&target>0&&target<=100?target:null;this.targetReportedAt=this.targetPercent==null?0:at;
     this.connection = connection; this.type = type; this.powerStatus = powerStatus;
     this.minutesToFull = minutesToFull != null && minutesToFull >= 0 ? minutesToFull : null;
     this.powerWatts = valid(powerWatts); this.currentAmps = valid(currentAmps);
+  }
+  public ChargingSnapshot withTarget(java.util.Map<Integer,Object> reply){
+    java.util.Map<Integer,Object> target=ProtoWire.nested(reply,3);
+    Integer percent=ProtoWire.integer(target,1);Long stamp=ProtoWire.longValue(target,3);
+    long at=stamp==null?0:stamp;if(at>0&&at<100000000000L)at*=1000;
+    if(at>System.currentTimeMillis()+300000L||at<0)at=0;
+    return new ChargingSnapshot(connection,type,powerStatus,minutesToFull,powerWatts,currentAmps,percent,at);
   }
   private static Double valid(Double v) { return v != null && Double.isFinite(v) ? v : null; }
   public static ChargingSnapshot unknown() { return new ChargingSnapshot(null, null, null, null, null, null); }

@@ -27,6 +27,7 @@ public class ParkingMapV079Test {
  @Before public void start()throws Exception{
   Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();c.getSharedPreferences("cn_vehicle_session_secure",0).edit().clear().commit();
   Field f=VehicleCoordinator.class.getDeclaredField("instance");f.setAccessible(true);f.set(null,null);
+  org.robolectric.RuntimeEnvironment.getApplication().getSharedPreferences("legal",0).edit().putBoolean("accepted_disclaimer_v1",true).commit();
   controller=Robolectric.buildActivity(MainActivity.class).setup();activity=controller.get();
  }
  @After public void stop(){AlertDialog d=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();if(d!=null&&d.isShowing())d.dismiss();controller.pause().stop().destroy();}

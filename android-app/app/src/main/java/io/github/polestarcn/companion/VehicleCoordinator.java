@@ -23,6 +23,13 @@ public final class VehicleCoordinator {
   public ChinaPolestarApi.VehicleInfo selected;
   public VehicleSnapshot snapshot;
   public boolean busy;
+  public boolean progressOnly;
+  public boolean commandPending; public int readbackPercent;
+  private long readbackStarted;
+  private boolean commandAccepted;
+  public LocationSnapshot parkedLocation;
+  private final Runnable progressTick=new Runnable(){public void run(){if(!commandPending)return;readbackPercent=Math.min(95,(int)((android.os.SystemClock.elapsedRealtime()-readbackStarted)*100/20_000L));progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;main.postDelayed(this,1000);}};
+
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
 
@@ -36,7 +43,7 @@ public final class VehicleCoordinator {
       try{result=api.readLastParkedLocation(vin);}catch(Exception e){DiagnosticLog.add("Last parked location unavailable; vehicle session unchanged");error=tr("暂时无法读取停车位置，请稍后重试","Parking location is unavailable. Try again later.");}
       LocationSnapshot location=result;String message=error;
       main.post(()->{locationBusy=false;changed();
-        if(generation==locationGeneration&&signedIn&&selected!=null&&vin.equals(selected.vin))complete.accept(location,message);
+        if(generation==locationGeneration&&signedIn&&selected!=null&&vin.equals(selected.vin)){parkedLocation=location;changed();complete.accept(location,message);}
       });
     });
   }
@@ -79,14 +86,15 @@ public final class VehicleCoordinator {
 
   private void finish() {
     busy = false;
-    activeAction = "";
+    if(!commandPending)activeAction = "";
     changed();
     for (Runnable r : new ArrayList<>(completions)) r.run();
     completions.clear();
   }
 
   public void login(String phone, String password) {
-    if (busy) return;
+    if(!FirstUseConsent.accepted(context))return;
+    if (busy || commandPending) return;
     busy = true;
     message = tr("正在登录…", "Signing in…");
     changed();
@@ -116,6 +124,7 @@ public final class VehicleCoordinator {
   }
 
   public void refresh(Runnable done) {
+    if(!FirstUseConsent.accepted(context)){if(done!=null)done.run();return;}
     if (done != null) completions.add(done);
     if (busy) return;
     if (!signedIn) {
@@ -163,8 +172,8 @@ public final class VehicleCoordinator {
   }
 
   public void choose(ChinaPolestarApi.VehicleInfo car) {
-    if (busy) return;
-    locationGeneration++;
+    if (busy || commandPending) return;
+    parkedLocation=null;locationGeneration++;
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
     snapshot = null;
@@ -174,10 +183,11 @@ public final class VehicleCoordinator {
   }
 
   public void command(String action) {
-    if (busy || selected == null) return;
+    if(!FirstUseConsent.accepted(context))return;
+    if (busy || commandPending || selected == null) return;
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
     busy = true;
-    activeAction = action;
+    activeAction = action;commandPending=true;commandAccepted=false;readbackPercent=0;
     operation = OperationState.SENDING;
     message = tr("正在发送指令…", "Sending command…");
     changed();
@@ -229,34 +239,20 @@ public final class VehicleCoordinator {
             }
             main.post(
                 () -> {
-                  operation = OperationState.SERVER_ACCEPTED;
-                  if (momentary(action)) {
-                    message = tr(
-                        "瞬时指令已发送；鸣笛/闪灯无法通过持续车况字段确认",
-                        "Momentary command sent; honk/flash cannot be confirmed from persistent vehicle state");
-                    finish();
-                  } else {
-                    message = tr("指令已发送，约 15 秒后回读车况…", "Sent; checking vehicle after about 15 s…");
-                    changed();
-                    confirmCommand(vehicle, action);
-                  }
+                  commandAccepted=true;operation = OperationState.SERVER_ACCEPTED;
+                  message=tr("指令已发送，按5/10/15/20秒回读…","Sent; checking at 5/10/15/20 seconds…");
+                  confirmCommand(vehicle,action);
+
                 });
           } catch (Exception e) {
             main.post(
                 () -> {
                   if (uncertain(e)) {
                     operation = OperationState.UNCONFIRMED;
-                    if (momentary(action)) {
-                      message = tr(
-                          "瞬时指令发送结果未确认；未自动重试",
-                          "Momentary command delivery unconfirmed; command was not retried");
-                      finish();
-                    } else {
-                      message = tr("发送结果未确认，约 15 秒后回读…", "Delivery uncertain; checking after about 15 s…");
-                      changed();
-                      confirmCommand(vehicle, action);
-                    }
+                    message=tr("发送结果未确认，正在回读车况…","Delivery uncertain; checking vehicle…");
+                    confirmCommand(vehicle,action);
                   } else {
+                    commandPending=false;
                     operation = OperationState.FAILED;
                     message = tr("操作结果：", "Command result: ") + safe(e);
                     finish();
@@ -266,28 +262,30 @@ public final class VehicleCoordinator {
         });
   }
 
-  private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle, String action) {
-    new CommandReadback(() -> api.readVehicle(vehicle), io,
-        (delay, task) -> main.postDelayed(task, delay), (updated, reached) -> {
-          operation = reached ? OperationState.VEHICLE_CONFIRMED : OperationState.UNCONFIRMED;
-          if (reached && "climate-start".equals(action))
-            ClimateRuntime.started(context, identity(vehicle.vin), System.currentTimeMillis());
-          if (reached && "climate-stop".equals(action)) ClimateRuntime.stopped(context);
-          message = reached ? tr("车辆状态已确认", "Vehicle state confirmed")
-              : tr("车辆状态尚未确认，请稍后刷新；未重复发送", "Vehicle state unconfirmed; refresh later. Command not repeated");
-          if (updated != null && selected != null && vehicle.vin.equals(selected.vin)) {
-            snapshot = updated;
-            VehicleSnapshotStore.saveChina(context, updated);
-            protectCamp(vehicle.vin, updated);
-          }
-          WidgetRenderer.refreshAll(context);
-          finish();
-        }).start(action);
+  private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle,String action){
+    busy=false;readbackStarted=android.os.SystemClock.elapsedRealtime();main.removeCallbacks(progressTick);main.post(progressTick);changed();
+    new CommandReadback(()->api.readVehicle(vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
+      public void progress(VehicleSnapshot updated,int count){
+        if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
+        if(updated!=null){snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);}
+        changed();
+      }
+      public void finished(VehicleSnapshot updated,boolean reached){
+        if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
+        commandPending=false;readbackPercent=100;main.removeCallbacks(progressTick);
+        operation=momentary(action)?(commandAccepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED):reached?OperationState.VEHICLE_CONFIRMED:OperationState.UNCONFIRMED;
+        if(reached&&"climate-start".equals(action))ClimateRuntime.started(context,identity(vehicle.vin),System.currentTimeMillis());
+        if(reached&&"climate-stop".equals(action))ClimateRuntime.stopped(context);
+        message=momentary(action)&&!commandAccepted?tr("寻车发送结果仍未确认；四次刷新完成，未重复发送","Find-car delivery unconfirmed; four updates complete, command not repeated"):momentary(action)?tr("寻车指令已发送，四次车况刷新完成；声音/闪灯无法远程确认","Find-car sent; four updates complete. Sound/flash cannot be confirmed remotely")
+            :reached?tr("车辆状态已确认","Vehicle state confirmed"):tr("车辆状态尚未确认；未重复发送","Vehicle state unconfirmed; command not repeated");
+        activeAction="";changed();
+      }
+    }).start(action);
   }
 
   public void logout() {
-    if (busy) return;
-    locationGeneration++;
+    if (busy || commandPending) return;
+    parkedLocation=null;locationGeneration++;
     signedIn = false;
     CampModeManager.clear(context);
     api.logout();
@@ -305,7 +303,8 @@ public final class VehicleCoordinator {
   }
 
   public void startCamp(int hours, boolean keepAir) {
-    if (busy || selected == null || hours < 1 || hours > 24) return;
+    if(!FirstUseConsent.accepted(context))return;
+    if (busy || commandPending || selected == null || hours < 1 || hours > 24) return;
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
     busy = true;
     message = tr("正在检查露营电量…", "Checking camping battery…");

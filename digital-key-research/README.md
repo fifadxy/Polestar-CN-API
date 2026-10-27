@@ -21,3 +21,13 @@
 4. [11 证据测试矩阵](https://github.com/fifadxy/Polestar-CN-API/blob/research/polestar2-digital-key-pak-20261027/digital-key-research/knowledge/11_EVIDENCE_TEST_MATRIX.md)
 
 验收前不得将本研究 UI 宣称为已移植数字钥匙，也不把本分支自动合并到主线。
+
+## 2026-10-27 实际 CI/模拟器验收
+
+- 源码 commit（本次 APK）：`a46a9f318cfcff4b952be6929eb4f7ebc3dc84f1`
+- Workflow: https://github.com/fifadxy/Polestar-CN-API/actions/runs/40474095279
+- Gradle :app:assembleDebug + :app:testDebugUnitTest（3 个 DigitalKeyContractTest 安全单元测试）：PASS。
+- Android 14 / API34 Root AVD: ADB uid=0、install Success、Activity topResumed、UI XML assertion、PNG 截图：PASS。
+- 安装包 applicationId: `io.github.polestarcn.companion.digitalkeylab`，**不覆盖正式 PsAssistant**。
+- Debug APK SHA-256: `a2b111804ab1e4f733b02ae1ad340e3ce05b0b9e87b4edb27fab41b6cc811c27`
+- 诊断页面只读，不加载私有 SDK、不配对、不发送任何实体车钥匙命令。

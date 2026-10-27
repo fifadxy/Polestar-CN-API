@@ -1176,14 +1176,19 @@ public final class MainActivity extends FragmentActivity {
         > getResources().getConfiguration().screenHeightDp;
     boolean dense=getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
     int columns = landscape && count > 6 ? 6 : nioSkin() ? (count<=4?2:dense&&count>6?4:3) : count <= 4 ? 2 : count <= 6 ? 3 : 4;
-    int labelSp = 9, valueSp = 12;
+    float fontScale=getResources().getConfiguration().fontScale;
+    boolean tightLandscape=landscape
+        && getResources().getConfiguration().screenHeightDp<=360 && fontScale>1.15f;
+    int labelSp=tightLandscape?(fontScale>1.45f?6:7):9;
+    int valueSp=tightLandscape?(fontScale>1.45f?8:10):12;
     for (int i = 0; i < count; i += columns) {
       boolean energyRow = false;
       for (int k = i; k < Math.min(i + columns, count); k++)
         energyRow |= chosen.get(k) == DisplayMetric.TA_CONSUMPTION || chosen.get(k) == DisplayMetric.TM_CONSUMPTION;
       int captionLines = nioSkin()||landscape||dense?1:energyRow?2:1;
-      int valueHeight=textLineHeight(valueSp)+dp(4),captionHeight=textLineHeight(labelSp)+dp(4);
-      int rowHeight = captionHeight * captionLines + valueHeight + dp(3);
+      int valueHeight=textLineHeight(valueSp)+dp(tightLandscape?1:4);
+      int captionHeight=textLineHeight(labelSp)+dp(tightLandscape?1:4);
+      int rowHeight=captionHeight*captionLines+valueHeight+dp(tightLandscape?0:3);
       LinearLayout metricRow = row();
       for (int j = i; j < i + columns; j++) {
         LinearLayout cell = column(); cell.setGravity(Gravity.CENTER_VERTICAL);

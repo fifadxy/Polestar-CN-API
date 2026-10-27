@@ -29,8 +29,20 @@ public final class ProvisioningStateMachine {
     return true;
   }
 
-  public boolean canClaimWorkingDigitalKey() {
+  /**
+   * The lab observes simulated phases only; reaching PAK_PAIRED is not
+   * evidence that any real vehicle accepted a key.
+   */
+  public boolean reachedTerminalLabStage() {
     return stage == Stage.PAK_PAIRED;
+  }
+
+  public boolean canClaimWorkingDigitalKey() {
+    return false;
+  }
+
+  public void reset() {
+    stage = Stage.SDK_CONFIGURATION;
   }
 
   public static String evidenceFor(Stage stage) {

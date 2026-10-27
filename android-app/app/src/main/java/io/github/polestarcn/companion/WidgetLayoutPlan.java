@@ -12,10 +12,10 @@ public final class WidgetLayoutPlan {
 
   public WidgetLayoutPlan(WidgetRenderer.Size size, int requested, int requestedCharge,
       boolean battery, int width, int height, float scale) {
-    wide = size == WidgetRenderer.Size.WIDE;
+    wide = size == WidgetRenderer.Size.WIDE || size == WidgetRenderer.Size.FIVE_WIDE;
     scale = Math.max(.8f, scale);typeScale=scale;
     padding = height<60?0:size == WidgetRenderer.Size.MINI && height <= 96 && scale > 1.1f ? 0
-        : size == WidgetRenderer.Size.MINI || height < 110 ? 2 : 8;
+        : size == WidgetRenderer.Size.MINI || size == WidgetRenderer.Size.FIVE_WIDE || height < 110 ? 2 : 8;
     title = !wide && size != WidgetRenderer.Size.MINI && height >= 130;
     progress = battery;
     float available = height - 2 * padding - (wide ? 0 : 48)

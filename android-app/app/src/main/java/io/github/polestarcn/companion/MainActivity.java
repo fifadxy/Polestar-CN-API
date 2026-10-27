@@ -890,6 +890,12 @@ public final class MainActivity extends FragmentActivity {
     body.addView(head,new LinearLayout.LayoutParams(-1,dp(48)));
     java.util.List<DisplayMetric> chosen=controlMetrics();
     chosen.removeIf(m->ChargingVisibility.isChargingMetric(m)||m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE);
+    // A 320dp-tall landscape viewport cannot display two dense rows at enlarged
+    // system font sizes without clipping. Keep the 12-item user selection intact;
+    // show the six highest-priority entries on this viewport and retain the rest
+    // in the vehicle data/details page.
+    if (landscape && config.screenHeightDp<=360 && config.fontScale>1.15f && chosen.size()>6)
+      chosen=new java.util.ArrayList<>(chosen.subList(0,6));
     if (landscape) {
       LinearLayout middle=row();
       LinearLayout visual=vehicleVisual();
@@ -1177,7 +1183,7 @@ public final class MainActivity extends FragmentActivity {
     boolean dense=getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
     int columns = landscape && count > 6 ? 6 : nioSkin() ? (count<=4?2:dense&&count>6?4:3) : count <= 4 ? 2 : count <= 6 ? 3 : 4;
     float fontScale=getResources().getConfiguration().fontScale;
-    boolean tightLandscape=landscape
+    boolean tightLandscape=landscape && count>6
         && getResources().getConfiguration().screenHeightDp<=360 && fontScale>1.15f;
     int labelSp=tightLandscape?(fontScale>1.45f?6:7):9;
     int valueSp=tightLandscape?(fontScale>1.45f?8:10):12;

@@ -1,0 +1,45 @@
+{
+  "sample": {
+    "package": "com.polestar.china.android",
+    "version_name": "4.25.0",
+    "version_code": 262,
+    "size_bytes": 135944423,
+    "sha256": "99070211e99b374090ffbc3702ff7888b3d8d2cc811f4e52d1a6de4ded9074ef",
+    "zip_entries": 7319,
+    "dex_count": 16,
+    "native_so_count": 17,
+    "abis": [
+      "arm64-v8a"
+    ]
+  },
+  "static_findings": {
+    "pak_interface": "com.volvocars.phoneaskey",
+    "pak_sdk": "pak.p319.sdk",
+    "polestar2_pairing": "Ps2PairingFragment",
+    "app_adapter": "ICupDigitalKeyController",
+    "other_branch": "com.boxing.digitalkey",
+    "manifest_bluetooth_permissions": [
+      "BLUETOOTH_SCAN",
+      "BLUETOOTH_CONNECT",
+      "BLUETOOTH_ADVERTISE"
+    ],
+    "services": [
+      "pak.p319.sdk.MSDKService",
+      "com.volvocars.phoneaskey.impl.PhoneAsKeyBootCompleteReceiver"
+    ]
+  },
+  "method_scan": {
+    "target_classes": 4144,
+    "bodies_examined": 22358,
+    "invoke_refs": 65029,
+    "heuristic": true
+  },
+  "validation": {
+    "static": "confirmed",
+    "lab": "16 cases passed",
+    "emulator": "not run (missing ADB/emulator)",
+    "oem_approval": "unverified",
+    "real_vehicle": "not verified"
+  },
+  "scope": "sanitized metadata only; no private keys or extracted SDK binaries"
+}

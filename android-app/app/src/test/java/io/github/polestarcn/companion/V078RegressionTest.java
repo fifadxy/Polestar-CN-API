@@ -36,7 +36,7 @@ public class V078RegressionTest {
  private int absoluteLeft(View v){int x=0;View current=v;while(current!=null){x+=current.getLeft();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return x;}
  private int absoluteTop(View v){int y=0;View current=v;while(current!=null){y+=current.getTop();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return y;}
  private void fits(View v,boolean single){if(v.getVisibility()!=View.VISIBLE)return;
-  if(v instanceof TextView){TextView t=(TextView)v;if(t.getText().length()>0&&t.getLayout()!=null){assertTrue(t.getText()+" height="+t.getHeight()+" text="+t.getLayout().getHeight(),t.getLayout().getHeight()<=t.getHeight()-t.getCompoundPaddingTop()-t.getCompoundPaddingBottom());if(single)assertTrue(t.getText().toString(),t.getLineCount()<=1);}}
+   if(v instanceof TextView){TextView t=(TextView)v;if(t.getText().length()>0&&t.getLayout()!=null){assertTrue(t.getText()+" height="+t.getHeight()+" text="+t.getLayout().getHeight(),t.getLayout().getHeight()<=t.getHeight()-t.getCompoundPaddingTop()-t.getCompoundPaddingBottom());if(single){boolean timed="control_feedback_climate".equals(t.getTag())||"control_feedback_air".equals(t.getTag());assertTrue(t.getText().toString(),t.getLineCount()<=(timed?2:1));if(timed)assertFalse("timed control must not ellipsize",t.getText().toString().contains("..."));}}}
   if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++){View child=g.getChildAt(i);if(child.getVisibility()==View.GONE)continue;
     String childText=child instanceof TextView?((TextView)child).getText().toString():"";
     String debug="parent="+g.getClass().getSimpleName()+" tag="+g.getTag()+" h="+g.getHeight()
@@ -101,7 +101,7 @@ public class V078RegressionTest {
   Configuration systemConfig=new Configuration(widgetContext.getResources().getConfiguration());systemConfig.fontScale=1.3f;
   android.util.DisplayMetrics metrics=widgetContext.getResources().getDisplayMetrics();metrics.scaledDensity=metrics.density*1.3f;widgetContext.getResources().updateConfiguration(systemConfig,metrics);
   for(float font:new float[]{.8f,1f,1.2f}){AppPreferences.set(activity,"widget_font_percent",String.valueOf(Math.round(font*100)));
-   for(WidgetRenderer.Size size:WidgetRenderer.Size.values()){int w=size==WidgetRenderer.Size.MINI?118:size==WidgetRenderer.Size.SQUARE?150:300,h=size==WidgetRenderer.Size.MINI?88:size==WidgetRenderer.Size.WIDE?70:size==WidgetRenderer.Size.DATA?260:170;
+   for(WidgetRenderer.Size size:WidgetRenderer.Size.values()){int w=WidgetRenderer.defaultWidth(size),h=WidgetRenderer.defaultHeight(size);
     View root=WidgetRenderer.createViews(activity,78,size,w,h,WidgetRenderer.background(activity,size),model.snapshot).apply(widgetContext,new FrameLayout(widgetContext));root.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));root.layout(0,0,w,h);fits(root,false);
     if(size==WidgetRenderer.Size.LARGE||size==WidgetRenderer.Size.SQUARE||size==WidgetRenderer.Size.DATA)assertEquals(View.VISIBLE,root.findViewById(R.id.widget_service_band).getVisibility());
     assertTrue(root.findViewById(R.id.widget_action_lock).getHeight()>=48);assertTrue(root.findViewById(R.id.widget_action_climate).getHeight()>=48);assertNotNull(root.findViewById(R.id.widget_refresh_icon));

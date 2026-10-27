@@ -55,8 +55,7 @@ jobs:
           cp "$BT/apksigner" native-v2-tools/
           cp "$BT/zipalign" native-v2-tools/
           cp -r "$BT/lib" native-v2-tools/lib
-          test -s "$HOME/.android/debug.keystore"
-          cp "$HOME/.android/debug.keystore" native-v2-tools/debug.keystore
+          # Signing identity is generated locally for the final injected V2 APK.
           printf '%s\n' "$BT" > native-v2-tools/build-tools-source.txt
 
       - uses: actions/upload-artifact@v4

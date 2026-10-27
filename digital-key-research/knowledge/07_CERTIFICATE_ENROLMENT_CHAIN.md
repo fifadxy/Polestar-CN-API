@@ -75,6 +75,26 @@ PhoneAsKeyRepository.loginUser(...)
 
 这说明在车辆配对之前，VOCMO SDK 自身已经有一层**设备/SDK证书注册**。
 
+
+## 3.1 App 实例身份与 HTTP Authentication
+
+继续追踪 entry-point 与 HTTP 层后得到两个新的静态证据：
+
+- `EntryPointLocatorImpl.getUniqueDeviceId()` 从 SDK Cache 查找 `UniqueDeviceKey`；首次没有值时直接使用 `UUID.randomUUID()` 生成，并作为 **`App-Instance-ID`** 保存/发送。
+- `AuthInterceptor` 通过 SDK 注入的 `Authentication.getToken()` 获取当前账号 token，再给 HTTP request 增加认证 header。
+
+这意味着 SDK 的“App 实例 ID”至少在 Android 客户端实现里是**每次安装/缓存域生成的随机 UUID**，不是由 Android package name 或 APK signing certificate 派生。
+
+同时，相关 API 形状也保持通用：
+
+```text
+CnepMobApi.getEntryPoint(String, Map, ...)
+EnrolmentApi.performEnrolment(String, String, RequestBody, ...)
+CatalogApi.sendCatalogEnrolment(String, String, RequestBody, ...)
+```
+
+因此当前客户端静态证据继续支持“正常账号 token + 新 App instance identity + 新证书注册”的 clean-device 路线。服务器仍可能根据 token claim、环境或业务资格执行额外授权，这必须通过动态验证确认。
+
 ## 4. 密钥生成与本地存储
 
 `VocKeyPairUtilsImpl.createKeyPair` 使用标准 Java `KeyPairGenerator`：

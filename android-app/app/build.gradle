@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 85
-        versionName '0.8.4-beta1'
+        versionCode 86
+        versionName '0.8.5-beta1'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -41,6 +41,7 @@ android {
             matchingFallbacks = ['release']
         }
     }
+    sourceSets { main.assets.srcDir(layout.buildDirectory.dir("generated/standaloneAssets")) }
     buildFeatures { buildConfig = true }
     testOptions { unitTests.includeAndroidResources = true }
     compileOptions {
@@ -66,4 +67,24 @@ tasks.withType(Test).configureEach {
         exceptionFormat "full"
         showStandardStreams = true
     }
+}
+
+// Private account client configuration is generated only under ignored build output.
+// The public repository and validation CI builds never contain the value.
+def clientAsset = layout.buildDirectory.file("generated/standaloneAssets/client-signing.bin")
+tasks.register("prepareClientConfig") {
+    outputs.upToDateWhen { false }
+    doLast {
+        def configuredPath = System.getenv("PSA_CLIENT_CONFIG_FILE")
+        def configured = configuredPath ? new File(configuredPath).getText("US-ASCII").trim() : (System.getenv("PSA_CLIENT_CONFIG") ?: "").trim()
+        def asset = clientAsset.get().asFile
+        if (configured) {
+            if (!(configured ==~ /[0-9A-F]{32}/)) throw new GradleException("Invalid private client configuration format")
+            asset.parentFile.mkdirs(); asset.setText(configured, "US-ASCII")
+        } else { asset.delete() }
+    }
+}
+tasks.named("preBuild").configure { dependsOn("prepareClientConfig") }
+tasks.matching { it.name in ["assembleRelease", "assemblePreview"] }.configureEach {
+    doFirst { if (!clientAsset.get().asFile.exists()) throw new GradleException("A complete distribution APK requires private client configuration") }
 }

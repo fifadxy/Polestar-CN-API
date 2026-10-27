@@ -11,7 +11,7 @@ import io.github.polestarcn.companion.EnvironmentSnapshot;
 import io.github.polestarcn.companion.ChargingSnapshot;
 import io.github.polestarcn.companion.TireSnapshot;
 import io.github.polestarcn.companion.VehicleHealthSnapshot;
-import io.github.polestarcn.companion.auth.ReferenceSignatureProvider;
+import io.github.polestarcn.companion.auth.ClientSignatureProvider;
 import io.github.polestarcn.companion.auth.SecureSessionStore;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -52,7 +52,7 @@ public final class ChinaPolestarApi {
   private static final Object REFRESH_LOCK = new Object();
 
   private final Context context;
-  private final ReferenceSignatureProvider signatureProvider;
+  private final ClientSignatureProvider signatureProvider;
   private ManagedChannel sharedChannel;
   private String sharedHost;
   private final Map<String,Long> targetSocUnavailableUntil=new java.util.concurrent.ConcurrentHashMap<>();
@@ -90,7 +90,7 @@ public final class ChinaPolestarApi {
 
   public ChinaPolestarApi(Context context) {
     this.context = context.getApplicationContext();
-    this.signatureProvider = new ReferenceSignatureProvider(this.context);
+    this.signatureProvider = new ClientSignatureProvider(this.context);
   }
 
   public static final class Session {

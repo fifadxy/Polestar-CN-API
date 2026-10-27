@@ -1,3 +1,5 @@
+> 历史版本记录。v0.8.5完整签名包无需其他APK或导入操作，当前安装说明见[独立构建与使用](Psa_Standalone_Build.md)。下述模板导入流程仅适用于旧版本。
+
 # Android v0.4.0-beta1
 
 本版本按用户确认的优化范围制作，继续使用 `android-polestar-assistant-main` 分支。

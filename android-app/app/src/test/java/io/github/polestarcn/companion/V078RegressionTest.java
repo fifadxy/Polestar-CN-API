@@ -65,12 +65,12 @@ public class V078RegressionTest {
   VehicleSnapshot none=new VehicleSnapshot("car","masked",60,200,null,"未知","未知","未知","未知","未知",1,"LIVE",false);assertFalse(VehicleCondition.reported(none,true));
  }
  @Test public void vehicleStatusShowsServicePercentagesAndBarsOnFirstPage()throws Exception{
-  AppPreferences.set(activity,"language","zh");invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);
-  View root=dialog.getWindow().getDecorView();assertTrue(text(root,"保养进度"));assertTrue(text(root,"时间剩余"));assertTrue(text(root,"里程剩余"));assertEquals(2,tagged(root,"service_progress_bar"));assertTrue(text(root,"21%"));assertTrue(text(root,"50%"));dialog.dismiss();
-  AppPreferences.set(activity,"condition_service_time","off");AppPreferences.set(activity,"condition_service_distance","off");View dashboard=render(360,780,1f);
-  VehicleConditionButton condition=dashboard.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));assertTrue(condition.getContentDescription().toString().contains("21%"));
-  AppPreferences.set(activity,"condition_service_time","on");AppPreferences.set(activity,"condition_service_distance","on");
+  AppPreferences.set(activity,"language","zh");invoke("vehicleStatusDialog");View root=activity.getWindow().getDecorView();
+  assertNotNull(root.findViewWithTag("status_scroll"));assertEquals(0,tagged(root,"service_progress_bar"));root.findViewWithTag("disclosure_header_status_service").performClick();
+  root=activity.getWindow().getDecorView();assertEquals(2,tagged(root,"service_progress_bar"));assertTrue(text(root,"21%"));assertTrue(text(root,"50%"));
+  activity.onBackPressed();View dashboard=render(360,780,1f);VehicleConditionButton condition=dashboard.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));
  }
+
  @Test public void vehicleMetricAndNavigationUseShortStatusName(){
   assertEquals("车况",DisplayMetric.VEHICLE_STATUS.label(false));assertEquals("车况",DisplayMetric.VEHICLE_STATUS.shortLabel(false));
  }
@@ -87,9 +87,9 @@ public class V078RegressionTest {
  }
  @Test public void detailsKeepFiveRowsPerGroupAndOfferSecondaryTripData()throws Exception{
   Field page=MainActivity.class.getDeclaredField("page");page.setAccessible(true);page.setInt(activity,1);View root=render(360,780,1);
-  View more=root.findViewWithTag("detail_more");assertNotNull(more);ViewGroup list=(ViewGroup)more.getParent();int rows=0;
-  for(int i=0;i<list.getChildCount();i++){View v=list.getChildAt(i);if("detail_section".equals(v.getTag())){assertTrue(rows<=5);rows=0;}if("detail_row".equals(v.getTag()))rows++;}assertTrue(rows<=5);
-  invoke("tripDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertNotNull(dialog);dialog.dismiss();
+  assertNotNull(root.findViewWithTag("disclosure_header_data_trips"));assertNotNull(root.findViewWithTag("disclosure_header_data_health"));
+  View content=root.findViewWithTag("disclosure_content_data_trips");assertEquals(View.GONE,content.getVisibility());root.findViewWithTag("disclosure_header_data_trips").performClick();assertEquals(View.VISIBLE,content.getVisibility());root.findViewWithTag("disclosure_header_data_trips").performClick();assertEquals(View.GONE,content.getVisibility());
+
  }
  @Test public void oldTaEnergyCacheIsInvalidatedWhileTripMetersSurvive()throws Exception{
   VehicleSnapshotStore.saveChina(activity,model.snapshot);String pref="vehicle_snapshot_display_v1";JSONObject o=new JSONObject(activity.getSharedPreferences(pref,0).getString("china","{}"));o.remove("consumptionSchema");

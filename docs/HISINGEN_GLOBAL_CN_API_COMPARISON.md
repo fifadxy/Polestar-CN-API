@@ -1082,3 +1082,8 @@ Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 �
 ## Android v0.8.4 Target SoC补充证据
 
 中国官方classes7.dex证实C3 `chronos.services.v1.TargetSocService/GetLatestTargetSoc`（非PCCS前缀），请求嵌套ChronosRequest(id1,vin2)，响应TargetSoc3目标百分比1、更新时间3，pending4不作为当前值。Android可选4秒只读实现与缺失限流见[KB29](../knowledge/29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)；静态映射通过，不冒充中国实车验收。最新模板保养剩余映射不变，参考里程按用户设定统一30000km。
+
+
+## Android v0.8.5 独立安装与数据呈现
+
+账户签名算法与车辆RPC不改，配置由私有构建注入自身资产，运行时不探测或导入其他APK。车况以异常/已报告项目优先、未知单独折叠；不把12V/制动液告警当电压/液位。见[KB30](../knowledge/30_V085_INLINE_CONDITION_STANDALONE.md)。

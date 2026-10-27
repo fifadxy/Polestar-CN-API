@@ -48,8 +48,8 @@ public class V077RegressionTest {
     AppPreferences.set(activity,"show_tire_status","off");root=render();status=root.findViewWithTag("vehicle_status_button");
     assertTrue(text(status,"All Good！"));assertTrue(status.getContentDescription().toString().contains("All Good！"));
     assertEquals(fields,AppPreferences.get(activity,"home_metrics",""));assertEquals(VehicleHealthSnapshot.WARNING,model.snapshot.health.tirePressure);
-    invoke("vehicleStatusDialog");AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-    assertFalse(text(dialog.getWindow().getDecorView(),"胎压告警"));dialog.dismiss();
+    invoke("vehicleStatusDialog");View page=activity.getWindow().getDecorView();assertNotNull(page.findViewWithTag("status_scroll"));
+    assertFalse(text(page,"胎压告警"));
     assertFalse(new VehicleHealthSnapshot(1,-1,1,1).allGood(false));
   }
   @Test public void settingsCanSelectThirdSkinAndReuseItsSavedIdentity() throws Exception {
@@ -64,7 +64,7 @@ public class V077RegressionTest {
   }
   @Test public void detailsChargingFieldsAppearOnlyDuringFreshActiveCharging() throws Exception {
     Field page=MainActivity.class.getDeclaredField("page");page.setAccessible(true);page.setInt(activity,1);
-    assertTrue(text(render(),"充电功率"));model.snapshot=snapshot("已完成");assertFalse(text(render(),"充电功率"));
+    View active=render();assertNotNull(active.findViewWithTag("disclosure_header_data_charging"));active.findViewWithTag("disclosure_header_data_charging").performClick();assertTrue(text(active,"充电功率"));model.snapshot=snapshot("已完成");assertFalse(text(render(),"充电功率"));
     model.snapshot=snapshot("智能充电暂停");assertFalse(text(render(),"充电功率"));
   }
   @Test public void nioWidgetsKeepStaticTransparentStyleAndExportPreview() throws Exception {

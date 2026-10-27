@@ -1,3 +1,5 @@
+当前版本增量：**v0.8.5-beta1 / 86**，见[KB30](30_V085_INLINE_CONDITION_STANDALONE.md)。历史模板导入要求已被完整签名版独立构建替代。
+
 当前增量：**v0.8.4-beta1**，见[图标、保养与四次回读](29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)。与历史记录冲突时以此页为准。
 
 # Android Polestar Assistant 主线知识库 · 索引

@@ -335,9 +335,9 @@ public final class AppRegressionTest {
     assertTrue(ExteriorView.hasOpening(model.snapshot));
     savePage(root, null, "v062-home.png");
     Method doors = MainActivity.class.getDeclaredMethod("exteriorDialog"); doors.setAccessible(true); doors.invoke(activity);
-    AlertDialog exterior = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-    assertEquals(1, count(exterior.getWindow().getDecorView(), ExteriorView.class));
-    savePage(root, exterior, "v062-exterior.png"); exterior.dismiss();
+    View exterior = activity.getWindow().getDecorView();
+    assertEquals(1, count(exterior, ExteriorView.class));
+    savePage(exterior, null, "v062-exterior.png"); activity.onBackPressed();
     Method camp = MainActivity.class.getDeclaredMethod("campDialog"); camp.setAccessible(true); camp.invoke(activity);
     AlertDialog camping = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
     assertTrue(camping.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());
@@ -920,12 +920,11 @@ public final class AppRegressionTest {
     Method dialogMethod = MainActivity.class.getDeclaredMethod("vehicleStatusDialog");
     dialogMethod.setAccessible(true);
     dialogMethod.invoke(activity);
-    AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-    assertTrue(hasText(dialog.getWindow().getDecorView(), "12V"));
-    assertTrue(hasText(dialog.getWindow().getDecorView(), "玻璃水"));
-    assertTrue(hasText(dialog.getWindow().getDecorView(), "胎压告警"));
-    assertTrue(hasText(dialog.getWindow().getDecorView(), "默认隐藏"));
-    dialog.dismiss();
+    View page=activity.getWindow().getDecorView();
+    assertNotNull(page.findViewWithTag("status_scroll"));
+    assertTrue(hasText(page,"12V"));assertTrue(hasText(page,"玻璃水"));assertTrue(hasText(page,"胎压告警"));
+    assertNotNull(page.findViewWithTag("disclosure_header_status_tyres"));
+
   }
 
   @Test
@@ -998,24 +997,10 @@ public final class AppRegressionTest {
     assertFalse(hasExactText(activity.getWindow().getDecorView(), "EN"));
   }
 
-  @Test
-  public void invalidReferenceCannotImport() throws Exception {
-    File temp = File.createTempFile("invalid", ".apk", activity.getCacheDir());
-    try {
-      Method m =
-          io.github.polestarcn.companion.auth.ReferenceSignatureProvider.class.getDeclaredMethod(
-              "extract", File.class);
-      m.setAccessible(true);
-      try {
-        m.invoke(
-            new io.github.polestarcn.companion.auth.ReferenceSignatureProvider(activity), temp);
-        fail("accepted invalid APK");
-      } catch (InvocationTargetException expected) {
-        assertTrue(expected.getCause() instanceof IllegalStateException);
-      }
-    } finally {
-      temp.delete();
-    }
+  @Test public void standaloneSignerNeverRequiresAnInstalledReference() throws Exception {
+    io.github.polestarcn.companion.auth.ClientSignatureProvider provider=new io.github.polestarcn.companion.auth.ClientSignatureProvider(activity);
+    if(provider.isReady())assertEquals(32,provider.resolve().length());
+    else try{provider.resolve();fail("missing build configuration must be explicit");}catch(IllegalStateException expected){assertTrue(expected.getMessage().contains("verification build"));}
   }
 
   @Test

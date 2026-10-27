@@ -15,7 +15,7 @@ import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.FragmentActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import io.github.polestarcn.companion.auth.ReferenceSignatureProvider;
+import io.github.polestarcn.companion.auth.ClientSignatureProvider;
 import java.util.*;
 
 /** Control is the launch page; the region chooser and all sample telemetry have been removed. */
@@ -42,6 +42,9 @@ public final class MainActivity extends FragmentActivity {
   private boolean campKeepAir;
   private boolean resumeRender;
   private boolean initialCreation;
+  private int statusReturnPage;
+  private int statusScrollY;
+  private int settingsScrollY,dataScrollY;
   private final Handler displayHandler = new Handler(Looper.getMainLooper());
   private final Runnable displayTick = new Runnable() {
     public void run() {
@@ -50,7 +53,7 @@ public final class MainActivity extends FragmentActivity {
       displayHandler.postDelayed(this, 60_000L);
     }
   };
-  private static final int PICK_APK = 32, NOTIFICATIONS = 33, MAP_LOCATION = 34;
+  private static final int NOTIFICATIONS = 33, MAP_LOCATION = 34;
   private static final String HOME_DEFAULTS =
       "vehicle_status,odometer,ta_distance,tm_distance,ta_speed,tm_speed,ta_consumption,tm_consumption,temperature,aqi,charge_power";
 
@@ -70,8 +73,8 @@ public final class MainActivity extends FragmentActivity {
 
   @Override
   public void onCreate(Bundle b) {
-    super.onCreate(b);initialCreation=b==null;
-    if(b!=null)page=Math.max(0,Math.min(2,b.getInt("page",0)));
+    super.onCreate(b);initialCreation=b==null;if(b!=null){statusReturnPage=Math.max(0,Math.min(2,b.getInt("statusReturn",0)));statusScrollY=b.getInt("statusY",0);settingsScrollY=b.getInt("settingsY",0);dataScrollY=b.getInt("dataY",0);}
+    if(b!=null)page=Math.max(0,Math.min(3,b.getInt("page",0)));
     AppState.setRegion(this, Region.CHINA);
     ParkingMapLinks.clearLegacySettings(this);
     regular = PsaDesign.regular();
@@ -94,7 +97,7 @@ public final class MainActivity extends FragmentActivity {
       }
   }
 
-  @Override protected void onSaveInstanceState(Bundle out) { out.putInt("page",page);super.onSaveInstanceState(out); }
+  @Override protected void onSaveInstanceState(Bundle out) { captureScrolls();out.putInt("page",page);out.putInt("statusReturn",statusReturnPage);out.putInt("statusY",statusScrollY);out.putInt("settingsY",settingsScrollY);out.putInt("dataY",dataScrollY);super.onSaveInstanceState(out); }
 
   @Override
   protected void onNewIntent(Intent intent) {
@@ -108,6 +111,7 @@ public final class MainActivity extends FragmentActivity {
     String request = i.getStringExtra("widget_action");
     i.removeExtra("widget_action");
     if ("refresh".equals(request)) { Haptics.tap(this); page = 0; render(); model.refreshUser(null); return; }
+    if("status".equals(request)){if(model.hasSession()){statusReturnPage=0;page=3;}else page=0;render();return;}
     if ("location".equals(request)) { page=0; render(); if(model.hasSession()&&model.selected!=null)
       locationDialog();else toast(tr("请先连接车辆","Connect vehicle first"));return; }
     boolean fixed=java.util.Arrays.asList("widget-lock","widget-unlock","widget-climate-start","widget-climate-stop").contains(request);
@@ -160,6 +164,7 @@ public final class MainActivity extends FragmentActivity {
 
   @Override
   public void onBackPressed() {
+    if(page==3){page=statusReturnPage;render();return;}
     if (page != 0) {
       page = 0;
       render();
@@ -335,7 +340,10 @@ public final class MainActivity extends FragmentActivity {
                 : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
   }
 
+  private void captureScrolls(){View root=findViewById(android.R.id.content);if(root==null)return;View v=root.findViewWithTag("status_scroll");if(v instanceof ScrollView)statusScrollY=((ScrollView)v).getScrollY();v=root.findViewWithTag("settings_scroll");if(v instanceof ScrollView)settingsScrollY=((ScrollView)v).getScrollY();v=root.findViewWithTag("data_scroll");if(v instanceof ScrollView)dataScrollY=((ScrollView)v).getScrollY();}
+
   private void render() {
+    captureScrolls();
     if (isFinishing() || isDestroyed()) return;
     if (phone != null) {
       inputPhone = phone.getText().toString();
@@ -356,12 +364,14 @@ public final class MainActivity extends FragmentActivity {
     if (!controlDashboard) {
       LinearLayout header = row();
       header.setPadding(dp(20), 0, dp(18), 0);
+      if(page==3){TextView back=button("‹",()->{page=statusReturnPage;render();});back.setTag("status_back");back.setContentDescription(tr("返回","Back"));header.addView(back,new LinearLayout.LayoutParams(dp(36),dp(48)));}
       ImageView brand = new ImageView(this);
       brand.setImageResource(R.drawable.ic_notification);brand.setColorFilter(ink);
       brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
       brand.setContentDescription("PsAssistant");
       header.addView(brand, new LinearLayout.LayoutParams(dp(30), dp(30)));
       TextView name = text(getString(R.string.app_name), 17, ink, true);
+      name.setSingleLine(true);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, -2, 1);
       np.leftMargin = dp(12);
       header.addView(name, np);
@@ -375,6 +385,7 @@ public final class MainActivity extends FragmentActivity {
     if (page == 2) settings();
     else if (!model.hasSession()) login();
     else if (page == 1) details();
+    else if (page == 3) vehicleStatusPage();
     else controls();
     boolean compactNav = getResources().getConfiguration().screenWidthDp > getResources().getConfiguration().screenHeightDp
         || getResources().getConfiguration().screenHeightDp < 680 || getResources().getConfiguration().fontScale > 1.2f;
@@ -394,14 +405,14 @@ public final class MainActivity extends FragmentActivity {
                 render();
               });
       t.setTag("bottom_nav_button");
-      GradientDrawable navFrame = bg(i == page ? surface : paper, 12);
-      navFrame.setStroke(dp(1), i == page ? line : Color.TRANSPARENT);
+      GradientDrawable navFrame = bg(i == (page==3?1:page) ? surface : paper, 12);
+      navFrame.setStroke(dp(1), i == (page==3?1:page) ? line : Color.TRANSPARENT);
       t.setBackground(navFrame);
-      t.setTextColor(i == page ? orange : muted);
+      t.setTextColor(i == (page==3?1:page) ? orange : muted);
       if (i < 2) {
         int resource = i == 0 ? R.drawable.ic_notification : R.drawable.ic_nav_vehicle_data_ref;
         android.graphics.drawable.Drawable navIcon = getDrawable(resource).mutate();
-        navIcon.setTint(i == page ? orange : muted);
+        navIcon.setTint(i == (page==3?1:page) ? orange : muted);
         navIcon.setBounds(0, 0, dp(compactNav ? 19 : 21), dp(compactNav ? 19 : 21));
         t.setCompoundDrawables(null, navIcon, null, null);
         t.setCompoundDrawablePadding(dp(2));
@@ -478,14 +489,12 @@ public final class MainActivity extends FragmentActivity {
                 toast(tr("请输入手机号和密码", "Enter phone number and password"));
                 return;
               }
-              ReferenceSignatureProvider ref = new ReferenceSignatureProvider(this);
+              ClientSignatureProvider ref = new ClientSignatureProvider(this);
               if (!ref.isReady()) {
                 info(
-                    tr("导入模板 APK", "Import reference APK"),
-                    tr(
-                        "请选择你提供的原模板 APK，完成一次性兼容配置后即可使用手机号和密码登录。",
-                        "Select your original reference APK once to configure account"
-                            + " compatibility, then sign in with your phone and password."));
+                    tr("安装包配置不完整", "Incomplete build"),
+                    tr("此验证构建未包含登录配置，请使用完整签名版。无需安装或导入其他APK。",
+                        "This verification build has no account client configuration. Install the complete signed version; no other APK is needed."));
                 return;
               }
               inputPassword = "";
@@ -499,7 +508,7 @@ public final class MainActivity extends FragmentActivity {
     gap(v, 12);
     v.addView(text(model.message, 13, muted, false));
     gap(v, 20);
-    v.addView(button(tr("导入模板 APK（仅首次）", "Import reference APK (once)"), this::importReference));
+    v.addView(text(tr("独立版本 · 无需其他 APK", "Standalone version · no other APK required"),12,muted,false));
     gap(v, 8);
     v.addView(
         text(
@@ -582,13 +591,14 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void onModelChanged() {
+    if(model.progressOnly&&page==3){TextView label=findViewById(android.R.id.content).findViewWithTag("status_update");if(label!=null)label.setText(dashboardStamp());}
     if(model.progressOnly&&page!=0||page==2&&model.hasSession())return;
     if(parkingDialog!=null&&(!model.hasSession()||model.selected==null||!java.util.Objects.equals(parkingVin,model.selected.vin)))dismissParking();
     if (dashboardReady && page == 0 && model.hasSession()) {
       for (Runnable binding : new java.util.ArrayList<>(dashboardBindings)) binding.run();
       if (controlRefresh != null)
         controlRefresh.setRefreshing(model.busy && model.activeAction.isEmpty());
-    } else render();
+    } else {View old=findViewById(android.R.id.content).findViewWithTag("status_scroll");if(old instanceof ScrollView)statusScrollY=((ScrollView)old).getScrollY();render();}
   }
 
   private TextView liveText(java.util.function.Supplier<String> value, int sp, int color, boolean heavy) {
@@ -695,13 +705,7 @@ public final class MainActivity extends FragmentActivity {
     parent.addView(section,new LinearLayout.LayoutParams(-1,h));
   }
 
-  private void chargingDialog() {
-    if (!ChargingVisibility.shouldShow(model.snapshot)) return;
-    LinearLayout panel = column(); panel.setPadding(dp(12),dp(4),dp(12),dp(4));
-    for (DisplayMetric metric : DisplayMetric.values()) if (ChargingVisibility.isChargingMetric(metric))
-      detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this)));
-    new HapticDialogBuilder(this).setTitle(tr("充电详情","Charging details")).setView(panel).setPositiveButton(tr("关闭","Close"),null).show();
-  }
+  private void chargingDialog(){openDataSection("data_charging");}
 
   private void buildVoLikeDashboard(boolean detailed) {
     android.content.res.Configuration config=getResources().getConfiguration();
@@ -1645,7 +1649,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout r = row();r.setTag("detail_row");
     r.setPadding(dp(12), dp(12), dp(12), dp(12));
     r.setBackground(bg(surface, 4));
-    TextView a = text(key, 14, muted, false), b = text(value, 14, ink, false);
+    TextView a = text(key, 14, muted, false), b = text(value==null||value.trim().isEmpty()?"--":value, 14, ink, false);
     b.setGravity(Gravity.RIGHT);
     r.addView(a, new LinearLayout.LayoutParams(0, -2, 1));
     r.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
@@ -1653,67 +1657,37 @@ public final class MainActivity extends FragmentActivity {
     gap(p, 3);
   }
 
-  private void detailMore(LinearLayout parent,String title,Runnable action) {
-    TextView more=button(title+"  ›",action);more.setTag("detail_more");more.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
-    GradientDrawable frame=bg(surface,nioSkin()?12:4);frame.setStroke(dp(1),line);more.setBackground(frame);parent.addView(more);gap(parent,8);
+  private void disclosure(LinearLayout parent,String key,String title,boolean initiallyOpen,java.util.function.Consumer<LinearLayout> fill){
+    LinearLayout frame=column();frame.setTag("disclosure_"+key);GradientDrawable outline=bg(surface,8);outline.setStroke(dp(1),line);frame.setBackground(outline);
+    LinearLayout header=row();header.setTag("disclosure_header_"+key);header.setPadding(dp(12),dp(6),dp(10),dp(6));header.setMinimumHeight(dp(48));header.setFocusable(true);
+    TextView label=text(title,14,ink,false);label.setSingleLine(true);label.setEllipsize(android.text.TextUtils.TruncateAt.END);header.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+    TextView arrow=text("",16,ink,false);arrow.setGravity(Gravity.CENTER);header.addView(arrow,new LinearLayout.LayoutParams(dp(26),Math.max(dp(32),textLineHeight(16)+dp(4))));frame.addView(header);
+    LinearLayout content=column();content.setTag("disclosure_content_"+key);content.setPadding(dp(8),0,dp(8),dp(8));frame.addView(content);final boolean[] built={false};
+    java.util.function.Consumer<Boolean> show=open->{if(open&&!built[0]){fill.accept(content);disableSystemHaptics(content);built[0]=true;}content.setVisibility(open?View.VISIBLE:View.GONE);arrow.setText(open?"⌄":"›");header.setContentDescription(title+tr(open?"，已展开，点击收起":"，已收起，点击展开",open?", expanded. Collapse":", collapsed. Expand"));};
+    show.accept(AppPreferences.visible(this,"expand_"+key,initiallyOpen));click(header,()->{boolean open=content.getVisibility()!=View.VISIBLE;AppPreferences.set(this,"expand_"+key,open?"on":"off");show.accept(open);});
+    parent.addView(frame,new LinearLayout.LayoutParams(-1,-2));gap(parent,8);
   }
-  private void detailDialog(String title,LinearLayout panel) {
-    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
-    new HapticDialogBuilder(this).setTitle(title).setView(scroll).setPositiveButton(tr("关闭","Close"),null).show();
-  }
-  private LinearLayout detailPanel() {LinearLayout panel=column();panel.setPadding(dp(12),dp(8),dp(12),dp(8));return panel;}
-  private void tripDialog() {
-    LinearLayout panel=detailPanel();VehicleSnapshot v=model.snapshot;if(v==null)return;
-    for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.TA_DISTANCE,DisplayMetric.TA_SPEED,DisplayMetric.TA_CONSUMPTION,DisplayMetric.TA_DURATION,
-        DisplayMetric.TM_DISTANCE,DisplayMetric.TM_SPEED,DisplayMetric.TM_CONSUMPTION,DisplayMetric.TM_DURATION,
-        DisplayMetric.SINCE_CHARGE_DISTANCE,DisplayMetric.SINCE_CHARGE_SPEED,DisplayMetric.SINCE_CHARGE_CONSUMPTION})
-      detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
-    panel.addView(text(tr("~ 表示估算。行驶时长由同次行程距离÷均速换算；TA 能耗仅在能量与距离来源可核对时显示。未上报或来源冲突为 --。",
-        "~ marks estimates. Trip time uses distance / mean speed from one report. TA energy requires corroborating energy and distance. Missing or conflicting data stays --."),12,muted,false));
-    detailDialog(tr("完整行程数据","All trip data"),panel);
-  }
-  private void airDetailsDialog() {
-    LinearLayout panel=detailPanel();VehicleSnapshot v=model.snapshot;if(v==null)return;
-    for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.TEMPERATURE,DisplayMetric.TARGET_TEMPERATURE,DisplayMetric.AQI,DisplayMetric.PM25})
-      detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
-    detailRow(panel,tr("空调剩余时间","Climate time left"),ClimateRuntime.detail(this,v,AppPreferences.get(this,"vehicle","")));
-    detailRow(panel,tr("空气数据更新","Air updated"),v.environment.airReportedAt>0?android.text.format.DateFormat.format("MM-dd HH:mm",v.environment.airReportedAt).toString():"--");
-    detailDialog(tr("空调与空气详情","Climate & air details"),panel);
-  }
-  private void details() {
-    LinearLayout panel=scrollBody();panel.addView(text(tr("车况详情","Vehicle details"),24,ink,false));
-    VehicleSnapshot v=model.snapshot;if(v==null){panel.addView(text(tr("暂无车辆数据，请刷新","No vehicle data. Refresh to connect."),14,muted,false));return;}
-    detailSection(panel,tr("电池与续航","Battery & range"));addBatterySummary(panel,false);
-    detailRow(panel,tr("车辆","Vehicle"),vehicleDisplayName(v));
-    detailRow(panel,tr("更新时间","Last update"),v.timestampMillis>0?android.text.format.DateFormat.format("MM-dd HH:mm",v.timestampMillis).toString():"--");
-    detailMore(panel,tr("车辆信息 · 年款 / VIN","Vehicle info · year / VIN"),this::vehicleInfoDialog);
-    detailSection(panel,tr("里程与行程","Distance & trips"));
-    for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.ODOMETER,DisplayMetric.TA_DISTANCE,DisplayMetric.TA_CONSUMPTION,DisplayMetric.TM_DISTANCE,DisplayMetric.TM_CONSUMPTION})
-      detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
-    detailMore(panel,tr("更多行程 · 均速 / 行驶时间 / 充电后","More trips · speed / time / since charge"),this::tripDialog);
-    if(ChargingVisibility.shouldShow(v)) {
-      detailSection(panel,tr("充电","Charging"));
-      for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.CHARGE_LIMIT,DisplayMetric.CHARGE_CONNECTION,DisplayMetric.CHARGE_POWER,DisplayMetric.CHARGE_CURRENT,DisplayMetric.CHARGE_ETA})
-        detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
-      detailMore(panel,tr("更多充电 · 电源状态","More charging · power status"),this::chargingDialog);
-    }
-    detailSection(panel,tr("车况","Vehicle status"));
-    detailRow(panel,tr("车门 / 车窗","Doors / windows"),status(v.doors)+" · "+status(v.windows));
-    detailRow(panel,tr("尾箱","Tailgate"),status(v.tailgate));
-    detailRow(panel,tr("12V 电瓶","12 V battery"),VehicleHealthSnapshot.label(v.health.lowVoltageBattery,AppPreferences.english(this)));
-    detailRow(panel,tr("玻璃水","Washer fluid"),VehicleHealthSnapshot.label(v.health.washerFluid,AppPreferences.english(this)));
-    if(showTires())detailRow(panel,tr("胎压告警","Tyre warning"),VehicleHealthSnapshot.label(v.health.tirePressure,AppPreferences.english(this)));
-    detailMore(panel,tr("车况详情","Vehicle status details"),this::vehicleStatusDialog);
-    detailSection(panel,tr("空调与空气","Climate & air"));
-    detailRow(panel,tr("空调","Climate"),status(v.climate));detailRow(panel,tr("空气净化","Air purification"),status(v.air));
-    for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.TEMPERATURE,DisplayMetric.AQI,DisplayMetric.PM25})
-      detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
-    detailMore(panel,tr("更多空气数据 · 目标 / 剩余时间","More climate · target / remaining time"),this::airDetailsDialog);
-    detailSection(panel,tr("保养","Service"));
-    for(DisplayMetric metric:new DisplayMetric[]{DisplayMetric.SERVICE_DAYS_LEFT,DisplayMetric.SERVICE_KM_LEFT,DisplayMetric.SERVICE_TIME_PERCENT,DisplayMetric.SERVICE_KM_PERCENT})
-      detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,v,true,AppPreferences.english(this)));
-    detailMore(panel,tr("车辆保养","Vehicle service"),this::maintenanceDialog);
-    panel.addView(button(tr("切换车辆","Select vehicle"),this::chooseVehicle));
+
+  private LinearLayout detailPanel(){LinearLayout p=column();p.setPadding(dp(12),dp(8),dp(12),dp(8));return p;}
+  private void openDataSection(String key){AppPreferences.set(this,"expand_"+key,"on");page=1;render();}
+  private void tripDialog(){openDataSection("data_trips");}
+  private void airDetailsDialog(){openDataSection("data_air");}
+  private void tripContents(LinearLayout panel){metricRows(panel,DisplayMetric.TA_DISTANCE,DisplayMetric.TA_SPEED,DisplayMetric.TA_CONSUMPTION,DisplayMetric.TA_DURATION,DisplayMetric.TM_DISTANCE,DisplayMetric.TM_SPEED,DisplayMetric.TM_CONSUMPTION,DisplayMetric.TM_DURATION,DisplayMetric.SINCE_CHARGE_DISTANCE,DisplayMetric.SINCE_CHARGE_SPEED,DisplayMetric.SINCE_CHARGE_CONSUMPTION);panel.addView(text(tr("~ 表示估算；行驶时长由同次行程距离÷均速换算。TA能耗仅在来源可核对时显示，缺失或冲突显示 --。","~ marks estimates; driving time uses trip distance / average speed. TA consumption requires corroborated sources; missing/conflicting values show --."),12,muted,false));}
+  private void airContents(LinearLayout panel){VehicleSnapshot v=model.snapshot;if(v==null)return;metricRows(panel,DisplayMetric.TEMPERATURE,DisplayMetric.TARGET_TEMPERATURE,DisplayMetric.AQI,DisplayMetric.PM25);detailRow(panel,tr("空调 / 净化","Climate / purification"),status(v.climate)+" / "+status(v.air));detailRow(panel,tr("空调剩余时间","Climate time left"),ClimateRuntime.detail(this,v,AppPreferences.get(this,"vehicle","")));detailRow(panel,tr("空气数据更新","Air updated"),v.environment.airReportedAt>0?android.text.format.DateFormat.format("MM-dd HH:mm",v.environment.airReportedAt).toString():"--");}
+  private void metricRows(LinearLayout panel,DisplayMetric... metrics){for(DisplayMetric metric:metrics)detailRow(panel,metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this)));}
+  private void details(){
+    LinearLayout panel=scrollBody();((ScrollView)panel.getParent()).setTag("data_scroll");VehicleSnapshot v=model.snapshot;
+    panel.addView(text(tr("车辆数据","Vehicle data"),24,ink,false));if(v==null){panel.addView(text(tr("暂无车况，请连接车辆后刷新。","No vehicle snapshot. Connect and refresh first."),14,muted,false));setting(panel,tr("刷新车辆","Refresh vehicle"),()->model.refreshUser(null));return;}
+    detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.CHARGE_LIMIT,DisplayMetric.SERVICE_CYCLE);
+    disclosure(panel,"data_health",tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),true,this::healthOverview);
+    disclosure(panel,"data_exterior",tr("车门 / 车窗 / 尾箱","Doors / windows / tailgate"),false,this::exteriorContents);
+    if(showTires())disclosure(panel,"data_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
+    disclosure(panel,"data_trips",tr("行程 · TA / TM / 充电后","Trips · TA / TM / since charge"),false,this::tripContents);
+    if(ChargingVisibility.shouldShow(v))disclosure(panel,"data_charging",tr("充电详情","Charging details"),false,p->{for(DisplayMetric metric:DisplayMetric.values())if(ChargingVisibility.isChargingMetric(metric)||metric==DisplayMetric.CHARGE_LIMIT)metricRows(p,metric);});
+    disclosure(panel,"data_air",tr("空调与空气质量","Climate and air quality"),false,this::airContents);
+    disclosure(panel,"data_service",tr("保养周期与原始读数","Service cycle and raw values"),false,this::serviceContents);
+    final int desired=dataScrollY;((ScrollView)panel.getParent()).post(()->((ScrollView)panel.getParent()).scrollTo(0,desired));
+    disclosure(panel,"data_identity",tr("车辆信息 · 型号 / 年款 / VIN","Vehicle info · model / year / VIN"),false,p->{io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo info=model.selected;detailRow(p,tr("车型","Model"),info==null?"--":info.modelName);detailRow(p,tr("年款","Year"),info==null?"--":info.modelYear);detailRow(p,"VIN",info==null?"--":info.vin);setting(p,tr("切换车辆","Select vehicle"),this::chooseVehicle);});
   }
 
   private void languageDialog() {
@@ -1779,237 +1753,62 @@ public final class MainActivity extends FragmentActivity {
         .setNegativeButton(tr("取消","Cancel"),null).show();
   }
 
-  private void settings() {
-    LinearLayout p = scrollBody();
-    p.addView(text(tr("设置", "Settings"), 24, ink, false));
-    gap(p, 20);
-    p.addView(button(tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this))));gap(p,8);
-    p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
-    gap(p, 8);
-    p.addView(button(tr("界面皮肤 · ", "UI skin · ") + UiSkin.label(this, UiSkin.get(this)), this::skinDialog));
-    gap(p, 8);    Switch simpleLabels=new Switch(this);
-    simpleLabels.setTag("volike_simple_labels");
-    simpleLabels.setText(tr("VoLike 简洁版：显示按钮文字","VoLike Simple: show control labels"));
-    simpleLabels.setTextColor(ink);
-    simpleLabels.setMinHeight(dp(48));
-    simpleLabels.setChecked(AppPreferences.visible(this,"volike_simple_labels",true));
-    simpleLabels.setOnCheckedChangeListener((v,on)->{
-      Haptics.tap(this);AppPreferences.set(this,"volike_simple_labels",on?"on":"off");render();
+  private void setting(LinearLayout parent,String title,Runnable action){TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);parent.addView(entry);gap(parent,6);}
+  private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
+    Switch toggle=new Switch(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(48));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
+    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);});parent.addView(toggle);
+  }
+  private void themeChoice(){new HapticDialogBuilder(this).setTitle(tr("日夜模式","Day / night mode")).setItems(new String[]{tr("跟随系统","System"),tr("浅色","Light"),tr("深色","Dark")},(d,w)->{AppPreferences.set(this,"theme",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);render();}).show();}
+  private void widgetFields(){String[] labels={"4×2 · 8","2×2 · 4","4×1 · 4","2×1 · 2","Data 4×4 · 8"};WidgetRenderer.Size[] sizes={WidgetRenderer.Size.LARGE,WidgetRenderer.Size.SQUARE,WidgetRenderer.Size.WIDE,WidgetRenderer.Size.MINI,WidgetRenderer.Size.DATA};new HapticDialogBuilder(this).setTitle(tr("Widget 尺寸与数据","Widget size and data")).setItems(labels,(d,w)->metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),WidgetRenderer.capacity(sizes[w]),WidgetRenderer.selectionDefaults(this,sizes[w]))).show();}
+  private void pseuChoice(){String[] keys={"battery","range","car","controls"};new HapticDialogBuilder(this).setTitle("PSeu").setSingleChoiceItems(new String[]{tr("电量优先","Battery first"),tr("续航优先","Range first"),tr("车辆图片","Vehicle image"),tr("扩展控制","Extra controls")},java.util.Arrays.asList(keys).indexOf(AppPreferences.get(this,"pseu_type","battery")),(d,w)->{AppPreferences.set(this,"pseu_type",keys[w]);WidgetRenderer.refreshAll(this);d.dismiss();}).show();}
+  private void residentSettings(LinearLayout p){
+    Switch keep=new Switch(this);keep.setTag("resident_toggle");keep.setText(tr("常驻车辆状态通知","Persistent vehicle notification"));keep.setTextColor(ink);keep.setMinHeight(dp(48));keep.setChecked(AppPreferences.enabled(this));keep.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);if(on&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATIONS);return;}setResident(on);});p.addView(keep);
+    p.addView(text(tr("静默显示电量、充电、空调/净化与数据更新时间。系统约每30分钟调度，省电限制可能延迟；锁屏隐藏详情。","Silent battery, charging, climate/air and update time. Android schedules about every 30 minutes; battery limits may delay it. Lock-screen details stay private."),12,muted,false));
+    setting(p,tr("后台与电池设置","Background and battery settings"),()->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+getPackageName()))));
+  }
+  private void signOut(){if(model.busy||model.commandPending){toast(tr("正在处理车辆操作，请稍后退出","A vehicle operation is pending. Sign out after it finishes."));return;}new HapticDialogBuilder(this).setMessage(tr("退出并清除本机登录会话？","Sign out and clear this phone's session?")).setPositiveButton(tr("退出","Sign out"),(d,w)->{inputPhone="";inputPassword="";model.logout();page=0;render();}).setNegativeButton(tr("取消","Cancel"),null).show();}
+  private void settings(){
+    LinearLayout root=scrollBody();((ScrollView)root.getParent()).setTag("settings_scroll");root.addView(text(tr("设置","Settings"),24,ink,false));root.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立版本","Standalone version"),12,muted,false));gap(root,16);
+    disclosure(root,"settings_appearance",tr("外观与交互","Appearance and interaction"),true,p->{
+      setting(p,tr("界面皮肤 · ","UI skin · ")+UiSkin.label(this,UiSkin.get(this)),this::skinDialog);
+      setting(p,tr("日夜模式 · 跟随系统 / 浅色 / 深色","Day/night · system / light / dark"),this::themeChoice);
+      setting(p,tr("程序语言 / Language","App language / 语言"),this::languageDialog);
+      setting(p,tr("字体大小 · 当前皮肤 / Widget","Font size · current skin / Widget"),this::fontDialog);
+      setting(p,tr("按键震动 · 开关与强度","Button haptics · switch and strength"),this::hapticsDialog);
+      settingToggle(p,"volike_simple_labels",tr("VoLike 简洁版显示按钮文字","VoLike Simple control labels"),true,false);
     });
-    p.addView(simpleLabels);
-    gap(p,8);
-    p.addView(button(tr("停车地图 · 手机定位权限","Parking map · phone location permission"),this::mapLocationDialog));gap(p,8);
-    p.addView(button(tr("字体大小 · 当前皮肤 / Widget", "Font size · current skin / Widget"),this::fontDialog));
-    gap(p,8);
-    p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));
-    gap(p, 8);
-    p.addView(button(
-        tr("车辆保养 · 自动读取", "Vehicle service · automatic"),
-        this::maintenanceDialog));
-    gap(p, 8);
-    p.addView(button(
-        tr("车辆控制页数据显示 · 最多 12 项", "Vehicle control data · up to 12"),
-        () -> metricDialog("home_metrics", 12, HOME_DEFAULTS)));
-    gap(p, 8);
-    p.addView(text(tr("车况按钮会在有保养数据时自动显示时间 / 里程剩余百分比与进度条。",
-        "The Status button automatically shows service time / distance percentages and bars when data is available."),12,muted,false));
-    gap(p,8);
-    Switch tireVisibility = new Switch(this);
-    tireVisibility.setTag("show_tire_status");
-    tireVisibility.setText(tr("显示胎压状态（含车况汇总）", "Show tyre status (including health summary)"));
-    tireVisibility.setTypeface(regular); tireVisibility.setTextColor(ink); tireVisibility.setMinHeight(dp(48));
-    tireVisibility.setChecked(showTires());
-    tireVisibility.setOnCheckedChangeListener((control, on) -> {
-      Haptics.tap(this); AppPreferences.set(this, "show_tire_status", on ? "on" : "off");
-      WidgetRenderer.refreshAll(this); render();
+    disclosure(root,"settings_home",tr("首页与车况数据","Home and vehicle data"),false,p->{
+      setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
+      settingToggle(p,"show_car",tr("车辆图","Vehicle image"),true,false);settingToggle(p,"show_charging",tr("充电状态（开始/充电时显示）","Charging status (while starting/charging)"),true,false);settingToggle(p,"show_update",tr("数据更新时间","Data update time"),true,false);
+      settingToggle(p,"show_tire_status",tr("显示胎压状态（含车况汇总）","Show tyre status (including summary)"),true,true);
+      settingToggle(p,"experimental_tire",tr("四轮iTPMS示意图（无未验证kPa）","Four-wheel iTPMS diagram (no unverified kPa)"),false,false);
+      setting(p,tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),this::vehicleStatusDialog);
+      setting(p,tr("保养周期 · 自动读取","Service cycle · automatic"),this::maintenanceDialog);
+      p.addView(text(tr("保养周期参考365天/30,000km，余量取较小值。完整读数在车况页展开查看。","Service ratio uses the lower of the 365-day / 30,000-km references. Expand the condition page for raw readings."),12,muted,false));
     });
-    p.addView(tireVisibility);
-    Switch experimentalTire = new Switch(this);
-    experimentalTire.setText(
-        tr("实验性 iTPMS 四轮状态（待修复）", "Experimental four-wheel iTPMS (pending fix)"));
-    experimentalTire.setTextColor(ink);
-    experimentalTire.setMinHeight(dp(46));
-    experimentalTire.setChecked(AppPreferences.visible(this, "experimental_tire", false));
-    experimentalTire.setOnCheckedChangeListener(
-        (control, on) -> {
-          Haptics.tap(this);
-          AppPreferences.set(this, "experimental_tire", on ? "on" : "off");
-          render();
-        });
-    p.addView(experimentalTire);
-    gap(p, 8);
-    p.addView(button(tr("按键震动 · 开关与强度", "Button haptics · switch and strength"), this::hapticsDialog));
-    gap(p, 8);
-    p.addView(button(tr("Widget 数据显示", "Widget data fields"), () -> {
-      String[] labels = {"4×2 · 最多 8", "2×2 · 最多 4", "4×1 · 最多 4", "2×1 · 最多 2", "Data 4×4 · 最多 8"};
-      WidgetRenderer.Size[] sizes = {WidgetRenderer.Size.LARGE, WidgetRenderer.Size.SQUARE,
-          WidgetRenderer.Size.WIDE, WidgetRenderer.Size.MINI, WidgetRenderer.Size.DATA};
-      new HapticDialogBuilder(this).setTitle(tr("选择组件尺寸与数据容量", "Widget size and field capacity"))
-          .setItems(labels, (d, w) -> metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),
-              WidgetRenderer.capacity(sizes[w]), WidgetRenderer.selectionDefaults(this,sizes[w]))).show();
-    }));
-    gap(p, 8);
-    p.addView(button(tr("手表皮肤 · ", "Watch skin · ") + watchSkinLabel()
-        + tr(" · 圆屏 / 方屏", " · round / square"), this::watchPreview));
-    gap(p, 8);    p.addView(button(tr("Widget 风格 · ","Widget design · ")+
-        VoLikeWidgetRenderer.label(this,VoLikeWidgetRenderer.style(this)),this::widgetDesignDialog));
-    gap(p,8);
-    p.addView(button(tr("PSeu 显示类型 · 电量 / 续航 / 车辆 / 控制","PSeu layout · battery / range / car / controls"),()->new HapticDialogBuilder(this).setTitle("PSeu").setSingleChoiceItems(new String[]{tr("电量优先","Battery first"),tr("续航优先","Range first"),tr("车辆图片","Vehicle image"),tr("扩展控制（小尺寸保留门锁/空调）","Extra controls (compact sizes keep lock/climate)")},java.util.Arrays.asList("battery","range","car","controls").indexOf(AppPreferences.get(this,"pseu_type","battery")),(d,w)->{AppPreferences.set(this,"pseu_type",new String[]{"battery","range","car","controls"}[w]);WidgetRenderer.refreshAll(this);d.dismiss();}).show()));gap(p,8);
-    Switch widgetBold=new Switch(this);widgetBold.setTag("widget_bold");widgetBold.setText(tr("Widget 加粗字体（所有风格）","Bold widget text (all styles)"));widgetBold.setTextColor(ink);widgetBold.setMinHeight(dp(48));widgetBold.setChecked(AppPreferences.visible(this,"widget_bold",false));
-    widgetBold.setOnCheckedChangeListener((button,on)->{Haptics.tap(this);AppPreferences.set(this,"widget_bold",on?"on":"off");WidgetRenderer.refreshAll(this);});p.addView(widgetBold);gap(p,8);
-    p.addView(button(tr("Widget 语言 · 中文 / English", "Widget language · 中文 / English"),
-        this::widgetLanguageDialog));
-    gap(p, 8);
-    p.addView(
-        button(
-            tr("日夜模式 · 全部皮肤通用", "Day / night · all skins"),
-            () ->
-                new HapticDialogBuilder(this)
-                    .setTitle(tr("日夜模式", "Day / night mode"))
-                    .setItems(
-                        new String[] {tr("跟随系统", "System"), tr("浅色", "Light"), tr("深色", "Dark")},
-                        (d, w) -> {
-                          AppPreferences.set(
-                              this, "theme", new String[] {"system", "light", "dark"}[w]);
-                          render();
-                        })
-                    .show()));
-    gap(p, 20);
-    p.addView(text(tr("主页面显示内容", "HOME INFORMATION"), 17, ink, true));
-    for (String[] field : new String[][] {
-        {"show_car", "车辆图", "Vehicle image", "on"},
-        {"show_charging", "充电状态", "Charging status", "on"},
-        {"show_update", "数据更新时间", "Data update time", "on"}}) {
-      Switch toggle = new Switch(this);
-      toggle.setText(tr(field[1], field[2]));
-      toggle.setTextColor(ink);
-      toggle.setMinHeight(dp(46));
-      toggle.setChecked(AppPreferences.visible(this, field[0], "on".equals(field[3])));
-      toggle.setHapticFeedbackEnabled(false);
-      toggle.setOnCheckedChangeListener((control, on) -> {
-        Haptics.tap(this); AppPreferences.set(this, field[0], on ? "on" : "off");
-      });
-      p.addView(toggle);
-    }
-    gap(p, 18);
-    p.addView(text(tr("桌面 Widget 外观", "WIDGET APPEARANCE"), 17, ink, true));
-    p.addView(button(tr("背景样式", "Background style"), () ->
-      new HapticDialogBuilder(this).setTitle(tr("背景样式", "Widget style"))
-        .setSingleChoiceItems(new String[]{tr("不透明", "Opaque"), tr("透明", "Transparent")},
-          "opaque".equals(AppPreferences.get(this, "widget_style", "transparent")) ? 0 : 1,
-          (dialog, index) -> {
-            AppPreferences.set(this, "widget_style", index == 0 ? "opaque" : "transparent");
-            WidgetRenderer.refreshAll(this);
-            dialog.dismiss();
-          }).show()));
-    p.addView(button(tr("Widget 文字颜色", "Widget text color"), () ->
-        new HapticDialogBuilder(this).setTitle(tr("Widget 文字颜色", "Widget text color"))
-          .setItems(new String[]{tr("跟随日夜模式", "Follow day/night"), tr("浅色文字", "Light text"), tr("深色文字", "Dark text")},
-            (dialog, which) -> {
-              AppPreferences.set(this, "widget_ink", new String[]{"system", "light", "dark"}[which]);
-              WidgetRenderer.refreshAll(this);
-            }).show()));
-    widgetSlider(p, tr("透明度", "Opacity"), "widget_opacity", 58);
-    widgetSlider(p, tr("磨砂玻璃程度（模拟）", "Frost intensity (simulated)"), "widget_frost", 28);
-    p.addView(text(tr("磨砂为渐变视觉模拟，不会实时模糊桌面壁纸。",
-        "Frost is a gradient simulation; Android widgets cannot live-blur wallpaper."),
-        12, muted, false));
-    gap(p, 20);
-    Switch keep = new Switch(this);
-    keep.setText(tr("常驻车辆状态通知", "Persistent vehicle notification"));
-    keep.setTextColor(ink);
-    keep.setTextSize(15);
-    keep.setMinHeight(dp(52));
-    keep.setChecked(AppPreferences.enabled(this));
-    keep.setOnCheckedChangeListener(
-        (b, on) -> {
-          Haptics.tap(this);
-          if (on
-              && Build.VERSION.SDK_INT >= 33
-              && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                  != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(
-                new String[] {Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATIONS);
-            return;
-          }
-          setResident(on);
-        });
-    p.addView(keep);
-    p.addView(
-        text(
-            tr(
-                "显示电量、充电、空调／净化和车辆数据更新时间。静默通知；系统约每 30 分钟刷新，省电限制可能延迟。锁屏隐藏详细内容。",
-                "Shows battery, charging, climate / air and data update time. Silent; Android"
-                    + " schedules updates about every 30 minutes. Battery restrictions may delay"
-                    + " updates. Details are hidden on the lock screen."),
-            12,
-            muted,
-            false));
-    gap(p, 12);
-    p.addView(
-        button(
-            tr("后台与电池设置", "Background and battery settings"),
-            () ->
-                startActivity(
-                    new Intent(
-                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        android.net.Uri.parse("package:" + getPackageName())))));
-    gap(p, 16);
-    p.addView(button(tr("导入模板 APK", "Import reference APK"), this::importReference));
-    gap(p, 8);
-    p.addView(
-        button(
-            tr("复制诊断日志", "Copy diagnostic log"),
-            () -> {
-              ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-              cm.setPrimaryClip(ClipData.newPlainText("Diagnostics", DiagnosticLog.export()));
-              toast(tr("已复制", "Copied"));
-            }));
-    gap(p, 8);
-    p.addView(
-        button(
-            tr("退出登录", "Sign out"),
-            () -> {
-              if (model.busy) {
-                toast(tr("请等待当前操作完成", "Wait for the current operation"));
-                return;
-              }
-              new HapticDialogBuilder(this)
-                  .setMessage(tr("退出并清除本机登录会话？", "Sign out and clear this phone's session?"))
-                  .setPositiveButton(
-                      tr("退出", "Sign out"),
-                      (d, w) -> {
-                        inputPhone = "";
-                        inputPassword = "";
-                        model.logout();
-                        page = 0;
-                        render();
-                      })
-                  .setNegativeButton(tr("取消", "Cancel"), null)
-                  .show();
-            }));
-    gap(p, 20);
-    p.addView(
-        text(
-            "v" + BuildConfig.VERSION_NAME + " · " + tr("独立开发的非官方客户端", "Independent unofficial client"),
-            12,
-            muted,
-            false));
-
+    disclosure(root,"settings_widget",tr("桌面 Widget","Home-screen widgets"),false,p->{
+      setting(p,tr("Widget 风格 · ","Widget design · ")+VoLikeWidgetRenderer.label(this,VoLikeWidgetRenderer.style(this)),this::widgetDesignDialog);
+      setting(p,tr("Widget 数据 · 按尺寸选择","Widget data · choose by size"),this::widgetFields);setting(p,tr("PSeu 显示类型","PSeu display type"),this::pseuChoice);
+      setting(p,tr("Widget 字号（独立设置）","Widget text size (independent)"),this::fontDialog);
+      settingToggle(p,"widget_bold",tr("Widget 加粗字体（所有风格）","Bold widget text (all styles)"),false,true);
+      setting(p,tr("Widget 语言 · 中文 / English","Widget language · 中文 / English"),this::widgetLanguageDialog);
+      setting(p,tr("背景样式 · 不透明 / 透明","Background · opaque / transparent"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 背景","Widget background")).setItems(new String[]{tr("不透明","Opaque"),tr("透明","Transparent")},(d,w)->{AppPreferences.set(this,"widget_style",w==0?"opaque":"transparent");WidgetRenderer.refreshAll(this);}).show());
+      setting(p,tr("Widget 文字颜色","Widget text color"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 文字颜色","Widget text color")).setItems(new String[]{tr("跟随日夜","Follow day/night"),tr("浅色文字","Light text"),tr("深色文字","Dark text")},(d,w)->{AppPreferences.set(this,"widget_ink",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);}).show());
+      widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);p.addView(text(tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."),11,muted,false));
+    });
+    disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("停车地图 · 手机定位权限","Parking map · phone location permission"),this::mapLocationDialog);p.addView(text(tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."),12,muted,false));});
+    disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,this::residentSettings);
+    disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);p.addView(text(tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."),12,muted,false));});
+    disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
+      p.addView(text(new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."),12,muted,false));
+      setting(p,tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this)));
+      setting(p,tr("复制诊断日志","Copy diagnostic log"),()->{ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);cm.setPrimaryClip(ClipData.newPlainText("Diagnostics",DiagnosticLog.export()));toast(tr("已复制","Copied"));});
+      setting(p,tr("退出登录","Sign out"),this::signOut);p.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立开发的非官方客户端","Independent unofficial client"),12,muted,false));
+    });
+    final int desired=settingsScrollY;((ScrollView)root.getParent()).post(()->((ScrollView)root.getParent()).scrollTo(0,desired));
   }
 
-  private void maintenanceDialog() {
-    VehicleSnapshot v=model.snapshot;LinearLayout panel=detailPanel();
-    detailRow(panel,tr("剩余保养里程","Service distance remaining"),ServiceReading.number(ServiceReading.km(this,v)," km"));
-    detailRow(panel,tr("剩余保养天数","Service days remaining"),ServiceReading.number(ServiceReading.days(this,v),tr(" 天"," d")));
-    detailRow(panel,tr("剩余保养工时","Service engine hours remaining"),ServiceReading.number(v==null?null:v.health.serviceHoursLeft," h"));
-    String stamp=v==null||v.health.reportedAt<=0?"--":android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",v.health.reportedAt).toString();
-    detailRow(panel,tr("车辆上报时间","Vehicle report time"),stamp);
-    panel.addView(text(tr("剩余值直接来自车辆，无需填写上次保养记录；未上报显示 --。百分比仅按365天/30,000 km参考周期估算，不是车辆上报的寿命百分比。",
-        "Remaining values come directly from the vehicle; no manual service record is needed. Missing reports show --. Percentages use a 365-day / 30,000-km reference, not a vehicle-reported life percentage."),12,muted,false));
-    new HapticDialogBuilder(this).setTitle(tr("车辆保养","Vehicle service")).setView(panel)
-        .setPositiveButton(tr("刷新车况","Refresh vehicle"),(d,w)->model.refreshUser(null)).setNegativeButton(tr("关闭","Close"),null).show();
-  }
+  private void maintenanceDialog(){openStatusSection("status_service");}
 
   private void widgetDesignDialog() {
     String[] options={VoLikeWidgetRenderer.CLASSIC,VoLikeWidgetRenderer.SIMPLE,
@@ -2126,77 +1925,60 @@ public final class MainActivity extends FragmentActivity {
         .setPositiveButton(tr("关闭","Close"),null).show();
   }
 
-  private void vehicleStatusDialog() {
-    VehicleSnapshot v=model.snapshot;if(v==null)return;
-    boolean english=AppPreferences.english(this);LinearLayout panel=detailPanel();
-    detailRow(panel,tr("车况","Status"),VehicleCondition.summary(v,english,showTires()));
-    detailSection(panel,tr("保养进度","Service progress"));
-    detailRow(panel,tr("保养状态","Maintenance"),VehicleHealthSnapshot.label(v.health.maintenance,english));
-    detailRow(panel,tr("剩余天数","Days left"),ServiceReading.number(ServiceReading.days(this,v)," d"));
-    detailRow(panel,tr("剩余里程","Distance left"),ServiceReading.number(ServiceReading.km(this,v)," km"));
-    serviceProgress(panel,tr("时间剩余","Time remaining"),ServiceReading.timePercent(this,v));
-    serviceProgress(panel,tr("里程剩余","Distance remaining"),ServiceReading.distancePercent(this,v));
-    detailSection(panel,tr("车辆检查","Vehicle checks"));
-    detailRow(panel,tr("12V 电瓶","12 V battery"),VehicleHealthSnapshot.label(v.health.lowVoltageBattery,english));
-    detailMore(panel,tr("雨刮液 · ","Washer fluid · ")+VehicleHealthSnapshot.label(v.health.washerFluid,english),this::healthMoreDialog);
-    if(showTires())detailRow(panel,tr("胎压告警","Tyre warning"),VehicleHealthSnapshot.label(v.health.tirePressure,english));
-    detailMore(panel,tr("液位 / 灯光 / 更多保养数据","Fluids / lights / more service data"),this::healthMoreDialog);
-    detailRow(panel,tr("门 / 窗 / 尾箱","Doors / windows / tailgate"),status(v.doors)+" · "+status(v.windows)+" · "+status(v.tailgate));
-    detailMore(panel,tr("四门 / 四窗位置状态","Door & window positions"),this::exteriorDialog);
-    if(showTires()&&AppPreferences.visible(this,"experimental_tire",false))detailMore(panel,tr("四轮 iTPMS · 实验性","Four-wheel iTPMS · experimental"),this::tireDialog);
-    else if(showTires())panel.addView(text(tr("四轮胎压详情默认隐藏，可在设置中开启实验性视图。","Four-wheel tyre details are hidden by default; enable the experimental view in Settings."),11,muted,false));
-    panel.addView(text(tr("车况汇总只代表已上报项目；12V 与玻璃水是告警状态，不是电压或液位读数。保养百分比按参考周期估算。",
-        "Status covers reported checks only. 12 V and washer fluid are warning states, not measured levels. Service percentages use the reference cycle."),12,muted,false));
-    detailDialog(tr("车况","Vehicle status"),panel);
+  private void vehicleStatusDialog(){if(page!=3){statusReturnPage=page;statusScrollY=0;}page=3;render();}
+  private void openStatusSection(String key){AppPreferences.set(this,"expand_"+key,"on");vehicleStatusDialog();ScrollView scroll=findViewById(android.R.id.content).findViewWithTag("status_scroll");View section=findViewById(android.R.id.content).findViewWithTag("disclosure_"+key);if(scroll!=null&&section!=null)scroll.post(()->scroll.smoothScrollTo(0,section.getTop()));}
+  private static final class HealthRow {
+    final String label,value;final boolean reported,warning;HealthRow(String l,String v,boolean r,boolean w){label=l;value=v;reported=r;warning=w;}
   }
-
-  private void healthMoreDialog() {
-    VehicleSnapshot v=model.snapshot;if(v==null)return;boolean en=AppPreferences.english(this);LinearLayout panel=detailPanel();
-    for(Object[] row:new Object[][]{{tr("制动液","Brake fluid"),v.health.brakeFluid},{tr("冷却液","Coolant"),v.health.coolant},
-        {tr("机油","Oil"),v.health.oil},{tr("雨刮液","Washer fluid"),v.health.washerFluid},{tr("外部灯光","Exterior lights"),v.health.exteriorLights}})
-      detailRow(panel,(String)row[0],VehicleHealthSnapshot.label((Integer)row[1],en));
-    detailSection(panel,tr("保养剩余（车辆上报）","Service remaining (vehicle report)"));
-    detailRow(panel,tr("剩余工时","Engine hours left"),ServiceReading.number(v.health.serviceHoursLeft," h"));
-    detailRow(panel,tr("剩余天数","Days left"),ServiceReading.number(v.health.serviceDaysLeft," d"));
-    detailRow(panel,tr("剩余里程","Distance left"),ServiceReading.number(v.health.serviceKmLeft," km"));
-    serviceProgress(panel,tr("剩余时间比例（估算）","Time remaining (estimated)"),ServiceReading.timePercent(this,v));
-    serviceProgress(panel,tr("剩余里程比例（估算）","Distance remaining (estimated)"),ServiceReading.distancePercent(this,v));
-    panel.addView(text(tr("百分比按参考周期 ","Percentages use reference ")+ServiceReading.REFERENCE_DAYS+tr(" 天 / "," d / ")
-        +ServiceReading.REFERENCE_KM+" km"+tr(" 周期估算，不是车辆直接上报的百分比。缺失或不适用的项目显示 --。机油未上报不代表故障，纯电车型可能不适用。",
-        " cycles, not a vehicle-reported percentage. Unavailable items show --. Missing oil data does not imply a fault; it may not apply to an EV."),12,muted,false));
-    detailMore(panel,tr("车辆保养详情","Vehicle service details"),this::maintenanceDialog);
-    detailDialog(tr("完整车况","Full vehicle status"),panel);
+  private void healthState(java.util.List<HealthRow> rows,String label,int state,boolean en){rows.add(new HealthRow(label,VehicleHealthSnapshot.label(state,en),state!=VehicleHealthSnapshot.UNKNOWN,state==VehicleHealthSnapshot.WARNING));}
+  private java.util.List<HealthRow> healthRows(VehicleSnapshot v){
+    java.util.List<HealthRow> rows=new ArrayList<>();if(v==null)return rows;boolean en=AppPreferences.english(this);VehicleHealthSnapshot h=v.health;
+    healthState(rows,tr("12V 电池","12 V battery"),h.lowVoltageBattery,en);healthState(rows,tr("制动液","Brake fluid"),h.brakeFluid,en);
+    healthState(rows,tr("冷却液","Coolant"),h.coolant,en);healthState(rows,tr("玻璃水","Washer fluid"),h.washerFluid,en);
+    healthState(rows,tr("外部灯光","Exterior lights"),h.exteriorLights,en);healthState(rows,tr("保养状态","Maintenance"),h.maintenance,en);
+    if(showTires()){if(h.tirePressure==VehicleHealthSnapshot.UNKNOWN&&v.tires.hasAnyReport())rows.add(new HealthRow(tr("胎压告警","Tyre warning"),v.tires.hasProblem()?tr("需检查","Check"):tr("部分已上报","Partial report"),true,v.tires.hasProblem()));else healthState(rows,tr("胎压告警","Tyre warning"),h.tirePressure,en);}healthState(rows,tr("机油（适用时）","Oil (if applicable)"),h.oil,en);
+    rows.sort((x,y)->Boolean.compare(y.warning,x.warning));return rows;
   }
+  private void healthRow(LinearLayout panel,HealthRow row){detailRow(panel,row.label,row.reported?row.value:"--");View view=panel.getChildAt(panel.getChildCount()-2);view.setTag("health_row_"+row.label);view.setContentDescription(row.label+" · "+(row.reported?row.value:tr("未上报","Not reported")));if(row.warning&&view instanceof ViewGroup){TextView value=(TextView)((ViewGroup)view).getChildAt(1);value.setTextColor(accentText());}}
+  private void healthOverview(LinearLayout panel){
+    java.util.List<HealthRow> known=new ArrayList<>(),missing=new ArrayList<>();for(HealthRow row:healthRows(model.snapshot))(row.reported?known:missing).add(row);
+    if(known.isEmpty())panel.addView(text(tr("暂无已上报的检查项目，请刷新车辆。","No reported checks yet. Refresh the vehicle."),13,muted,false));
+    for(int i=0;i<Math.min(5,known.size());i++)healthRow(panel,known.get(i));
+    if(known.size()>5)disclosure(panel,"status_more_reported",tr("其他已上报项目","More reported checks")+" · "+(known.size()-5),false,p->{for(int i=5;i<known.size();i++)healthRow(p,known.get(i));});
+    if(!missing.isEmpty())disclosure(panel,"status_missing",tr("未上报 / 不适用项目","Not reported / not applicable")+" · "+missing.size(),false,p->{for(HealthRow row:missing)healthRow(p,row);});
+    panel.addView(text(tr("12V、制动液等为告警状态，不是电压或液位测量。未上报不代表故障。","12 V, brake fluid and similar checks are warning states, not measured voltage or fluid levels. A missing report does not imply a fault."),11,muted,false));
+  }
+  private void serviceContents(LinearLayout panel){VehicleSnapshot v=model.snapshot;
+    detailRow(panel,tr("保养周期剩余（参考）","Service cycle remaining (reference)"),ServiceReading.number(ServiceReading.cyclePercent(this,v),"%"));
+    detailRow(panel,tr("剩余天数","Days left"),ServiceReading.number(ServiceReading.days(this,v)," d"));detailRow(panel,tr("剩余里程","Distance left"),ServiceReading.number(ServiceReading.km(this,v)," km"));
+    detailRow(panel,tr("剩余工时","Engine hours left"),ServiceReading.number(v==null?null:v.health.serviceHoursLeft," h"));
+    detailRow(panel,tr("车辆上报时间","Vehicle report time"),v==null||v.health.reportedAt<=0?"--":android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",v.health.reportedAt).toString());
+    serviceProgress(panel,tr("时间剩余（参考）","Time remaining (reference)"),ServiceReading.timePercent(this,v));serviceProgress(panel,tr("里程剩余（参考）","Distance remaining (reference)"),ServiceReading.distancePercent(this,v));
+    panel.addView(text(tr("余量取时间与里程参考比例的较小值；参考365天 / 30,000km，不是后台原生寿命百分比。","Remaining ratio uses the lower of the time/distance references: 365 days / 30,000 km. It is not a native vehicle life percentage."),12,muted,false));
+  }
+  private void exteriorContents(LinearLayout panel){VehicleSnapshot v=model.snapshot;if(v==null){panel.addView(text(tr("暂无门窗数据","No exterior data"),13,muted,false));return;}
+    panel.addView(new ExteriorView(this,v),new LinearLayout.LayoutParams(-1,dp(320)));panel.addView(text(tr("橙色 / ! 表示未关闭；-- 表示未上报。","Orange / ! means open or ajar; -- means not reported."),12,muted,false));
+  }
+  private void tyreContents(LinearLayout panel){VehicleSnapshot v=model.snapshot;if(v==null)return;boolean en=AppPreferences.english(this);String[] names=en?new String[]{"Front left","Front right","Rear left","Rear right"}:new String[]{"左前","右前","左后","右后"};for(int i=0;i<4;i++)detailRow(panel,names[i],v.tires.warning(i)==TireSnapshot.UNKNOWN?"--":v.tires.label(i,en));if(AppPreferences.visible(this,"experimental_tire",false))panel.addView(new TirePressureView(this,v.tires),new LinearLayout.LayoutParams(-1,dp(320)));panel.addView(text(tr("四轮以iTPMS上报状态显示；示意图可在设置开启，未验证的kPa数值不显示。","Each wheel uses reported iTPMS status. Enable the diagram in Settings; unverified kPa values are not shown."),12,muted,false));}
+  private void vehicleStatusPage(){
+    LinearLayout panel=scrollBody();ScrollView scroll=(ScrollView)panel.getParent();scroll.setTag("status_scroll");
+    panel.addView(text(tr("车辆状况","Vehicle condition"),24,ink,true));panel.addView(text(VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()),16,VehicleCondition.problem(model.snapshot,showTires())?accentText():ink,false));
+    TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!model.busy&&model.hasSession());panel.addView(refresh);gap(panel,12);
+    healthOverview(panel);
+    disclosure(panel,"status_service",tr("保养周期与原始上报值","Service cycle and reported values"),false,this::serviceContents);
+    disclosure(panel,"status_exterior",tr("车门 / 车窗 / 尾箱位置状态","Doors / windows / tailgate positions")+(model.snapshot!=null&&ExteriorView.hasOpening(model.snapshot)?" !":""),false,this::exteriorContents);
+    if(showTires())disclosure(panel,"status_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
+    final int desired=statusScrollY;scroll.post(()->scroll.scrollTo(0,desired));
+  }
+  private void healthMoreDialog(){vehicleStatusDialog();}
   private void serviceProgress(LinearLayout panel,String label,Integer value) {
     detailRow(panel,label,ServiceReading.number(value,"%"));ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
     styleViProgress(bar);bar.setTag("service_progress_bar");bar.setMax(100);bar.setProgress(value==null?0:value);bar.setVisibility(value==null?View.GONE:View.VISIBLE);
     panel.addView(bar,new LinearLayout.LayoutParams(-1,dp(4)));gap(panel,7);
   }
 
-  private void tireDialog() {
-    VehicleSnapshot v = model.snapshot;
-    if (v == null) return;
-    LinearLayout panel = column(); panel.setPadding(dp(16), dp(8), dp(16), dp(8));
-    panel.addView(new TirePressureView(this, v.tires), new LinearLayout.LayoutParams(-1,
-        dp(Math.min(380, Math.max(280, getResources().getConfiguration().screenHeightDp - 230)))));
-    panel.addView(text(tr(
-        "橙色和 ! 表示该轮胎需要检查。本页按 iTPMS 告警状态展示，不显示未验证的具体 kPa。",
-        "Orange / ! means that tyre needs attention. This view follows iTPMS warning state and does not show unverified kPa."),
-        12, muted, false));
-    new HapticDialogBuilder(this).setTitle(tr("iTPMS 四轮状态 · 实验性", "Four-wheel iTPMS · experimental"))
-        .setView(panel).setPositiveButton(tr("关闭", "Close"), null).show();
-  }
-
-  private void exteriorDialog() {
-    VehicleSnapshot v = model.snapshot;
-    if (v == null) return;
-    LinearLayout panel = column(); panel.setPadding(dp(16), dp(8), dp(16), dp(8));
-    panel.addView(new ExteriorView(this, v), new LinearLayout.LayoutParams(-1,
-        dp(Math.min(380, Math.max(280, getResources().getConfiguration().screenHeightDp - 230)))));
-    panel.addView(text(tr("橙色 / ! 表示未关闭；-- 表示状态未知。", "Orange / ! means open or ajar; -- means unknown."), 12, muted, false));
-    new HapticDialogBuilder(this).setTitle(tr("车门与车窗", "Doors and windows"))
-        .setView(panel).setPositiveButton(tr("关闭", "Close"), null).show();
-  }
+  private void tireDialog(){openStatusSection("status_tyres");}
+  private void exteriorDialog(){openStatusSection("status_exterior");}
 
   private SeekBar campSlider(LinearLayout parent, String label, int min, int max, int initial,
       String key, java.util.function.IntConsumer changed) {
@@ -2332,34 +2114,6 @@ public final class MainActivity extends FragmentActivity {
     }
     if (r == NOTIFICATIONS) {
       setResident(g.length > 0 && g[0] == PackageManager.PERMISSION_GRANTED);
-    }
-  }
-
-  private void importReference() {
-    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-    i.setType("*/*");
-    i.addCategory(Intent.CATEGORY_OPENABLE);
-    startActivityForResult(i, PICK_APK);
-  }
-
-  @Override
-  protected void onActivityResult(int r, int result, Intent data) {
-    super.onActivityResult(r, result, data);
-    if (r == PICK_APK && result == RESULT_OK && data != null && data.getData() != null) {
-      final android.net.Uri uri = data.getData();
-      toast(tr("正在验证模板…", "Verifying reference…"));
-      new Thread(
-              () -> {
-                try {
-                  new ReferenceSignatureProvider(this).importApk(uri);
-                  runOnUiThread(() -> toast(tr("导入完成，可以登录", "Imported. Ready to sign in")));
-                } catch (Exception e) {
-                  runOnUiThread(
-                      () -> info(tr("导入失败", "Import failed"), VehicleCoordinator.safe(e)));
-                }
-              },
-              "reference-import")
-          .start();
     }
   }
 

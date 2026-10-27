@@ -59,3 +59,7 @@ print('PASS: v0.8.3 UI, native widgets, location opt-in and icon specification i
 assert (root/"knowledge/29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md").is_file()
 assert (root/"docs/Psa_Icon_Design_Specification_v2.md").is_file()
 print("PASS: v0.8.4 target SoC evidence, consent, service cycle and four readback slots indexed")
+
+assert (root/"knowledge/30_V085_INLINE_CONDITION_STANDALONE.md").is_file()
+assert (root/"docs/Psa_Standalone_Build.md").is_file()
+print("PASS: v0.8.5 inline condition, settings groups and independent package boundaries indexed")

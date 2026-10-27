@@ -1,14 +1,20 @@
+当前交付说明：[v0.8.5](docs/Psa_v085_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
+
 # PsAssistant for Android
 
-当前版本：**v0.8.4-beta1**（versionCode 85）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.5-beta1**（versionCode 86）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
-Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
+Android应用统一使用用户确认的黑白车辆线框图标，启动器保留遮罩安全区，通知栏用透明单色图形。昼夜仅换色；图形与规范见[图标与使用约定](branding/android/README.md)。
 
-支持中国区手机号/密码登录。首次使用需要导入已验证的原模板 APK，或在本机安装匹配样本；兼容参数与会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
+支持中国区手机号/密码登录。完整签名包已内置构建配置，不需要安装或导入其他APK；账号会话使用Android Keystore加密保存，密码不保存。公开CI缺私有配置时仅为开发验证包。Global账号登录尚未实现。
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
 
-## v0.8.4 当前功能增量
+## v0.8.5 当前功能增量
+
+车况按钮统一进入页内展开详情，异常/已报告12V及制动液等优先；设置分为7组并保留偏好。独立安装移除其他APK探测与导入，交付包已内置客户端配置，手机号/密码、会话加密和生物验证不变。
+
+## v0.8.4 历史功能增量
 
 [完整更新说明](docs/Psa_v084_Update.md)：确认的黑白车辆图标/系统通知、车况露营无icon等大按钮、30000km与合并保养周期、独立只读充电上限、首次勾选协议、寻车、单行停车点、5/10/15/20秒回读及等待进度。见[图标规范v2](docs/Psa_Icon_Design_Specification_v2.md)及[KB29](knowledge/29_V084_ICONS_SERVICE_TARGETSOC_READBACK.md)。街道逆地理编码仍需正式API；当前免Key地图不伪造地址。
 
@@ -19,7 +25,7 @@ Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩
 - 六套皮肤共用精简的免Key高德网页；可选允许地图使用手机前台位置，默认关闭，不申请后台定位。
 - 所有Widget改为原生文字/按钮与等比车辆图；新增PSeu、电量/续航/车辆/扩展控制类型、自选数据、统一加粗开关及独立字号。支持五类尺寸和主机精确尺寸变化。
 
-以下版本章节保留历史记录，和当前增量冲突时以v0.8.3为准。
+以下版本章节保留历史记录，和当前增量冲突时以v0.8.5及KB30为准。
 
 ## v0.7.9 beta2 UI 优化
 
@@ -84,7 +90,7 @@ Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩
 - [v0.6.2 界面、直接验证与延迟回读说明](docs/Psa_v062_UI_Update.md)
 - [本轮字段核对、使用方式、验证边界与待确认优化方案](docs/Psa_v060_Parity_and_Review.md)
 - [Psa VI/UI Design Specification v5](docs/Psa_VI_UI_Design_Specification_EN_v5_Optimized.md)
-- [初次导入、指纹与通知说明](docs/ANDROID_V04.md)
+- [历史v0.4使用说明（导入步骤已弃用）](docs/ANDROID_V04.md)
 - [知识库历史索引](knowledge/INDEX.md)（历史阶段状态以各文件日期为准）
 - [China / Global 接口来源比较](docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md)
 

@@ -155,6 +155,7 @@ public final class WidgetRenderer {
         views.setInt(ids[i], "setMaxLines", pseu&&i==0?1:plan.stacked ? 2 : 1);
         views.setTextColor(ids[i], ink);
         widgetText(views,c,ids[i], pseu&&i==0?primaryText(c,metric,s,en,plan,font):metricText(c, metric, s, en, plan, ink, secondary, accentText,font));
+        if(metric==DisplayMetric.VEHICLE_STATUS)views.setOnClickPendingIntent(ids[i],pending(c,id,size,"status"));
         views.setContentDescription(ids[i], metric.label(en) + " · " + metricValue(c, metric, s, true, en));
       }
     }

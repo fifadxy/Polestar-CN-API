@@ -25,11 +25,11 @@ assert 'class MainActivity' in all_java
 assert 'WidgetRenderer.update' in all_java
 assert 'class VehicleWidgetProvider' in all_java
 assert 'class CompactWidgetProvider' in all_java
-reference=(main/'java/io/github/polestarcn/companion/auth/ReferenceSignatureProvider.java').read_text()
-assert 'app.c3garage.companion' in reference  # only used to locate the user-installed reference APK
-other_java='\n'.join(p.read_text() for p in java if p.name != 'ReferenceSignatureProvider.java')
-assert 'app.c3garage.companion' not in other_java
-assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'fixed compatibility signing material must not be committed'
+client=(main/'java/io/github/polestarcn/companion/auth/ClientSignatureProvider.java').read_text()
+assert 'client-signing.bin' in client and 'getInstalledPackages' not in client
+assert 'app.c3garage.companion' not in all_java
+assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'private client material must not be committed'
+assert 'ACTION_OPEN_DOCUMENT' not in (main/'java/io/github/polestarcn/companion/MainActivity.java').read_text()
 assert 'ChinaLiveActivity' in manifest
 assert 'grpc-okhttp:1.68.2' in gradle
 version = re.search(r"versionName\s+'([^']+)'", gradle)

@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Bundle current source for Android development
         run: |
-          tar --exclude=.git -czf psa-source.tar.gz .
+          tar --exclude=.git --exclude=psa-source.tar.gz -czf psa-source.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
           name: psa-v085-source

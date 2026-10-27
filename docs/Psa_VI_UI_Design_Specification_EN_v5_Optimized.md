@@ -271,6 +271,15 @@ Proposed content allocation on a 360 × 780 dp artboard: system+header **~8%**, 
 
 Google Play screenshots visually suggest a **five-slot lower navigation**, but the screenshots do not prove each screen has precisely the same labels, semantics or order in production. The five domains in the PDF are a **conceptual IA map**, not asserted official tab names. Match actual app captures before coding tab identity.
 
+**2026-10-27 project reference mapping from the user-supplied Polestar China 4.25.0 screenshot:** the **second icon from the left** in the captured lower navigation is adopted as the PsAssistant **Vehicle Control / 车控** tab reference; the **third icon from the left** is adopted as the PsAssistant **Vehicle Data / 车辆数据** tab reference. These are screenshot-derived project reference traces, not claimed original Polestar SVG masters. Preserve their apparent proportions and visual weight instead of substituting unrelated Material symbols.
+
+Implementation assets:
+- `R.drawable.ic_nav_vehicle_control_ref` → Vehicle Control / 车控.
+- `R.drawable.ic_nav_vehicle_data_ref` → Vehicle Data / 车辆数据.
+- Artwork box: **19–21 dp** inside the current bottom-navigation button depending on compact layout; minimum touch target remains **≥48 × 48 dp**.
+- Inactive: use the navigation muted semantic color. Active: use the current PsAssistant active accent; do not alter the icon geometry between states.
+- Keep icon + label vertically centered; compact layouts may reduce artwork size but must not distort aspect ratio.
+
 ---
 
 ## 8. Iconography specification
@@ -289,7 +298,7 @@ Line icons are thin, functional, readable without colorful pictorial treatments.
 
 ### 8.3 Suggested icon inventory [C]
 
-`vehicle`, `doorsLocked`, `doorsUnlocked`, `climateFan`, `charge`, `battery`, `location`, `timer`, `account`, `software`, `vehicleSettings`, `carWindow`, `lights`, `horn`, `service`, `arrowExternal`, `refresh`, `close`, `chevron`, `more`.
+`vehicleControlReference`, `vehicleDataReference`, `vehicle`, `doorsLocked`, `doorsUnlocked`, `climateFan`, `charge`, `battery`, `location`, `timer`, `account`, `software`, `vehicleSettings`, `carWindow`, `lights`, `horn`, `service`, `arrowExternal`, `refresh`, `close`, `chevron`, `more`.
 
 **Do not confuse a design set with guaranteed supported features.** A model may lack windows, climate target-setting, or trunk/flash actions. Functional icons must be hidden/disabled according to a verified capability map, not merely because the pictogram exists.
 

@@ -1,0 +1,95 @@
+name: Digital Key Emulator Lab
+
+on:
+  push:
+    branches:
+      - research/polestar2-digital-key-pak-20261027
+    paths:
+      - '.github/workflows/digital-key-emulator.yml'
+      - 'digital-key-research/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v6
+
+      - name: Host virtualization diagnostics
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p digital-key-research/runtime
+          {
+            uname -a
+            lscpu
+            ls -l /dev/kvm || true
+            id
+          } | tee digital-key-research/runtime/host.txt
+
+      - name: Enable KVM permissions when available
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm || true
+            sudo chmod 666 /dev/kvm || true
+          fi
+
+      - name: Boot Android 14 Google APIs emulator and verify ADB/root
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            set -euxo pipefail
+            OUT=digital-key-research/runtime/emulator.txt
+            adb wait-for-device
+            {
+              echo '=== BEFORE ADB ROOT ==='
+              adb shell id
+              adb shell getprop ro.build.fingerprint
+              adb shell getprop ro.build.type
+              adb shell getprop ro.product.cpu.abilist
+              adb shell getprop ro.boot.verifiedbootstate || true
+              echo '=== FEATURES ==='
+              adb shell pm list features | grep -Ei 'bluetooth|location|keystore|hardware' | sort
+              echo '=== ADB ROOT ==='
+              adb root || true
+            } | tee "$OUT"
+            sleep 2
+            adb wait-for-device
+            {
+              echo '=== AFTER ADB ROOT ==='
+              adb shell id
+              adb shell whoami
+              echo '=== SELINUX ==='
+              adb shell getenforce || true
+              echo '=== BLUETOOTH SERVICE ==='
+              adb shell dumpsys bluetooth_manager | sed -n '1,100p' || true
+              echo '=== KEYSTORE SERVICE ==='
+              adb shell service list | grep -Ei 'keystore|keymint|strongbox' || true
+            } | tee -a "$OUT"
+
+      - name: Run non-operational digital-key gate tests
+        shell: bash
+        run: sh digital-key-research/scripts/run_lab_tests.sh | tee digital-key-research/runtime/lab.txt
+
+      - name: Upload emulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polestar-digital-key-emulator-diagnostics
+          path: digital-key-research/runtime/
+          if-no-files-found: warn

@@ -828,6 +828,26 @@ public final class MainActivity extends FragmentActivity {
     return stage;
   }
 
+  private CharSequence voTimedLabel(String title,String control,boolean active) {
+    if(!active||!("climate".equals(control)||"air".equals(control)))return title;
+    String remaining;
+    if("climate".equals(control)){
+      remaining=ClimateRuntime.shortLabel(this,model.snapshot,AppPreferences.get(this,"vehicle",""),AppPreferences.english(this))
+          .replace("分钟","分").replace("小时","时").replace(" min","m").replace(" h ","h");
+      if("运行中".equals(remaining)||"Running".equals(remaining))remaining=tr("时间 --","Time --");
+      else if("待更新".equals(remaining)||"Check status".equals(remaining))remaining=tr("待更新","Refresh");
+      else remaining=tr("剩余 ","Left ")+remaining;
+    }else{
+      remaining=RuntimeLabels.air(this,model.snapshot).replace("分钟","分").replace("小时","时")
+          .replace(" min","m").replace(" h ","h");
+    }
+    String full=title+"\n"+remaining;
+    android.text.SpannableString text=new android.text.SpannableString(full);
+    text.setSpan(new android.text.style.RelativeSizeSpan(.72f),title.length()+1,full.length(),
+        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    return text;
+  }
+
   private void addVoSideControl(LinearLayout parent,String control,boolean compact) {
     String title=control.equals("lock")?tr("门锁","Lock"):control.equals("climate")?tr("空调","Climate")
         :control.equals("air")?tr("净化","Air"):tr("尾箱","Trunk");
@@ -843,8 +863,9 @@ public final class MainActivity extends FragmentActivity {
     boolean hideTitle=UiSkin.SIMPLE.equals(UiSkin.get(this))
         && !AppPreferences.visible(this,"volike_simple_labels",true);
     TextView label=text(title,compact?7:8,ink,false);label.setTag("volike_control_label");
-    label.setGravity(Gravity.CENTER);label.setSingleLine(true);label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
-    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(compact?7:8)));
+    label.setGravity(Gravity.CENTER);label.setSingleLine(false);label.setMaxLines(2);label.setEllipsize(null);
+    label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
+    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:2*textLineHeight(compact?7:8)));
 
     bindDashboard(()->{
       String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));
@@ -853,6 +874,7 @@ public final class MainActivity extends FragmentActivity {
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
+      label.setText(voTimedLabel(title,control,active));
       item.setEnabled(!model.busy&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
@@ -1012,12 +1034,13 @@ public final class MainActivity extends FragmentActivity {
         :control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     circle.addView(icon,new FrameLayout.LayoutParams(dp(landscape?17:22),dp(landscape?17:22),Gravity.CENTER));
     item.addView(circle,new LinearLayout.LayoutParams(size,size));
-    TextView label=text(title,landscape?8:9,ink,false);label.setGravity(Gravity.CENTER);label.setSingleLine(true);
+    TextView label=text(title,landscape?8:9,ink,false);label.setGravity(Gravity.CENTER);
+    label.setSingleLine(false);label.setMaxLines(2);label.setEllipsize(null);
     boolean hideTitle=UiSkin.SIMPLE.equals(UiSkin.get(this))
         && !AppPreferences.visible(this,"volike_simple_labels",true);
     label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
     label.setTag("volike_control_label");
-    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(landscape?8:9)+dp(1)));
+    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:2*textLineHeight(landscape?8:9)+dp(1)));
     bindDashboard(()->{
       String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
@@ -1025,6 +1048,7 @@ public final class MainActivity extends FragmentActivity {
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
+      label.setText(voTimedLabel(title,control,active));
       item.setEnabled(!model.busy&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
@@ -1043,6 +1067,8 @@ public final class MainActivity extends FragmentActivity {
       condition.setText(tr("车况","Status"));condition.refreshService();
       ((GradientDrawable)condition.getBackground()).setStroke(dp(1),warn?orange:line);
       boolean active=CampModeManager.active(this)||"STOPPING".equals(CampModeManager.phase(this));((GradientDrawable)camp.getBackground()).setColor(active?voAccent():surface);
+      camp.setSingleLine(false);camp.setMaxLines(2);camp.setEllipsize(null);
+      camp.setText(tr("露营模式","Camping mode")+(active?"\n"+RuntimeLabels.camp(this):""));
       camp.setTextColor(active?Color.WHITE:ink);tintUtilityIcon(camp);
     });
     int h=dp(landscape?46:56);
@@ -1186,7 +1212,7 @@ public final class MainActivity extends FragmentActivity {
       boolean opened=VehicleCondition.problem(model.snapshot,showTires()),active=CampModeManager.active(this);
       bodyButton.setText(tr("车况","Status")+(opened?" !":""));
       ((GradientDrawable)bodyButton.getBackground()).setStroke(dp(1),opened?orange:line);bodyButton.setTextColor(opened?accentText():ink);bodyButton.refreshService();
-      ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);camp.setSingleLine(false);camp.setMaxLines(2);camp.setText(tr("露营模式","Camping mode")+(active?"\n"+RuntimeLabels.camp(this):""));tintUtilityIcon(camp);
+      ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);camp.setSingleLine(false);camp.setMaxLines(2);camp.setEllipsize(null);camp.setText(tr("露营模式","Camping mode")+(active?"\n"+RuntimeLabels.camp(this):""));tintUtilityIcon(camp);
     });
     utilities.addView(bodyButton,new LinearLayout.LayoutParams(0,dp(58),1));
     LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(6);utilities.addView(camp,cp);parent.addView(utilities);
@@ -1239,7 +1265,7 @@ public final class MainActivity extends FragmentActivity {
       view.setTextSize(11);
 
       view.setPadding(dp(3), dp(2), dp(3), dp(2));view.setGravity(Gravity.CENTER);
-      if(kind.equals("camp")){utilityIcon(view,R.drawable.ic_camp_clock_vi);view.setGravity(Gravity.CENTER);}
+      if(kind.equals("camp")){utilityIcon(view,R.drawable.ic_camp_clock_vi);view.setGravity(Gravity.CENTER);view.setEllipsize(null);}
       if(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))) {
         android.graphics.drawable.Drawable glyph=getDrawable(kind.equals("windows")?R.drawable.ic_window:R.drawable.ic_horn).mutate();glyph.setTint(ink);
         GradientDrawable circle=oval(Color.TRANSPARENT);circle.setStroke(dp(1),line);

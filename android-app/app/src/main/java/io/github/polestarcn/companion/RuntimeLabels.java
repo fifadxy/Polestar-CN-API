@@ -21,7 +21,7 @@ public final class RuntimeLabels {
   public static String air(Context c,VehicleSnapshot s) {
     if(s==null||!"开启".equals(s.air))return "";
     Integer minutes=s.environment.airRuntimeMinutes;
-    if(minutes==null)return AppPreferences.tr(c,"剩余时间暂无","Remaining unavailable");
+    if(minutes==null)return AppPreferences.tr(c,"剩余 --","Left --");
     long elapsed=s.environment.airReportedAt>0?Math.max(0,System.currentTimeMillis()-s.environment.airReportedAt):0;
     return value(c,minutes*60_000L-elapsed,elapsed>60_000L);
   }

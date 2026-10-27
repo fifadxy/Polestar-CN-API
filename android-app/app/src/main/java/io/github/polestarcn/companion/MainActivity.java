@@ -853,7 +853,8 @@ public final class MainActivity extends FragmentActivity {
         :control.equals("air")?tr("净化","Air"):tr("尾箱","Trunk");
     LinearLayout item=column();item.setTag("control_tile");item.setGravity(Gravity.CENTER);
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
-    int size=dp(compact?34:40);circle.setBackground(oval(viSoft()));
+    boolean timedControl=control.equals("climate")||control.equals("air");
+    int size=dp(compact?30:40);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock
         :control.equals("climate")?R.drawable.ic_climate:control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);
     icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
@@ -863,9 +864,10 @@ public final class MainActivity extends FragmentActivity {
     boolean hideTitle=UiSkin.SIMPLE.equals(UiSkin.get(this))
         && !AppPreferences.visible(this,"volike_simple_labels",true);
     TextView label=text(title,compact?7:8,ink,false);label.setTag("volike_control_label");
-    label.setGravity(Gravity.CENTER);label.setSingleLine(false);label.setMaxLines(2);label.setEllipsize(null);
+    label.setGravity(Gravity.CENTER);label.setSingleLine(!timedControl);label.setMaxLines(timedControl?2:1);label.setEllipsize(null);
+    if(timedControl)label.setAutoSizeTextTypeUniformWithConfiguration(6,compact?7:8,1,android.util.TypedValue.COMPLEX_UNIT_SP);
     label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
-    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:2*textLineHeight(compact?7:8)));
+    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:(timedControl?2*textLineHeight(compact?7:8):textLineHeight(compact?7:8))));
 
     bindDashboard(()->{
       String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));
@@ -1029,18 +1031,21 @@ public final class MainActivity extends FragmentActivity {
         :control.equals("air")?tr("净化","Air"):tr("尾箱","Trunk");
     LinearLayout item=column();item.setTag("control_tile");item.setGravity(Gravity.CENTER);
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
-    int size=dp(landscape?28:40);circle.setBackground(oval(viSoft()));
+    boolean timedControl=control.equals("climate")||control.equals("air");
+    int size=dp(landscape?24:38);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock:control.equals("climate")?R.drawable.ic_climate
         :control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     circle.addView(icon,new FrameLayout.LayoutParams(dp(landscape?17:22),dp(landscape?17:22),Gravity.CENTER));
     item.addView(circle,new LinearLayout.LayoutParams(size,size));
-    TextView label=text(title,landscape?8:9,ink,false);label.setGravity(Gravity.CENTER);
-    label.setSingleLine(false);label.setMaxLines(2);label.setEllipsize(null);
+    int labelSp=landscape?7:8;
+    TextView label=text(title,labelSp,ink,false);label.setGravity(Gravity.CENTER);
+    label.setSingleLine(!timedControl);label.setMaxLines(timedControl?2:1);label.setEllipsize(null);
+    if(timedControl)label.setAutoSizeTextTypeUniformWithConfiguration(6,labelSp,1,android.util.TypedValue.COMPLEX_UNIT_SP);
     boolean hideTitle=UiSkin.SIMPLE.equals(UiSkin.get(this))
         && !AppPreferences.visible(this,"volike_simple_labels",true);
     label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
     label.setTag("volike_control_label");
-    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:2*textLineHeight(landscape?8:9)+dp(1)));
+    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:(timedControl?2*textLineHeight(labelSp):textLineHeight(labelSp))+dp(1)));
     bindDashboard(()->{
       String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);

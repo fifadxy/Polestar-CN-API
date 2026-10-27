@@ -854,7 +854,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout item=column();item.setTag("control_tile");item.setGravity(Gravity.CENTER);
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
     boolean timedControl=control.equals("climate")||control.equals("air");
-    int size=dp(compact?30:40);circle.setBackground(oval(viSoft()));
+    int size=dp(compact?26:40);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock
         :control.equals("climate")?R.drawable.ic_climate:control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);
     icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
@@ -1032,12 +1032,12 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout item=column();item.setTag("control_tile");item.setGravity(Gravity.CENTER);
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
     boolean timedControl=control.equals("climate")||control.equals("air");
-    int size=dp(landscape?24:38);circle.setBackground(oval(viSoft()));
+    int size=dp(landscape?20:38);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock:control.equals("climate")?R.drawable.ic_climate
         :control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     circle.addView(icon,new FrameLayout.LayoutParams(dp(landscape?17:22),dp(landscape?17:22),Gravity.CENTER));
     item.addView(circle,new LinearLayout.LayoutParams(size,size));
-    int labelSp=landscape?7:8;
+    int labelSp=landscape?6:8;
     TextView label=text(title,labelSp,ink,false);label.setGravity(Gravity.CENTER);
     label.setSingleLine(!timedControl);label.setMaxLines(timedControl?2:1);label.setEllipsize(null);
     if(timedControl)label.setAutoSizeTextTypeUniformWithConfiguration(6,labelSp,1,android.util.TypedValue.COMPLEX_UNIT_SP);

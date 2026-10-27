@@ -1,0 +1,21 @@
+name: PSA development source bundle
+on:
+  push:
+    branches:
+      - feature/psa-v085-ui-fixes
+  workflow_dispatch:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bundle current source for Android development
+        run: |
+          tar --exclude=.git -czf psa-source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psa-v085-source
+          path: psa-source.tar.gz
+          retention-days: 7

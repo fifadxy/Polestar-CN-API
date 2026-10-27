@@ -1418,14 +1418,14 @@ public final class MainActivity extends FragmentActivity {
       }
     }
     if(!horizontalCompact){
-      boolean timedNio=nioSkin()&&(control.equals("climate")||control.equals("air"));
-      card.addView(feedback,new LinearLayout.LayoutParams(-1,timedNio
-          ? 2*textLineHeight(compact?10:12)+dp(8)
+      boolean timedControl=control.equals("climate")||control.equals("air");
+      card.addView(feedback,new LinearLayout.LayoutParams(-1,timedControl
+          ? 2*textLineHeight(compact?10:12)+dp(4)
           : nioSkin()&&compact ? textLineHeight(10)+dp(2) : -2));
     }
     if (!compact) {
-      boolean timedNio=nioSkin()&&(control.equals("climate")||control.equals("air"));
-      card.addView(support,new LinearLayout.LayoutParams(-1,timedNio?textLineHeight(12)+dp(4):-2));
+      boolean timedControl=control.equals("climate")||control.equals("air");
+      card.addView(support,new LinearLayout.LayoutParams(-1,timedControl?textLineHeight(12)+dp(4):-2));
     }
     bindDashboard(() -> {
       String raw = controlRaw(control);icon.setImageResource(controlIcon(control,raw));

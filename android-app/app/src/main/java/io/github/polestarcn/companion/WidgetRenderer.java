@@ -131,7 +131,12 @@ public final class WidgetRenderer {
     String preference = AppPreferences.get(c, "widget_ink", "system");
     boolean white = "light".equals(preference) || ("system".equals(preference) && AppPreferences.dark(c));
     int ink = PsaDesign.ink(white), secondary = PsaDesign.muted(white);
-    if(styled){ink=PsaDesign.ink(AppPreferences.dark(c));secondary=PsaDesign.muted(AppPreferences.dark(c));}
+    if(styled && "system".equals(preference)){ink=PsaDesign.ink(AppPreferences.dark(c));secondary=PsaDesign.muted(AppPreferences.dark(c));}
+    // User-selected Widget text color overrides all layout styles and transparency settings.
+    if(preference.startsWith("#")){
+      try{ink=Color.parseColor(preference);secondary=Color.argb(255,Color.red(ink),Color.green(ink),Color.blue(ink));}
+      catch(IllegalArgumentException invalid){ink=PsaDesign.ink(AppPreferences.dark(c));secondary=PsaDesign.muted(AppPreferences.dark(c));}
+    }
     int accentText = styled?ink:nioColors ? ink : PsaDesign.accentText(white);
     views.setViewVisibility(R.id.widget_title, plan.title ? android.view.View.VISIBLE : android.view.View.GONE);
     widgetText(views,c,R.id.widget_title, s == null ? c.getString(R.string.app_name) : s.name);

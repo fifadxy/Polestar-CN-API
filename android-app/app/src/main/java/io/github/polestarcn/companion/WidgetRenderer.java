@@ -130,7 +130,7 @@ public final class WidgetRenderer {
     float requestedFont=widgetFont(c,size,height);
     int serviceReserve=serviceBand?(int)Math.ceil(16*c.getResources().getConfiguration().fontScale*requestedFont)+3:0;
     int headerReserve=styled&&layoutSize!=Size.WIDE&&layoutSize!=Size.MINI&&height-serviceReserve>=130?Math.max(0,(int)Math.ceil(24-15*c.getResources().getConfiguration().fontScale*requestedFont)):0;
-    WidgetLayoutPlan plan = new WidgetLayoutPlan(layoutSize, Math.min(capacity(size),main.size()), charging.size(), battery,
+    WidgetLayoutPlan plan = new WidgetLayoutPlan(size, Math.min(capacity(size),main.size()), charging.size(), battery,
         width-(car?74:0), height-serviceReserve-headerReserve, c.getResources().getConfiguration().fontScale*requestedFont);
     float font=widgetFont(c,size,height);
     float density = c.getResources().getDisplayMetrics().density;

@@ -33,10 +33,12 @@ public final class NativeLibraryProbe {
   public static final class Result {
     public final List<Item> items;
     public final boolean vocmoJavaBridgePresent;
+    public final int passiveSchemaCount;
 
-    Result(List<Item> items, boolean vocmoJavaBridgePresent) {
+    Result(List<Item> items, boolean vocmoJavaBridgePresent, int passiveSchemaCount) {
       this.items = Collections.unmodifiableList(new ArrayList<>(items));
       this.vocmoJavaBridgePresent = vocmoJavaBridgePresent;
+      this.passiveSchemaCount = passiveSchemaCount;
     }
   }
 
@@ -52,7 +54,18 @@ public final class NativeLibraryProbe {
     } catch (Throwable ignored) {
       bridge = false;
     }
-    return new Result(items, bridge);
+    int schemas = 0;
+    for (String asset : new String[] {
+        "oem-native-v2/passive/passive_key_request.proto",
+        "oem-native-v2/passive/passive_key_response.proto",
+        "oem-native-v2/passive/passive_key_status.proto"}) {
+      try (java.io.InputStream ignored = context.getAssets().open(asset)) {
+        schemas++;
+      } catch (Throwable ignored) {
+        // Resource is optional in the loader build and injected only in final V2.
+      }
+    }
+    return new Result(items, bridge, schemas);
   }
 
   private static Item check(Context context, String library, boolean load) {

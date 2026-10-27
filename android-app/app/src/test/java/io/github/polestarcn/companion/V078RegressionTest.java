@@ -50,6 +50,8 @@ public class V078RegressionTest {
    AppPreferences.set(activity,"language",lang);AppPreferences.set(activity,"theme",theme);UiSkin.set(activity,skin);View root=render(w,h,font),content=root.findViewWithTag("control_pull_content");try{fits(content,UiSkin.nioLayout(activity));}catch(AssertionError e){export(root,"failure-"+skin+"-"+w+"-"+font,w,h);throw new AssertionError(skin+" "+w+"x"+h+" font="+font+" "+lang+" "+theme,e);}assertEquals(4,tagged(content,"control_tile"));
    LinearLayout summary=root.findViewWithTag("vehicle_status_button");TextView label=(TextView)summary.getChildAt(1);assertEquals(lang.equals("zh")?"车况":"Status",label.getText().toString());
    VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("%"));
+   View chargePulse=root.findViewWithTag("charging_pulse");assertNotNull(chargePulse);assertEquals(View.VISIBLE,chargePulse.getVisibility());
+   if(!UiSkin.nioLayout(activity)&&font==1f&&w==360){assertNotNull(root.findViewWithTag("volike_hero"));assertEquals(4,tagged(root,"volike_control_circle"));}
    View nav=root.findViewWithTag("bottom_nav");assertNotNull(nav);java.util.List<View> navButtons=new java.util.ArrayList<>();collectTagged(nav,"bottom_nav_button",navButtons);assertEquals(3,navButtons.size());
    assertTrue("left rounded-screen safe area",absoluteLeft(navButtons.get(0))>=18);assertTrue("right rounded-screen safe area",absoluteLeft(navButtons.get(2))+navButtons.get(2).getWidth()<=w-18);
    if(UiSkin.nioLayout(activity)&&font==1&&w==360){java.util.List<View> circles=new java.util.ArrayList<>();collectTagged(content,"shortcut_circle",circles);assertTrue(circles.size()>=4);int top=absoluteTop(circles.get(0));for(int n=1;n<4;n++)assertTrue("NIO shortcut circles align",Math.abs(absoluteTop(circles.get(n))-top)<=1);assertTrue(tagged(content,"shortcut_label")>=2);assertTrue(tagged(content,"shortcut_feedback")>=2);export(root,skin+"-"+theme+"-"+lang,w,h);}
@@ -71,6 +73,12 @@ public class V078RegressionTest {
  }
  @Test public void vehicleMetricAndNavigationUseShortStatusName(){
   assertEquals("车况",DisplayMetric.VEHICLE_STATUS.label(false));assertEquals("车况",DisplayMetric.VEHICLE_STATUS.shortLabel(false));
+ }
+ @Test public void volikeNamesAndWatchPreviewStylesAreSwitchable(){
+  AppPreferences.set(activity,"language","zh");
+  assertEquals("VoLike 简洁",UiSkin.label(activity,UiSkin.SIMPLE));assertEquals("VoLike 详细",UiSkin.label(activity,UiSkin.DETAILED));
+  WatchPreviewView preview=new WatchPreviewView(activity,model.snapshot);preview.setStyle(WatchPreviewView.STYLE_PSA);assertEquals(WatchPreviewView.STYLE_PSA,preview.getStyle());
+  preview.setStyle(WatchPreviewView.STYLE_VOLVO);assertEquals(WatchPreviewView.STYLE_VOLVO,preview.getStyle());
  }
  @Test public void fontPrefsAreIndependentAndWrapNativeDialogsWithSystemScaling(){
   UiSkin.set(activity,UiSkin.NIO_LIKE);AppPreferences.set(activity,UiTypography.key(activity),"120");assertEquals(120,UiTypography.percent(activity,UiTypography.key(activity)));

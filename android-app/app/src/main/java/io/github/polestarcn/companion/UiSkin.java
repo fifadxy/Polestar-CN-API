@@ -40,7 +40,8 @@ public final class UiSkin {
   public static boolean nioColors(Context context) { return NIO_LIKE.equals(get(context)); }
   public static String label(Context context, String value) {
     boolean en = AppPreferences.english(context);
-    return NIO_LIKE_2.equals(value) ? "NIOlike2" : NIO_LIKE.equals(value) ? "NIOlike" : SIMPLE.equals(value) ? (en ? "Simple" : "简洁风格")
-        : (en ? "Detailed" : "详细风格");
+    return NIO_LIKE_2.equals(value) ? "NIOlike2" : NIO_LIKE.equals(value) ? "NIOlike"
+        : SIMPLE.equals(value) ? (en ? "VoLike Simple" : "VoLike 简洁")
+        : (en ? "VoLike Detailed" : "VoLike 详细");
   }
 }

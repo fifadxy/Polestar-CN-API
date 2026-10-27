@@ -1,6 +1,6 @@
 # PsAssistant for Android
 
-当前版本：**v0.7.9-beta2**（versionCode 80）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.0-beta1**（versionCode 81）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
@@ -13,6 +13,13 @@ Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩
 - 全部皮肤统一使用“车况”入口；车况页直接显示保养剩余时间 / 里程百分比与进度条。
 - NIOlike / NIOlike2 快捷圆形图标使用固定对齐槽，标题与状态文字采用统一双行基线。
 - 底部车辆 / 车况 / 设置三按钮增加圆角屏安全边距、按钮间距与统一边框。
+
+## v0.8.0 VoLike / Charging / Watch
+
+- 原简洁 / 详细两套手机皮肤升级为 **VoLike 简洁 / VoLike 详细**：大号续航与电量、Polestar 2 三分之四主视觉、四个圆形核心控制、车况横条和紧凑功能区。
+- 四套手机皮肤在真实充电状态下统一显示“正在充电”动态能量条；动画只在充电卡可见并附着窗口时运行。
+- 手表预览新增 **Volvo 风格**，可与 Psa 风格切换，并继续支持圆屏 / 方屏预览。
+- VoLike 核心按钮下方不再堆叠说明文字，状态通过颜色、图标和车况/充电区域表达。
 
 ## 当前功能
 

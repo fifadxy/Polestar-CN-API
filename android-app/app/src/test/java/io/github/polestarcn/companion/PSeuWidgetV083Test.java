@@ -25,7 +25,7 @@ public class PSeuWidgetV083Test {
  @Test public void everyWidgetStyleFitsFiveSizesSystemFontAndBold()throws Exception{
   for(float system:new float[]{1f,1.3f}){Configuration config=new Configuration(c.getResources().getConfiguration());config.fontScale=system;android.util.DisplayMetrics metrics=c.getResources().getDisplayMetrics();metrics.scaledDensity=metrics.density*system;c.getResources().updateConfiguration(config,metrics);
    for(String bold:new String[]{"off","on"})for(String font:new String[]{"80","120"})for(String style:new String[]{VoLikeWidgetRenderer.CLASSIC,VoLikeWidgetRenderer.SIMPLE,VoLikeWidgetRenderer.DETAILED,VoLikeWidgetRenderer.POLESTAR,VoLikeWidgetRenderer.PSEU})for(WidgetRenderer.Size size:WidgetRenderer.Size.values()){
-    AppPreferences.set(c,"widget_bold",bold);AppPreferences.set(c,"widget_font_percent",font);int w=size==WidgetRenderer.Size.MINI?118:size==WidgetRenderer.Size.SQUARE?150:300,h=size==WidgetRenderer.Size.MINI?88:size==WidgetRenderer.Size.WIDE?70:size==WidgetRenderer.Size.DATA?260:170;
+    AppPreferences.set(c,"widget_bold",bold);AppPreferences.set(c,"widget_font_percent",font);int w=WidgetRenderer.defaultWidth(size),h=WidgetRenderer.defaultHeight(size);
     View root=render(style,size,w,h);try{fit(root);}catch(AssertionError e){throw new AssertionError(style+" "+size+" font="+system+" user="+font+" bold="+bold,e);}
     assertTrue(root.findViewById(R.id.widget_action_lock).getHeight()>=48);assertTrue(root.findViewById(R.id.widget_action_climate).getHeight()>=48);assertTrue(root.findViewById(R.id.widget_action_lock).getWidth()>=48);assertTrue(root.findViewById(R.id.widget_action_climate).getWidth()>=48);assertFalse(((TextView)root.findViewById(R.id.widget_region)).getText().toString().isEmpty());
    }

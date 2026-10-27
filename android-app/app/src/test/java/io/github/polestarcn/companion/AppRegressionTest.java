@@ -426,7 +426,7 @@ public final class AppRegressionTest {
           R.id.widget_metric8, R.id.widget_metric9, R.id.widget_metric10, R.id.widget_metric11};
       for (int i = 0; i < WidgetRenderer.capacity(size); i++) {
         TextView field = root.findViewById(ids[i]);
-        assertEquals(View.VISIBLE, field.getVisibility());
+        assertEquals("Widget "+size+" metric "+i+" expected visible at "+width+"x"+height,View.VISIBLE, field.getVisibility());
         assertFalse(field.getText().toString().isEmpty());
         assertTrue("widget field has width", field.getWidth() >= 30);
         if (field.getLayout().getHeight() > field.getHeight())
@@ -442,6 +442,47 @@ public final class AppRegressionTest {
         bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
       }
       bitmap.recycle();
+    }
+  }
+
+  @Test @Config(qualifiers = "w320dp-h568dp-mdpi")
+  public void climateStatusNeverEllipsizesAndPsButtonsFollowLightDarkTheme() throws Exception {
+    VehicleCoordinator model=VehicleCoordinator.get(activity);
+    model.selected=new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
+    model.selected.vin="TEST-VIN";
+    Field signedIn=VehicleCoordinator.class.getDeclaredField("signedIn");signedIn.setAccessible(true);
+    signedIn.setBoolean(model,true);
+    model.snapshot=new VehicleSnapshot("Polestar 2","masked",80,350,12000,"空闲",
+        "全部关闭","全部关闭","已关闭","已上锁",System.currentTimeMillis(),
+        "LIVE",false,"开启","关闭").withEnvironment(new EnvironmentSnapshot(
+        "开启","关闭",24.0,22.0,null,null,18,null,System.currentTimeMillis(),System.currentTimeMillis()));
+    Method render=MainActivity.class.getDeclaredMethod("render");render.setAccessible(true);
+    for(String theme:new String[]{"light","dark"}){
+      AppPreferences.set(activity,"theme",theme);
+      for(String skin:new String[]{UiSkin.PS_DEFAULT,UiSkin.NIO_LIKE}){
+        UiSkin.set(activity,skin);
+        render.invoke(activity);
+        View root=activity.getWindow().getDecorView();
+        TextView status=(TextView)findTagged(root,"control_feedback_climate");
+        assertNotNull("missing climate feedback in "+skin,status);
+        assertNull("climate must not ellipsize in "+skin,status.getEllipsize());
+        assertTrue("climate runtime must wrap: "+skin,status.getMaxLines()>=2);
+        assertTrue("climate includes runtime: "+status.getText(),status.getText().toString().contains("18"));
+        assertFalse("climate text must not truncate to dots",status.getText().toString().contains("..."));
+        if(UiSkin.PS_DEFAULT.equals(skin)){
+          java.util.List<View> tiles=new java.util.ArrayList<>();
+          collectTagged(root,"control_tile",tiles);
+          assertEquals(4,tiles.size());
+          int inactive=0,accent=0;
+          for(View tile:tiles){
+            int bg=drawableColor(tile);
+            if(bg==PsaDesign.surface(theme.equals("dark")))inactive++;
+            if(bg==PsaDesign.ORANGE)accent++;
+          }
+          assertEquals("inactive tiles track "+theme,3,inactive);
+          assertEquals("active climate stays VI orange",1,accent);
+        }
+      }
     }
   }
 

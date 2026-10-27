@@ -17,23 +17,23 @@ China 登录、车辆发现、C3 读取、远控、Widget、后台任务和 Digi
 
 ## China 登录独立化
 
-历史版本的 China 登录依赖参考 APK 中的一项固定兼容材料。Standalone 将此依赖从“运行时导入”改为“构建时封装”：
+历史版本的 China 登录曾依赖第三方参考 APK 中的一项固定兼容材料。Standalone v0.8.5 已进一步改为**只使用用户提供的官方 Polestar China 4.25.0 样本作为构建输入**：
 
 ```text
-exact verified reference APK (build machine only)
-        ↓ SHA-256 gate
-extract one compatibility value without printing it
-        ↓
+Official Polestar China 4.25.0 APK (build machine only)
+        ↓ exact SHA-256 gate
+classes3.dex: unique compatibility candidate + fingerprint verification
+        ↓ original value is never printed/committed
 opaque account_compat.bin
         ↓
 Standalone APK assets
         ↓
-ReferenceSignatureProvider
+ReferenceSignatureProvider (legacy class name; standalone source)
         ↓
 existing ChinaPolestarApi login / refresh
 ```
 
-源码仓库不提交该原始兼容材料。最终 APK 安装后不需要参考 APK。
+第三方 `app.c3garage.companion` 已从 Standalone 构建输入和手机运行依赖中移除。源码仓库不提交原始兼容材料。最终 APK 安装后不需要任何其他 APK。
 
 旧版 PsAssistant 已经完成过模板导入的用户升级时，可继续读取本应用自己已经用 Android Keystore 加密保存的旧兼容数据；不再弹出导入界面。
 
@@ -78,5 +78,5 @@ sh scripts/build_android_standalone.sh \
 - assembleDebug；
 - CI 明确检查 MainActivity 不再包含 `ACTION_OPEN_DOCUMENT` / “Import reference APK”；
 - Manifest 不再查询 `app.c3garage.companion`；
-- 最终 clean-install China 登录仍必须使用构建时封装了兼容 asset 的 APK 进行本人账号实测；
+- 最终 clean-install China 登录必须使用本脚本生成的完整 Standalone APK 进行本人账号实测；
 - Digital Key 的真实车辆配对必须单独达到 `VEHICLE_VERIFIED`。

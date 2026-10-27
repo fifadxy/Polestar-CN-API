@@ -119,6 +119,9 @@ public final class DigitalKeyResearchActivity extends Activity {
     }
     root.addView(text("VOCMO Java bridge / Java 绑定类: "
         + yesNo(nativeState.vocmoJavaBridgePresent), 14, MUTED));
+    root.addView(text("Passive schemas / PassiveEntry 资源: "
+        + nativeState.passiveSchemaCount + "/3", 14,
+        nativeState.passiveSchemaCount == 3 ? INK : MUTED));
     root.addView(text("OEM integration / 厂商 SDK: NOT CONNECTED / 未接入", 15, ORANGE));
     root.addView(text("Vehicle pairing / 车辆配对: NOT VERIFIED / 未验证", 15, ORANGE));
     root.addView(text("Working digital key / 可用数字钥匙: "

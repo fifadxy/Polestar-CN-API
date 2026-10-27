@@ -47,10 +47,50 @@ jobs:
           ! grep -q 'ACTION_OPEN_DOCUMENT' android-app/app/src/main/java/io/github/polestarcn/companion/MainActivity.java
           ! grep -q 'app.c3garage.companion' android-app/app/src/main/AndroidManifest.xml
           grep -q 'standalone/account_compat.bin' android-app/app/src/main/java/io/github/polestarcn/companion/auth/ReferenceSignatureProvider.java
+
+      - name: Configure persistent signing when available
+        env:
+          PSA_SIGNING_KEYSTORE_BASE64: ${{ secrets.PSA_SIGNING_KEYSTORE_BASE64 }}
+          PSA_SIGNING_STORE_PASSWORD: ${{ secrets.PSA_SIGNING_STORE_PASSWORD }}
+          PSA_SIGNING_KEY_ALIAS: ${{ secrets.PSA_SIGNING_KEY_ALIAS }}
+          PSA_SIGNING_KEY_PASSWORD: ${{ secrets.PSA_SIGNING_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib
+          encoded=os.environ.get("PSA_SIGNING_KEYSTORE_BASE64","")
+          password=os.environ.get("PSA_SIGNING_STORE_PASSWORD","")
+          if encoded and password:
+              key=pathlib.Path(os.environ["RUNNER_TEMP"])/"psassistant-signing.keystore"
+              key.write_bytes(base64.b64decode(encoded,validate=True))
+              key.chmod(0o600)
+              values={
+                "PSA_SIGNING_KEYSTORE":str(key),
+                "PSA_SIGNING_STORE_PASSWORD":password,
+                "PSA_SIGNING_KEY_ALIAS":os.environ.get("PSA_SIGNING_KEY_ALIAS") or "androiddebugkey",
+                "PSA_SIGNING_KEY_PASSWORD":os.environ.get("PSA_SIGNING_KEY_PASSWORD") or password,
+              }
+              with open(os.environ["GITHUB_ENV"],"a") as out:
+                  for k,v in values.items(): out.write(k+"="+v+"\n")
+              print("Persistent signing configured")
+          else:
+              print("Persistent signing unavailable; release update artifact will be skipped")
+          PY
+
+      - name: Build stable-signature standalone update
+        if: env.PSA_SIGNING_KEYSTORE != ''
+        run: gradle -p android-app --no-daemon :app:assembleRelease --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: psassistant-v085-standalone-shell
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: env.PSA_SIGNING_KEYSTORE != ''
+        with:
+          name: psassistant-v085-standalone-update-release
+          path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
       - name: Report standalone CI to PR

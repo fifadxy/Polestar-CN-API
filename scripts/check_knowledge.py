@@ -46,3 +46,7 @@ assert latest['location']['longitude_field'] == 1 and latest['location']['latitu
 assert '](' + '25_V078_CONDITION_LOCATION_TRIP.md)' in index
 assert 'PROJECT_DEVICE_VERIFIED' in (kb / '25_V078_CONDITION_LOCATION_TRIP.md').read_text(encoding='utf-8')
 print('PASS: v0.7.8 reference health, remaining service and c3Lbs axis mapping')
+
+assert '](26_V079_KEYLESS_PARKING_WEB.md)' in index
+assert (root / 'docs/Psa_v079_Update.md').is_file()
+print('PASS: v0.7.9 key-free map documentation indexed')

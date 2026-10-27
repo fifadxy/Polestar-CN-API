@@ -42,11 +42,11 @@ public class HealthLocationV078Test {
   assertEquals(v.health.brakeFluid,copy.health.brakeFluid);assertEquals(v.health.oil,copy.health.oil);assertEquals(v.health.reportedAt,copy.health.reportedAt);
  }
  private LocationSnapshot point(double lon,double lat){Map<Integer,Object> p=new HashMap<>();p.put(1,lon);p.put(2,lat);p.put(3,ProtoWire.varintField(1,1700000000));Map<Integer,Object> reply=new HashMap<>();reply.put(2,ProtoWire.concat(ProtoWire.fixed32Field(1,(float)lon),ProtoWire.fixed32Field(2,(float)lat),ProtoWire.bytesField(3,ProtoWire.varintField(1,1700000000))));reply.put(3,1L);return LocationSnapshot.fromReply(reply);}
- @Test public void parkedLocationPreservesAxisTimeAndVehicleStaleFlag(){LocationSnapshot p=point(120.5,30.25);assertEquals(120.5,p.longitude,.0001);assertEquals(30.25,p.latitude,.0001);assertTrue(p.stale);assertEquals(1700000000000L,p.reportedAt);assertNull(point(181,30));assertNull(point(120,91));assertNull(point(Double.NaN,30));assertNotNull(point(0,0));}
- @Test public void staticMapUriHasExplicitAmapDestinationAndNoVehicleIdentity(){
-  android.net.Uri uri=StaticMapPreview.uri(point(120.5,30.25),"fixture-only-key");assertEquals("https",uri.getScheme());assertEquals("restapi.amap.com",uri.getHost());
-  assertEquals("120.500000,30.250000",uri.getQueryParameter("location"));assertEquals("640*360",uri.getQueryParameter("size"));assertEquals("15",uri.getQueryParameter("zoom"));
-  assertEquals("fixture-only-key",uri.getQueryParameter("key"));assertFalse(uri.toString().contains("vin"));assertFalse(AppPreferences.visible(c,"amap_preview",false));
+ @Test public void parkedLocationPreservesAxisTimeAndVehicleStaleFlag(){LocationSnapshot p=point(120.5,30.25);assertEquals(120.5,p.longitude,.0001);assertEquals(30.25,p.latitude,.0001);assertTrue(p.stale);assertEquals(1700000000000L,p.reportedAt);assertNull(point(181,30));assertNull(point(120,91));assertNull(point(Double.NaN,30));assertNull(point(0,0));}
+ @Test public void keylessMapUriHasExplicitAmapDestinationAndNoVehicleIdentity(){
+  android.net.Uri uri=ParkingMapLinks.webUri(point(120.5,30.25),"Last parked location");assertEquals("https",uri.getScheme());assertEquals("uri.amap.com",uri.getHost());
+  assertEquals("120.500000,30.250000",uri.getQueryParameter("position"));assertEquals("gaode",uri.getQueryParameter("coordinate"));assertEquals("0",uri.getQueryParameter("callnative"));
+  assertNull(uri.getQueryParameter("key"));assertFalse(uri.toString().contains("vin"));
  }
  @Test public void displayCacheDoesNotPersistPreciseParkingCoordinates(){
   VehicleSnapshotStore.saveChina(c,snapshot(VehicleHealthSnapshot.unknown()));String cache=c.getSharedPreferences("vehicle_snapshot_display_v1",0).getString("china","");

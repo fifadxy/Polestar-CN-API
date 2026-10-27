@@ -50,3 +50,10 @@ assert 'setOngoing(true)' in all_java
 assert 'TailgateControl' in all_java
 print('PASS: source structure, real UI gating, biometric controls, private sessions and widgets; Java count',len(java))
 
+
+assert not any(p in manifest for p in ['ACCESS_FINE_LOCATION','ACCESS_COARSE_LOCATION','ACCESS_BACKGROUND_LOCATION'])
+assert 'restapi.amap.com/v3/staticmap' not in all_java
+assert 'addJavascriptInterface' not in all_java
+assert 'https://uri.amap.com/marker' in all_java
+assert not any('com.amap.api' in line for line in gradle.splitlines())
+print('PASS: key-free official map URI, no phone location permission, map SDK or JavaScript bridge')

@@ -1067,3 +1067,8 @@ Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 �
 - REFERENCE_USER_VERIFIED 仅属于参考 APK；Android 合成测试与构建不代表新的实车协议验证。油液未上报、iTPMS数值、坐标系统/地图偏移和真实 TA 能量仍有验收边界。
 
 映射与证据：[Android v0.7.8](../knowledge/25_V078_CONDITION_LOCATION_TRIP.md)。
+
+
+## 2026-10-27 Android v0.7.9 地图显示层
+
+按用户最新选择，用官方 https://uri.amap.com/marker 位置网页替代需 Key 的 staticmap；App 二级弹窗使用受限系统 WebView，不改变 Mac 工程或 China c3Lbs 坐标轴（1经度/2纬度）。读取失败不清会话，独立4秒 RPC 截止，按选中VIN读取并丢弃切车/退出后的旧结果。无地图 SDK、新定位权限或后台地图；网页开销/可用性和坐标偏移仍需实机验证。见 [v0.7.9](../knowledge/26_V079_KEYLESS_PARKING_WEB.md)。

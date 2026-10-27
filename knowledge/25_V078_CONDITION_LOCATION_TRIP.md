@@ -53,3 +53,8 @@ TA/TM 时长没有已证实的独立字段，因此按同一 Odometer 距离/均
 四皮肤中 NIOlike 与 NIOlike2 共用几何布局，后者只改 VI 配色；统一圆圈快捷入口、紧凑温度/净化、单行数据与刷新图标。UiTypography 按皮肤保存 80–120%，Widget 独立设置，原生 Dialog 也叠加系统字号。Widget 从 applicationContext 计算，避免 Activity 皮肤字体与插件倍率叠加。HapticDialogBuilder 包含列表、正负/中性按钮及可滚动的详情容器。
 
 本轮 Debug/Preview 123 项合成测试及原生布局/RemoteViews、Lint、纯模型检查见更新说明。无本项目 China 账号/车辆/高德 Key/手表实机成功证据，状态为实现与构建验证，不升级为 PROJECT_DEVICE_VERIFIED。
+
+
+## 2026-10-27 v0.7.9 免 Key 地图增量
+
+当前位置方案改为用户明确选择的内嵌高德官方 URI 网页，移除 staticmap Key 依赖并清理旧配置。参考 APK 仍证明 field1=经度、field2=纬度，未采用外部 AI 文本中的反序定义。c3Lbs 4秒截止、失败隔离及切车/退出结果丢弃已补强；网页需网络和系统 WebView，手机底图/坐标精度仍待实车验收。见 [v0.7.9 知识库](26_V079_KEYLESS_PARKING_WEB.md)。

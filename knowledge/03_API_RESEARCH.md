@@ -95,3 +95,8 @@ Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 �
 ## 2026-10-27 v0.7.8 当前增量
 
 当前 Health 主路径为 GetLatestHealth UNARY；只有 UNIMPLEMENTED 才回退 GetHealth SERVER_STREAMING。最新参考已证实 China 该主路径；旧“参考未出现 Health”的结论只适用于旧样本。独立 c3Lbs/GetLastParkedLocation 已加入按需读取；停车预览可选高德静态 API。Battery12 与上游容量解释冲突，禁止独立作为 TA 能耗。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。
+
+
+## 2026-10-27 v0.7.9 免 Key 地图增量
+
+当前位置方案改为用户明确选择的内嵌高德官方 URI 网页，移除 staticmap Key 依赖并清理旧配置。参考 APK 仍证明 field1=经度、field2=纬度，未采用外部 AI 文本中的反序定义。c3Lbs 4秒截止、失败隔离及切车/退出结果丢弃已补强；网页需网络和系统 WebView，手机底图/坐标精度仍待实车验收。见 [v0.7.9 知识库](26_V079_KEYLESS_PARKING_WEB.md)。

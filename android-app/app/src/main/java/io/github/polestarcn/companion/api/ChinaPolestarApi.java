@@ -579,7 +579,7 @@ public final class ChinaPolestarApi {
       return ClientCalls.blockingUnaryCall(
           authenticated,
           descriptor,
-          CallOptions.DEFAULT.withDeadlineAfter(service.endsWith(".HealthService")?4:12, TimeUnit.SECONDS),
+          CallOptions.DEFAULT.withDeadlineAfter((service.endsWith(".HealthService")||service.equals("dtlinternet.DtlInternetService"))?4:12, TimeUnit.SECONDS),
           request);
     } catch (StatusRuntimeException e) {
       throw new Exception(
@@ -594,12 +594,16 @@ public final class ChinaPolestarApi {
     io.github.polestarcn.companion.LocationSnapshot location=io.github.polestarcn.companion.LocationSnapshot.fromReply(reply);
     if(location==null)throw new Exception("Location unavailable");return location;
   }
+  private static boolean trustedLbsHost(String host) {
+    return host!=null && host.matches("(?i)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+volvocars\\.com\\.cn");
+  }
   private void ensureC3LbsHost(Session session) throws Exception {
-    if(session.c3LbsHost!=null&&!session.c3LbsHost.isEmpty())return;
+    if(trustedLbsHost(session.c3LbsHost))return;
+    session.c3LbsHost=null;
     Object value=request(DISCOVERY,"GET",null,null,null,ACCEPT_C3);
     JSONObject lbs=value instanceof JSONObject?((JSONObject)value).optJSONObject("c3Lbs"):null;
     String host=lbs==null?"":lbs.optString("grpcHost","");
-    if(!host.matches("(?i)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+volvocars\\.com\\.cn"))throw new Exception("LBS host unavailable");
+    if(!trustedLbsHost(host))throw new Exception("LBS host unavailable");
     session.c3LbsHost=host;SecureSessionStore.save(context,session);
   }
 

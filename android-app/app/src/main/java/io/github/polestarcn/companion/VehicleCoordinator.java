@@ -29,11 +29,11 @@ public final class VehicleCoordinator {
   public boolean locationBusy;
   private int locationGeneration;
   public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete) {
-    if(locationBusy||!signedIn||selected==null)return;
+    if(locationBusy||!signedIn||selected==null||selected.vin==null||selected.vin.isEmpty())return;
     String vin=selected.vin;int generation=locationGeneration;locationBusy=true;changed();
     io.execute(()->{
       LocationSnapshot result=null;String error="";
-      try{result=api.readLastParkedLocation(vin);}catch(Exception e){error=tr("暂时无法读取停车位置，请稍后重试","Parking location is unavailable. Try again later.");}
+      try{result=api.readLastParkedLocation(vin);}catch(Exception e){DiagnosticLog.add("Last parked location unavailable; vehicle session unchanged");error=tr("暂时无法读取停车位置，请稍后重试","Parking location is unavailable. Try again later.");}
       LocationSnapshot location=result;String message=error;
       main.post(()->{locationBusy=false;changed();
         if(generation==locationGeneration&&signedIn&&selected!=null&&vin.equals(selected.vin))complete.accept(location,message);
@@ -164,6 +164,7 @@ public final class VehicleCoordinator {
 
   public void choose(ChinaPolestarApi.VehicleInfo car) {
     if (busy) return;
+    locationGeneration++;
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
     snapshot = null;
@@ -285,8 +286,8 @@ public final class VehicleCoordinator {
   }
 
   public void logout() {
-    locationGeneration++;
     if (busy) return;
+    locationGeneration++;
     signedIn = false;
     CampModeManager.clear(context);
     api.logout();

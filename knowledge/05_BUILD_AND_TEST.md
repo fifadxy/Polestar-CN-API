@@ -60,3 +60,10 @@ GitHub Actions `.github/workflows/android-apk.yml` 为 Debug 构建工作流；�
 ## 2026-10-27 v0.7.8 当前增量
 
 v0.7.8 Debug/Preview 各 123 项回归，四套皮肤中英日夜、小屏/横屏、合成倍率 1.56、12 项字段、保养条和 48dp Widget 触区。构建输出与签名见更新说明；合成通过不能代表车辆或高德在线成功。 具体来源、字段和限制见 [v0.7.8 车况、位置与行程](25_V078_CONDITION_LOCATION_TRIP.md)。
+
+
+## 2026-10-27 v0.7.9 免 Key 地图增量
+
+当前位置方案改为用户明确选择的内嵌高德官方 URI 网页，移除 staticmap Key 依赖并清理旧配置。参考 APK 仍证明 field1=经度、field2=纬度，未采用外部 AI 文本中的反序定义。c3Lbs 4秒截止、失败隔离及切车/退出结果丢弃已补强；网页需网络和系统 WebView，手机底图/坐标精度仍待实车验收。见 [v0.7.9 知识库](26_V079_KEYLESS_PARKING_WEB.md)。
+
+本地 v0.7.9 最终验证：Debug/Preview 各140项测试，0失败/0跳过；两种Lint无错误，Release/Preview签名有效、debuggable=false。APK校验值见 docs/Psa_v079_Update.md。

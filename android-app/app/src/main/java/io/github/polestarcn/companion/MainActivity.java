@@ -27,6 +27,8 @@ public final class MainActivity extends FragmentActivity {
   private int page = 0, ink, muted, paper, surface, line;
   private final int orange = Color.rgb(255, 107, 0);
   private Typeface regular, bold;
+  private AlertDialog parkingDialog;
+  private String parkingVin;
   private boolean authPending;
   private int authGeneration;
   private boolean handlingWidget;
@@ -67,6 +69,7 @@ public final class MainActivity extends FragmentActivity {
     super.onCreate(b);
     if(b!=null)page=Math.max(0,Math.min(2,b.getInt("page",0)));
     AppState.setRegion(this, Region.CHINA);
+    ParkingMapLinks.clearLegacySettings(this);
     regular = PsaDesign.regular();
     bold = PsaDesign.display();
     String previousHome="vehicle_status,odometer,ta_distance,tm_distance,ta_speed,tm_speed,tm_consumption,temperature,aqi,charge_power";
@@ -115,6 +118,7 @@ public final class MainActivity extends FragmentActivity {
   @Override
   protected void onDestroy() {
     displayHandler.removeCallbacks(displayTick);
+    dismissParking();
     model.remove(listener);
     authGeneration++; authPending = false;
     if (biometric != null) biometric.cancelAuthentication();
@@ -134,6 +138,7 @@ public final class MainActivity extends FragmentActivity {
 
   @Override
   protected void onStop() {
+    dismissParking();
     if (model != null) model.remove(listener);
     resumeRender = true;
     if (biometric != null && authPending) {
@@ -546,6 +551,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void onModelChanged() {
+    if(parkingDialog!=null&&(!model.hasSession()||model.selected==null||!java.util.Objects.equals(parkingVin,model.selected.vin)))dismissParking();
     if (dashboardReady && page == 0 && model.hasSession()) {
       for (Runnable binding : new java.util.ArrayList<>(dashboardBindings)) binding.run();
       if (controlRefresh != null)
@@ -983,34 +989,36 @@ public final class MainActivity extends FragmentActivity {
     model.readLastParkedLocation((location,error)->{
       if(isFinishing()||isDestroyed()||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))return;
       if(location==null){info(tr("最后停车位置","Last parked location"),error);return;}
-      String time=location.reportedAt>0?android.text.format.DateFormat.format("MM-dd HH:mm",location.reportedAt).toString():"--";
-      LinearLayout panel=detailPanel();
-      panel.addView(text(tr("车辆上报时间：","Vehicle report: ")+time+(location.stale?tr("\n车辆标记位置可能不是最新。","\nThe vehicle marked this position as possibly out of date."):"")
-          +tr("\n这是最后停车位置，不是实时定位。","\nThis is a last parked position, not live tracking."),13,muted,false));
-      String key=io.github.polestarcn.companion.auth.SecureMapPreferences.key(this);
-      final java.util.concurrent.Future<?>[] imageJob={null};final boolean[] dismissed={false};
-      if(AppPreferences.visible(this,"amap_preview",false)&&!key.isEmpty()) {
-        ImageView image=new ImageView(this);image.setTag("static_map_preview");image.setScaleType(ImageView.ScaleType.FIT_CENTER);image.setBackground(bg(surface,8));
-        image.setContentDescription(tr("高德停车位置预览，点击打开地图","Amap parked-position preview. Tap to open map"));click(image,()->openLocation(location));
-        panel.addView(image,new LinearLayout.LayoutParams(-1,dp(180)));TextView state=text(tr("正在加载高德预览…","Loading Amap preview…"),11,muted,false);panel.addView(state);
-        imageJob[0]=StaticMapPreview.load(location,key,bitmap->{if(dismissed[0]||isDestroyed()){if(bitmap!=null)bitmap.recycle();return;}
-          if(bitmap==null)state.setText(tr("预览不可用，可直接打开地图；请检查 Key、额度与网络。","Preview unavailable. Open map directly, or check your key, quota and network."));
-          else {image.setImageBitmap(bitmap);state.setText(tr("高德地图 · 位置由车辆上报","Amap · position reported by vehicle"));}});
-      } else panel.addView(text(tr("可在设置中配置高德 Web 服务 Key，开启小地图预览。","Configure an Amap Web Service key in Settings to enable the mini-map preview."),11,muted,false));
-      AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("最后停车位置","Last parked location")).setView(panel)
-          .setPositiveButton(tr("打开高德地图","Open Amap"),(d,w)->openLocation(location)).setNegativeButton(tr("关闭","Close"),null).create();
-      dialog.setOnDismissListener(d->{dismissed[0]=true;if(imageJob[0]!=null)imageJob[0].cancel(true);});dialog.show();
+      showParkingLocation(location);
     });
   }
+
+  private void dismissParking(){if(parkingDialog!=null){AlertDialog old=parkingDialog;parkingDialog=null;parkingVin=null;old.dismiss();}}
+
+  private void showParkingLocation(LocationSnapshot location) {
+    if(location==null||!location.valid())return;
+    dismissParking();
+    parkingVin=model.selected==null?null:model.selected.vin;
+    String time=location.reportedAt>0?android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",location.reportedAt).toString():"--";
+    LinearLayout panel=detailPanel();panel.setTag("parking_location_panel");
+    TextView report=text(tr("车辆上报时间：","Vehicle report: ")+time,13,muted,false);report.setTag("parking_report_time");panel.addView(report);
+    if(location.stale){TextView stale=text(tr("位置可能不是最新，请以车辆上报时间为准。","This position may be out of date. Check the vehicle report time."),13,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
+    gap(panel,12);
+    ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));
+    int mapHeight=Math.max(220,Math.min(360,(int)(getResources().getConfiguration().screenHeightDp*.55f)));
+    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,8);
+    panel.addView(text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.6f",location.latitude)+" · "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.6f",location.longitude),12,muted,false));
+    panel.addView(text(tr("这是最后停车位置，并非实时定位。地图网页由高德提供，本次停车点会用于加载地图。","Last parked position, not live tracking. The Amap page receives this parked point to display the map."),12,muted,false));
+    AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("最后停车位置","Last parked location")).setView(panel)
+        .setPositiveButton(tr("打开地图","Open map"),(d,w)->openLocation(location))
+        .setNeutralButton(tr("重新读取","Refresh"),(d,w)->locationDialog())
+        .setNegativeButton(tr("关闭","Close"),null).create();
+    parkingDialog=dialog;dialog.setOnDismissListener(d->{map.close();if(parkingDialog==dialog){parkingDialog=null;parkingVin=null;}});dialog.show();
+  }
+
   private void openLocation(LocationSnapshot location) {
-    String lat=String.format(java.util.Locale.US,"%.6f",location.latitude),lon=String.format(java.util.Locale.US,"%.6f",location.longitude);
-    String title=vehicleDisplayName(model.snapshot)+tr(" 最后停车位置"," last parked location");
-    android.net.Uri amap=new android.net.Uri.Builder().scheme("androidamap").authority("viewMap")
-        .appendQueryParameter("sourceApplication","PsAssistant").appendQueryParameter("poiname",title)
-        .appendQueryParameter("lat",lat).appendQueryParameter("lon",lon).appendQueryParameter("dev","0").build();
-    try{startActivity(new Intent(Intent.ACTION_VIEW,amap).setPackage("com.autonavi.minimap"));}
-    catch(ActivityNotFoundException noAmap){try{startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse("geo:"+lat+","+lon+"?q="+lat+","+lon+"("+android.net.Uri.encode(title)+")")));}
-      catch(ActivityNotFoundException unavailable){toast(tr("没有可用的地图应用","No map application available"));}}
+    if(!ParkingMapLinks.open(this,location,tr("最后停车位置","Last parked location")))
+      toast(tr("没有可用的地图或浏览器应用","No map or browser application available"));
   }
 
   private void vehicleInfoDialog() {
@@ -1269,19 +1277,6 @@ public final class MainActivity extends FragmentActivity {
         .show();
   }
 
-  private void mapSettingsDialog() {
-    LinearLayout panel=detailPanel();Switch enabled=new Switch(this);enabled.setText(tr("显示高德小地图预览","Show Amap mini-map preview"));enabled.setTextColor(ink);
-    enabled.setChecked(AppPreferences.visible(this,"amap_preview",false));enabled.setOnCheckedChangeListener((button,on)->Haptics.tap(this));panel.addView(enabled);
-    EditText key=field(tr("高德 Web 服务 Key","Amap Web Service key"),true);key.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
-    key.setAutofillHints((String[])null);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);key.setText(io.github.polestarcn.companion.auth.SecureMapPreferences.key(this));panel.addView(key,new LinearLayout.LayoutParams(-1,dp(52)));
-    panel.addView(text(tr("填写自己的高德 Web 服务 Key，仅在本机加密保存。打开位置详情并加载预览时，会把该次停车坐标发送至高德，可能消耗你的 API 额度；不后台定位。留空则只提供地图跳转。",
-        "Use your own Amap Web Service key, stored encrypted on this phone. Loading a preview sends that parked coordinate to Amap and may use your API quota. No background tracking. Leave blank for map-app links only."),12,muted,false));
-    new HapticDialogBuilder(this).setTitle(tr("高德小地图预览","Amap mini-map preview")).setView(panel)
-      .setPositiveButton(tr("保存","Save"),(d,w)->{try{io.github.polestarcn.companion.auth.SecureMapPreferences.save(this,key.getText().toString());AppPreferences.set(this,"amap_preview",enabled.isChecked()?"on":"off");}
-        catch(Exception error){toast(tr("无法保存地图 Key","Unable to save map key"));}})
-      .setNegativeButton(tr("取消","Cancel"),null).show();
-  }
-
   private void fontDialog() {
     LinearLayout panel=column();panel.setPadding(dp(16),dp(8),dp(16),dp(8));
     String key=UiTypography.key(this);
@@ -1306,7 +1301,9 @@ public final class MainActivity extends FragmentActivity {
     gap(p, 8);
     p.addView(button(tr("界面皮肤 · ", "UI skin · ") + UiSkin.label(this, UiSkin.get(this)), this::skinDialog));
     gap(p, 8);
-    p.addView(button(tr("高德小地图预览（可选）","Amap mini-map preview (optional)"),this::mapSettingsDialog));gap(p,8);
+    p.addView(button(tr("停车位置与地图","Parking location and maps"),()->info(tr("停车位置与地图","Parking location and maps"),
+        tr("首页位置图标可打开内嵌高德网页，预览最后停车位置，无需高德 Key。下方按钮可打开高德 App、网页或系统地图。不会读取手机 GPS 或后台跟踪。",
+        "Use the home location icon for an embedded Amap web preview of the last parked position. No key needed. The button opens Amap, its website, or a system map. No phone GPS or background tracking."))));gap(p,8);
     p.addView(button(tr("字体大小 · 当前皮肤 / Widget", "Font size · current skin / Widget"),this::fontDialog));
     gap(p,8);
     p.addView(button(tr("露营模式", "Camping mode"), this::campDialog));

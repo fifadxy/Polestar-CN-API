@@ -1,16 +1,16 @@
 # PsAssistant for Android
 
-当前版本：**v0.7.8-beta1**（versionCode 78）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.7.9-beta1**（versionCode 79）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
 支持中国区手机号/密码登录。首次使用需要导入已验证的原模板 APK，或在本机安装匹配样本；兼容参数与会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
 
-[v0.7.8 更新说明](docs/Psa_v078_Update.md)记录四套皮肤、扩展车况/保养、c3Lbs 停车位置与高德二级预览、行程字段核对及字体设置。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
+[v0.7.9 更新说明](docs/Psa_v079_Update.md)记录免 Key 的内嵌高德网页、位置错误隔离和验证边界；保留上一版车况、行程与四套皮肤。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
 
 ## 当前功能
 
-- 所有皮肤提供最后停车位置二级菜单；可选填写本机加密的高德 Web 服务 Key，显示小地图，或直接打开地图应用。无后台定位；仅加载预览时向高德发送该次停车坐标。
+- 所有皮肤提供最后停车位置二级菜单；二级弹窗内嵌高德官方位置网页，无需 Key，亦可打开地图应用。无手机定位或后台地图；打开预览时向高德发送该次停车点。
 - 扩展健康/保养剩余小时、天数、公里；按配置周期估算的百分比与进度条可选显示。各皮肤与 Widget 字体分别可调 80%–120%。TA 能耗仅采纳独立能量/距离可印证的字段，否则 --；估算行驶时间与计算能耗标 ~。
 
 - 默认一页车辆控制首页；电量、续航及最多 12 项自选数据显示。简洁/详细/NIOlike/NIOlike2 四套一页界面；小屏和横屏使用紧凑控制，按系统字体高度安排布局，控制无需滑动。
@@ -27,6 +27,8 @@ Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩
 露营检查受 Android 后台限制、网络和车辆服务影响，并非车辆本地恒温功能。状态未知时不盲目启动，超时写请求不自动重发，停止未确认时明确显示结果。
 
 ## 文档
+
+- [v0.7.9 免 Key 内嵌地图网页](docs/Psa_v079_Update.md)
 
 - [v0.7.8 车况、位置与行程](docs/Psa_v078_Update.md)
 

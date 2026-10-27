@@ -13,9 +13,9 @@ public final class UiSkin {
   public static final String[] CHOICES={
       SIMPLE,DETAILED,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT};
   public static String get(Context c){
-    String value=AppPreferences.get(c,"ui_skin",DETAILED);
+    String value=AppPreferences.get(c,"ui_skin",PS_DEFAULT);
     for(String choice:CHOICES)if(choice.equals(value))return value;
-    String migrated="latest".equals(value)||"ev_concept".equals(value)?SIMPLE:DETAILED;
+    String migrated="latest".equals(value)||"ev_concept".equals(value)?SIMPLE:PS_DEFAULT;
     AppPreferences.set(c,"ui_skin",migrated);return migrated;
   }
   public static void set(Context c,String value){

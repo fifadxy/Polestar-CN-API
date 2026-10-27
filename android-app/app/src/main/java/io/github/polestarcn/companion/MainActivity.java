@@ -690,8 +690,7 @@ public final class MainActivity extends FragmentActivity {
     chosen.removeIf(m->ChargingVisibility.isChargingMetric(m)||m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE);
     if (landscape) {
       LinearLayout middle=row();
-      LinearLayout visual=column();
-      visual.addView(vehicleVisual(),new LinearLayout.LayoutParams(-1,0,1));
+      LinearLayout visual=vehicleVisual();
       middle.addView(visual,new LinearLayout.LayoutParams(0,-1,.34f));
       LinearLayout metrics=column(); metrics.setGravity(Gravity.CENTER_VERTICAL); addMetricGrid(metrics,model.snapshot,chosen,true);
       middle.addView(metrics,new LinearLayout.LayoutParams(0,-1,.66f));

@@ -1471,8 +1471,11 @@ public final class MainActivity extends FragmentActivity {
       icon.setColorFilter(color);
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(color); feedback.setTextColor(color);
-      feedback.setText(control.equals("climate") && "开启".equals(raw)
-          ? climateTileFeedback() : controlFeedback(control, compact));
+      String feedbackText=control.equals("climate") && "开启".equals(raw)
+          ? climateTileFeedback() : controlFeedback(control, compact);
+      if(horizontalCompact&&(control.equals("climate")||control.equals("air")))
+        feedbackText=feedbackText.replace("\n"," · ");
+      feedback.setText(feedbackText);
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
           : control.equals("air") ? RuntimeLabels.air(this,model.snapshot)+" · PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")

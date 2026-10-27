@@ -1181,7 +1181,11 @@ public final class MainActivity extends FragmentActivity {
     boolean landscape = getResources().getConfiguration().screenWidthDp
         > getResources().getConfiguration().screenHeightDp;
     boolean dense=getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
-    int columns = landscape && count > 6 ? 6 : nioSkin() ? (count<=4?2:dense&&count>6?4:3) : count <= 4 ? 2 : count <= 6 ? 3 : 4;
+    // In short landscape the main dashboard selects at most six metrics.
+    // Always use a single row for those fields, even when the count is exactly six.
+    int columns = landscape ? Math.min(6,count)
+        : nioSkin() ? (count<=4?2:dense&&count>6?4:3)
+            : count<=4?2:count<=6?3:4;
     float fontScale=getResources().getConfiguration().fontScale;
     boolean tightLandscape=landscape && count>6
         && getResources().getConfiguration().screenHeightDp<=360 && fontScale>1.15f;

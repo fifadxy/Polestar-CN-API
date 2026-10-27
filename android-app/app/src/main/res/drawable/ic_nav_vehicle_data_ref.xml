@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Reference trace from the user-supplied Polestar 4.25.0 bottom navigation screenshot.
+         Intended for the vehicle-data tab. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2.65C12.72,6.15 14.35,7.78 17.85,8.5C14.35,9.22 12.72,10.85 12,14.35C11.28,10.85 9.65,9.22 6.15,8.5C9.65,7.78 11.28,6.15 12,2.65Z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6.35,4.8C6.68,6.4 7.42,7.14 9.02,7.47C7.42,7.8 6.68,8.54 6.35,10.14C6.02,8.54 5.28,7.8 3.68,7.47C5.28,7.14 6.02,6.4 6.35,4.8Z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M17.2,13.05C17.62,15.12 18.58,16.08 20.65,16.5C18.58,16.92 17.62,17.88 17.2,19.95C16.78,17.88 15.82,16.92 13.75,16.5C15.82,16.08 16.78,15.12 17.2,13.05Z"/>
+</vector>

@@ -1384,11 +1384,16 @@ public final class MainActivity extends FragmentActivity {
         card.addView(temperature);
       }
     }
-    if(!horizontalCompact)card.addView(feedback,
-        new LinearLayout.LayoutParams(-1,nioSkin()&&compact
-            ? (control.equals("climate")||control.equals("air") ? 2*textLineHeight(10)+dp(3) : textLineHeight(10)+dp(1))
-            : -2));
-    if (!compact) card.addView(support, new LinearLayout.LayoutParams(-1, -2));
+    if(!horizontalCompact){
+      boolean timedNio=nioSkin()&&(control.equals("climate")||control.equals("air"));
+      card.addView(feedback,new LinearLayout.LayoutParams(-1,timedNio
+          ? 2*textLineHeight(compact?10:12)+dp(8)
+          : nioSkin()&&compact ? textLineHeight(10)+dp(2) : -2));
+    }
+    if (!compact) {
+      boolean timedNio=nioSkin()&&(control.equals("climate")||control.equals("air"));
+      card.addView(support,new LinearLayout.LayoutParams(-1,timedNio?textLineHeight(11)+dp(4):-2));
+    }
     bindDashboard(() -> {
       String raw = controlRaw(control);icon.setImageResource(controlIcon(control,raw));
       boolean active = "开启".equals(raw) || "未锁".equals(raw) || "已打开".equals(raw) || "未关严".equals(raw);

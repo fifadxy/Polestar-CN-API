@@ -1,6 +1,6 @@
 # Android Polestar Assistant 主线知识库 · 索引
 
-> 版本 `KB-0.8.1 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
+> 版本 `KB-0.8.2 / Android Parity V3.0` · 2026-10-27 · 主线 `android-polestar-assistant-main`
 
 本目录是 **Polestar2 Widget&API** 独立 Android 子项目的长期知识库。`main` 为 GitHub 仓库默认主分支，本项目专属的 Android 主线是 `android-polestar-assistant-main`，不修改 Mac/Hisingen 的独立工程。
 
@@ -14,6 +14,7 @@
 | [06_DEFERRED_SECURITY_R8.md](06_DEFERRED_SECURITY_R8.md) | R8、混淆和非必要安全优化后期池 | `DEFERRED` |
 | [07_PROGRESS.md](07_PROGRESS.md) | 项目研究、开发和分支同步流水 | 持续追加 |
 | [24_VOLIKE_WIDGET_SKIN_V081.md](24_VOLIKE_WIDGET_SKIN_V081.md) | VoLike 极星配色、五皮肤视觉预览、按钮文字开关、桌面 Widget 可切换渲染 | v0.8.1 |
+| [27_VOLIKE_REFERENCE_LAYOUT_V082.md](27_VOLIKE_REFERENCE_LAYOUT_V082.md) | VoLike 参考图版式：顶部能源条、纵向控制、详细信息轨与横屏保护 | v0.8.2 |
 | [08_ROADMAP.md](08_ROADMAP.md) | P0–P7 复刻开发优先级和里程碑 | V3 规划 |
 | [09_EXTERNAL_ANALYSIS_REVIEW.md](09_EXTERNAL_ANALYSIS_REVIEW.md) | 外部 AI 建议独立核对 | 已审核 |
 | [10_TWO_REPORTS_RECONCILED.md](10_TWO_REPORTS_RECONCILED.md) | 两份 APK 报告交叉验证与证据边界 | 已审核 |
@@ -42,6 +43,6 @@
 
 `APK_CONFIRMED` 仅代表 APK 字节/类/方法/字段存在；`REFERENCE_USER_VERIFIED` 代表**用户亲测参考 APK**功能可用；`EXTERNAL_ANALYSIS` 代表外部报告判断；`IMPLEMENTED_DEMO` 代表新代码只有演示模型；`CI_VERIFIED` 代表可编译；`PROJECT_DEVICE_VERIFIED` 才代表**本项目新 APK 在授权车辆上端到端成功**；`PLANNED` 或 `MAPPING_REQUIRED` 代表待开发。
 
-**当前状态**：Android v0.7.9-beta1 已实现真实 China 登录与车况/远控协议，并有本地构建与回归验证；尚未完成本轮账号、车辆和手表端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
+**当前状态**：Android v0.8.2-beta1 延续真实 China 登录、车况/远控、停车位置和 Widget 能力，并在 CI 中持续做手机多皮肤/大字号布局回归；尚未完成本轮账号、车辆和独立 Wear OS 端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
 
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。

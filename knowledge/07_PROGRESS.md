@@ -1,3 +1,13 @@
+## 2026-10-27 / v0.8.2-beta1 — VoLike 参考布局收敛
+
+- `REFERENCE_LAYOUT`：继续基于 v0.8.1-beta1 / Run #104 成功基线，不改 China API、远控、安全确认、停车 LBS 和 Widget 逻辑。VoLike 竖屏从“车辆大卡 + 下方四控制”改为用户参考图的“顶部能源条 + 左侧纵向圆形控制 + 中间 Polestar 2 顶视车辆”。
+- `DETAIL_RAIL`：VoLike 详细 / 极星配色新增右侧信息轨，直接显示保养时间剩余%、里程剩余%、车内温度和停车位置入口；保养百分比仍来自 ServiceReading 当前真实/本地配置逻辑，不伪造车辆百分比。
+- `SIMPLE_LABELS`：`volike_simple_labels` 继续只影响 VoLike 简洁主控的文字；关闭后图标、点击热区、contentDescription 和 BIOMETRIC_STRONG 车控链保持不变。
+- `PREVIEW_SYNC`：`SkinPreviewView` 与实际新版式同步，VoLike 预览改成纵向控制、顶视车辆和详细信息轨；NIO 两套预览不改变。
+- `LANDSCAPE_GUARD`：640×320 及大系统字号继续保留 v0.8.1 已通过的横屏结构，避免为了视觉一致重新引入裁切。
+- `WATCH_SCOPE`：手表 Volvo/Psa 仍为手机内可切换布局预览；独立 Wear OS APK 不在本手机 APK 中冒充完成。
+- `VERSION`：`versionName=0.8.2-beta1`, `versionCode=83`。
+
 ## 2026-10-27 / v0.8.1-beta1 — VoLike 极星配色、可切换 Widget、皮肤缩略预览
 
 - `SOURCE_BASE`：从 `0.8.0-beta1` / commit `7f562261` 连续演进；其 CI Run #96 未通过，继续修复充电字串在 1.56× 字体下的真实行高问题，不通过删测试规避。

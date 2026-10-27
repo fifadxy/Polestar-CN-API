@@ -79,6 +79,29 @@ public class VoLikeV081Test {
     root=render();labels.clear();collect(root,"volike_control_label",labels);
     for(View v:labels)assertEquals(View.VISIBLE,v.getVisibility());
   }
+  @Test public void volikePortraitMatchesReferenceStructure()throws Exception{
+    UiSkin.set(activity,UiSkin.SIMPLE);
+    View simple=render();
+    assertNotNull(simple.findViewWithTag("volike_energy_strip"));
+    assertNotNull(simple.findViewWithTag("volike_side_controls"));
+    assertNotNull(simple.findViewWithTag("volike_hero"));
+    assertNull(simple.findViewWithTag("volike_detail_rail"));
+    java.util.List<View> circles=new java.util.ArrayList<>();collect(simple,"volike_control_circle",circles);
+    assertEquals(4,circles.size());
+
+    UiSkin.set(activity,UiSkin.DETAILED);
+    View detailed=render();
+    assertNotNull(detailed.findViewWithTag("volike_detail_rail"));
+    java.util.List<View> serviceBars=new java.util.ArrayList<>();collect(detailed,"volike_service_bar",serviceBars);
+    assertEquals(2,serviceBars.size());
+
+    UiSkin.set(activity,UiSkin.VOLIKE_POLESTAR);
+    View polestar=render();
+    assertNotNull(polestar.findViewWithTag("volike_detail_rail"));
+    assertNotNull(polestar.findViewWithTag("battery_soc"));
+    assertNotNull(polestar.findViewWithTag("battery_range"));
+  }
+
   @Test public void widgetStylesAreSelectableAndStillExposeVerifiedControls(){
     for(String style:new String[]{VoLikeWidgetRenderer.SIMPLE,VoLikeWidgetRenderer.DETAILED,VoLikeWidgetRenderer.POLESTAR}){
       AppPreferences.set(activity,"widget_design",style);

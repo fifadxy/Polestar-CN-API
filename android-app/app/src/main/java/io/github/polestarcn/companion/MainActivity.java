@@ -717,17 +717,169 @@ public final class MainActivity extends FragmentActivity {
       body.addView(middle,new LinearLayout.LayoutParams(-1,0,1));
       addChargingSection(body,true);
     } else {
-      body.addView(voHero(false),new LinearLayout.LayoutParams(
-          -1,dp(compact?150:detailed?178:170),1));
+      body.addView(voEnergyStrip(detailed,compact),
+          new LinearLayout.LayoutParams(-1,dp(compact?52:62)));
+      gap(body,4);
+      body.addView(voPortraitStage(detailed,compact),new LinearLayout.LayoutParams(-1,0,1));
+      gap(body,4);
       addChargingSection(body,compact);
       addVoMetricGrid(body,chosen,detailed,false);
-      addVoQuickActions(body,false);
       addVoUtilities(body,false);
       TextView footer=liveText(this::dashboardStamp,8,muted,false);footer.setGravity(Gravity.CENTER_VERTICAL);
       click(footer,()->info(tr("车况","Vehicle status"),dashboardStamp()));
       body.addView(footer,new LinearLayout.LayoutParams(-1,textLineHeight(8)+dp(2)));
     }
     dashboardReady=true;
+  }
+
+  private LinearLayout voEnergyStrip(boolean detailed,boolean compact) {
+    LinearLayout card=column();card.setTag("volike_energy_strip");
+    card.setPadding(dp(11),dp(5),dp(11),dp(5));
+    GradientDrawable frame=bg(surface,18);frame.setStroke(dp(1),line);card.setBackground(frame);
+
+    LinearLayout line1=row();line1.setGravity(Gravity.CENTER_VERTICAL);
+    TextView soc=liveText(()->model.snapshot==null?"--%":VehicleSnapshot.metric(model.snapshot.batteryPercent,"%"),
+        compact?17:21,ink,true);soc.setTag("battery_soc");line1.addView(soc,new LinearLayout.LayoutParams(0,-2,.72f));
+    TextView range=liveText(()->model.snapshot==null?"-- km":VehicleSnapshot.metric(model.snapshot.rangeKm," km"),
+        compact?16:20,ink,true);range.setTag("battery_range");range.setGravity(Gravity.END);
+    line1.addView(range,new LinearLayout.LayoutParams(0,-2,.72f));
+    TextView state=liveText(()->ChargingVisibility.shouldShow(model.snapshot)
+        ?tr("充电中","Charging"):tr("车辆已连接","Vehicle ready"),compact?8:9,
+        ChargingVisibility.shouldShow(model.snapshot)?voAccent():muted,true);
+    state.setGravity(Gravity.END);line1.addView(state,new LinearLayout.LayoutParams(0,-2,.74f));
+    card.addView(line1);
+
+    ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
+    bar.setTag("vi_progress");bar.setMax(100);styleViProgress(bar);
+    bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
+    bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));
+    card.addView(bar,new LinearLayout.LayoutParams(-1,dp(4)));
+
+    if(!compact&&detailed){
+      TextView detail=liveText(()->{
+        VehicleSnapshot v=model.snapshot;
+        if(v==null)return tr("预计续航 --","Estimated range --");
+        String eta=ChargingVisibility.shouldShow(v)
+            ?DisplayMetric.CHARGE_ETA.value(this,v,true,AppPreferences.english(this)):"";
+        return tr("电量 ","Battery ")+VehicleSnapshot.metric(v.batteryPercent,"%")
+            +" · "+tr("预计续航 ","Estimated range ")+VehicleSnapshot.metric(v.rangeKm," km")
+            +(eta.isEmpty()?"":" · "+tr("充满 ","Full in ")+eta);
+      },8,muted,false);
+      detail.setSingleLine(true);detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      card.addView(detail);
+    }
+    return card;
+  }
+
+  private LinearLayout voPortraitStage(boolean detailed,boolean compact) {
+    LinearLayout stage=column();stage.setTag("volike_hero");
+    stage.setPadding(dp(7),dp(6),dp(7),dp(5));
+    GradientDrawable frame=bg(surface,24);frame.setStroke(dp(1),line);stage.setBackground(frame);
+
+    LinearLayout middle=row();middle.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout controls=column();controls.setTag("volike_side_controls");controls.setGravity(Gravity.CENTER);
+    for(String control:new String[]{"lock","climate","air","trunk"})
+      addVoSideControl(controls,control,compact);
+    middle.addView(controls,new LinearLayout.LayoutParams(dp(compact?56:64),-1));
+
+    VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");
+    car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));
+    click(car,this::exteriorDialog);
+    car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);
+    LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,-1,1);
+    cp.leftMargin=dp(4);cp.rightMargin=dp(detailed?4:0);middle.addView(car,cp);
+
+    if(detailed) middle.addView(voDetailRail(compact),
+        new LinearLayout.LayoutParams(dp(compact?86:96),-1));
+    stage.addView(middle,new LinearLayout.LayoutParams(-1,0,1));
+    stage.addView(voStatusStrip(compact),new LinearLayout.LayoutParams(-1,dp(compact?26:30)));
+    return stage;
+  }
+
+  private void addVoSideControl(LinearLayout parent,String control,boolean compact) {
+    String title=control.equals("lock")?tr("门锁","Lock"):control.equals("climate")?tr("空调","Climate")
+        :control.equals("air")?tr("净化","Air"):tr("尾箱","Trunk");
+    LinearLayout item=column();item.setTag("control_tile");item.setGravity(Gravity.CENTER);
+    FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
+    int size=dp(compact?34:40);circle.setBackground(oval(viSoft()));
+    ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock
+        :control.equals("climate")?R.drawable.ic_climate:control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);
+    icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    circle.addView(icon,new FrameLayout.LayoutParams(dp(compact?19:22),dp(compact?19:22),Gravity.CENTER));
+    item.addView(circle,new LinearLayout.LayoutParams(size,size));
+
+    boolean hideTitle=UiSkin.SIMPLE.equals(UiSkin.get(this))
+        && !AppPreferences.visible(this,"volike_simple_labels",true);
+    TextView label=text(title,compact?7:8,ink,false);label.setTag("volike_control_label");
+    label.setGravity(Gravity.CENTER);label.setSingleLine(true);label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
+    item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(compact?7:8)));
+
+    bindDashboard(()->{
+      String raw=controlRaw(control);
+      boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
+      boolean warning=control.equals("lock")&&"未锁".equals(raw)||control.equals("trunk")&&active;
+      int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
+      circle.setBackground(oval(fill));
+      icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
+      item.setEnabled(!model.busy&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
+      item.setContentDescription(title+" · "+controlFeedback(control,true));
+    });
+    click(item,()->directControl(control));
+    parent.addView(item,new LinearLayout.LayoutParams(-1,0,1));
+  }
+
+  private LinearLayout voDetailRail(boolean compact) {
+    LinearLayout rail=column();rail.setTag("volike_detail_rail");
+    rail.setPadding(dp(5),dp(5),dp(5),dp(5));
+    GradientDrawable bg=bg(viSoft(),16);bg.setStroke(dp(1),line);rail.setBackground(bg);
+
+    TextView title=text(tr("车况","Status"),compact?9:10,ink,true);
+    title.setGravity(Gravity.CENTER);click(title,this::vehicleStatusDialog);rail.addView(title);
+
+    addVoRailProgress(rail,tr("时间","Time"),()->ServiceReading.timePercent(this,model.snapshot),compact);
+    addVoRailProgress(rail,tr("里程","Distance"),()->ServiceReading.distancePercent(this,model.snapshot),compact);
+
+    TextView temp=liveText(()->model.snapshot==null?"--°C":
+        DisplayMetric.TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),
+        compact?9:11,ink,true);temp.setGravity(Gravity.CENTER);rail.addView(temp);
+    TextView location=text(tr("停车位置","Parked"),compact?7:8,muted,false);
+    location.setGravity(Gravity.CENTER);location.setSingleLine(true);click(location,this::locationDialog);
+    rail.addView(location,new LinearLayout.LayoutParams(-1,0,1));
+    return rail;
+  }
+
+  private void addVoRailProgress(LinearLayout rail,String label,java.util.function.Supplier<Integer> value,boolean compact) {
+    TextView text=liveText(()->label+" "+ServiceReading.number(value.get(),"%"),compact?7:8,muted,false);
+    text.setGravity(Gravity.CENTER);rail.addView(text);
+    ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
+    bar.setMax(100);bar.setTag("volike_service_bar");styleViProgress(bar);
+    bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
+    bindDashboard(()->{Integer v=value.get();bar.setProgress(v==null?0:v);bar.setVisibility(v==null?View.INVISIBLE:View.VISIBLE);});
+    rail.addView(bar,new LinearLayout.LayoutParams(-1,dp(3)));
+    gap(rail,compact?2:3);
+  }
+
+  private LinearLayout voStatusStrip(boolean compact) {
+    LinearLayout statusRow=row();statusRow.setTag("vehicle_status_button");statusRow.setGravity(Gravity.CENTER_VERTICAL);
+    ImageView symbol=new ImageView(this);symbol.setTag("health_symbol");statusRow.addView(symbol,new LinearLayout.LayoutParams(dp(16),dp(16)));
+    TextView label=text(tr("车况","Status"),compact?9:10,ink,true);
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-1);lp.leftMargin=dp(5);statusRow.addView(label,lp);
+    View spacer=new View(this);statusRow.addView(spacer,new LinearLayout.LayoutParams(0,1,1));
+    TextView summary=text("",compact?7:8,muted,false);summary.setSingleLine(true);summary.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    statusRow.addView(summary,new LinearLayout.LayoutParams(0,-1,1.7f));
+    click(statusRow,this::vehicleStatusDialog);
+    bindDashboard(()->{
+      boolean warn=VehicleCondition.problem(model.snapshot,showTires());
+      boolean good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
+      symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);
+      int color=warn?orange:good?voAccent():muted;symbol.setColorFilter(color);
+      symbol.setVisibility(good||warn?View.VISIBLE:View.INVISIBLE);
+      summary.setText((model.snapshot==null?"--":status(model.snapshot.lock))+" · "
+          +(model.snapshot==null?"--":status(model.snapshot.windows)));
+      statusRow.setContentDescription(tr("车况","Status")+" · "
+          +VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));
+    });
+    return statusRow;
   }
 
   private LinearLayout voHero(boolean landscape) {

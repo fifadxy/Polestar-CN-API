@@ -394,6 +394,14 @@ public final class MainActivity extends FragmentActivity {
       navFrame.setStroke(dp(1), i == page ? line : Color.TRANSPARENT);
       t.setBackground(navFrame);
       t.setTextColor(i == page ? orange : muted);
+      if (i < 2) {
+        int resource = i == 0 ? R.drawable.ic_nav_vehicle_control_ref : R.drawable.ic_nav_vehicle_data_ref;
+        android.graphics.drawable.Drawable navIcon = getDrawable(resource).mutate();
+        navIcon.setTint(i == page ? orange : muted);
+        navIcon.setBounds(0, 0, dp(compactNav ? 19 : 21), dp(compactNav ? 19 : 21));
+        t.setCompoundDrawables(null, navIcon, null, null);
+        t.setCompoundDrawablePadding(dp(2));
+      }
       LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(0, -1, 1);
       nlp.leftMargin = dp(3); nlp.rightMargin = dp(3);
       nav.addView(t, nlp);

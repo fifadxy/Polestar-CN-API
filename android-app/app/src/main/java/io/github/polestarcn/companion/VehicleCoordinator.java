@@ -28,7 +28,7 @@ public final class VehicleCoordinator {
   private long readbackStarted;
   private boolean commandAccepted;
   public LocationSnapshot parkedLocation;
-  private final Runnable progressTick=new Runnable(){public void run(){if(!commandPending)return;readbackPercent=Math.min(95,(int)((android.os.SystemClock.elapsedRealtime()-readbackStarted)*100/20_000L));progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;main.postDelayed(this,1000);}};
+  private final Runnable progressTick=new Runnable(){public void run(){if(!commandPending)return;readbackPercent=Math.min(95,(int)((android.os.SystemClock.elapsedRealtime()-readbackStarted)*100/21_000L));progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;main.postDelayed(this,1000);}};
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
@@ -240,7 +240,7 @@ public final class VehicleCoordinator {
             main.post(
                 () -> {
                   commandAccepted=true;operation = OperationState.SERVER_ACCEPTED;
-                  message=tr("指令已发送，按5/10/15/20秒回读…","Sent; checking at 5/10/15/20 seconds…");
+                  message=tr("指令已发送，按5/10/15/21秒回读…","Sent; checking at 5/10/15/21 seconds…");
                   confirmCommand(vehicle,action);
 
                 });
@@ -418,11 +418,18 @@ public final class VehicleCoordinator {
   }
 
   private static boolean uncertain(Exception e) {
-    String s = String.valueOf(e.getMessage());
+    String s = String.valueOf(e.getMessage()).toUpperCase(java.util.Locale.ROOT);
+    // A transport failure after a write may still mean the vehicle received the command.
+    // Treat only transient delivery/transport failures as uncertain and verify by reads;
+    // explicit server rejection/validation errors still fail immediately.
     return s.contains("DEADLINE")
         || s.contains("UNAVAILABLE")
         || s.contains("TIMEOUT")
-        || s.contains("reset");
+        || s.contains("TIMED OUT")
+        || s.contains("CONNECTION RESET")
+        || s.contains("CONNECTION CLOSED")
+        || s.contains("BROKEN PIPE")
+        || s.contains("CANCELLED");
   }
 
   public static String safe(Exception e) {

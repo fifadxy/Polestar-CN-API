@@ -717,7 +717,8 @@ public final class MainActivity extends FragmentActivity {
       body.addView(middle,new LinearLayout.LayoutParams(-1,0,1));
       addChargingSection(body,true);
     } else {
-      body.addView(voHero(false),new LinearLayout.LayoutParams(-1,dp(compact?150:detailed?178:170)));
+      body.addView(voHero(false),new LinearLayout.LayoutParams(
+          -1,dp(compact?150:detailed?178:170),1));
       addChargingSection(body,compact);
       addVoMetricGrid(body,chosen,detailed,false);
       addVoQuickActions(body,false);
@@ -780,7 +781,7 @@ public final class MainActivity extends FragmentActivity {
     int columns=detailed?Math.min(6,count):Math.min(4,count);
     int rows=(count+columns-1)/columns;
     int rowHeight=Math.max(dp(landscape?32:36),
-        textLineHeight(landscape?9:10)+textLineHeight(landscape?7:8)+dp(2));
+        textLineHeight(landscape?9:10)+textLineHeight(landscape?7:8)+dp(12));
     LinearLayout group=column();group.setTag("volike_metrics");
     group.setPadding(dp(2),0,dp(2),0);
     for(int start=0;start<count;start+=columns){

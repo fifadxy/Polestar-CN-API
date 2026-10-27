@@ -13,7 +13,9 @@ public final class SkinPreviewView extends View {
   public SkinPreviewView(Context context, String skin) {
     super(context);
     this.skin = skin;
-    this.car = BitmapFactory.decodeResource(getResources(), R.drawable.vehicle_hero);
+    this.car = BitmapFactory.decodeResource(getResources(),
+        (UiSkin.NIO_LIKE.equals(skin)||UiSkin.NIO_LIKE_2.equals(skin))
+            ? R.drawable.vehicle_hero : R.drawable.vehicle_top);
     setTag("skin_preview");
     setContentDescription(UiSkin.label(context, skin) + " preview");
   }
@@ -47,13 +49,17 @@ public final class SkinPreviewView extends View {
     canvas.drawRoundRect(18,68,141,73,3,3,paint);
     paint.setColor(accent);canvas.drawRoundRect(18,68,111,73,3,3,paint);
     if(car!=null) {
-      float cw = nio ? 112 : UiSkin.SIMPLE.equals(skin) ? 158 : 132;
-      float cx = nio ? 20 : UiSkin.SIMPLE.equals(skin) ? 125 : 149;
-      float ratio = car.getWidth()/(float)car.getHeight();
-      float ch=Math.min(93,cw/ratio);
-      float cy=76 + (81-ch)/2f;
       paint.setAlpha(255);
-      canvas.drawBitmap(car,null,new RectF(cx,cy,cx+cw,cy+ch),paint);
+      if(nio) {
+        float cw=112,ch=Math.min(93,cw/(car.getWidth()/(float)car.getHeight()));
+        canvas.drawBitmap(car,null,new RectF(20,88,20+cw,88+ch),paint);
+      } else {
+        canvas.save();
+        canvas.translate(UiSkin.SIMPLE.equals(skin)?213:190,98);
+        canvas.rotate(-90);
+        canvas.drawBitmap(car,null,new RectF(-59,-33,59,33),paint);
+        canvas.restore();
+      }
     }
     if(nio) {
       paint.setColor(accent);canvas.drawRoundRect(160,27,282,32,2,2,paint);

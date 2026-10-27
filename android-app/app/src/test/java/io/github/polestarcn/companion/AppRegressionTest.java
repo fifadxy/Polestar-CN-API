@@ -999,23 +999,16 @@ public final class AppRegressionTest {
   }
 
   @Test
-  public void invalidReferenceCannotImport() throws Exception {
-    File temp = File.createTempFile("invalid", ".apk", activity.getCacheDir());
-    try {
-      Method m =
-          io.github.polestarcn.companion.auth.ReferenceSignatureProvider.class.getDeclaredMethod(
-              "extract", File.class);
-      m.setAccessible(true);
-      try {
-        m.invoke(
-            new io.github.polestarcn.companion.auth.ReferenceSignatureProvider(activity), temp);
-        fail("accepted invalid APK");
-      } catch (InvocationTargetException expected) {
-        assertTrue(expected.getCause() instanceof IllegalStateException);
-      }
-    } finally {
-      temp.delete();
+  public void runtimeReferenceApkImportIsRemoved() throws Exception {
+    Class<?> provider =
+        io.github.polestarcn.companion.auth.ReferenceSignatureProvider.class;
+    for (Method method : provider.getDeclaredMethods()) {
+      assertFalse("runtime APK import must not be shipped",
+          "importApk".equals(method.getName()) || "extract".equals(method.getName()));
     }
+    io.github.polestarcn.companion.auth.ReferenceSignatureProvider instance =
+        new io.github.polestarcn.companion.auth.ReferenceSignatureProvider(activity);
+    assertFalse("plain CI shell must require build-time standalone asset", instance.isReady());
   }
 
   @Test

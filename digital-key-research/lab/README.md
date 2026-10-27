@@ -5,3 +5,10 @@
 运行：`sh digital-key-research/scripts/run_lab_tests.sh`（JDK 17）。
 
 模型的 `READY_TO_VALIDATE` 只表示允许进行后续验证，**不代表钥匙已经有效**；`canClaimWorkingDigitalKey` 在没有另一个独立实车证据系统前始终为 false。
+
+## Provisioning evidence model
+
+`ProvisioningStateMachine` mirrors the ten evidence stages recovered from the original 4.25.0 APK:
+SDK configuration → UCC/USEC enrolment → vehicle discovery → ECDHE confirmation → certificate exchange → vehicle identity stored → catalogue enrolment → PassiveEntry provisioning → P319 pairing → paired.
+
+It intentionally contains no cryptographic material or vehicle-control implementation. The model is used to compare static findings with future Root AVD/authorized vehicle runtime observations without conflating “BLE connected” with “digital key paired”.

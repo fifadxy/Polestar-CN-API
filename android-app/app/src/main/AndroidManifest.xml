@@ -27,6 +27,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/AppTheme"
         android:allowBackup="false"
+        android:extractNativeLibs="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false">
         <service android:name=".ResidentService" android:exported="false" android:foregroundServiceType="specialUse">

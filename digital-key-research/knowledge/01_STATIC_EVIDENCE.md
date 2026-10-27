@@ -7,7 +7,7 @@
 - **APK_CONFIRMED**：文件 135,944,423 B；SHA-256 `99070211e99b374090ffbc3702ff7888b3d8d2cc811f4e52d1a6de4ded9074ef`。
 - **APK_CONFIRMED**：7,319 个 ZIP 条目、16 个 DEX、17 个 `.so`，原生 ABI **仅 arm64-v8a**。
 - 解析 DEX 的类型/方法/类定义和方法引用；静态工具对 4,144 个目标包类、22,358 个方法体检查，统计 65,029 个调用引用。统计是扫描规模，**不是证实的车辆动作次数**。
-- 仿真与实车：**EMULATOR_PENDING / VEHICLE_PENDING**。
+- 环境仿真：**EMULATOR_VERIFIED**（Android 14 / KVM / ADB root / BLE / Keystore）；官方 APK 动态安装仍为 `APK_RUNTIME_PENDING`；实车仍为 **VEHICLE_PENDING**。
 
 ## 2. 极星 2 Phone-as-Key 主链
 
@@ -49,7 +49,7 @@ Polestar 2 Pairing UI / PAK ViewModels
 
 ## 5. 不得误读的证据
 
-- 包含 `PhoneAsKeyPairingError.InvalidLicense` 类型：说明 SDK 表面定义了许可失败类型，**不代表已确认在本车上验证了许可证阻断**。
+- `PairingError.InvalidLicense` 已进一步追到 P319 `Vehicle$LicenseState`；该状态由 `ConnectionInfo.startTime/endTime` 与当前时间计算。当前证据支持其代表车辆 PAK 凭据的有效期，而不是宿主 APK 签名许可证。
 - APK 包含 mock keystore 测试资源与证书资源：仅记录“存在”；**不导出、不运行、不复用任何密钥/口令/证书字节**，也不把测试数据当作正式配对材料。
 - `libvocmo-lib.so` 存在：可确认本地库打包，仍未完成 JNI→PAK 真实调用链与加密实现的动态证明。
 - 系统 Root 不能推出可以导出硬件绑定密钥、克隆已配对数字钥匙或绕过车辆认证。
@@ -58,4 +58,4 @@ Polestar 2 Pairing UI / PAK ViewModels
 ## 6. 结论
 
 **APK_CONFIRMED**：不是“只有界面”，而是拥有完整分层的 Polestar 2 PAK SDK 结构。  
-**UNVERIFIED_HYPOTHESIS**：其 APK 内部 SDK 可被未获 OEM 授权的第三方 App 独立初始化和配对。必须等待授权/许可、应用身份和车端注册的实证。
+**APK_CONFIRMED**：新设备配对主链为 `User identifier → VOCMO/CarAccess 请求 PassiveEntry → P319 ConnectionInfo → Vehicle.pair()`。\n**UNVERIFIED_HYPOTHESIS**：自研 App 能否通过正常账户链接获得自己的 Actor Certificate，并在新包名下完成车辆认可的新设备注册，仍需动态与实车验证。

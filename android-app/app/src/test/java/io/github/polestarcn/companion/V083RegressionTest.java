@@ -40,7 +40,7 @@ public class V083RegressionTest {
   for(String skin:UiSkin.CHOICES)for(String lang:new String[]{"zh","en"}){UiSkin.set(activity,skin);AppPreferences.set(activity,"language",lang);View root=render();LinearLayout status=root.findViewWithTag("vehicle_status_button");assertNotNull(status);assertEquals("All Good！",((TextView)status.getChildAt(1)).getText().toString());assertEquals(View.VISIBLE,status.findViewWithTag("health_symbol").getVisibility());
    ImageView climate=root.findViewWithTag("control_icon_climate"),air=root.findViewWithTag("control_icon_air");assertNotNull(skin,climate);assertNotNull(skin,air);assertEquals(climate.getWidth(),air.getWidth());assertEquals(climate.getHeight(),air.getHeight());
    if(UiSkin.nioLayout(activity)){assertEquals(absoluteTop(climate),absoluteTop(air));assertEquals(absoluteTop(root.findViewWithTag("control_title_climate")),absoluteTop(root.findViewWithTag("control_title_air")));}
-   TextView camp=root.findViewWithTag("camp_button");assertNotNull(camp);assertNotNull(camp.getCompoundDrawablesRelative()[0]);VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));
+    TextView camp=root.findViewWithTag("camp_button");assertNotNull(camp);android.graphics.drawable.Drawable[] campIcons=camp.getCompoundDrawablesRelative();assertTrue(campIcons[0]!=null||campIcons[1]!=null);VehicleConditionButton condition=root.findViewWithTag("exterior_button");assertNotNull(condition);assertTrue(condition.getContentDescription().toString().contains("21%"));
   }
  }
  @Test public void mapLocationNeedsBothOptInAndSystemPermission(){

@@ -717,14 +717,25 @@ public final class MainActivity extends FragmentActivity {
       body.addView(middle,new LinearLayout.LayoutParams(-1,0,1));
       addChargingSection(body,true);
     } else {
-      body.addView(voEnergyStrip(detailed,compact),
-          new LinearLayout.LayoutParams(-1,dp(compact?52:62)));
-      gap(body,4);
-      body.addView(voPortraitStage(detailed,compact),new LinearLayout.LayoutParams(-1,0,1));
-      gap(body,4);
-      addChargingSection(body,compact);
-      addVoMetricGrid(body,chosen,detailed,false);
-      addVoUtilities(body,false);
+      boolean referencePortrait=config.screenHeightDp>=680&&config.fontScale<=1.2f;
+      if(referencePortrait){
+        body.addView(voEnergyStrip(detailed,false),new LinearLayout.LayoutParams(-1,dp(62)));
+        gap(body,4);
+        body.addView(voPortraitStage(detailed,false),new LinearLayout.LayoutParams(-1,0,1));
+        gap(body,4);
+        addChargingSection(body,false);
+        addVoMetricGrid(body,chosen,detailed,false);
+        addVoUtilities(body,false);
+      } else {
+        // Small-height / large-text phones keep the v0.8.1 compact structure so
+        // every remote-control tile remains at least 48–60dp and fully visible.
+        body.addView(voHero(false),new LinearLayout.LayoutParams(
+            -1,dp(compact?150:detailed?178:170),1));
+        addChargingSection(body,compact);
+        addVoMetricGrid(body,chosen,detailed,false);
+        addVoQuickActions(body,false);
+        addVoUtilities(body,false);
+      }
       TextView footer=liveText(this::dashboardStamp,8,muted,false);footer.setGravity(Gravity.CENTER_VERTICAL);
       click(footer,()->info(tr("车况","Vehicle status"),dashboardStamp()));
       body.addView(footer,new LinearLayout.LayoutParams(-1,textLineHeight(8)+dp(2)));

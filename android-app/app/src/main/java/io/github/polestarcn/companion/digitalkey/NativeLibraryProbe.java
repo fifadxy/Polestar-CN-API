@@ -64,15 +64,22 @@ public final class NativeLibraryProbe {
       glBridge = false;
     }
     int schemas = 0;
-    for (String asset : new String[] {
-        "oem-native-v2/passive/passive_key_request.proto",
-        "oem-native-v2/passive/passive_key_response.proto",
-        "oem-native-v2/passive/passive_key_status.proto"}) {
-      try (java.io.InputStream ignored = context.getAssets().open(asset)) {
-        schemas++;
-      } catch (Throwable ignored) {
-        // Resource is optional in the loader build and injected only in final V2.
+    for (String name : new String[] {
+        "passive_key_request.proto",
+        "passive_key_response.proto",
+        "passive_key_status.proto"}) {
+      boolean found = false;
+      for (String prefix : new String[] {
+          "oem-native-v2/messages/passive/",
+          "oem-native-v2/passive/"}) {
+        try (java.io.InputStream ignored = context.getAssets().open(prefix + name)) {
+          found = true;
+          break;
+        } catch (Throwable ignored) {
+          // Try the next compatible packaging layout.
+        }
       }
+      if (found) schemas++;
     }
     return new Result(items, bridge, glBridge, schemas);
   }

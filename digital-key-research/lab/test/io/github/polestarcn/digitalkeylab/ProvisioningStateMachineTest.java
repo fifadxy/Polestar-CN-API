@@ -11,7 +11,13 @@ public final class ProvisioningStateMachineTest {
       if (ProvisioningStateMachine.evidenceFor(stages[i + 1]).isEmpty())
         throw new AssertionError("missing evidence label");
     }
-    if (!model.canClaimWorkingDigitalKey()) throw new AssertionError("final stage should be paired");
+    if (!model.reachedTerminalLabStage()) throw new AssertionError("lab stage should be paired");
+    if (model.canClaimWorkingDigitalKey())
+      throw new AssertionError("a simulated paired state is not a real vehicle key");
+    if (model.advance(stages[9], stages[9])) throw new AssertionError("no self transitions");
+    model.reset();
+    if (model.stage() != stages[0] || model.reachedTerminalLabStage())
+      throw new AssertionError("reset should clear all simulated progress");
     System.out.println("PASS: provisioning state model; " + stages.length + " evidence stages");
   }
 }

@@ -345,7 +345,7 @@ public final class AppRegressionTest {
     activity.getSharedPreferences("camp_status", 0).edit().putString("phase", "STOPPING").commit();
     render.invoke(activity);
     View campButton = findTagged(activity.getWindow().getDecorView(), "camp_button");
-    assertEquals(android.graphics.Color.parseColor("#FFFF7900"),
+    assertEquals(PsaDesign.ORANGE,
         ((android.graphics.drawable.GradientDrawable) campButton.getBackground()).getColor().getDefaultColor());
   }
 
@@ -412,9 +412,8 @@ public final class AppRegressionTest {
         .withCharging(new ChargingSnapshot(1, 2, 4, 180, 6000.0, 29.0));
     VehicleSnapshotStore.saveChina(activity, v);
     for (WidgetRenderer.Size size : WidgetRenderer.Size.values()) {
-      int width = size == WidgetRenderer.Size.MINI || size == WidgetRenderer.Size.SQUARE ? 150 : 300;
-      int height = size == WidgetRenderer.Size.MINI ? 88 : size == WidgetRenderer.Size.WIDE ? 70
-          : size == WidgetRenderer.Size.DATA ? 260 : 170;
+      int width = WidgetRenderer.defaultWidth(size);
+      int height = WidgetRenderer.defaultHeight(size);
       RemoteViews remote = WidgetRenderer.createViews(activity, 100 + size.ordinal(), size);
       View root = remote.apply(activity, new FrameLayout(activity));
       root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -423,7 +422,8 @@ public final class AppRegressionTest {
       assertTrue(root.findViewById(R.id.widget_action_lock).getHeight() >= 48);
       assertTrue(root.findViewById(R.id.widget_action_climate).getHeight() >= 48);
       int[] ids = {R.id.widget_metric0, R.id.widget_metric1, R.id.widget_metric2, R.id.widget_metric3,
-          R.id.widget_metric4, R.id.widget_metric5, R.id.widget_metric6, R.id.widget_metric7};
+          R.id.widget_metric4, R.id.widget_metric5, R.id.widget_metric6, R.id.widget_metric7,
+          R.id.widget_metric8, R.id.widget_metric9, R.id.widget_metric10, R.id.widget_metric11};
       for (int i = 0; i < WidgetRenderer.capacity(size); i++) {
         TextView field = root.findViewById(ids[i]);
         assertEquals(View.VISIBLE, field.getVisibility());

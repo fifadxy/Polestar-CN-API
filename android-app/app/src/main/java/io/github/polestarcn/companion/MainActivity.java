@@ -1066,7 +1066,6 @@ public final class MainActivity extends FragmentActivity {
     ImageView refresh = new ImageView(this); refresh.setImageResource(R.drawable.ic_refresh);
     refresh.setColorFilter(ink); refresh.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
     refresh.setPadding(dp(12),dp(12),dp(12),dp(12)); refresh.setTag("refresh_vehicle");refresh.setBackground(null);
-    GradientDrawable refreshFrame=bg(Color.TRANSPARENT,nioSkin()?24:8);refreshFrame.setStroke(dp(1),line);refresh.setBackground(refreshFrame);
     click(refresh,()->model.refreshUser(null));
     refresh.setContentDescription(tr("刷新车辆状态","Refresh vehicle status"));
     bindDashboard(()->{refresh.setEnabled(!model.busy);refresh.setAlpha(model.busy?.4f:1f);});
@@ -1358,10 +1357,13 @@ public final class MainActivity extends FragmentActivity {
       boolean active = "开启".equals(raw) || "未锁".equals(raw) || "已打开".equals(raw) || "未关严".equals(raw);
       boolean known = active || "关闭".equals(raw) || "已上锁".equals(raw) || "已锁".equals(raw) || "已关闭".equals(raw);
       int activeColor = nioColors() && (control.equals("climate") || control.equals("air")) ? Color.rgb(0,191,185) : orange;
-      background.setColor(nioSkin() ? (active ? activeColor : surface) : known ? active ? orange : Color.WHITE : surface);
-      background.setStroke(dp(1), controlSending(control) || nioSkin() && active ? activeColor : nioSkin() ? line : known ? Color.TRANSPARENT : line);
-      int color = nioSkin() ? (active?Color.rgb(21,22,23):ink) : known ? Color.rgb(21,22,23) : ink;
-      icon.setColorFilter(nioSkin() && active ? activeColor : color);
+      // Inactive tiles follow the chosen day/night surface; active tiles use a VI accent
+      // with dark icon/label ink for contrast. This also fixes PS default night mode.
+      int tileAccent = nioSkin() ? activeColor : orange;
+      background.setColor(active ? tileAccent : surface);
+      background.setStroke(dp(1), active || controlSending(control) ? tileAccent : line);
+      int color = active ? Color.rgb(21,22,23) : ink;
+      icon.setColorFilter(color);
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(color); feedback.setTextColor(color);
       feedback.setText(nioSkin() && !compact && control.equals("climate") && "开启".equals(raw)
@@ -1903,9 +1905,11 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("按键震动 · 开关与强度", "Button haptics · switch and strength"), this::hapticsDialog));
     gap(p, 8);
     p.addView(button(tr("Widget 数据显示", "Widget data fields"), () -> {
-      String[] labels = {"4×2 · 最多 8", "2×2 · 最多 4", "4×1 · 最多 4", "2×1 · 最多 2", "Data 4×4 · 最多 8"};
-      WidgetRenderer.Size[] sizes = {WidgetRenderer.Size.LARGE, WidgetRenderer.Size.SQUARE,
-          WidgetRenderer.Size.WIDE, WidgetRenderer.Size.MINI, WidgetRenderer.Size.DATA};
+      String[] labels = {"5×4 · 最多 12", "5×2 · 最多 8", "5×1 · 最多 4",
+          "4×4 · 最多 8", "4×2 · 最多 8", "4×1 · 最多 4", "2×2 · 最多 4", "2×1 · 最多 2"};
+      WidgetRenderer.Size[] sizes = {WidgetRenderer.Size.FIVE_DATA, WidgetRenderer.Size.FIVE_LARGE,
+          WidgetRenderer.Size.FIVE_WIDE, WidgetRenderer.Size.DATA, WidgetRenderer.Size.LARGE,
+          WidgetRenderer.Size.WIDE, WidgetRenderer.Size.SQUARE, WidgetRenderer.Size.MINI};
       new HapticDialogBuilder(this).setTitle(tr("选择组件尺寸与数据容量", "Widget size and field capacity"))
           .setItems(labels, (d, w) -> metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),
               WidgetRenderer.capacity(sizes[w]), WidgetRenderer.selectionDefaults(this,sizes[w]))).show();
@@ -1934,6 +1938,7 @@ public final class MainActivity extends FragmentActivity {
                           AppPreferences.set(
                               this, "theme", new String[] {"system", "light", "dark"}[w]);
                           render();
+                          WidgetRenderer.refreshAll(this);
                         })
                     .show()));
     gap(p, 20);

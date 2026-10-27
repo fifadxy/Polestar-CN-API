@@ -16,7 +16,7 @@ import android.text.format.DateFormat;
 import android.widget.RemoteViews;
 
 public final class WidgetRenderer {
-  public enum Size { LARGE, SQUARE, WIDE, MINI, DATA }
+  public enum Size { LARGE, SQUARE, WIDE, MINI, DATA, FIVE_WIDE, FIVE_LARGE, FIVE_DATA }
   private WidgetRenderer() {}
 
   public static void refreshAll(Context context) {
@@ -27,6 +27,9 @@ public final class WidgetRenderer {
     refresh(context, m, WideStripWidgetProvider.class, Size.WIDE, snapshot);
     refresh(context, m, MiniStripWidgetProvider.class, Size.MINI, snapshot);
     refresh(context, m, DataWidgetProvider.class, Size.DATA, snapshot);
+    refresh(context, m, FiveWideWidgetProvider.class, Size.FIVE_WIDE, snapshot);
+    refresh(context, m, FiveLargeWidgetProvider.class, Size.FIVE_LARGE, snapshot);
+    refresh(context, m, FiveDataWidgetProvider.class, Size.FIVE_DATA, snapshot);
   }
   private static void refresh(Context c, AppWidgetManager m, Class<?> receiver, Size size, VehicleSnapshot snapshot) {
     for (int id : m.getAppWidgetIds(new ComponentName(c, receiver))) update(c, m, id, size, snapshot);
@@ -65,7 +68,8 @@ public final class WidgetRenderer {
   public static boolean hasWidgets(Context c) {
     AppWidgetManager m = AppWidgetManager.getInstance(c);
     for (Class<?> provider : new Class<?>[]{VehicleWidgetProvider.class, CompactWidgetProvider.class,
-        WideStripWidgetProvider.class, MiniStripWidgetProvider.class, DataWidgetProvider.class})
+        WideStripWidgetProvider.class, MiniStripWidgetProvider.class, DataWidgetProvider.class,
+        FiveWideWidgetProvider.class, FiveLargeWidgetProvider.class, FiveDataWidgetProvider.class})
       if (m.getAppWidgetIds(new ComponentName(c, provider)).length > 0) return true;
     return false;
   }
@@ -74,8 +78,10 @@ public final class WidgetRenderer {
     return createViews(c, id, size, defaultWidth(size), defaultHeight(size), background(c, size), VehicleSnapshotStore.loadChina(c));
   }
 
-  static int defaultWidth(Size size) { return size == Size.MINI || size == Size.SQUARE ? 150 : 300; }
-  static int defaultHeight(Size size) { return size == Size.MINI ? 88 : size == Size.WIDE ? 70 : size == Size.DATA ? 260 : 170; }
+  static int defaultWidth(Size size) { return size == Size.MINI || size == Size.SQUARE ? 150
+      : size == Size.FIVE_WIDE || size == Size.FIVE_LARGE || size == Size.FIVE_DATA ? 350 : 300; }
+  static int defaultHeight(Size size) { return size == Size.MINI ? 88 : size == Size.WIDE || size == Size.FIVE_WIDE ? 70
+      : size == Size.DATA || size == Size.FIVE_DATA ? 285 : 170; }
 
   static RemoteViews createViews(Context c, int id, Size size, int width, int height,
       Bitmap backing, VehicleSnapshot snapshot) {
@@ -87,7 +93,9 @@ public final class WidgetRenderer {
   static RemoteViews createNativeViews(Context c,int id,Size size,int width,int height,Bitmap backing,VehicleSnapshot s,String design){
     boolean styled=!VoLikeWidgetRenderer.CLASSIC.equals(design),pseu=VoLikeWidgetRenderer.PSEU.equals(design);
     boolean horizontal=height<110&&width>=230;
-    Size layoutSize=horizontal?Size.WIDE:size==Size.WIDE?Size.LARGE:size;
+    // Five-column providers keep independent fields and adapt to the actual reported launcher size.
+    Size layoutSize=horizontal?Size.WIDE:size==Size.WIDE||size==Size.FIVE_WIDE||size==Size.FIVE_LARGE?Size.LARGE
+        : size==Size.FIVE_DATA?Size.DATA:size;
     String type=AppPreferences.get(c,"pseu_type","battery");
     boolean car=styled&&width>=220&&height>=130&&(pseu?"car".equals(type):!VoLikeWidgetRenderer.SIMPLE.equals(design));
     boolean voGreen=styled&&!pseu&&!VoLikeWidgetRenderer.POLESTAR.equals(design);
@@ -102,7 +110,7 @@ public final class WidgetRenderer {
     boolean nioColors = UiSkin.nioColors(c);
     boolean includeTires = AppPreferences.visible(c, "show_tire_status", true);
     boolean showCharging = ChargingVisibility.shouldShow(s);
-    java.util.List<DisplayMetric> selected = MetricSelection.read(c,pseu?"pseu_"+metricKey(size):metricKey(size),pseu?(size==Size.MINI?"battery,range":size==Size.DATA?"battery,range,vehicle_status,odometer,service_km_left,ta_distance,tm_distance":"battery,range,vehicle_status"):defaults(size));
+    java.util.List<DisplayMetric> selected = MetricSelection.read(c,pseu?"pseu_"+metricKey(size):metricKey(size),pseu?(size==Size.MINI?"battery,range":size==Size.DATA||size==Size.FIVE_DATA?"battery,range,vehicle_status,odometer,service_km_left,ta_distance,tm_distance":"battery,range,vehicle_status"):defaults(size));
     java.util.List<DisplayMetric> main = new java.util.ArrayList<>(), charging = new java.util.ArrayList<>();
     for (DisplayMetric metric : selected) {
       if (metric == DisplayMetric.TIRE_STATUS && !includeTires) continue;
@@ -467,12 +475,15 @@ public final class WidgetRenderer {
   }
 
   public static int capacity(Size size) {
-    return size == Size.DATA ? 8 : size == Size.LARGE ? 8 : size == Size.SQUARE ? 4
-        : size == Size.WIDE ? 4 : 2;
+    return size == Size.FIVE_DATA ? 12 : size == Size.DATA || size == Size.LARGE || size == Size.FIVE_LARGE ? 8
+        : size == Size.SQUARE || size == Size.WIDE || size == Size.FIVE_WIDE ? 4 : 2;
   }
   public static String metricKey(Size size) { return "widget_metrics_" + size.name(); }
   public static String defaults(Size size) {
     if (size == Size.MINI) return "battery,range";
+    if (size == Size.FIVE_WIDE) return "battery,range,vehicle_status,service_km_left";
+    if (size == Size.FIVE_LARGE) return "battery,range,vehicle_status,service_days_left,service_km_left,ta_distance,tm_distance,odometer";
+    if (size == Size.FIVE_DATA) return "battery,range,vehicle_status,service_days_left,service_km_left,service_time_percent,service_km_percent,odometer,ta_distance,tm_distance,temperature,aqi";
     if (size == Size.WIDE) return "battery,range,vehicle_status,service_km_left";
     if (size == Size.SQUARE) return "battery,range,vehicle_status,service_days_left";
     return size == Size.DATA ? "battery,range,vehicle_status,service_days_left,service_km_left,service_time_percent,service_km_percent,odometer"

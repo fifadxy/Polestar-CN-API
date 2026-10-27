@@ -6,6 +6,9 @@
     <string name="widget_wide_name" translatable="false">PsAssistant · 4×1</string>
     <string name="widget_mini_name" translatable="false">PsAssistant · 2×1</string>
     <string name="widget_data_name" translatable="false">PsAssistant · Data 4×4</string>
+    <string name="widget_five_wide_name" translatable="false">PsAssistant · 5×1</string>
+    <string name="widget_five_large_name" translatable="false">PsAssistant · 5×2</string>
+    <string name="widget_five_data_name" translatable="false">PsAssistant · Data 5×4</string>
     <color name="launcher_background">#F3F3F1</color>
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:fontFamily">sans-serif</item>

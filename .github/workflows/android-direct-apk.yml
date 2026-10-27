@@ -17,6 +17,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
       - name: Ensure Android API 35 is present
         run: |
           test -n "${ANDROID_HOME:-}"
@@ -27,7 +29,7 @@ jobs:
           fi
       - name: Assemble current debug APK
         working-directory: android-app
-        run: ./gradlew --no-daemon assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
       - name: Verify APK exists
         run: |
           test -f android-app/app/build/outputs/apk/debug/app-debug.apk

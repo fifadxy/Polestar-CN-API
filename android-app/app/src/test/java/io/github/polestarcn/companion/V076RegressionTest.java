@@ -91,7 +91,7 @@ public class V076RegressionTest {
   @Test @Config(qualifiers="w640dp-h320dp-land-mdpi") public void twelveMetricsAndControlsFitLandscapeLargeText() throws Exception {check(640,320,1.3f);}
   @Test @Config(qualifiers="w360dp-h780dp-mdpi") public void twoSkinsAndThemesFit() throws Exception {check(360,780,1f);}
   @Test @Config(qualifiers="w360dp-h780dp-mdpi") public void stateUpdatesKeepExistingViewsAndChangeFeedback() throws Exception {
-    AppPreferences.set(activity,"language","zh");View root=render(360,780);View card=tag(root,"control_tile");
+    AppPreferences.set(activity,"language","zh");AppPreferences.set(activity,"ui_skin",UiSkin.DETAILED);View root=render(360,780);View card=tag(root,"control_tile");
     View charging=tag(root,"charging_section");assertNotNull(charging);assertEquals(View.VISIBLE,charging.getVisibility());
     model.snapshot=new VehicleSnapshot("Polestar 2","masked",64,240,65845,"空闲","全部关闭","全部关闭","已关闭","未锁",System.currentTimeMillis(),"LIVE",false,"关闭","关闭");
     invoke("onModelChanged");assertSame(card,tag(activity.getWindow().getDecorView(),"control_tile"));

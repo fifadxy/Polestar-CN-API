@@ -37,7 +37,12 @@ public class V078RegressionTest {
  private int absoluteTop(View v){int y=0;View current=v;while(current!=null){y+=current.getTop();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return y;}
  private void fits(View v,boolean single){if(v.getVisibility()!=View.VISIBLE)return;
   if(v instanceof TextView){TextView t=(TextView)v;if(t.getText().length()>0&&t.getLayout()!=null){assertTrue(t.getText()+" height="+t.getHeight()+" text="+t.getLayout().getHeight(),t.getLayout().getHeight()<=t.getHeight()-t.getCompoundPaddingTop()-t.getCompoundPaddingBottom());if(single)assertTrue(t.getText().toString(),t.getLineCount()<=1);}}
-  if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++){View child=g.getChildAt(i);if(child.getVisibility()==View.GONE)continue;assertTrue("child bottom "+child.getTag()+" "+child.getBottom()+" parent="+g.getHeight(),child.getBottom()<=g.getHeight());fits(child,single);}}
+  if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++){View child=g.getChildAt(i);if(child.getVisibility()==View.GONE)continue;
+    String childText=child instanceof TextView?((TextView)child).getText().toString():"";
+    String debug="parent="+g.getClass().getSimpleName()+" tag="+g.getTag()+" h="+g.getHeight()
+        +" child="+child.getClass().getSimpleName()+" tag="+child.getTag()+" text="+childText
+        +" top="+child.getTop()+" bottom="+child.getBottom()+" h="+child.getHeight();
+    assertTrue(debug,child.getBottom()<=g.getHeight());fits(child,single);}}
  }
  private void export(View v,String name,int w,int h)throws Exception{File dir=new File("build/reports/previews/v078");dir.mkdirs();Bitmap b=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas cv=new Canvas(b);cv.scale(2,2);v.draw(cv);try(FileOutputStream out=new FileOutputStream(new File(dir,name+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();}
  private void matrix(int w,int h)throws Exception{

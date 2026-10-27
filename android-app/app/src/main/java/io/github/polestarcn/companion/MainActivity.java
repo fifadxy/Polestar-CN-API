@@ -1436,9 +1436,15 @@ public final class MainActivity extends FragmentActivity {
     }
   }
 
+  private String parkedPlaceName;
+  private double parkedPlaceLat=Double.NaN,parkedPlaceLon=Double.NaN;
+  private String parkingDisplay(LocationSnapshot point){
+    if(point==null)return tr("最后停车位置","Last parked");
+    if(parkedPlaceName!=null&&point.latitude==parkedPlaceLat&&point.longitude==parkedPlaceLon)return parkedPlaceName;
+    return String.format(java.util.Locale.US,"%.3f, %.3f",point.latitude,point.longitude);
+  }
   private TextView parkingCaption(){
-    TextView caption=liveText(()->model.parkedLocation==null?tr("最后停车位置","Last parked"):
-        String.format(java.util.Locale.US,"%.3f, %.3f",model.parkedLocation.latitude,model.parkedLocation.longitude),8,muted,false);
+    TextView caption=liveText(()->parkingDisplay(model.parkedLocation),8,muted,false);
     caption.setTag("parking_caption");caption.setSingleLine(true);caption.setEllipsize(android.text.TextUtils.TruncateAt.END);caption.setGravity(Gravity.CENTER_VERTICAL);click(caption,this::locationDialog);return caption;
   }
 
@@ -1448,6 +1454,16 @@ public final class MainActivity extends FragmentActivity {
       if(isFinishing()||isDestroyed()||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))return;
       if(location==null){info(tr("最后停车位置","Last parked location"),error);return;}
       showParkingLocation(location);
+      ParkingAddressResolver.lookup(this,location,resolved->{
+        if(isFinishing()||isDestroyed()||resolved==null||resolved.trim().isEmpty())return;
+        if(model.parkedLocation==null||model.parkedLocation.latitude!=location.latitude||
+           model.parkedLocation.longitude!=location.longitude)return;
+        parkedPlaceName=resolved;parkedPlaceLat=location.latitude;parkedPlaceLon=location.longitude;
+        TextView label=getWindow().getDecorView().findViewWithTag("parking_caption");
+        if(label!=null)label.setText(resolved);
+        TextView dialogLabel=parkingDialog==null?null:parkingDialog.getWindow().getDecorView().findViewWithTag("parking_address_label");
+        if(dialogLabel!=null)dialogLabel.setText(tr("附近位置：","Nearby: ")+resolved);
+      });
     });
   }
 
@@ -1460,6 +1476,8 @@ public final class MainActivity extends FragmentActivity {
     String time=location.reportedAt>0?android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",location.reportedAt).toString():"--";
     LinearLayout panel=detailPanel();panel.setTag("parking_location_panel");
     TextView report=text(tr("车辆上报时间：","Vehicle report: ")+time,13,muted,false);report.setTag("parking_report_time");panel.addView(report);
+    TextView address=text(tr("正在尝试转换位置名称（如不可用显示坐标）","Resolving nearby place (coordinates remain as fallback)"),12,ink,false);
+    address.setTag("parking_address_label");panel.addView(address);
     if(location.stale){TextView stale=text(tr("位置可能不是最新，请以车辆上报时间为准。","This position may be out of date. Check the vehicle report time."),13,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
     gap(panel,6);
     TextView mapOptions=text(tr("手机定位：","Phone location: ")+(MapLocationPermission.enabled(this)?tr("允许","allowed"):tr("关闭","off"))+tr(" · 点按设置"," · tap to change"),11,muted,false);click(mapOptions,this::mapLocationDialog);panel.addView(mapOptions);

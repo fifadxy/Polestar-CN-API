@@ -75,6 +75,10 @@ public final class ResidentService extends Service {
                 + " · "
                 + tr(c, "净化 ", "Air ")
                 + AppPreferences.status(c, v.air);
+    // Keep the existing silent notification synchronized with active timers.
+    if(CampModeManager.active(c))detail+=" · "+tr(c,"露营模式 ","Camping ")+RuntimeLabels.camp(c);
+    if(v!=null && "开启".equals(v.air))detail+=" · "+tr(c,"净化 ","Air ")+RuntimeLabels.air(c,v);
+    if(v!=null && "开启".equals(v.climate))detail+=" · "+tr(c,"空调 ","Climate ")+RuntimeLabels.climate(c,v,AppPreferences.get(c,"vehicle",""));
     String timestamps = tr(c, "数据更新 ", "Data updated ")
         + (v == null ? "—" : time(v.timestampMillis));
     PendingIntent open =

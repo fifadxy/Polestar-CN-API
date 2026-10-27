@@ -31,6 +31,7 @@ public class V078RegressionTest {
   View v=activity.getWindow().getDecorView();v.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));v.layout(0,0,w,h);return v;
  }
  private int tagged(View v,String tag){int n=tag.equals(v.getTag())?1:0;if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)n+=tagged(g.getChildAt(i),tag);}return n;}
+ private boolean text(View v,String value){if(v instanceof TextView&&((TextView)v).getText().toString().contains(value))return true;if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)if(text(g.getChildAt(i),value))return true;}return false;}
  private void collectTagged(View v,String tag,java.util.List<View> out){if(tag.equals(v.getTag()))out.add(v);if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++)collectTagged(g.getChildAt(i),tag,out);}}
  private int absoluteLeft(View v){int x=0;View current=v;while(current!=null){x+=current.getLeft();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return x;}
  private int absoluteTop(View v){int y=0;View current=v;while(current!=null){y+=current.getTop();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return y;}

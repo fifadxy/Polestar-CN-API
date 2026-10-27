@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -47,6 +48,12 @@ public final class DigitalKeyResearchActivity extends Activity {
     b.setAllCaps(false);
     b.setMinHeight(dp(48));
     b.setTextColor(INK);
+    b.setTextSize(14);
+    GradientDrawable surface = new GradientDrawable();
+    surface.setColor(Color.rgb(42, 45, 49));
+    surface.setCornerRadius(dp(8));
+    b.setBackground(surface);
+    b.setPadding(dp(10), dp(10), dp(10), dp(10));
     b.setOnClickListener(view -> run.run());
     return b;
   }
@@ -55,6 +62,9 @@ public final class DigitalKeyResearchActivity extends Activity {
 
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
+    getWindow().setStatusBarColor(Color.rgb(15, 17, 19));
+    getWindow().setNavigationBarColor(Color.rgb(15, 17, 19));
+    getWindow().getDecorView().setSystemUiVisibility(0);
     render();
   }
 

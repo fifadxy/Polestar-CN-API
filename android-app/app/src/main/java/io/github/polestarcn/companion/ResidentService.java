@@ -7,11 +7,18 @@ import android.os.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/** Optional foreground presence. No wake lock, timer loop, or remote writes. */
+/** Optional foreground presence. No wake lock or remote writes; a minute UI ticker only refreshes local countdown text. */
 public final class ResidentService extends Service {
   private static final String CHANNEL = "vehicle_status_v1";
   private static final int ID = 41;
   private static boolean running;
+  private final Handler notificationHandler=new Handler(Looper.getMainLooper());
+  private final Runnable notificationTick=new Runnable(){public void run(){
+    if(!running)return;
+    NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+    if(nm!=null)nm.notify(ID,notification(ResidentService.this));
+    notificationHandler.postDelayed(this,60_000L);
+  }};
 
   public static void apply(Context c) {
     if (AppPreferences.enabled(c)) {
@@ -67,18 +74,17 @@ public final class ResidentService extends Service {
             : VehicleSnapshot.metric(v.batteryPercent, "%")
                 + " · "
                 + AppPreferences.status(c, v.charging);
-    String detail =
-        v == null
-            ? tr(c, "点击连接车辆", "Tap to connect")
-            : tr(c, "空调 ", "Climate ")
-                + ClimateRuntime.label(c, v, AppPreferences.get(c, "vehicle", ""))
-                + " · "
-                + tr(c, "净化 ", "Air ")
-                + AppPreferences.status(c, v.air);
-    // Keep the existing silent notification synchronized with active timers.
-    if(CampModeManager.active(c))detail+=" · "+tr(c,"露营模式 ","Camping ")+RuntimeLabels.camp(c);
-    if(v!=null && "开启".equals(v.air))detail+=" · "+tr(c,"净化 ","Air ")+RuntimeLabels.air(c,v);
-    if(v!=null && "开启".equals(v.climate))detail+=" · "+tr(c,"空调 ","Climate ")+RuntimeLabels.climate(c,v,AppPreferences.get(c,"vehicle",""));
+    String detail;
+    if(v==null) detail=tr(c,"点击连接车辆","Tap to connect");
+    else {
+      String climate="开启".equals(v.climate)
+          ? RuntimeLabels.climate(c,v,AppPreferences.get(c,"vehicle",""))
+          : AppPreferences.status(c,v.climate);
+      String air="开启".equals(v.air)?RuntimeLabels.air(c,v):AppPreferences.status(c,v.air);
+      detail=tr(c,"空调 ","Climate ")+climate+" · "+tr(c,"净化 ","Air ")+air;
+      if(CampModeManager.active(c)||"STOPPING".equals(CampModeManager.phase(c)))
+        detail+=" · "+tr(c,"露营模式 ","Camping ")+RuntimeLabels.camp(c);
+    }
     String timestamps = tr(c, "数据更新 ", "Data updated ")
         + (v == null ? "—" : time(v.timestampMillis));
     PendingIntent open =
@@ -109,12 +115,15 @@ public final class ResidentService extends Service {
     }
     startForeground(ID, notification(this));
     running = true;
+    notificationHandler.removeCallbacks(notificationTick);
+    notificationHandler.postDelayed(notificationTick,60_000L);
     return START_STICKY;
   }
 
   @Override
   public void onDestroy() {
     running = false;
+    notificationHandler.removeCallbacks(notificationTick);
     super.onDestroy();
   }
 

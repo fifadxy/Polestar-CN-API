@@ -1730,6 +1730,38 @@ public final class MainActivity extends FragmentActivity {
   }
 
 
+  /** One persisted text color shared by all Widget sizes, independent of background style. */
+  private void widgetTextColorDialog() {
+    final String[] values={"system","#FFFFFFFF","#FF18191B","#FFFF7900","#FF94979B"};
+    final String[] labels={tr("恢复默认 · VI 自动配色","Restore default · VI automatic"),
+        tr("纯白色","White"),tr("深黑色","Black"),tr("VI 橘色","VI orange"),
+        tr("中性灰色","Neutral gray")};
+    new HapticDialogBuilder(this).setTitle(tr("Widget 字体颜色","Widget text color"))
+        .setItems(new String[]{labels[0],labels[1],labels[2],labels[3],labels[4],tr("自定义 HEX 颜色","Custom HEX color")},(dialog,index)->{
+          if(index<values.length){
+            AppPreferences.set(this,"widget_ink",values[index]);
+            WidgetRenderer.refreshAll(this);
+          }else{
+            android.widget.EditText input=new android.widget.EditText(this);
+            input.setSingleLine(true);input.setHint("#FF7900 或 #FFFF7900");
+            String current=AppPreferences.get(this,"widget_ink","system");
+            if(current.startsWith("#"))input.setText(current);
+            LinearLayout wrapper=column();wrapper.setPadding(dp(20),dp(8),dp(20),dp(2));wrapper.addView(input);
+            new HapticDialogBuilder(this).setTitle(tr("输入 Widget 文字颜色","Enter Widget text color"))
+                .setView(wrapper).setPositiveButton(tr("保存","Save"),(d,w)->{
+                  String hex=input.getText().toString().trim();
+                  try{
+                    android.graphics.Color.parseColor(hex);
+                    AppPreferences.set(this,"widget_ink",hex);
+                    WidgetRenderer.refreshAll(this);
+                  }catch(IllegalArgumentException invalid){
+                    toast(tr("颜色无效，请输入 #RRGGBB 或 #AARRGGBB","Invalid color. Use #RRGGBB or #AARRGGBB"));
+                  }
+                }).setNegativeButton(tr("取消","Cancel"),null).show();
+          }
+        }).show();
+  }
+
   private void skinDialog() {
     LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
     ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);
@@ -1902,13 +1934,7 @@ public final class MainActivity extends FragmentActivity {
             WidgetRenderer.refreshAll(this);
             dialog.dismiss();
           }).show()));
-    p.addView(button(tr("Widget 文字颜色", "Widget text color"), () ->
-        new HapticDialogBuilder(this).setTitle(tr("Widget 文字颜色", "Widget text color"))
-          .setItems(new String[]{tr("跟随日夜模式", "Follow day/night"), tr("浅色文字", "Light text"), tr("深色文字", "Dark text")},
-            (dialog, which) -> {
-              AppPreferences.set(this, "widget_ink", new String[]{"system", "light", "dark"}[which]);
-              WidgetRenderer.refreshAll(this);
-            }).show()));
+    p.addView(button(tr("Widget 字体颜色 · 所有尺寸与风格", "Widget text color · all sizes/styles"), this::widgetTextColorDialog));
     widgetSlider(p, tr("透明度", "Opacity"), "widget_opacity", 58);
     widgetSlider(p, tr("磨砂玻璃程度（模拟）", "Frost intensity (simulated)"), "widget_frost", 28);
     p.addView(text(tr("磨砂为渐变视觉模拟，不会实时模糊桌面壁纸。",

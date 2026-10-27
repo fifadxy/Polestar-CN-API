@@ -394,6 +394,11 @@ public final class MainActivity extends FragmentActivity {
                 render();
               });
       t.setTag("bottom_nav_button");
+      if(compactNav){
+        t.setMinHeight(0);
+        t.setPadding(dp(8),dp(2),dp(8),dp(2));
+        t.setTextSize(9);
+      }
       GradientDrawable navFrame = bg(i == page ? surface : paper, 12);
       navFrame.setStroke(dp(1), i == page ? line : Color.TRANSPARENT);
       t.setBackground(navFrame);
@@ -402,7 +407,7 @@ public final class MainActivity extends FragmentActivity {
         int resource = i == 0 ? R.drawable.ic_notification : i == 1 ? R.drawable.ic_nav_vehicle_data_ref : R.drawable.ic_settings_list_vi;
         android.graphics.drawable.Drawable navIcon = getDrawable(resource).mutate();
         navIcon.setTint(i == page ? orange : muted);
-        navIcon.setBounds(0, 0, dp(compactNav ? 19 : 21), dp(compactNav ? 19 : 21));
+        navIcon.setBounds(0, 0, dp(compactNav ? 16 : 21), dp(compactNav ? 16 : 21));
         t.setCompoundDrawables(null, navIcon, null, null);
         t.setCompoundDrawablePadding(dp(2));
       }

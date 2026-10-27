@@ -12,7 +12,7 @@ APK="digital-key-research/runtime/research-apk/app-debug.apk"
 test -s "$APK"
 adb install -r "$APK" | tee "$OUT/install.txt"
 
-PACKAGE="io.github.polestarcn.companion.digitalkeylab"
+PACKAGE="io.github.polestarcn.companion.digitalkeyv2"
 COMPONENT="$PACKAGE/io.github.polestarcn.companion.digitalkey.DigitalKeyResearchActivity"
 
 adb shell am start -n "$COMPONENT" | tee "$OUT/activity-start.txt"

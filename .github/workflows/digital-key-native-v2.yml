@@ -69,3 +69,93 @@ jobs:
           name: android-signing-tools-v2
           path: native-v2-tools/
           if-no-files-found: error
+
+
+  exact-oem-native-avd:
+    name: Exact 4.25.0 OEM libs + Android 14 native load
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Download exact official-store APK candidate and verify user sample hash
+        shell: bash
+        run: |
+          set -u
+          mkdir -p digital-key-research/runtime/native-v2-source
+          OUT=digital-key-research/runtime/native-v2-source/source.txt
+          APK=/tmp/polestar-4.25.0.apk
+          URL='http://app.mi.com/download/1042285'
+          echo "url=$URL" | tee "$OUT"
+          if curl -fL --retry 2 --connect-timeout 20 --max-time 300 -A 'Mozilla/5.0' -o "$APK" "$URL"; then
+            MD5=$(md5sum "$APK" | awk '{print $1}')
+            SHA=$(sha256sum "$APK" | awk '{print $1}')
+            SIZE=$(wc -c < "$APK" | tr -d ' ')
+            echo "size=$SIZE" | tee -a "$OUT"
+            echo "md5=$MD5" | tee -a "$OUT"
+            echo "sha256=$SHA" | tee -a "$OUT"
+            if [ "$SHA" = '99070211e99b374090ffbc3702ff7888b3d8d2cc811f4e52d1a6de4ded9074ef' ]; then
+              echo 'EXACT_APK=true' >> "$GITHUB_ENV"
+              mkdir -p android-app/app/src/main/jniLibs/arm64-v8a
+              unzip -p "$APK" lib/arm64-v8a/libvocmo-lib.so > android-app/app/src/main/jniLibs/arm64-v8a/libvocmo-lib.so
+              unzip -p "$APK" lib/arm64-v8a/libglble.so > android-app/app/src/main/jniLibs/arm64-v8a/libglble.so
+              sha256sum android-app/app/src/main/jniLibs/arm64-v8a/*.so | tee -a "$OUT"
+            else
+              echo 'EXACT_APK=false' >> "$GITHUB_ENV"
+              echo 'Candidate did not equal the user-provided original; no OEM bytes will be used.' | tee -a "$OUT"
+            fi
+          else
+            echo 'EXACT_APK=false' >> "$GITHUB_ENV"
+            echo 'Public store download unavailable; no OEM bytes will be used.' | tee -a "$OUT"
+          fi
+
+      - name: Build V2 with exact native libraries
+        if: env.EXACT_APK == 'true'
+        shell: bash
+        run: gradle -p android-app :app:assembleDebug --stacktrace
+
+      - name: Enable KVM
+        if: env.EXACT_APK == 'true'
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+
+      - name: Android 14 rooted native-library probe
+        if: env.EXACT_APK == 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -no-metrics
+          disable-animations: true
+          script: sh digital-key-research/scripts/run_native_v2_avd.sh
+
+      - name: Upload native V2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psassistant-digital-key-native-v2-evidence
+          path: digital-key-research/runtime/
+          if-no-files-found: warn
+
+      - name: Upload exact-store V2 APK
+        if: env.EXACT_APK == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: psassistant-digital-key-native-v2-exact-apk
+          path: android-app/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

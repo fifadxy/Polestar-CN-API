@@ -8,6 +8,11 @@ import java.util.function.Supplier;
 /** Compact vehicle-condition button with automatic remaining-service percentage bars. */
 public final class VehicleConditionButton extends TextView {
   private boolean showTime, showDistance;
+  /** Short landscape needs a smaller bar slot to preserve readable status text. */
+  private boolean shortLandscape() {
+    android.content.res.Configuration config=getResources().getConfiguration();
+    return config.screenWidthDp > config.screenHeightDp && config.fontScale > 1.15f;
+  }
   private Integer timePercent, distancePercent;
   private final Supplier<VehicleSnapshot> snapshot;
   private final android.text.TextPaint paint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -27,7 +32,8 @@ public final class VehicleConditionButton extends TextView {
     showDistance = distancePercent != null;
     boolean bars = showTime || showDistance;
     float d = getResources().getDisplayMetrics().density;
-    setPadding((int) (4*d), (int) (bars ? 3*d : 2*d), (int) (4*d), (int) (bars ? 24*d : 2*d));
+    setPadding((int)(4*d),(int)(bars?3*d:2*d),(int)(4*d),
+        (int)(bars?(shortLandscape()?15*d:24*d):2*d));
     StringBuilder description = new StringBuilder(String.valueOf(getText()));
     if (showTime) description.append(" · ")
         .append(AppPreferences.tr(getContext(), "保养时间 ", "Service time "))
@@ -44,7 +50,7 @@ public final class VehicleConditionButton extends TextView {
   @Override protected void onDraw(Canvas canvas) {
     int count = (showTime ? 1 : 0) + (showDistance ? 1 : 0);
     float d = getResources().getDisplayMetrics().density;
-    float heading = count > 0 ? getHeight() - 31*d : getHeight();
+    float heading = count > 0 ? getHeight() - (shortLandscape()?19:28)*d : getHeight();
 
     paint.setTypeface(getTypeface());
     paint.setTextSize(getTextSize());
@@ -80,10 +86,11 @@ public final class VehicleConditionButton extends TextView {
     String label = labelName + " " + ServiceReading.number(percent, "%");
     float measured = paint.measureText(label);
     if (measured > width - 6*d) paint.setTextSize(paint.getTextSize() * (width - 6*d) / measured);
-    canvas.drawText(label, left + width/2f, getHeight() - 13*d, paint);
+    canvas.drawText(label,left+width/2f,getHeight()-(shortLandscape()?8:13)*d,paint);
 
     float trackRight = left + width - 4*d;
-    float top = getHeight() - 8*d, bottom = getHeight() - 5*d;
+    float top=getHeight()-(shortLandscape()?4:8)*d;
+    float bottom=getHeight()-(shortLandscape()?2:5)*d;
     paint.setColor(PsaDesign.line(AppPreferences.dark(getContext())));
     canvas.drawRoundRect(left, top, trackRight, bottom, 1.5f*d, 1.5f*d, paint);
     if (percent != null) {

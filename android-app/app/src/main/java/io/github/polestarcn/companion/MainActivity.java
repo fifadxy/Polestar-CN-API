@@ -1354,7 +1354,8 @@ public final class MainActivity extends FragmentActivity {
         v.setHorizontallyScrolling(false);
         v.setIncludeFontPadding(false);
         v.setGravity(Gravity.CENTER);
-        v.setAutoSizeTextTypeUniformWithConfiguration(v==support?8:9, v==title?12:12,
+        int maxSp=compact?(v==title?10:10):(v==title?12:12);
+        v.setAutoSizeTextTypeUniformWithConfiguration(v==support?8:9,maxSp,
             1,android.util.TypedValue.COMPLEX_UNIT_SP);
       }else{
         v.setMaxLines(1);v.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -1380,14 +1381,14 @@ public final class MainActivity extends FragmentActivity {
       heading.addView(title, tp); card.addView(heading); gap(card, 2);
       if (nioSkin() && (control.equals("climate")||control.equals("air"))) {
         TextView temperature=liveText(() -> control.equals("air")?("AQI "+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
-            :model.snapshot==null ? "--°C":DisplayMetric.TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),14,ink,true);
+            :model.snapshot==null ? "--°C":DisplayMetric.TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),control.equals("air")?11:14,ink,true);
         card.addView(temperature);
       }
     }
     if(!horizontalCompact){
       boolean timedNio=nioSkin()&&(control.equals("climate")||control.equals("air"));
       card.addView(feedback,new LinearLayout.LayoutParams(-1,timedNio
-          ? 2*textLineHeight(12)+dp(8)
+          ? 2*textLineHeight(compact?10:12)+dp(8)
           : nioSkin()&&compact ? textLineHeight(10)+dp(2) : -2));
     }
     if (!compact) {

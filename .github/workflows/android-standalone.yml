@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   build:
@@ -51,3 +52,11 @@ jobs:
           name: psassistant-v085-standalone-shell
           path: android-app/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Report standalone CI to PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh pr comment 5 --body "Standalone CI: **${{ job.status }}** · run \`$GITHUB_RUN_ID\` · commit \`$GITHUB_SHA\`. Tests/Lint/build/import-removal check executed in this workflow."

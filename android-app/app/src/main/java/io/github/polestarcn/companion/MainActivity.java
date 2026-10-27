@@ -1165,10 +1165,11 @@ public final class MainActivity extends FragmentActivity {
     box.addView(car,new LinearLayout.LayoutParams(-1,0,1));
     LinearLayout health=row();health.setTag("vehicle_status_button");health.setGravity(Gravity.CENTER);
     ImageView symbol=new ImageView(this); symbol.setTag("health_symbol");
-    boolean compact=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp
-        ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
+    boolean landscape=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
+    boolean compact=landscape||getResources().getConfiguration().screenHeightDp<680
+        ||getResources().getConfiguration().fontScale>1.2f;
     float systemFont=getResources().getConfiguration().fontScale;
-    int summarySp=compact?(systemFont>1.4f?11:15):24;
+    int summarySp=landscape?10:compact?(systemFont>1.4f?11:15):24;
     TextView label=text("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);
     label.setEllipsize(null);
     label.setAutoSizeTextTypeUniformWithConfiguration(9,summarySp,1,android.util.TypedValue.COMPLEX_UNIT_SP);
@@ -1183,8 +1184,10 @@ public final class MainActivity extends FragmentActivity {
       symbol.setVisibility(good||warn?View.VISIBLE:View.GONE);
       health.setContentDescription(tr("车况","Status")+" · "+VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));
     });
-    box.addView(health,new LinearLayout.LayoutParams(-1,
-        Math.max(dp(systemFont>1.4f?28:32),textLineHeight(summarySp)+dp(systemFont>1.4f?3:8))));
+    int healthHeight=landscape
+        ? Math.max(dp(24),textLineHeight(summarySp)+dp(2))
+        : Math.max(dp(systemFont>1.4f?28:32),textLineHeight(summarySp)+dp(systemFont>1.4f?3:8));
+    box.addView(health,new LinearLayout.LayoutParams(-1,healthHeight));
     return box;
   }
 

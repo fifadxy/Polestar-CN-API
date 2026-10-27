@@ -1,0 +1,63 @@
+{
+  "sample": {
+    "package": "com.polestar.china.android",
+    "version_name": "4.25.0",
+    "version_code": 262,
+    "size_bytes": 135944423,
+    "sha256": "99070211e99b374090ffbc3702ff7888b3d8d2cc811f4e52d1a6de4ded9074ef",
+    "zip_entries": 7319,
+    "dex_count": 16,
+    "native_so_count": 17,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "md5": "d66b01f6b6cf8cdbda0d226ae0926c60"
+  },
+  "static_findings": {
+    "pak_interface": "com.volvocars.phoneaskey",
+    "pak_sdk": "pak.p319.sdk",
+    "polestar2_pairing": "Ps2PairingFragment",
+    "app_adapter": "ICupDigitalKeyController",
+    "other_branch": "com.boxing.digitalkey",
+    "manifest_bluetooth_permissions": [
+      "BLUETOOTH_SCAN",
+      "BLUETOOTH_CONNECT",
+      "BLUETOOTH_ADVERTISE"
+    ],
+    "services": [
+      "pak.p319.sdk.MSDKService",
+      "com.volvocars.phoneaskey.impl.PhoneAsKeyBootCompleteReceiver"
+    ]
+  },
+  "method_scan": {
+    "target_classes": 4144,
+    "bodies_examined": 22358,
+    "invoke_refs": 65029,
+    "heuristic": true
+  },
+  "validation": {
+    "static": "confirmed",
+    "lab": "16 cases passed",
+    "emulator": "verified: Android 14 userdebug, KVM, adb root uid=0, SELinux enforcing, BLE/GATT and Keystore2/KeyMint present",
+    "oem_approval": "unverified",
+    "real_vehicle": "not verified",
+    "native_bridge": "verified: x86_64 guest exposes arm64-v8a with libndk_translation.so",
+    "apk_runtime": "pending: exact uploaded APK bytes not yet delivered to CI runner",
+    "workflow_run": 40466401363,
+    "draft_pr": 2,
+    "android_research_build": "verified: compileDebugJavaWithJavac + assembleDebug + lab tests passed",
+    "android_research_build_run": 40469081701,
+    "android_research_artifact_sha256": "39a38a29f9d13c49621d423e643c075b921f85d2c4164cf66664d8e4ca5774ac"
+  },
+  "scope": "sanitized metadata only; no private keys or extracted SDK binaries",
+  "deep_analysis": {
+    "sdk_injection": "Vocmo.initialize accepts PhoneAsKeyRepository",
+    "authentication": "Authentication.getToken used by AuthInterceptor",
+    "app_instance_identity": "UUID.randomUUID cached as App-Instance-ID",
+    "device_enrolment": "UCC/USEC keypairs and PKI enrolment before vehicle services",
+    "pairing": "ECDHE approval then Actor/Near-Field certificate exchange",
+    "catalogue": "VocmoVehicle.load triggers CA-CAT-030/031 enrolment",
+    "passive_entry": "vehicle CarAccess response provisions P319 ConnectionInfo",
+    "app_signature_gate": "no relevant static signing / Play Integrity / SafetyNet check found; server-side policy still unverified"
+  }
+}

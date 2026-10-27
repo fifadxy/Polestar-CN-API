@@ -1,0 +1,23 @@
+package io.github.polestarcn.digitalkeylab;
+
+public final class ProvisioningStateMachineTest {
+  public static void main(String[] args) {
+    ProvisioningStateMachine model = new ProvisioningStateMachine();
+    ProvisioningStateMachine.Stage[] stages = ProvisioningStateMachine.Stage.values();
+    if (model.canClaimWorkingDigitalKey()) throw new AssertionError("must not claim before pairing");
+    if (model.advance(stages[0], stages[2])) throw new AssertionError("must not skip stages");
+    for (int i = 0; i < stages.length - 1; i++) {
+      if (!model.advance(stages[i], stages[i + 1])) throw new AssertionError("failed at " + stages[i]);
+      if (ProvisioningStateMachine.evidenceFor(stages[i + 1]).isEmpty())
+        throw new AssertionError("missing evidence label");
+    }
+    if (!model.reachedTerminalLabStage()) throw new AssertionError("lab stage should be paired");
+    if (model.canClaimWorkingDigitalKey())
+      throw new AssertionError("a simulated paired state is not a real vehicle key");
+    if (model.advance(stages[9], stages[9])) throw new AssertionError("no self transitions");
+    model.reset();
+    if (model.stage() != stages[0] || model.reachedTerminalLabStage())
+      throw new AssertionError("reset should clear all simulated progress");
+    System.out.println("PASS: provisioning state model; " + stages.length + " evidence stages");
+  }
+}

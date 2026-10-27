@@ -1,0 +1,108 @@
+name: Digital Key Emulator Lab
+
+on:
+  push:
+    branches:
+      - research/polestar2-digital-key-pak-20261027
+    paths:
+      - '.github/workflows/digital-key-emulator.yml'
+      - 'digital-key-research/**'
+  pull_request:
+    branches:
+      - android-polestar-assistant-main
+    paths:
+      - '.github/workflows/digital-key-emulator.yml'
+      - 'digital-key-research/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  emulator-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout research branch HEAD (avoid synthetic PR merge)
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Host virtualization diagnostics
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p digital-key-research/runtime
+          {
+            uname -a
+            lscpu
+            ls -l /dev/kvm || true
+            id
+          } | tee digital-key-research/runtime/host.txt
+
+      - name: Enable KVM permissions when available
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm || true
+            sudo chmod 666 /dev/kvm || true
+          fi
+
+      - name: Fetch exact Polestar China 4.25.0 APK
+        shell: bash
+        run: sh digital-key-research/scripts/fetch_reference_apk.sh
+
+      - name: Boot Android 14 Google APIs emulator and verify ADB/root
+        id: emulator
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -no-metrics
+          disable-animations: true
+          script: sh digital-key-research/scripts/run_emulator_probe.sh
+
+      - name: Run non-operational digital-key gate tests
+        shell: bash
+        run: sh digital-key-research/scripts/run_lab_tests.sh | tee digital-key-research/runtime/lab.txt
+
+      - name: Report diagnostics to draft PR
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EMULATOR_OUTCOME: ${{ steps.emulator.outcome }}
+        shell: bash
+        run: |
+          set -u
+          REPORT="$RUNNER_TEMP/digital-key-emulator-report.md"
+          {
+            echo '## Digital Key Emulator Lab'
+            echo
+            echo "Emulator step: **${EMULATOR_OUTCOME}**"
+            echo
+            for f in digital-key-research/runtime/host.txt digital-key-research/runtime/apk-fetch.txt digital-key-research/runtime/emulator.txt digital-key-research/runtime/lab.txt; do
+              if [ -f "$f" ]; then
+                echo "### $(basename "$f")"
+                echo '```text'
+                sed -n '1,180p' "$f"
+                echo '```'
+              fi
+            done
+          } > "$REPORT"
+          gh pr comment "$PR_NUMBER" --body-file "$REPORT"
+
+      - name: Upload emulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: polestar-digital-key-emulator-diagnostics
+          path: digital-key-research/runtime/
+          if-no-files-found: warn

@@ -1,12 +1,20 @@
 # PsAssistant for Android
 
-当前版本：**v0.8.4-beta1**（versionCode 85）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前独立测试版本：**v0.8.5-beta1-standalone**（versionCode 87）。开发分支：`feature/android-standalone-v084-20261027`；包名继续使用 `io.github.polestarcn.companion`。
 
 Android 应用统一使用用户指定的黑武士车头图标。车辆略微缩小，保留纵横比，并为自适应桌面遮罩留出安全区；圆形图标和应用页眉复用同一资源。后续 Android 版本沿用 [图标与使用约定](branding/android/README.md)。
 
-支持中国区手机号/密码登录。首次使用需要导入已验证的原模板 APK，或在本机安装匹配样本；兼容参数与会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
+支持中国区手机号/密码登录，**手机端不再安装、导入、扫描或依赖任何其他 APK**。Standalone 构建只在构建机读取用户提供的官方 Polestar China 4.25.0 样本（固定 SHA-256 校验），生成不显示原始值的账号兼容资产并同时封装 Digital Key V2 的非用户协议资源；安装后的 PsAssistant 单 APK 即可独立运行。登录会话使用 Android Keystore 加密保存，密码不保存。Global 账号登录尚未实现。
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
+
+## v0.8.5 Standalone
+
+- 单 APK 独立运行：运行时不再导入参考 APK，也不查询 `app.c3garage.companion` 是否安装。
+- China 账号兼容配置由**官方 Polestar China 4.25.0**样本在私有构建阶段生成；原始兼容值不提交 GitHub、不写日志。
+- 同一个官方样本同时提供已研究的 `libvocmo-lib.so`、`libglble.so` 与 25 个 PAK/VOCMO schema，用于 Digital Key V2.1 诊断；不复制用户 Token、VIN、已有数字钥匙、私钥或证书缓存。
+- 账号登录、车辆发现、C3 状态/远控、Widget、后台刷新都由本 APK 自身执行；数字钥匙受保护阶段继续要求正常 OEM/车辆授权。
+- 完整说明见 [Standalone v0.8.5](knowledge/30_STANDALONE_V085.md)。
 
 ## v0.8.4 当前功能增量
 

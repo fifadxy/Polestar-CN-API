@@ -1,0 +1,5 @@
+# Local standalone compatibility asset: generated only from the verified reference APK.
+android-app/app/src/main/assets/standalone/account_compat.bin
+
+# Local build outputs
+dist/

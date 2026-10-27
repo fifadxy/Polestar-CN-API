@@ -50,7 +50,7 @@ public final class MainActivity extends FragmentActivity {
       displayHandler.postDelayed(this, 60_000L);
     }
   };
-  private static final int PICK_APK = 32, NOTIFICATIONS = 33, MAP_LOCATION = 34;
+  private static final int NOTIFICATIONS = 33, MAP_LOCATION = 34;
   private static final String HOME_DEFAULTS =
       "vehicle_status,odometer,ta_distance,tm_distance,ta_speed,tm_speed,ta_consumption,tm_consumption,temperature,aqi,charge_power";
 
@@ -481,11 +481,11 @@ public final class MainActivity extends FragmentActivity {
               ReferenceSignatureProvider ref = new ReferenceSignatureProvider(this);
               if (!ref.isReady()) {
                 info(
-                    tr("导入模板 APK", "Import reference APK"),
+                    tr("当前安装包不完整", "Standalone build incomplete"),
                     tr(
-                        "请选择你提供的原模板 APK，完成一次性兼容配置后即可使用手机号和密码登录。",
-                        "Select your original reference APK once to configure account"
-                            + " compatibility, then sign in with your phone and password."));
+                        "这个安装包没有内置独立账号兼容配置。请安装完整 Standalone 构建版本；手机端不再需要导入任何其他 APK。",
+                        "This APK does not contain the standalone account compatibility asset. "
+                            + "Install the complete Standalone build; no runtime APK import is required."));
                 return;
               }
               inputPassword = "";
@@ -499,14 +499,12 @@ public final class MainActivity extends FragmentActivity {
     gap(v, 12);
     v.addView(text(model.message, 13, muted, false));
     gap(v, 20);
-    v.addView(button(tr("导入模板 APK（仅首次）", "Import reference APK (once)"), this::importReference));
-    gap(v, 8);
     v.addView(
         text(
             tr(
-                "仅在本机加密保存兼容参数与登录会话，密码不保存。",
-                "Compatibility data and session stay encrypted on this phone. Your password is not"
-                    + " stored."),
+                "独立版不需要导入其他 APK。账号兼容配置随 Standalone 构建打包；登录会话使用 Android Keystore 加密保存，密码不保存。",
+                "Standalone mode does not import another APK. Account compatibility is packaged at build time; "
+                    + "the session is encrypted with Android Keystore and the password is not stored."),
             12,
             muted,
             false));
@@ -1786,6 +1784,14 @@ public final class MainActivity extends FragmentActivity {
     p.addView(button(tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this))));gap(p,8);
     p.addView(button(tr("程序语言 / Language", "App language / 语言"), this::languageDialog));
     gap(p, 8);
+    p.addView(
+        button(
+            tr("数字钥匙 · 独立版诊断", "Digital Key · Standalone diagnostics"),
+            () -> startActivity(
+                new Intent(
+                    this,
+                    io.github.polestarcn.companion.digitalkey.DigitalKeyResearchActivity.class))));
+    gap(p, 8);
     p.addView(button(tr("界面皮肤 · ", "UI skin · ") + UiSkin.label(this, UiSkin.get(this)), this::skinDialog));
     gap(p, 8);    Switch simpleLabels=new Switch(this);
     simpleLabels.setTag("volike_simple_labels");
@@ -1955,7 +1961,15 @@ public final class MainActivity extends FragmentActivity {
                         Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         android.net.Uri.parse("package:" + getPackageName())))));
     gap(p, 16);
-    p.addView(button(tr("导入模板 APK", "Import reference APK"), this::importReference));
+    ReferenceSignatureProvider standaloneAccount = new ReferenceSignatureProvider(this);
+    p.addView(
+        text(
+            standaloneAccount.isReady()
+                ? tr("独立账号配置：已内置", "Standalone account config: bundled")
+                : tr("独立账号配置：当前构建未内置", "Standalone account config: missing in this build"),
+            12,
+            standaloneAccount.isReady() ? muted : orange,
+            false));
     gap(p, 8);
     p.addView(
         button(
@@ -2332,34 +2346,6 @@ public final class MainActivity extends FragmentActivity {
     }
     if (r == NOTIFICATIONS) {
       setResident(g.length > 0 && g[0] == PackageManager.PERMISSION_GRANTED);
-    }
-  }
-
-  private void importReference() {
-    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-    i.setType("*/*");
-    i.addCategory(Intent.CATEGORY_OPENABLE);
-    startActivityForResult(i, PICK_APK);
-  }
-
-  @Override
-  protected void onActivityResult(int r, int result, Intent data) {
-    super.onActivityResult(r, result, data);
-    if (r == PICK_APK && result == RESULT_OK && data != null && data.getData() != null) {
-      final android.net.Uri uri = data.getData();
-      toast(tr("正在验证模板…", "Verifying reference…"));
-      new Thread(
-              () -> {
-                try {
-                  new ReferenceSignatureProvider(this).importApk(uri);
-                  runOnUiThread(() -> toast(tr("导入完成，可以登录", "Imported. Ready to sign in")));
-                } catch (Exception e) {
-                  runOnUiThread(
-                      () -> info(tr("导入失败", "Import failed"), VehicleCoordinator.safe(e)));
-                }
-              },
-              "reference-import")
-          .start();
     }
   }
 

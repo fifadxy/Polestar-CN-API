@@ -18,6 +18,7 @@
 3. [03_ROOT_EMULATOR_RUNBOOK.md](03_ROOT_EMULATOR_RUNBOOK.md)：ARM64 Root 模拟器安全实验与验收。
 4. [04_SECURITY_AND_ACCEPTANCE.md](04_SECURITY_AND_ACCEPTANCE.md)：禁止项、权限、证据门槛与实车验收。
 5. [05_PUBLIC_SOURCES.md](05_PUBLIC_SOURCES.md)：公开文档与发布依据。\n6. [06_ORIGINAL_APK_DEEP_ANALYSIS.md](06_ORIGINAL_APK_DEEP_ANALYSIS.md)：直接基于用户上传 4.25.0 APK 的 provisioning / pairing 主链与移植判断。
+7. [07_CERTIFICATE_ENROLMENT_CHAIN.md](07_CERTIFICATE_ENROLMENT_CHAIN.md)：UCC/USEC、ECDHE、Actor/Near-Field、Catalogue、PassiveEntry 与 P319 的完整阶段关系。
 6. [../evidence/apk_4250_summary.json](../evidence/apk_4250_summary.json)：无凭据元数据、证据及完成状态。
 7. [../lab/README.md](../lab/README.md)：可编译的非联网门控模型与测试。
 

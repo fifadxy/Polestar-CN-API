@@ -1374,7 +1374,9 @@ public final class MainActivity extends FragmentActivity {
     } else {
       LinearLayout heading = row();heading.setGravity(Gravity.CENTER_VERTICAL);
       heading.addView(icon, new LinearLayout.LayoutParams(dp(20), dp(20)));
-      LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1); tp.leftMargin = dp(5);
+      // Fixed title slot keeps both NIO climate and purification aligned when text auto-sizes.
+      LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, dp(22), 1); tp.leftMargin = dp(5);
+      title.setGravity(Gravity.CENTER_VERTICAL);
       heading.addView(title, tp); card.addView(heading); gap(card, 2);
       if (nioSkin() && (control.equals("climate")||control.equals("air"))) {
         TextView temperature=liveText(() -> control.equals("air")?("AQI "+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
@@ -1383,7 +1385,9 @@ public final class MainActivity extends FragmentActivity {
       }
     }
     if(!horizontalCompact)card.addView(feedback,
-        new LinearLayout.LayoutParams(-1,nioSkin()&&compact?textLineHeight(10)+dp(1):-2));
+        new LinearLayout.LayoutParams(-1,nioSkin()&&compact
+            ? (control.equals("climate")||control.equals("air") ? 2*textLineHeight(10)+dp(3) : textLineHeight(10)+dp(1))
+            : -2));
     if (!compact) card.addView(support, new LinearLayout.LayoutParams(-1, -2));
     bindDashboard(() -> {
       String raw = controlRaw(control);icon.setImageResource(controlIcon(control,raw));

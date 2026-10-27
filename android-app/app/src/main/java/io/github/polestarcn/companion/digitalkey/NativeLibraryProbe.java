@@ -33,11 +33,13 @@ public final class NativeLibraryProbe {
   public static final class Result {
     public final List<Item> items;
     public final boolean vocmoJavaBridgePresent;
+    public final boolean glAlgorithmBridgePresent;
     public final int passiveSchemaCount;
 
-    Result(List<Item> items, boolean vocmoJavaBridgePresent, int passiveSchemaCount) {
+    Result(List<Item> items, boolean vocmoJavaBridgePresent, boolean glAlgorithmBridgePresent, int passiveSchemaCount) {
       this.items = Collections.unmodifiableList(new ArrayList<>(items));
       this.vocmoJavaBridgePresent = vocmoJavaBridgePresent;
+      this.glAlgorithmBridgePresent = glAlgorithmBridgePresent;
       this.passiveSchemaCount = passiveSchemaCount;
     }
   }
@@ -54,6 +56,13 @@ public final class NativeLibraryProbe {
     } catch (Throwable ignored) {
       bridge = false;
     }
+    boolean glBridge = false;
+    try {
+      Class.forName("com.iwall.tech.security.GLAlgorithmJni");
+      glBridge = true;
+    } catch (Throwable ignored) {
+      glBridge = false;
+    }
     int schemas = 0;
     for (String asset : new String[] {
         "oem-native-v2/passive/passive_key_request.proto",
@@ -65,7 +74,7 @@ public final class NativeLibraryProbe {
         // Resource is optional in the loader build and injected only in final V2.
       }
     }
-    return new Result(items, bridge, schemas);
+    return new Result(items, bridge, glBridge, schemas);
   }
 
   private static Item check(Context context, String library, boolean load) {

@@ -1167,8 +1167,11 @@ public final class MainActivity extends FragmentActivity {
     ImageView symbol=new ImageView(this); symbol.setTag("health_symbol");
     boolean compact=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp
         ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
-    int summarySp=compact?15:24;
+    float systemFont=getResources().getConfiguration().fontScale;
+    int summarySp=compact?(systemFont>1.4f?11:15):24;
     TextView label=text("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);
+    label.setEllipsize(null);
+    label.setAutoSizeTextTypeUniformWithConfiguration(9,summarySp,1,android.util.TypedValue.COMPLEX_UNIT_SP);
     health.addView(symbol,new LinearLayout.LayoutParams(dp(18),dp(18)));
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.leftMargin=dp(5);health.addView(label,lp);
     click(health,this::vehicleStatusDialog);health.setContentDescription(tr("查看车况","View vehicle status"));
@@ -1180,7 +1183,8 @@ public final class MainActivity extends FragmentActivity {
       symbol.setVisibility(good||warn?View.VISIBLE:View.GONE);
       health.setContentDescription(tr("车况","Status")+" · "+VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));
     });
-    box.addView(health,new LinearLayout.LayoutParams(-1,Math.max(dp(32),textLineHeight(summarySp)+dp(8))));
+    box.addView(health,new LinearLayout.LayoutParams(-1,
+        Math.max(dp(systemFont>1.4f?28:32),textLineHeight(summarySp)+dp(systemFont>1.4f?3:8))));
     return box;
   }
 

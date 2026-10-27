@@ -26,6 +26,9 @@ android {
     }
     buildTypes {
         debug {
+            // Keep research APK isolated from the user's installed PsAssistant.
+            applicationIdSuffix '.digitalkeyv2'
+            versionNameSuffix '-digitalkey-v2'
             minifyEnabled false
             shrinkResources false
         }

@@ -1,0 +1,87 @@
+name: Digital Key v0.8.3 Read-only Integration
+
+on:
+  push:
+    branches:
+      - feature/android-digital-key-lab-v083-20261027
+    paths:
+      - 'android-app/**'
+      - 'digital-key-research/scripts/**'
+      - '.github/workflows/digital-key-v083-integration.yml'
+  pull_request:
+    branches:
+      - android-polestar-assistant-main
+    paths:
+      - 'android-app/**'
+      - 'digital-key-research/scripts/**'
+      - '.github/workflows/digital-key-v083-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build v0.8.3 research integration debug
+        shell: bash
+        run: gradle -p android-app :app:assembleDebug --stacktrace
+      - name: Verify digital key safety contract
+        shell: bash
+        run: gradle -p android-app :app:testDebugUnitTest --tests io.github.polestarcn.companion.digitalkey.DigitalKeyContractTest --stacktrace
+      - name: Upload signed-by-debug Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: psassistant-v083-digital-key-lab-debug
+          path: android-app/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  emulator-smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: psassistant-v083-digital-key-lab-debug
+          path: digital-key-research/runtime/research-apk
+      - name: Enable KVM on Linux
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Run Android 14 root emulator and launch read-only diagnostics
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -no-metrics
+          disable-animations: true
+          script: sh digital-key-research/scripts/run_android_ui_smoke.sh
+      - name: Upload diagnostic screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psassistant-v083-digital-key-lab-screenshot
+          path: digital-key-research/runtime/ui-smoke/
+          if-no-files-found: warn

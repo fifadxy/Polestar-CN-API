@@ -110,3 +110,19 @@ Built from the exact user-provided 4.25.0 APK plus the latest V2 loader:
 - protocol assets: **25/25** extracted and packaged
 - account implementation remains the current China phone + password login path
 - protected key stages remain gated by real OEM/vehicle authorization
+
+
+## 2026-10-27 V2.1 implementation update
+
+The Native V2 branch now contains a read-only `AuthorizedFlowAssessment` gate used by the Android diagnostics page.
+
+It evaluates these non-sensitive signals without starting protected operations:
+
+- existing PsAssistant China session present;
+- a vehicle is already selected by the existing vehicle layer;
+- OEM Phone-as-Key identity authorization (currently **false** because no authorized provider is connected);
+- Native V2 prerequisites packaged.
+
+The UI displays the **first blocked stage**. A packaged native SDK cannot skip account, vehicle, or OEM identity gates. Unit tests assert that missing account, vehicle, or OEM identity prevents protected provisioning and prevents any “working digital key” claim.
+
+No login request, vehicle discovery request, BLE scan, device enrolment, certificate exchange, PassiveEntry or P319 pairing is triggered by this assessment.

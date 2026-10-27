@@ -2,7 +2,33 @@
 
 ## 环境核对结论
 
-2026-10-27 会话容器没有 `adb`、`emulator`、Android SDK、`/dev/kvm`，且无法在此容器下载 Android SDK；因此 **未执行/未声称执行过 Root 模拟器测试**。本地完成：ZIP、Manifest、DEX 静态解析与调用关系。上传官方 APK 的原生依赖只有 **arm64-v8a**；x86_64 AVD 不具备这些 SO 的直接兼容条件。
+### 2026-10-27：Root Android Emulator 已真实跑通
+
+**EMULATOR_VERIFIED / ADB_ROOT_VERIFIED / KVM_VERIFIED**
+
+通过 GitHub Actions `Digital Key Emulator Lab` 在真实 hosted runner 上完成：
+
+- Host：Ubuntu 26.04 / x86_64 / AMD EPYC。
+- `/dev/kvm`：存在并可用；AMD-V 嵌套虚拟化可用。
+- Android：API 34 / Android 14 / Google APIs / `userdebug` / `dev-keys`。
+- Emulator：Android Emulator 37.2.12；一次已记录启动约 **38.5 s**。
+- ADB：启动前 `uid=2000(shell)`；执行 `adb root` 后为 **`uid=0(root)` / `whoami=root`**。
+- SELinux：**Enforcing**，没有为了测试关闭强制访问控制。
+- Guest ABI：`x86_64,arm64-v8a`。
+- Native bridge：**`libndk_translation.so`**，因此 ARM64-only native APK 具有运行兼容路径。
+- Bluetooth：`android.hardware.bluetooth` + `android.hardware.bluetooth_le`；Bluetooth Manager 为 **ON**；GATT Service 已运行。
+- Keystore：`android.hardware.hardware_keystore=300`；Keystore2、KeyMint、Remote Provisioning 相关 Binder service 均存在。
+- 纯 Java 数字钥匙安全门控：16/16 组合测试通过。
+
+运行证据由 Draft PR #2 的 Actions 自报告评论与 workflow logs 保存。研究分支包含可重复 workflow：`.github/workflows/digital-key-emulator.yml`。
+
+### 官方 APK 进入虚拟机的当前状态
+
+用户上传的中国区 4.25.0 APK 已在本地确认：
+- MD5 `d66b01f6b6cf8cdbda0d226ae0926c60`
+- SHA-256 `99070211e99b374090ffbc3702ff7888b3d8d2cc811f4e52d1a6de4ded9074ef`
+
+CI 已尝试从公开应用商店/镜像站获取相同文件，但当前可自动解析到的 URL 没有返回完全匹配字节。因此**没有安装未校验的 APK**。Root AVD 环境本身已验证成功；官方 APK 动态运行仍单独标为 `APK_RUNTIME_PENDING`。
 
 ## 建议环境
 

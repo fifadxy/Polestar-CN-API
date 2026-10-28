@@ -1,14 +1,24 @@
-当前交付说明：[v0.8.9](docs/Psa_v089_Login_Compatibility.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
+当前交付说明：[v0.9.1 高清 PNG 车辆图库及车控回读](docs/Psa_v091_PNG_And_Command_Readback.md) · [v0.8.9 登录兼容](docs/Psa_v089_Login_Compatibility.md)。公开 CI Debug 缺私有配置时只能验证界面，完整发行包需有效的已有 PsAssistant 客户端配置和固定签名。
 
 # PsAssistant for Android
 
-当前版本：**v0.8.9-beta1**（versionCode 90）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.9.1-beta1**（versionCode 92）。安卓主分支：`android-polestar-assistant-main`，包名仍为 `io.github.polestarcn.companion`。
 
 Android应用可选车辆轮廓、红色车辆、防滑图形三款图标，分别提供自动/日间/夜间启动器资源及透明单色通知图形；默认车辆轮廓。图形和安全区见[Psa图标规范v3](docs/Psa_Icon_Design_Specification_v3.md)。
 
 支持中国区手机号/密码登录。完整签名包已内置构建配置，不需要安装或导入其他APK；账号会话使用Android Keystore加密保存，密码不保存。公开CI缺私有配置时仅为开发验证包。Global账号登录尚未实现。
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
+
+## v0.9.1 · 高清 PNG 原图与五次车端回读
+
+1. **原版默认车辆恢复**：PS 默认皮肤白天为原版高清白车顶视，夜间为原版黑车顶视；车辆图库保留自动与手动选择。
+2. **仅保留高清 PNG 车辆素材**：删除车图 WebP 压缩件，复用用户上传的原图和审核过的官方极星 2 官方侧视 PNG，不用 AI 重绘。所有顶视车图已横向摆放，UI 不再二次旋转，使用 `FIT_CENTER` 避免伸缩变形。
+3. **极星 2/极星 5 分层选择**：依次选择车型→视角→颜色，日夜独立记录；极星 5 当前只提供官方经过核验的侧视图，不会用极星 2 车辆顶视冒充。
+4. **命令回读**：每次只发送一条写请求，在 **5/10/15/18/26 秒**读取状态，共五个节点；全部读取后需最近连续三次有效 LIVE 车况匹配才判定已确认。期间状态栏数字进度每秒递增，在最终回读前不因单次网络波动误报 Failed。26 秒未确认报告“状态未确认”，不自动重发；寻车的鸣笛/闪灯仍不可通过普通车况确认。露营写入同样等待五次读取/连续三次确认。
+5. **登录兼容与安全**：沿用 v0.8.9 的认证机制，CI 公共 APK 如缺私有账户配置不能视为可正常登录的正式包。
+
+详见 [v0.9.1 开发与验证记录](docs/Psa_v091_PNG_And_Command_Readback.md)。
 
 ## v0.8.9 登录兼容和独立构建
 

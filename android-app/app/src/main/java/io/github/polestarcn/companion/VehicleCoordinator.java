@@ -24,11 +24,11 @@ public final class VehicleCoordinator {
   public VehicleSnapshot snapshot;
   public boolean busy;
   public boolean progressOnly;
-  public boolean commandPending; public int readbackPercent;
+  public boolean commandPending; public int readbackPercent; public int readbackChecks;
   private long readbackStarted;
   private boolean commandAccepted;
   public LocationSnapshot parkedLocation;
-  private final Runnable progressTick=new Runnable(){public void run(){if(!commandPending)return;readbackPercent=Math.min(95,(int)((android.os.SystemClock.elapsedRealtime()-readbackStarted)*100/20_000L));progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;main.postDelayed(this,1000);}};
+  private final Runnable progressTick=new Runnable(){public void run(){if(!commandPending)return;readbackPercent=Math.min(98,(int)((android.os.SystemClock.elapsedRealtime()-readbackStarted)*98/26_000L));message=tr("正在核实车辆状态 ","Verifying vehicle state ")+readbackPercent+"% · "+readbackChecks+"/5";progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;main.postDelayed(this,1000);}};
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
@@ -200,9 +200,9 @@ public final class VehicleCoordinator {
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
     final float requestedTarget=ClimateTarget.request(context);final boolean verifyTarget=action.equals("climate-start")&&ClimateTarget.enabled(context);final long commandIssuedAt=System.currentTimeMillis();
     busy = true;
-    activeAction = action;commandPending=true;commandAccepted=false;readbackPercent=0;
+    activeAction = action;commandPending=true;commandAccepted=false;readbackPercent=0;readbackChecks=0;
     operation = OperationState.SENDING;
-    message = tr("正在发送指令…", "Sending command…");
+    message = tr("正在发送指令 · 0%", "Sending command · 0%");
     changed();
     io.execute(
         () -> {
@@ -253,21 +253,23 @@ public final class VehicleCoordinator {
             main.post(
                 () -> {
                   commandAccepted=true;operation = OperationState.SERVER_ACCEPTED;
-                  message=tr("指令已发送，按5/10/15/20秒回读…","Sent; checking at 5/10/15/20 seconds…");
+                  message=tr("指令已发送 · 0% · 将在5/10/15/18/26秒回读","Command sent · 0% · reads at 5/10/15/18/26s");
                   confirmCommand(vehicle,action,verifyTarget?requestedTarget:null,commandIssuedAt);
 
                 });
           } catch (Exception e) {
             main.post(
                 () -> {
-                  if (uncertain(e)) {
+                  if (!(e instanceof IllegalArgumentException)) {
+                    // A network/API exception is not proof that the vehicle rejected the write.
+                    // Never send the write again; verify via five READ-ONLY checkpoints.
                     operation = OperationState.UNCONFIRMED;
-                    message=tr("发送结果未确认，正在回读车况…","Delivery uncertain; checking vehicle…");
+                    message=tr("指令结果尚未确认，正在核实车况 · 0%","Delivery uncertain; verifying vehicle · 0%");
                     confirmCommand(vehicle,action,verifyTarget?requestedTarget:null,commandIssuedAt);
                   } else {
                     commandPending=false;
                     operation = OperationState.FAILED;
-                    message = tr("操作结果：", "Command result: ") + safe(e);
+                    message = tr("指令参数不受支持：", "Invalid command: ") + safe(e);
                     finish();
                   }
                 });
@@ -276,10 +278,12 @@ public final class VehicleCoordinator {
   }
 
   private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle,String action,Float target,long issuedAt){
-    busy=false;readbackStarted=android.os.SystemClock.elapsedRealtime();main.removeCallbacks(progressTick);main.post(progressTick);changed();
+    busy=false;readbackChecks=0;readbackPercent=0;readbackStarted=android.os.SystemClock.elapsedRealtime();main.removeCallbacks(progressTick);main.post(progressTick);changed();
     new CommandReadback(()->api.readVehicle(vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
       public void progress(VehicleSnapshot updated,int count){
         if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
+        readbackChecks=count;
+        message=tr("正在核实车辆状态 ","Verifying vehicle state ")+readbackPercent+"% · "+count+"/5";
         if(updated!=null){snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);}
         changed();
       }
@@ -291,8 +295,8 @@ public final class VehicleCoordinator {
         operation=momentary(action)?(commandAccepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED):verified?OperationState.VEHICLE_CONFIRMED:OperationState.UNCONFIRMED;
         if(reached&&"climate-start".equals(action))ClimateRuntime.started(context,identity(vehicle.vin),System.currentTimeMillis());
         if(reached&&"climate-stop".equals(action))ClimateRuntime.stopped(context);
-        message=momentary(action)&&!commandAccepted?tr("寻车发送结果仍未确认；四次刷新完成，未重复发送","Find-car delivery unconfirmed; four updates complete, command not repeated"):momentary(action)?tr("寻车指令已发送，四次车况刷新完成；声音/闪灯无法远程确认","Find-car sent; four updates complete. Sound/flash cannot be confirmed remotely")
-            :reached?tr("车辆状态已确认","Vehicle state confirmed"):tr("车辆状态尚未确认；未重复发送","Vehicle state unconfirmed; command not repeated");
+        message=momentary(action)&&!commandAccepted?tr("寻车发送结果仍未确认；五次车况刷新完成，未重复发送","Find-car delivery unconfirmed; five reads complete, write not repeated"):momentary(action)?tr("寻车指令已发送，五次车况刷新完成；声音/闪灯无法远程确认","Find-car sent; five reads complete. Sound/flash cannot be verified remotely")
+            :verified?tr("车辆状态已连续三次确认","Vehicle state verified three consecutive times"):tr("26秒五次回读完成，尚未达到连续三次确认；未重复发送","26s / five reads complete, no three consecutive confirmations; write not repeated");
         if(target!=null)message=verified?tr("空调运行与目标温度已回报确认：","Climate running and target confirmed: ")+target.intValue()+"°C":tr("空调目标温度尚未确认，请求 ","Climate target unconfirmed. Requested ")+target.intValue()+"°C"+tr("；车辆上报 ","; reported ")+DisplayMetric.TARGET_TEMPERATURE.value(context,updated,true,AppPreferences.english(context))+tr("；未重复发送","; command not repeated");
         activeAction="";changed();
       }
@@ -388,17 +392,25 @@ public final class VehicleCoordinator {
           }
         }
         public boolean confirm(CampSession s, String action) throws Exception {
-          for (int i = 0; i < 4; i++) {
+          int consecutive=0;
+          long previous=0;
+          for (long at:CommandReadback.CHECKPOINT_MS) {
             if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            Thread.sleep(i == 0 ? CommandReadback.INITIAL_DELAY_MS : CommandReadback.RETRY_DELAY_MS);
+            Thread.sleep(at-previous);previous=at;
             if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            boolean reached;
-            if(action.equals("climate-start")&&s.verifyClimateTarget){read[0]=api.readVehicle(vehicle);reached=ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]);}else reached=api.commandReached(s.vin, action);
-            if (reached) {
-              if ("climate-start".equals(action)) ClimateRuntime.started(context, identity(s.vin), System.currentTimeMillis());
-              if ("climate-stop".equals(action)) ClimateRuntime.stopped(context);
-              return true;
-            }
+            boolean reached=false;
+            try {
+              if(action.equals("climate-start")&&s.verifyClimateTarget){
+                read[0]=api.readVehicle(vehicle);
+                reached=ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]);
+              } else reached=api.commandReached(s.vin, action);
+            } catch(Exception unavailable) { DiagnosticLog.add("Camping readback unavailable; waiting for next slot"); }
+            consecutive=reached?consecutive+1:0;
+          }
+          if(consecutive>=3) {
+            if("climate-start".equals(action)) ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());
+            if("climate-stop".equals(action)) ClimateRuntime.stopped(context);
+            return true;
           }
           return false;
         }

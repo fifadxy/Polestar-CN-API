@@ -23,18 +23,33 @@ public final class CommandReadbackTest {
     return new VehicleSnapshot("fixture", "masked", 63, 230, 65845, "空闲", "全部关闭", "全部关闭",
         "已关闭", "已上锁", 1, source, false, climate, "关闭");
   }
-  @Test public void fourExactSlotsAndNoFinalSuccessBeforeTwentySeconds(){
+  @Test public void fiveExactSlotsAndNoFinalSuccessBeforeTwentySixSeconds(){
     Clock clock=new Clock();int[] reads={0},done={0};
     new CommandReadback(()->{reads[0]++;return state("开启","LIVE");},Runnable::run,clock,(v,ok)->{assertTrue(ok);done[0]++;}).start("climate-start");
     clock.advance(4999);assertEquals(0,reads[0]);
-    for(int n=1;n<=4;n++){clock.advance(n*5000);assertEquals(n,reads[0]);assertEquals(n==4?1:0,done[0]);}
-    clock.advance(90000);assertEquals(4,reads[0]);assertEquals(1,done[0]);
+    long[] slots=CommandReadback.CHECKPOINT_MS;assertArrayEquals(new long[]{5000,10000,15000,18000,26000},slots);
+    for(int n=1;n<=5;n++){clock.advance(slots[n-1]);assertEquals(n,reads[0]);assertEquals(n==5?1:0,done[0]);}
+    clock.advance(90000);assertEquals(5,reads[0]);assertEquals(1,done[0]);
   }
-  @Test public void mismatchAfterFourReadsStaysUnconfirmed(){
-    Clock clock=new Clock();int[] reads={0},done={0};new CommandReadback(()->{reads[0]++;return state("关闭","LIVE");},Runnable::run,clock,(v,ok)->{assertFalse(ok);done[0]++;}).start("climate-start");clock.advance(20000);assertEquals(4,reads[0]);assertEquals(1,done[0]);
+  @Test public void mismatchAfterFiveReadsStaysUnconfirmed(){
+    Clock clock=new Clock();int[] reads={0},done={0};new CommandReadback(()->{reads[0]++;return state("关闭","LIVE");},Runnable::run,clock,(v,ok)->{assertFalse(ok);done[0]++;}).start("climate-start");clock.advance(26000);assertEquals(5,reads[0]);assertEquals(1,done[0]);
   }
   @Test public void readFailuresRecoverWithoutRepeatingAWrite(){
-    Clock clock=new Clock();int[] reads={0},done={0},progress={0};new CommandReadback(()->{if(++reads[0]<3)throw new Exception("offline");return state("开启","LIVE");},Runnable::run,clock,new CommandReadback.Listener(){public void progress(VehicleSnapshot v,int n){progress[0]=n;}public void finished(VehicleSnapshot v,boolean ok){assertTrue(ok);done[0]++;}}).start("climate-start");clock.advance(20000);assertEquals(4,reads[0]);assertEquals(4,progress[0]);assertEquals(1,done[0]);
+    Clock clock=new Clock();int[] reads={0},done={0},progress={0};new CommandReadback(()->{if(++reads[0]<3)throw new Exception("offline");return state("开启","LIVE");},Runnable::run,clock,new CommandReadback.Listener(){public void progress(VehicleSnapshot v,int n){progress[0]=n;}public void finished(VehicleSnapshot v,boolean ok){assertTrue(ok);done[0]++;}}).start("climate-start");clock.advance(26000);assertEquals(5,reads[0]);assertEquals(5,progress[0]);assertEquals(1,done[0]);
+  }
+  @Test public void twoPositiveReadsCannotBeMistakenForThreeConfirmations(){
+    Clock clock=new Clock();int[] call={0};boolean[] verified={true};int[] done={0};
+    new CommandReadback(()->{call[0]++;return state(call[0]<=3?"关闭":"开启","LIVE");},
+      Runnable::run,clock,(v,ok)->{verified[0]=ok;done[0]++;}).start("climate-start");
+    clock.advance(25000);assertEquals(0,done[0]);
+    clock.advance(26000);assertEquals(5,call[0]);assertEquals(1,done[0]);assertFalse(verified[0]);
+  }
+  @Test public void inconsistentReadbackMustNotDeclareCommandSuccess(){
+    Clock clock=new Clock();int[] call={0};boolean[] verified={true};
+    new CommandReadback(()->{
+      int n=++call[0];return state(n==4?"关闭":"开启","LIVE");},
+      Runnable::run,clock,(v,ok)->verified[0]=ok).start("climate-start");
+    clock.advance(26000);assertFalse(verified[0]);assertEquals(5,call[0]);
   }
   @Test public void cacheAndProcessingNeverProveSuccessAndUnknownToggleIsBlocked() {
     assertFalse(ControlAction.reached("climate-start", state("开启", "CACHED")));

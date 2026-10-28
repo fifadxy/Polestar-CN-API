@@ -646,7 +646,7 @@ public final class MainActivity extends FragmentActivity {
     VehicleSnapshot v = model.snapshot;
     String stamp = v == null || v.timestampMillis <= 0 ? tr("更新时间未知", "Update time unknown")
         : tr("更新 ", "Updated ") + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
-    if(model.commandPending)return stamp+tr(" · 正在刷新 "," · Refreshing ")+model.readbackPercent+"%";
+    if(model.commandPending)return tr("指令核实 ","Command verification ")+model.readbackPercent+"% · "+model.readbackChecks+"/5 · "+stamp;
     return (model.message.isEmpty() ? "" : model.message + " · ")
         + (AppPreferences.visible(this, "show_update", true) ? stamp : "");
   }

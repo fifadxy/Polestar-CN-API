@@ -5,23 +5,29 @@ on:
       - android-polestar-china-api
       - feature/android-companion-v0.1
       - android-polestar-assistant-main
+      - feature/android-standalone-v086-hardening-20261028
     paths:
       - 'android-app/**'
       - 'knowledge/**'
       - 'scripts/**'
       - 'docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md'
       - '.github/workflows/android-apk.yml'
+  pull_request:
+    branches:
+      - android-polestar-assistant-main
   workflow_dispatch:
+concurrency:
+  group: android-companion-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   assemble-debug:
     runs-on: ubuntu-latest
-    env:
-      PSA_CLIENT_CONFIG: ${{ secrets.PSA_CLIENT_CONFIG }}
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -45,71 +51,157 @@ jobs:
       - name: Build standalone debug APK
         working-directory: android-app
         run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-      - name: Configure persistent signing when available
+      - name: Configure private complete-build inputs
         env:
+          PSA_CLIENT_CONFIG_SECRET: ${{ secrets.PSA_CLIENT_CONFIG }}
           PSA_SIGNING_KEYSTORE_BASE64: ${{ secrets.PSA_SIGNING_KEYSTORE_BASE64 }}
           PSA_SIGNING_STORE_PASSWORD: ${{ secrets.PSA_SIGNING_STORE_PASSWORD }}
           PSA_SIGNING_KEY_ALIAS: ${{ secrets.PSA_SIGNING_KEY_ALIAS }}
           PSA_SIGNING_KEY_PASSWORD: ${{ secrets.PSA_SIGNING_KEY_PASSWORD }}
         run: |
           python3 - <<'PYCODE'
-          import base64, os, pathlib
+          import base64, os, pathlib, re
+          runner = pathlib.Path(os.environ['RUNNER_TEMP'])
+          client = os.environ.get('PSA_CLIENT_CONFIG_SECRET', '').strip().upper()
           encoded = os.environ.get('PSA_SIGNING_KEYSTORE_BASE64', '')
           password = os.environ.get('PSA_SIGNING_STORE_PASSWORD', '')
+          values = {}
+
+          if client:
+              if not re.fullmatch(r'[0-9A-F]{32}', client):
+                  raise ValueError('PSA_CLIENT_CONFIG format is invalid')
+              client_file = runner / 'psassistant-client-config.txt'
+              client_file.write_text(client, encoding='ascii')
+              client_file.chmod(0o600)
+              values['PSA_CLIENT_CONFIG_FILE'] = str(client_file)
+
           if encoded and password:
-              key = pathlib.Path(os.environ['RUNNER_TEMP']) / 'psassistant-signing.keystore'
+              key = runner / 'psassistant-signing.keystore'
               key.write_bytes(base64.b64decode(encoded, validate=True))
               key.chmod(0o600)
-              values = {'PSA_SIGNING_KEYSTORE': str(key), 'PSA_SIGNING_STORE_PASSWORD': password,
-                        'PSA_SIGNING_KEY_ALIAS': os.environ.get('PSA_SIGNING_KEY_ALIAS') or 'androiddebugkey',
-                        'PSA_SIGNING_KEY_PASSWORD': os.environ.get('PSA_SIGNING_KEY_PASSWORD') or password}
-              if any('\n' in v or '\r' in v for v in values.values()):
-                  raise ValueError('Signing variables must be single-line')
-              with open(os.environ['GITHUB_ENV'], 'a') as out:
-                  for name, value in values.items():
-                      out.write(name + '=' + value + '\n')
-              print('Persistent release signing configured')
-          else:
-              print('No persistent key configured; debug APK is for validation, not a stable update identity')
+              values.update({
+                  'PSA_SIGNING_KEYSTORE': str(key),
+                  'PSA_SIGNING_STORE_PASSWORD': password,
+                  'PSA_SIGNING_KEY_ALIAS': os.environ.get('PSA_SIGNING_KEY_ALIAS') or 'androiddebugkey',
+                  'PSA_SIGNING_KEY_PASSWORD': os.environ.get('PSA_SIGNING_KEY_PASSWORD') or password,
+              })
+
+          if 'PSA_CLIENT_CONFIG_FILE' in values and 'PSA_SIGNING_KEYSTORE' in values:
+              values['PSA_COMPLETE_BUILD'] = '1'
+
+          if any('\n' in v or '\r' in v for v in values.values()):
+              raise ValueError('Private build variables must be single-line')
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              for name, value in values.items():
+                  out.write(name + '=' + value + '\n')
+
+          print('Complete signed build inputs configured' if values.get('PSA_COMPLETE_BUILD') == '1'
+                else 'Private complete-build inputs unavailable; validation Debug only')
           PYCODE
-      - name: Build signed release with persistent identity
-        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
+
+      - name: Build signed complete release and preview
+        if: env.PSA_COMPLETE_BUILD == '1'
         working-directory: android-app
         run: gradle --no-daemon :app:assembleRelease :app:assemblePreview
+
+      - name: Verify client config isolation
+        shell: bash
+        run: |
+          DEBUG_APK=android-app/app/build/outputs/apk/debug/app-debug.apk
+          if unzip -Z1 "$DEBUG_APK" | grep -qx 'assets/client-signing.bin'; then
+            echo "Debug validation APK unexpectedly contains private client configuration" >&2
+            exit 1
+          fi
+          if [ "${PSA_COMPLETE_BUILD:-0}" = "1" ]; then
+            RELEASE_APK=android-app/app/build/outputs/apk/release/app-release.apk
+            test -s "$RELEASE_APK"
+            test "$(unzip -p "$RELEASE_APK" assets/client-signing.bin | wc -c | tr -d ' ')" = "48"
+          fi
+
       - name: Describe build configuration
         run: |
-          if [ -n "$PSA_CLIENT_CONFIG" ]; then
-            echo "Standalone client configuration supplied" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${PSA_COMPLETE_BUILD:-0}" = "1" ]; then
+            echo "Complete standalone Release/Preview built with private client configuration and persistent signing." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Validation APK only: private account client configuration is absent. Use the signed complete APK delivered privately." >> "$GITHUB_STEP_SUMMARY"
+            echo "Validation Debug only: private client configuration and/or persistent signing unavailable." >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Check output
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.8.5-beta1-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.8.6-beta1-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.8.5-beta1-debug
-          path: PsAssistant-v0.8.5-beta1-debug.apk
+          name: PsAssistant-v0.8.6-beta1-debug
+          path: PsAssistant-v0.8.6-beta1-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
-        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
+        if: env.PSA_COMPLETE_BUILD == '1'
         with:
-          name: PsAssistant-v0.8.5-beta1-release
+          name: PsAssistant-v0.8.6-beta1-release
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
-        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
+        if: env.PSA_COMPLETE_BUILD == '1'
         with:
-          name: PsAssistant-v0.8.5-beta1-preview
+          name: PsAssistant-v0.8.6-beta1-preview
           path: android-app/app/build/outputs/apk/preview/app-preview.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-v0.8.5-beta1-checks
+          name: PsAssistant-v0.8.6-beta1-checks
           path: |
             android-app/app/build/reports/previews/
             android-app/app/build/test-results/testDebugUnitTest/
             android-app/app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
+
+
+  emulator-smoke:
+    name: Android 14 standalone smoke
+    needs: assemble-debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: PsAssistant-v0.8.6-beta1-debug
+          path: /tmp/psassistant-apk
+      - name: Enable KVM
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Install and launch standalone APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -no-metrics
+          disable-animations: true
+          script: |
+            set -eux
+            APK="$(find /tmp/psassistant-apk -type f -name '*.apk' -print -quit)"
+            test -s "$APK"
+            adb install -r "$APK"
+            adb shell am start -n io.github.polestarcn.companion/.MainActivity
+            sleep 4
+            adb shell pidof io.github.polestarcn.companion | tee /tmp/psassistant-pid.txt
+            test -s /tmp/psassistant-pid.txt
+            adb shell dumpsys activity activities | grep -E 'MainActivity|mResumedActivity|topResumedActivity' | head -n 30 | tee /tmp/psassistant-activity.txt
+            adb exec-out screencap -p > /tmp/psassistant-standalone.png
+            test -s /tmp/psassistant-standalone.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PsAssistant-v0.8.6-beta1-emulator-smoke
+          path: |
+            /tmp/psassistant-pid.txt
+            /tmp/psassistant-activity.txt
+            /tmp/psassistant-standalone.png
+          if-no-files-found: warn

@@ -37,7 +37,13 @@ assert version, 'missing APK versionName'
 workflow = (root/'.github/workflows/android-apk.yml').read_text()
 assert f'PsAssistant-v{version.group(1)}-debug.apk' in workflow, 'CI artifact version must match APK metadata'
 assert 'VehicleSnapshotStore.saveChina' in all_java
-assert 'secret + canonical + secret' in all_java
+api=(main/'java/io/github/polestarcn/companion/api/ChinaPolestarApi.java').read_text()
+assert 'signatureProvider.sign(canonical.toString())' in api
+assert 'signatureProvider.resolve' not in api
+assert 'public String sign(String canonical)' in client
+assert 'private String resolveMaterial()' in client
+assert 'material + canonical + material' in client
+assert 'PSACFG2' not in all_java, 'binary client-config magic must not be exposed as a Java string literal'
 assert 'ProtoWire.stringField(2, vin)' in all_java
 assert '<appwidget-provider' in (main/'res/xml/widget_standard.xml').read_text()
 assert '<appwidget-provider' in (main/'res/xml/widget_compact.xml').read_text()

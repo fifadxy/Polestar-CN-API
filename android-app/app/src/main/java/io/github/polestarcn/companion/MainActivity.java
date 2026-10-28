@@ -489,8 +489,8 @@ public final class MainActivity extends FragmentActivity {
                 toast(tr("请输入手机号和密码", "Enter phone number and password"));
                 return;
               }
-              ClientSignatureProvider ref = new ClientSignatureProvider(this);
-              if (!ref.isReady()) {
+              ClientSignatureProvider clientConfig = new ClientSignatureProvider(this);
+              if (!clientConfig.isReady()) {
                 info(
                     tr("安装包配置不完整", "Incomplete build"),
                     tr("此验证构建未包含登录配置，请使用完整签名版。无需安装或导入其他APK。",
@@ -513,9 +513,9 @@ public final class MainActivity extends FragmentActivity {
     v.addView(
         text(
             tr(
-                "仅在本机加密保存兼容参数与登录会话，密码不保存。",
-                "Compatibility data and session stay encrypted on this phone. Your password is not"
-                    + " stored."),
+                "完整安装包已内置客户端配置；登录会话由 Android Keystore 加密保存，密码不保存。",
+                "The complete APK bundles its client configuration. Login sessions are encrypted with "
+                    + "Android Keystore; your password is not stored."),
             12,
             muted,
             false));
@@ -1800,7 +1800,13 @@ public final class MainActivity extends FragmentActivity {
     disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,this::residentSettings);
     disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);p.addView(text(tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."),12,muted,false));});
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
-      p.addView(text(new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."),12,muted,false));
+      ClientSignatureProvider clientConfig=new ClientSignatureProvider(this);
+      String clientStatus;
+      if(!clientConfig.isReady()) clientStatus=tr("开发验证构建 · 缺少登录配置","Developer verification build · client config missing");
+      else if(clientConfig.source()==ClientSignatureProvider.Source.BUNDLED_V2) clientStatus=tr("完整独立构建 · v2客户端配置已内置","Complete standalone build · v2 client config bundled");
+      else if(clientConfig.source()==ClientSignatureProvider.Source.BUNDLED_LEGACY) clientStatus=tr("完整独立构建 · 旧版内置配置","Complete standalone build · legacy bundled config");
+      else clientStatus=tr("升级兼容 · 已迁移旧版本地配置","Upgrade compatibility · migrated local config");
+      p.addView(text(clientStatus+" · "+tr("无需其他APK","No other APK required"),12,clientConfig.isReady()?muted:orange,false));
       setting(p,tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this)));
       setting(p,tr("复制诊断日志","Copy diagnostic log"),()->{ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);cm.setPrimaryClip(ClipData.newPlainText("Diagnostics",DiagnosticLog.export()));toast(tr("已复制","Copied"));});
       setting(p,tr("退出登录","Sign out"),this::signOut);p.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立开发的非官方客户端","Independent unofficial client"),12,muted,false));

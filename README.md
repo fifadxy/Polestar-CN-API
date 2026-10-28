@@ -1,14 +1,18 @@
-当前交付说明：[v0.8.5](docs/Psa_v085_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
+当前交付说明：[v0.8.6](docs/Psa_v086_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他 APK；公开 CI Debug 不包含私有客户端配置。
 
 # PsAssistant for Android
 
-当前版本：**v0.8.5-beta1**（versionCode 86）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.6-beta1**（versionCode 88）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android应用统一使用用户确认的黑白车辆线框图标，启动器保留遮罩安全区，通知栏用透明单色图形。昼夜仅换色；图形与规范见[图标与使用约定](branding/android/README.md)。
 
 支持中国区手机号/密码登录。完整签名包已内置构建配置，不需要安装或导入其他APK；账号会话使用Android Keystore加密保存，密码不保存。公开CI缺私有配置时仅为开发验证包。Global账号登录尚未实现。
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
+
+## v0.8.6 当前功能增量
+
+Standalone 单 APK 架构继续加固：客户端配置改为 48-byte `PSACFG2` 版本化资产，加入长度、magic、校验和与配置指纹验证；公开 Debug 与完整 Release/Preview 的私有配置完全隔离。登录页和设置页会明确显示完整内置、旧版兼容迁移或缺配置状态。手机端仍不需要安装、导入或扫描任何其他 APK。详见 [v0.8.6 更新说明](docs/Psa_v086_Update.md)。
 
 ## v0.8.5 当前功能增量
 

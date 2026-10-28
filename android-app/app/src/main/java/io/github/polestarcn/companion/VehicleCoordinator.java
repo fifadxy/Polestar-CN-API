@@ -6,6 +6,8 @@ import android.os.Looper;
 import io.github.polestarcn.companion.api.ChinaPolestarApi;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -26,9 +28,37 @@ public final class VehicleCoordinator {
   public boolean progressOnly;
   public boolean commandPending; public int readbackPercent; public int readbackChecks;
   private long readbackStarted;
-  private boolean commandAccepted;
+  private final Map<String, PendingCommand> pendingCommands = new LinkedHashMap<>();
+  private final ExecutorService commandIO = Executors.newFixedThreadPool(2);
+  private boolean exclusive;
+  private static final class PendingCommand {
+    final String action; final ChinaPolestarApi.VehicleInfo vehicle; final String group;
+    final long issued; final Float target; boolean accepted; int checks; long started;
+    OperationState state=OperationState.SENDING;
+    PendingCommand(String a, ChinaPolestarApi.VehicleInfo v, long issued, Float target) {
+      this.action=a;this.vehicle=v;this.group=CommandSlots.group(a);this.issued=issued;this.target=target;
+    }
+  }
+  public boolean isCommandPending(String control) { return pendingCommands.containsKey(CommandSlots.group(control)); }
+  public boolean canCommand(String action) { return signedIn && selected != null && !exclusive && !isCommandPending(action); }
+  public boolean canControl(String control) { return canCommand(control); }
+  public OperationState controlOperation(String control) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
+    return ticket==null?operation:ticket.state;
+  }
+  private void syncCommandStatus() {
+    commandPending=!pendingCommands.isEmpty();
+    if(commandPending){PendingCommand recent=null;for(PendingCommand p:pendingCommands.values())recent=p;
+      activeAction=recent.action;readbackChecks=recent.checks;
+      readbackPercent=recent.started==0?0:Math.min(98,(int)((android.os.SystemClock.elapsedRealtime()-recent.started)*98/26_000L));
+      operation=recent.state;
+    } else {activeAction="";readbackChecks=0;readbackPercent=100;main.removeCallbacks(progressTick);}
+  }
   public LocationSnapshot parkedLocation;
-  private final Runnable progressTick=new Runnable(){public void run(){if(!commandPending)return;readbackPercent=Math.min(98,(int)((android.os.SystemClock.elapsedRealtime()-readbackStarted)*98/26_000L));message=tr("正在核实车辆状态 ","Verifying vehicle state ")+readbackPercent+"% · "+readbackChecks+"/5";progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;main.postDelayed(this,1000);}};
+  private final Runnable progressTick=new Runnable(){public void run(){if(pendingCommands.isEmpty())return;
+    syncCommandStatus(); progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;
+    main.postDelayed(this,1000);
+  }};
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
@@ -98,7 +128,7 @@ public final class VehicleCoordinator {
 
   private void finish() {
     quietRefresh=false;
-    busy = false;
+    busy = false; exclusive=false;
     if(!commandPending)activeAction = "";
     changed();
     for (Runnable r : new ArrayList<>(completions)) r.run();
@@ -108,7 +138,7 @@ public final class VehicleCoordinator {
   public void login(String phone, String password) {
     if(!FirstUseConsent.accepted(context))return;
     if (busy || commandPending) return;
-    busy = true;
+    busy = true; exclusive=true;
     message = tr("正在登录…", "Signing in…");
     changed();
     io.execute(
@@ -118,7 +148,7 @@ public final class VehicleCoordinator {
             main.post(
                 () -> {
                   signedIn = true;
-                  busy = false;
+                  busy = false;exclusive=false;
                   refresh(null);
                 });
           } catch (Exception e) {
@@ -197,113 +227,83 @@ public final class VehicleCoordinator {
     refresh(null);
   }
 
+  /** Different command families can progress while another family is under readback or a read refresh is in flight. */
   public void command(String action) {
-    if(!FirstUseConsent.accepted(context))return;
-    if (busy || commandPending || selected == null) return;
-    final ChinaPolestarApi.VehicleInfo vehicle = selected;
-    final float requestedTarget=ClimateTarget.request(context);final boolean verifyTarget=action.equals("climate-start")&&ClimateTarget.enabled(context);final long commandIssuedAt=System.currentTimeMillis();
-    busy = true;
-    activeAction = action;commandPending=true;commandAccepted=false;readbackPercent=0;readbackChecks=0;
-    operation = OperationState.SENDING;
-    message = tr("正在发送指令 · 0%", "Sending command · 0%");
+    if (!FirstUseConsent.accepted(context) || !canCommand(action)) return;
+    final ChinaPolestarApi.VehicleInfo vehicle=selected;
+    final Float target="climate-start".equals(action)&&ClimateTarget.enabled(context)?ClimateTarget.request(context):null;
+    final PendingCommand ticket=new PendingCommand(action,vehicle,System.currentTimeMillis(),target);
+    pendingCommands.put(ticket.group,ticket);syncCommandStatus();
+    message=tr("正在发送指令 · ","Sending command · ")+action;
+    if(pendingCommands.size()==1){main.removeCallbacks(progressTick);main.post(progressTick);}
     changed();
-    io.execute(
-        () -> {
-          try {
-            switch (action) {
-              case "unlock":
-                api.unlock(vehicle.vin);
-                break;
-              case "lock":
-                api.lock(vehicle.vin);
-                break;
-              case "trunk-open":
-                api.tailgate(vehicle.vin, true);
-                break;
-              case "trunk-close":
-                api.tailgate(vehicle.vin, false);
-                break;
-              case "climate-start":
-                api.climateStart(vehicle.vin, requestedTarget);
-                break;
-              case "climate-stop":
-                api.climateStop(vehicle.vin);
-                break;
-              case "air-start":
-                api.purify(vehicle.vin, true);
-                break;
-              case "air-stop":
-                api.purify(vehicle.vin, false);
-                break;
-              case "windows-open":
-                api.windows(vehicle.vin, true);
-                break;
-              case "windows-close":
-                api.windows(vehicle.vin, false);
-                break;
-              case "honk":
-                api.honkFlash(vehicle.vin, 1);
-                break;
-              case "flash":
-                api.honkFlash(vehicle.vin, 2);
-                break;
-              case "honk-flash":
-                api.honkFlash(vehicle.vin, 0);
-                break;
-              default:
-                throw new IllegalArgumentException("Unsupported action");
-            }
-            main.post(
-                () -> {
-                  commandAccepted=true;operation = OperationState.SERVER_ACCEPTED;
-                  message=tr("指令已发送 · 0% · 将在5/10/15/18/26秒回读","Command sent · 0% · reads at 5/10/15/18/26s");
-                  confirmCommand(vehicle,action,verifyTarget?requestedTarget:null,commandIssuedAt);
-
-                });
-          } catch (Exception e) {
-            main.post(
-                () -> {
-                  if (!(e instanceof IllegalArgumentException)) {
-                    // A network/API exception is not proof that the vehicle rejected the write.
-                    // Never send the write again; verify via five READ-ONLY checkpoints.
-                    operation = OperationState.UNCONFIRMED;
-                    message=tr("指令结果尚未确认，正在核实车况 · 0%","Delivery uncertain; verifying vehicle · 0%");
-                    confirmCommand(vehicle,action,verifyTarget?requestedTarget:null,commandIssuedAt);
-                  } else {
-                    commandPending=false;
-                    operation = OperationState.FAILED;
-                    message = tr("指令参数不受支持：", "Invalid command: ") + safe(e);
-                    finish();
-                  }
-                });
-          }
+    commandIO.execute(()->{
+      try {
+        switch(action){
+          case "unlock":api.unlock(vehicle.vin);break;
+          case "lock":api.lock(vehicle.vin);break;
+          case "trunk-open":api.tailgate(vehicle.vin,true);break;
+          case "trunk-close":api.tailgate(vehicle.vin,false);break;
+          case "climate-start":api.climateStart(vehicle.vin,ClimateTarget.request(context));break;
+          case "climate-stop":api.climateStop(vehicle.vin);break;
+          case "air-start":api.purify(vehicle.vin,true);break;
+          case "air-stop":api.purify(vehicle.vin,false);break;
+          case "windows-open":api.windows(vehicle.vin,true);break;
+          case "windows-close":api.windows(vehicle.vin,false);break;
+          case "honk":api.honkFlash(vehicle.vin,1);break;
+          case "flash":api.honkFlash(vehicle.vin,2);break;
+          case "honk-flash":api.honkFlash(vehicle.vin,0);break;
+          default:throw new IllegalArgumentException("Unsupported action");
+        }
+        main.post(()->{if(pendingCommands.get(ticket.group)!=ticket)return;
+          ticket.accepted=true;ticket.state=OperationState.SERVER_ACCEPTED;
+          message=tr("指令已发送 · 正在独立回读 ","Command sent · readback ")+action;
+          syncCommandStatus();changed();confirmCommand(ticket);
         });
+      } catch(Exception e){main.post(()->{
+        if(pendingCommands.get(ticket.group)!=ticket)return;
+        if(e instanceof IllegalArgumentException){pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
+          message=tr("指令参数不受支持：","Invalid command: ")+safe(e);changed();return;}
+        ticket.state=OperationState.UNCONFIRMED;
+        message=tr("发送结果未知，正在只读核实：","Delivery uncertain; read-only verification: ")+action;
+        syncCommandStatus();changed();confirmCommand(ticket);
+      });}
+    });
   }
 
-  private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle,String action,Float target,long issuedAt){
-    busy=false;readbackChecks=0;readbackPercent=0;readbackStarted=android.os.SystemClock.elapsedRealtime();main.removeCallbacks(progressTick);main.post(progressTick);changed();
-    new CommandReadback(()->api.readVehicle(vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
+  private void confirmCommand(PendingCommand ticket){
+    ticket.started=android.os.SystemClock.elapsedRealtime();syncCommandStatus();changed();
+    new CommandReadback(()->api.readVehicle(ticket.vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
       public void progress(VehicleSnapshot updated,int count){
-        if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
-        readbackChecks=count;
-        message=tr("正在核实车辆状态 ","Verifying vehicle state ")+readbackPercent+"% · "+count+"/5";
-        if(updated!=null){snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);EnergyLog.record(context,identity(vehicle.vin),updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);}
-        changed();
+        if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
+        ticket.checks=count;syncCommandStatus();
+        message=tr("正在核实 ","Verifying ")+ticket.action+" · "+count+"/5";
+        applyReadback(ticket.vehicle,updated);changed();
       }
       public void finished(VehicleSnapshot updated,boolean reached){
-        if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
-        commandPending=false;readbackPercent=100;main.removeCallbacks(progressTick);
-        boolean targetConfirmed=target==null||ClimateTarget.confirmed(updated,target,issuedAt);
-        boolean verified=reached&&targetConfirmed;
-        operation=momentary(action)?(commandAccepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED):verified?OperationState.VEHICLE_CONFIRMED:OperationState.UNCONFIRMED;
-        if(reached&&"climate-start".equals(action))ClimateRuntime.started(context,identity(vehicle.vin),System.currentTimeMillis());
-        if(reached&&"climate-stop".equals(action))ClimateRuntime.stopped(context);
-        message=momentary(action)&&!commandAccepted?tr("寻车发送结果仍未确认；五次车况刷新完成，未重复发送","Find-car delivery unconfirmed; five reads complete, write not repeated"):momentary(action)?tr("寻车指令已发送，五次车况刷新完成；声音/闪灯无法远程确认","Find-car sent; five reads complete. Sound/flash cannot be verified remotely")
-            :verified?tr("车辆状态已连续三次确认","Vehicle state verified three consecutive times"):tr("26秒五次回读完成，尚未达到连续三次确认；未重复发送","26s / five reads complete, no three consecutive confirmations; write not repeated");
-        if(target!=null)message=verified?tr("空调运行与目标温度已回报确认：","Climate running and target confirmed: ")+target.intValue()+"°C":tr("空调目标温度尚未确认，请求 ","Climate target unconfirmed. Requested ")+target.intValue()+"°C"+tr("；车辆上报 ","; reported ")+DisplayMetric.TARGET_TEMPERATURE.value(context,updated,true,AppPreferences.english(context))+tr("；未重复发送","; command not repeated");
-        activeAction="";changed();
+        if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
+        pendingCommands.remove(ticket.group);syncCommandStatus();
+        boolean verified=reached&&(ticket.target==null||ClimateTarget.confirmed(updated,ticket.target,ticket.issued));
+        OperationState result=momentary(ticket.action)
+            ?(ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED)
+            :verified?OperationState.VEHICLE_CONFIRMED:OperationState.UNCONFIRMED;
+        if(!commandPending)operation=result;
+        if(reached&&"climate-start".equals(ticket.action))ClimateRuntime.started(context,identity(ticket.vehicle.vin),System.currentTimeMillis());
+        if(reached&&"climate-stop".equals(ticket.action))ClimateRuntime.stopped(context);
+        message=momentary(ticket.action)?tr("寻车已完成只读回读，声光结果不可远程确认","Find-car readback finished; sound/light unverified")
+            :verified?tr("车辆状态已连续三次确认：","Three matching vehicle states confirmed: ")+ticket.action
+            :tr("五次只读回读已完成，执行结果待确认：","Five read-only checks finished; result uncertain: ")+ticket.action;
+        changed();
       }
-    }).start(action);
+    }).start(ticket.action);
+  }
+
+  private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
+    if(updated==null||selected==null||!vehicle.vin.equals(selected.vin))return;
+    // A delayed callback cannot overwrite a newer refresh / another family's readback.
+    if(snapshot!=null&&updated.timestampMillis<snapshot.timestampMillis)return;
+    snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);
+    EnergyLog.record(context,identity(vehicle.vin),updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);
   }
 
   public void logout() {
@@ -330,7 +330,7 @@ public final class VehicleCoordinator {
     if (busy || commandPending || selected == null || hours < 1 || hours > 24) return;
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
     final float requestedTarget=ClimateTarget.request(context);final boolean customTarget=ClimateTarget.enabled(context);
-    busy = true;
+    busy = true;exclusive=true;
     message = tr("正在检查露营电量…", "Checking camping battery…");
     changed();
     io.execute(() -> {
@@ -371,7 +371,7 @@ public final class VehicleCoordinator {
     if (camping == null || !("ACTIVE".equals(phase) || "STOPPING".equals(phase))) { done.run(); return; }
     if (!signedIn) { CampModeManager.deactivate(context, camping.id, "SIGNED_OUT");
       CampModeManager.finishCheck(context, camping.id); done.run(); return; }
-    busy = true;
+    busy = true;exclusive=true;
     activeAction = "";
     message = tr("正在检查露营状态…", "Checking camping status…");
     changed();

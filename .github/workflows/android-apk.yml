@@ -151,3 +151,53 @@ jobs:
             android-app/app/build/test-results/testDebugUnitTest/
             android-app/app/build/reports/lint-results-debug.html
           if-no-files-found: ignore
+
+
+  emulator-smoke:
+    name: Android 14 standalone smoke
+    needs: assemble-debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: PsAssistant-v0.8.6-beta1-debug
+          path: /tmp/psassistant-apk
+      - name: Enable KVM
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+      - name: Install and launch standalone APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -no-metrics
+          disable-animations: true
+          script: |
+            set -eux
+            APK="$(find /tmp/psassistant-apk -type f -name '*.apk' -print -quit)"
+            test -s "$APK"
+            adb install -r "$APK"
+            adb shell am start -n io.github.polestarcn.companion/.MainActivity
+            sleep 4
+            adb shell pidof io.github.polestarcn.companion | tee /tmp/psassistant-pid.txt
+            test -s /tmp/psassistant-pid.txt
+            adb shell dumpsys activity activities | grep -E 'MainActivity|mResumedActivity|topResumedActivity' | head -n 30 | tee /tmp/psassistant-activity.txt
+            adb exec-out screencap -p > /tmp/psassistant-standalone.png
+            test -s /tmp/psassistant-standalone.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PsAssistant-v0.8.6-beta1-emulator-smoke
+          path: |
+            /tmp/psassistant-pid.txt
+            /tmp/psassistant-activity.txt
+            /tmp/psassistant-standalone.png
+          if-no-files-found: warn

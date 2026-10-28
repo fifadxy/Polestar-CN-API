@@ -2,7 +2,7 @@
 
 # PsAssistant for Android
 
-当前版本：**v0.8.6-beta1**（versionCode 87）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.6-beta1**（versionCode 88）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android应用统一使用用户确认的黑白车辆线框图标，启动器保留遮罩安全区，通知栏用透明单色图形。昼夜仅换色；图形与规范见[图标与使用约定](branding/android/README.md)。
 

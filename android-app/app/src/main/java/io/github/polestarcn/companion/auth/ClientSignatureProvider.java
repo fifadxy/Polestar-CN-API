@@ -47,7 +47,7 @@ public final class ClientSignatureProvider {
 
   public boolean isReady() {
     try {
-      resolve();
+      resolveMaterial();
       return true;
     } catch (Exception missing) {
       return false;
@@ -57,7 +57,7 @@ public final class ClientSignatureProvider {
   public Source source() {
     if (cached == null) {
       try {
-        resolve();
+        resolveMaterial();
       } catch (Exception ignored) {
         source = Source.MISSING;
       }
@@ -65,7 +65,7 @@ public final class ClientSignatureProvider {
     return source;
   }
 
-  public String resolve() throws Exception {
+  private String resolveMaterial() throws Exception {
     String current = cached;
     if (current != null) return current;
 
@@ -89,6 +89,22 @@ public final class ClientSignatureProvider {
       throw new IllegalStateException(
           "This verification build has no account client configuration. Install the complete signed APK.");
     }
+  }
+
+
+  /**
+   * Sign one canonical account-request query without exposing the client
+   * configuration to callers.
+   */
+  public String sign(String canonical) throws Exception {
+    if (canonical == null) throw new IllegalArgumentException("canonical");
+    String material = resolveMaterial();
+    byte[] digest =
+        MessageDigest.getInstance("MD5")
+            .digest((material + canonical + material).getBytes(StandardCharsets.UTF_8));
+    StringBuilder out = new StringBuilder(digest.length * 2);
+    for (byte b : digest) out.append(String.format(java.util.Locale.US, "%02x", b & 0xff));
+    return out.toString();
   }
 
   private String readBundled() throws Exception {

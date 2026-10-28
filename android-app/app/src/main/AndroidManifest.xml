@@ -32,11 +32,35 @@
             android:name=".MainActivity"
             android:launchMode="singleTop"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+
         </activity>
+        <activity-alias android:name=".LauncherOutlineAuto" android:targetActivity=".MainActivity" android:exported="true" android:enabled="true" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_outline_auto" android:roundIcon="@mipmap/ic_launcher_outline_auto">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherOutlineDay" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_outline_day" android:roundIcon="@mipmap/ic_launcher_outline_day">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherOutlineNight" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_outline_night" android:roundIcon="@mipmap/ic_launcher_outline_night">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherRedAuto" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_red_auto" android:roundIcon="@mipmap/ic_launcher_red_auto">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherRedDay" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_red_day" android:roundIcon="@mipmap/ic_launcher_red_day">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherRedNight" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_red_night" android:roundIcon="@mipmap/ic_launcher_red_night">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherSkidAuto" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_skid_auto" android:roundIcon="@mipmap/ic_launcher_skid_auto">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherSkidDay" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_skid_day" android:roundIcon="@mipmap/ic_launcher_skid_day">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherSkidNight" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:label="@string/app_name" android:icon="@mipmap/ic_launcher_skid_night" android:roundIcon="@mipmap/ic_launcher_skid_night">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
         <receiver android:name=".VehicleWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="@string/widget_standard_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

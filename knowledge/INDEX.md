@@ -1,3 +1,5 @@
+当前增量：[v0.8.8 图标家族、Widget与露营可读性](33_V088_ICON_FAMILIES_WIDGET_CAMP.md)。当前版本 **v0.8.8-beta1 / 89**，本增量优先于历史图标与Widget显示约定。
+
 当前增量：[v0.8.7 空调试验、原生车况、图标与光效](32_V087_CLIMATE_NATIVE_STATUS_GLOW.md)。当前版本 **v0.8.7-beta1 / 88**，本增量优先于历史记录。
 
 当前增量：[v0.8.6 UI、Widget与刷新策略](31_V086_UI_WIDGET_REFRESH_POLICIES.md)。以本增量和版本说明为准；历史文档保留原验收上下文。

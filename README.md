@@ -1,16 +1,20 @@
-当前交付说明：[v0.8.7](docs/Psa_v087_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
+当前交付说明：[v0.8.8](docs/Psa_v088_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
 
 # PsAssistant for Android
 
-当前版本：**v0.8.7-beta1**（versionCode 88）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.8-beta1**（versionCode 89）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
-Android应用统一使用用户确认的黑白车辆线框图标，启动器保留遮罩安全区，通知栏用透明单色图形。昼夜仅换色；图形与规范见[图标与使用约定](branding/android/README.md)。
+Android应用可选车辆轮廓、红色车辆、防滑图形三款图标，分别提供自动/日间/夜间启动器资源及透明单色通知图形；默认车辆轮廓。图形和安全区见[Psa图标规范v3](docs/Psa_Icon_Design_Specification_v3.md)。
 
 支持中国区手机号/密码登录。完整签名包已内置构建配置，不需要安装或导入其他APK；账号会话使用Android Keystore加密保存，密码不保存。公开CI缺私有配置时仅为开发验证包。Global账号登录尚未实现。
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
 
-## v0.8.7 当前功能增量
+## v0.8.8 当前功能增量
+
+[更新说明](docs/Psa_v088_Update.md)：设置内可切换三款程序/通知图标及日夜模式，不禁用MainActivity、不清除登录；App标识与Widget同步。所有Widget空调保持同一个风扇图标，真实状态通过颜色表达，运行时显示剩余h/m；原生排版按实际宽度缩字/减少辅助标签，完整数值不加省略号。默认皮肤露营状态简化为未开启/运行中/待检查等，标题与相邻按钮一致。
+
+## v0.8.7 历史功能增量
 
 [更新说明](docs/Psa_v087_Update.md)：修复PS默认日夜按钮、全部车况显示模式和导航图标；四个辅助按钮统一图标槽与原生文字布局。点击车辆恢复车况二级弹窗，车况按钮仍进入完整详情。光效总开关和All Good！独立开关，慢速循环仅在可见且系统允许动画时运行。新增默认关闭的实验性空调目标温度18–28°C设置，原模板仍固定22°C；车端接受能力未实测，不自动重发。
 
@@ -33,7 +37,7 @@ Android应用统一使用用户确认的黑白车辆线框图标，启动器保�
 - 六套皮肤共用精简的免Key高德网页；可选允许地图使用手机前台位置，默认关闭，不申请后台定位。
 - 所有Widget改为原生文字/按钮与等比车辆图；新增PSeu、电量/续航/车辆/扩展控制类型、自选数据、统一加粗开关及独立字号。支持五类尺寸和主机精确尺寸变化。
 
-以下版本章节保留历史记录，和当前增量冲突时以v0.8.7及KB32为准。
+以下版本章节保留历史记录，和当前增量冲突时以v0.8.8及KB33为准。
 
 ## v0.7.9 beta2 UI 优化
 

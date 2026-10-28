@@ -101,3 +101,8 @@ flowchart TD
 ## v0.8.7 当前增量 · 2026-10-28
 
 原生CenteredStatusButton替代车况/辅助按钮自绘文字，AllGoodTextView只在前台可见绘制。车辆图进入受生命周期管理的carStatusDialog。ClimateTarget统一请求偏好，露营捕获会话目标。
+
+
+## v0.8.8 当前增量 · 2026-10-28
+
+AppIcons统一alias切换、日夜资源、通知与Widget标识；MainActivity始终启用。WidgetButtons固定风扇与剩余时间，原生数字测量不插入省略号。CampModeManager.compactStatus只影响短按钮文案。

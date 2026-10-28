@@ -8,6 +8,7 @@ public final class ButtonFeedback {
  public static int sp(Context c){try{return Math.max(8,Math.min(14,Integer.parseInt(AppPreferences.get(c,"feedback_sp","10"))));}catch(NumberFormatException e){return 10;}}
  public static Typeface typeface(Context c){return AppPreferences.visible(c,"feedback_bold",false)?PsaDesign.display():PsaDesign.regular();}
  public static String value(Context c,String control,VehicleSnapshot s,String state){
+  if("camp".equals(control)&&"state".equals(mode(c,control)))return CampModeManager.compactStatus(c);
   switch(mode(c,control)){
    case "hidden":return "";
    case "climate":{

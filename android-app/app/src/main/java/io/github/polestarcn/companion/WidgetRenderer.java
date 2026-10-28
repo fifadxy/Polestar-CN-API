@@ -232,7 +232,7 @@ public final class WidgetRenderer {
     views.setOnClickPendingIntent(R.id.widget_action_climate, pending(c, id, size, "climate-choice"));
     if(styled){
       views.setViewVisibility(R.id.widget_card_header,plan.title?android.view.View.VISIBLE:android.view.View.GONE);
-      views.setImageViewResource(R.id.widget_brand,R.drawable.ic_notification);views.setInt(R.id.widget_brand,"setColorFilter",ink);
+      views.setImageViewResource(R.id.widget_brand,AppIcons.small(c));views.setInt(R.id.widget_brand,"setColorFilter",ink);
       views.setInt(R.id.widget_card_location,"setColorFilter",ink);views.setOnClickPendingIntent(R.id.widget_card_location,pending(c,id,size,"location"));
       views.setViewVisibility(R.id.widget_car,car?android.view.View.VISIBLE:android.view.View.GONE);
       boolean extras=width>=240&&!horizontal;
@@ -259,7 +259,7 @@ public final class WidgetRenderer {
       if(pseu&&extras&&type.equals("controls")){
         views.setImageViewResource(R.id.widget_lock_icon,R.drawable.ic_lock);widgetText(views,c,R.id.widget_lock_label,en?"Lock":"上锁");
         views.setImageViewResource(R.id.widget_climate_icon,R.drawable.ic_unlock);widgetText(views,c,R.id.widget_climate_label,en?"Unlock":"解锁");
-        views.setImageViewResource(R.id.volike_widget_charge_icon,R.drawable.ic_climate);views.setImageViewResource(R.id.volike_widget_location_icon,R.drawable.ic_climate_off);
+        views.setImageViewResource(R.id.volike_widget_charge_icon,R.drawable.ic_climate);views.setImageViewResource(R.id.volike_widget_location_icon,R.drawable.ic_climate);
         boolean locked=s!=null&&("已上锁".equals(s.lock)||"已锁".equals(s.lock)),unlocked=s!=null&&"未锁".equals(s.lock),running=s!=null&&"开启".equals(s.climate),stopped=s!=null&&"关闭".equals(s.climate);
         int[] panels={R.id.widget_action_lock,R.id.widget_action_climate,R.id.volike_widget_charge,R.id.volike_widget_location};
         int[] glyphs={R.id.widget_lock_icon,R.id.widget_climate_icon,R.id.volike_widget_charge_icon,R.id.volike_widget_location_icon};boolean[] active={locked,unlocked,running,stopped};
@@ -327,13 +327,11 @@ public final class WidgetRenderer {
     int line = 0; float used = 0;
     for (DisplayMetric metric : selected) {
       String value = metricValue(c, metric, s, true, en);
-      value = android.text.TextUtils.ellipsize(value, valuePaint, maxWidth,
-          android.text.TextUtils.TruncateAt.END).toString();
       String label = chargeLabel(metric, en);
-      float valueWidth = valuePaint.measureText(value);
-      label = android.text.TextUtils.ellipsize(label, labelPaint,
-          Math.max(0, maxWidth - valueWidth - 4 * density), android.text.TextUtils.TruncateAt.END).toString();
-      float tokenWidth = valueWidth + (label.isEmpty() ? 0 : labelPaint.measureText(label) + 4 * density);
+      float valueWidth = valuePaint.measureText(value),ratio=Math.min(1f,maxWidth/Math.max(1f,valueWidth));
+      if(ratio<1)label="";
+      else if(labelPaint.measureText(label)+valueWidth+4*density>maxWidth)label="";
+      float tokenWidth = valueWidth*ratio + (label.isEmpty()?0:labelPaint.measureText(label)+4*density);
       if (used > 0 && used + 10 * density + tokenWidth > maxWidth) {
         if (line + 1 >= plan.chargeRows) break;
         text.append('\n'); line++; used = 0;
@@ -346,6 +344,7 @@ public final class WidgetRenderer {
         text.setSpan(new android.text.style.ForegroundColorSpan(secondary), start, text.length(), 0);
       }
       start = text.length(); text.append(value);
+      if(ratio<1)text.setSpan(new android.text.style.RelativeSizeSpan(ratio),start,text.length(),0);
       text.setSpan(new android.text.style.ForegroundColorSpan(ink), start, text.length(), 0);
       used += tokenWidth; shown.add(metric);
     }
@@ -414,18 +413,21 @@ public final class WidgetRenderer {
     android.text.TextPaint paint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
     paint.setTypeface(android.graphics.Typeface.create("sans-serif", AppPreferences.visible(c,"widget_bold",false)?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL));
     paint.setTextSize(valueSp * scale);
-    while (valueSp > 8 && paint.measureText(value) > width) { valueSp -= .5f; paint.setTextSize(valueSp * scale); }
+    while (valueSp > 4.5f && paint.measureText(value) > width) { valueSp -= .5f; paint.setTextSize(valueSp * scale); }
     float valueWidth = paint.measureText(value);
     String label = plan.stacked ? metric.shortLabel(en) : compactLabel(metric, en);
     if (!plan.stacked && (metric == DisplayMetric.BATTERY || metric == DisplayMetric.RANGE)) label = "";
     paint.setTextSize(plan.labelSp * scale);
     float labelWidth = plan.stacked ? width : Math.max(0, width - valueWidth - 4 * scale);
-    label = android.text.TextUtils.ellipsize(label, paint, labelWidth, android.text.TextUtils.TruncateAt.END).toString();
+    float labelSp=plan.labelSp;
+    if(paint.measureText(label)>labelWidth)label=compactLabel(metric,en);
+    while(labelSp>4.5f&&paint.measureText(label)>labelWidth){labelSp-=.5f;paint.setTextSize(labelSp*scale);}
+    if(paint.measureText(label)>labelWidth)label="";
     String separator = label.isEmpty() ? "" : plan.stacked ? "\n" : " ";
     String text = label + separator + value;
     android.text.SpannableString styled = new android.text.SpannableString(text);
     int valueStart = label.length() + separator.length();
-    if (!label.isEmpty()) styled.setSpan(new android.text.style.ForegroundColorSpan(secondary), 0, label.length(), 0);
+    if (!label.isEmpty()) {styled.setSpan(new android.text.style.ForegroundColorSpan(secondary), 0, label.length(), 0);styled.setSpan(new android.text.style.RelativeSizeSpan(labelSp/10f),0,label.length(),0);}
     styled.setSpan(new android.text.style.RelativeSizeSpan(valueSp / 10f), valueStart, text.length(), 0);
     boolean accent = metric == DisplayMetric.BATTERY || metric == DisplayMetric.VEHICLE_STATUS && s != null
         && (s.health.allGood(AppPreferences.visible(c, "show_tire_status", true))
@@ -439,7 +441,7 @@ public final class WidgetRenderer {
   private static CharSequence primaryText(Context c,DisplayMetric metric,VehicleSnapshot snapshot,boolean english,WidgetLayoutPlan plan,float font){
     String value=metricValue(c,metric,snapshot,true,english);float sp=Math.max(8,Math.min(36,plan.rowHeightDp/(1.5f*plan.typeScale)));float scale=c.getResources().getDisplayMetrics().scaledDensity*font;
     android.text.TextPaint paint=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);paint.setTypeface(android.graphics.Typeface.create("sans-serif",AppPreferences.visible(c,"widget_bold",false)?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL));
-    float width=plan.cellWidthDp*c.getResources().getDisplayMetrics().density;paint.setTextSize(sp*scale);while(sp>8&&paint.measureText(value)>width){sp-=.5f;paint.setTextSize(sp*scale);}
+    float width=plan.cellWidthDp*c.getResources().getDisplayMetrics().density;paint.setTextSize(sp*scale);while(sp>4.5f&&paint.measureText(value)>width){sp-=.5f;paint.setTextSize(sp*scale);}
     android.text.SpannableString text=new android.text.SpannableString(value);text.setSpan(new android.text.style.RelativeSizeSpan(sp/10f),0,text.length(),0);return text;
   }
   public static String selectionKey(Context c,Size size){return VoLikeWidgetRenderer.PSEU.equals(VoLikeWidgetRenderer.style(c))?"pseu_"+metricKey(size):metricKey(size);}

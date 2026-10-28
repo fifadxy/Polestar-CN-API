@@ -74,3 +74,9 @@ climate = json.loads((kb/'evidence/reference-climate-start-20261028.json').read_
 assert climate['distinct_apks'] == 2 and not climate['vehicle_arbitrary_target_verified']
 assert climate['parking_climatization']['target_c_field'] == 8
 print('PASS: v0.8.7 native status, effects and experimental climate evidence indexed')
+
+assert '](33_V088_ICON_FAMILIES_WIDGET_CAMP.md)' in index
+assert (root/'docs/Psa_Icon_Design_Specification_v3.md').is_file()
+assert len(list((root/'branding/android/icons/v3').glob('*.svg'))) == 9
+assert (root/'scripts/generate_app_icons.py').is_file()
+print('PASS: v0.8.8 icon families, widget fan/runtime and short camping labels indexed')

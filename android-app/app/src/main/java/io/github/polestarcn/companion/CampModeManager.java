@@ -110,4 +110,14 @@ public final class CampModeManager {
     return AppPreferences.tr(c, zh, en);
   }
   public static long checkedAt(Context c) { return c.getSharedPreferences(PREF, 0).getLong("checked_at", 0); }
+  /** Short button caption; the full diagnostic remains in status() and the camp details. */
+  public static String compactStatus(Context c) {
+    String result=c.getSharedPreferences(PREF,0).getString("result","STOPPED");
+    if("STOPPING".equals(phase(c)))return AppPreferences.tr(c,"停止中","Stopping");
+    if(result.contains("UNCONFIRMED"))return AppPreferences.tr(c,"待确认","Check");
+    if(active(c))return "RUNNING".equals(result)?AppPreferences.tr(c,"运行中","Active"):AppPreferences.tr(c,"待检查","Queued");
+    if(result.startsWith("LOW_BATTERY"))return AppPreferences.tr(c,"低电停止","Low SoC");
+    if(result.startsWith("EXPIRED"))return AppPreferences.tr(c,"已结束","Ended");
+    return AppPreferences.tr(c,"未开启","Off");
+  }
 }

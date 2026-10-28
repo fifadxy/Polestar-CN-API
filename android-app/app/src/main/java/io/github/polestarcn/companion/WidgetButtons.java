@@ -24,13 +24,12 @@ public final class WidgetButtons {
  public static int icon(String id,VehicleSnapshot s){switch(id){
   case "lock":return s==null||ControlAction.next("lock",s)==null?R.drawable.ic_warning:"未锁".equals(s.lock)?R.drawable.ic_unlock:R.drawable.ic_lock;
   case "lock-fixed":return R.drawable.ic_lock;case "unlock-fixed":return R.drawable.ic_unlock;
-  case "climate":return s!=null&&"关闭".equals(s.climate)?R.drawable.ic_climate_off:R.drawable.ic_climate;
-  case "climate-stop":return R.drawable.ic_climate_off;case "climate-start":return R.drawable.ic_climate;
+  case "climate":case "climate-stop":case "climate-start":return R.drawable.ic_climate;
   case "air":return R.drawable.ic_air;case "windows":return s!=null&&ControlAction.next("windows",s)!=null&&"windows-open".equals(ControlAction.next("windows",s))?R.drawable.ic_window_close:R.drawable.ic_window;
   case "trunk":return s!=null&&("已打开".equals(s.tailgate)||"未关严".equals(s.tailgate))?R.drawable.ic_unlock:R.drawable.ic_lock;
   case "find":return R.drawable.ic_horn;case "location":return R.drawable.ic_location;case "status":return R.drawable.ic_nav_vehicle_data_ref;case "refresh":return R.drawable.ic_refresh;default:return R.drawable.ic_charge;}}
  public static String state(Context c,String id,VehicleSnapshot s){if(s==null)return "--";switch(id){case "lock":case "lock-fixed":case "unlock-fixed":return AppPreferences.widgetStatus(c,s.lock);case "climate":case "climate-start":case "climate-stop":return AppPreferences.widgetStatus(c,s.climate);case "air":return AppPreferences.widgetStatus(c,s.air);case "trunk":return AppPreferences.widgetStatus(c,s.tailgate);case "windows":return AppPreferences.widgetStatus(c,s.windows);case "charging":return AppPreferences.widgetStatus(c,s.charging);case "status":return VehicleCondition.summary(s,AppPreferences.widgetEnglish(c),AppPreferences.visible(c,"show_tire_status",true));default:return "";}}
- private static boolean active(String id,VehicleSnapshot s){if(s==null)return false;switch(id){case "lock":case "unlock-fixed":return "未锁".equals(s.lock);case "lock-fixed":return "已锁".equals(s.lock)||"已上锁".equals(s.lock);case "climate":case "climate-start":return "开启".equals(s.climate);case "climate-stop":return "关闭".equals(s.climate);case "air":return "开启".equals(s.air);case "trunk":return "已打开".equals(s.tailgate)||"未关严".equals(s.tailgate);case "windows":return "windows-close".equals(ControlAction.next("windows",s));case "charging":return ChargingVisibility.shouldShow(s);case "status":return VehicleCondition.problem(s,true);default:return false;}}
+ private static boolean active(String id,VehicleSnapshot s){if(s==null)return false;switch(id){case "lock":case "unlock-fixed":return "未锁".equals(s.lock);case "lock-fixed":return "已锁".equals(s.lock)||"已上锁".equals(s.lock);case "climate":case "climate-start":return "开启".equals(s.climate);case "climate-stop":return "开启".equals(s.climate);case "air":return "开启".equals(s.air);case "trunk":return "已打开".equals(s.tailgate)||"未关严".equals(s.tailgate);case "windows":return "windows-close".equals(ControlAction.next("windows",s));case "charging":return ChargingVisibility.shouldShow(s);case "status":return VehicleCondition.problem(s,true);default:return false;}}
  public static String intentAction(String id){switch(id){case "lock":return "lock-choice";case "climate":return "climate-choice";case "lock-fixed":return "widget-lock";case "unlock-fixed":return "widget-unlock";case "climate-start":return "widget-climate-start";case "climate-stop":return "widget-climate-stop";case "charging":return "charging";case "location":case "refresh":case "status":return id;default:return "control-"+id;}}
  public static void bind(RemoteViews v,Context c,int widget,WidgetRenderer.Size size,VehicleSnapshot s,int ink,int limit){
   List<String> chosen=read(c,size);int count=Math.min(limit,chosen.size());int[] roots={R.id.widget_action_lock,R.id.widget_action_climate,R.id.volike_widget_charge,R.id.volike_widget_location,R.id.widget_action_extra4,R.id.widget_action_extra5};
@@ -40,7 +39,16 @@ public final class WidgetButtons {
   v.setViewVisibility(R.id.widget_action_row,count==0?View.GONE:View.VISIBLE);
   for(int i=0;i<roots.length;i++){v.setViewVisibility(wrappers[i],i<count?View.VISIBLE:View.GONE);if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int color=on?Color.BLACK:ink;
    v.setInt(roots[i],"setBackgroundResource",on?R.drawable.widget_action_on:R.drawable.widget_action_clear);v.setImageViewResource(icons[i],icon(id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
-   String name=label(c,id),state=state(c,id,s);String visible=(id.equals("lock")||id.equals("climate")||id.equals("air"))?state:name;
+   String name=label(c,id),state=state(c,id,s);String visible=(id.equals("lock")||id.equals("air"))?state:name;
+   if(id.startsWith("climate")){
+    String action=id.equals("climate-start")?AppPreferences.widgetTr(c,"开启","Start"):id.equals("climate-stop")?AppPreferences.widgetTr(c,"停止","Stop"):name;
+    if(s!=null&&"开启".equals(s.climate)){
+     String remaining=ClimateRuntime.widgetLabel(c,s,AppPreferences.get(c,"vehicle",""));
+     if(Integer.valueOf(0).equals(ClimateRuntime.vehicleRemainingMinutes(s)))remaining="0m";
+     if(!remaining.matches(".*[0-9].*"))remaining="--m";
+     visible=id.equals("climate")?remaining:action+" "+remaining;
+    }else visible=action;
+   }
    android.text.SpannableString text=new android.text.SpannableString(visible);if(AppPreferences.visible(c,"widget_bold",false))text.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),0,text.length(),0);
    v.setTextViewText(labels[i],text);v.setTextColor(labels[i],color);v.setTextViewTextSize(labels[i],android.util.TypedValue.COMPLEX_UNIT_SP,9*UiTypography.widgetScale(c));
    v.setContentDescription(roots[i],name+" · "+state+AppPreferences.widgetTr(c," · 点击操作，远控需生物验证"," · Tap to act; remote control requires biometrics"));

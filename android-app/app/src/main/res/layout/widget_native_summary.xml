@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_summary" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
     <LinearLayout android:id="@+id/widget_card_header" android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
       <ImageView android:id="@+id/widget_brand" android:layout_width="16dp" android:layout_height="16dp" android:layout_marginEnd="5dp" android:scaleType="fitCenter" android:contentDescription="@null"/>
-      <TextView android:id="@+id/widget_title" style="@style/WidgetCaption" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="11sp"/>
+      <TextView android:id="@+id/widget_title" style="@style/WidgetCaption" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:maxLines="1" android:textSize="11sp"/>
       <ImageView android:id="@+id/widget_card_location" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_location" android:scaleType="fitCenter" android:contentDescription="Parked location"/>
     </LinearLayout>
     <LinearLayout android:id="@+id/widget_metric_area" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">

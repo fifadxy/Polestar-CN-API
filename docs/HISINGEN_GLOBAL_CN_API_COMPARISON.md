@@ -1092,3 +1092,8 @@ Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 �
 ## v0.8.7 当前增量 · 2026-10-28
 
 两份不同模板的ClimatizationStart字段3=float32，全部调用22.0f；目标回报ParkingClimatization字段8。历史China P2 supportsParkingClimatizationDirectStartSettings=false保持有效；Mac integrate/hisingen-china-0.19.5 f50820b远控unsupported。v087仅增加默认关闭的App实验范围18–28°C与回报校验，未证明车端能力。详见KB32及reference-climate-start-20261028.json。
+
+
+## v0.8.8 当前增量 · 2026-10-28
+
+v088只改图标/Widget/露营呈现，没有新增跨平台RPC或提升实验温度支持结论。Widget剩余时间优先既有ParkingClimatization字段3，未报告时不能由“运行中”伪造倒计时。

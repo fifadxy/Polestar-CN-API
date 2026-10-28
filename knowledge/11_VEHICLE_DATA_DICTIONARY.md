@@ -72,3 +72,8 @@
 ## v0.8.7 当前增量 · 2026-10-28
 
 空调目标温度仍来自ParkingClimatization字段8，不能用本地climate_target_c替代；缺失保持--。字段7车内温度与设定温度分离。
+
+
+## v0.8.8 当前增量 · 2026-10-28
+
+Widget剩余时间显示继续使用EnvironmentSnapshot.climateRuntimeMinutes（ParkingClimatization field3）和climateReportedAt；0m不等于关闭，缺失--m。未改变任何API字段。

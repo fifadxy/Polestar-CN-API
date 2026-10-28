@@ -125,3 +125,8 @@ Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 �
 ## v0.8.7 当前增量 · 2026-10-28
 
 两版模板ClimatizationStart字段3=fixed32 float，所有调用固定22°C；ParkingClimatization字段8回报目标温度。历史能力false，Mac unsupported。v087实验18–28°C仅App保护，未实车验证；无写重试。
+
+
+## v0.8.8 当前增量 · 2026-10-28
+
+本轮无新RPC或写入参数。Widget空调剩余时间仍取ParkingClimatization字段3及原报告时间；缺失时仅沿用已确认本地会话估计，不能把运行状态推导为30分钟新计时。

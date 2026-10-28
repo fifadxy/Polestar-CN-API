@@ -78,7 +78,7 @@ public final class MainActivity extends FragmentActivity {
 
   @Override
   public void onCreate(Bundle b) {
-    super.onCreate(b);initialCreation=b==null;if(b!=null){statusReturnPage=Math.max(0,Math.min(2,b.getInt("statusReturn",0)));statusScrollY=b.getInt("statusY",0);settingsScrollY=b.getInt("settingsY",0);dataScrollY=b.getInt("dataY",0);}
+    super.onCreate(b);AppIcons.sync(this);initialCreation=b==null;if(b!=null){statusReturnPage=Math.max(0,Math.min(2,b.getInt("statusReturn",0)));statusScrollY=b.getInt("statusY",0);settingsScrollY=b.getInt("settingsY",0);dataScrollY=b.getInt("dataY",0);}
     if(b!=null)page=Math.max(0,Math.min(3,b.getInt("page",0)));
     AppState.setRegion(this, Region.CHINA);
     ParkingMapLinks.clearLegacySettings(this);
@@ -381,7 +381,7 @@ public final class MainActivity extends FragmentActivity {
       header.setPadding(dp(20), 0, dp(18), 0);
       if(page==3){TextView back=button("‹",()->{page=statusReturnPage;render();});back.setTag("status_back");back.setContentDescription(tr("返回","Back"));header.addView(back,new LinearLayout.LayoutParams(dp(36),dp(48)));}
       ImageView brand = new ImageView(this);
-      brand.setImageResource(R.drawable.ic_notification);brand.setColorFilter(ink);
+      brand.setImageResource(AppIcons.small(this));brand.setColorFilter(ink);
       brand.setScaleType(ImageView.ScaleType.FIT_CENTER);
       brand.setContentDescription("PsAssistant");
       header.addView(brand, new LinearLayout.LayoutParams(dp(30), dp(30)));
@@ -425,7 +425,7 @@ public final class MainActivity extends FragmentActivity {
       t.setBackground(navFrame);
       t.setTextColor(i == (page==3?1:page) ? orange : muted);
       {
-        int resource = i == 0 ? R.drawable.ic_notification : i==1?R.drawable.ic_nav_vehicle_data_ref:R.drawable.ic_settings;
+        int resource = i == 0 ? AppIcons.small(this) : i==1?R.drawable.ic_nav_vehicle_data_ref:R.drawable.ic_settings;
         android.graphics.drawable.Drawable navIcon = getDrawable(resource).mutate();
         navIcon.setTint(i == (page==3?1:page) ? orange : muted);
         navIcon.setBounds(0, 0, dp(compactNav ? 19 : 21), dp(compactNav ? 19 : 21));
@@ -1811,6 +1811,7 @@ public final class MainActivity extends FragmentActivity {
     disclosure(root,"settings_appearance",tr("外观与交互","Appearance and interaction"),true,p->{
       setting(p,tr("界面皮肤 · ","UI skin · ")+currentSkinLabel(),this::skinDialog);
       setting(p,tr("日夜模式 · 跟随系统 / 浅色 / 深色","Day/night · system / light / dark"),this::themeChoice);
+      setting(p,tr("程序与通知图标 · ","App and notification icon · ")+AppIcons.label(this,AppIcons.style(this)),this::appIconDialog);
       setting(p,tr("程序语言 / Language","App language / 语言"),this::languageDialog);
       setting(p,tr("字体大小 · 当前皮肤 / Widget","Font size · current skin / Widget"),this::fontDialog);
       settingToggle(p,"ui_button_bold",tr("按钮文字加粗","Bold button labels"),true,false);
@@ -1900,6 +1901,24 @@ public final class MainActivity extends FragmentActivity {
     java.util.List<String> chosen=new ArrayList<>(WidgetButtons.read(this,size));String[] ids=WidgetButtons.CHOICES;String[] labels=new String[ids.length];boolean[] checked=new boolean[ids.length];for(int i=0;i<ids.length;i++){labels[i]=WidgetButtons.label(this,ids[i]);checked[i]=chosen.contains(ids[i]);}
     new HapticDialogBuilder(this).setTitle(tr("按钮 · 按勾选顺序排列","Buttons · selection order")).setMultiChoiceItems(labels,checked,(d,i,on)->{if(on){if(chosen.size()>=6){((AlertDialog)d).getListView().setItemChecked(i,false);toast(tr("最多选择6个；空间不足按顺序显示","Up to 6; smaller frames show the first buttons"));}else chosen.add(ids[i]);}else chosen.remove(ids[i]);})
       .setPositiveButton(tr("保存","Save"),(d,w)->{WidgetButtons.save(this,size,chosen);WidgetRenderer.refreshAll(this);}).setNeutralButton(tr("恢复默认","Reset"),(d,w)->{AppPreferences.set(this,WidgetButtons.key(size),"");WidgetRenderer.refreshAll(this);}).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+
+  private void appIconDialog(){
+    LinearLayout panel=detailPanel();panel.setTag("app_icon_picker");
+    String[] chosen={AppIcons.style(this),AppIcons.mode(this)};
+    RadioGroup group=new RadioGroup(this);panel.addView(group);
+    for(String style:AppIcons.STYLES){
+      RadioButton choice=new RadioButton(this);choice.setId(View.generateViewId());choice.setButtonDrawable(R.drawable.vi_checkbox);choice.setTypeface(regular);choice.setTag("app_icon_"+style);choice.setText(AppIcons.label(this,style));choice.setTextColor(ink);choice.setMinHeight(dp(52));choice.setPadding(dp(4),dp(3),dp(4),dp(3));
+      android.graphics.drawable.Drawable day=getDrawable(AppIcons.launcher(style,"day")),night=getDrawable(AppIcons.launcher(style,"night"));day.setBounds(0,0,dp(48),dp(48));night.setBounds(0,0,dp(48),dp(48));choice.setCompoundDrawables(day,null,night,null);choice.setCompoundDrawablePadding(dp(10));group.addView(choice);choice.setChecked(chosen[0].equals(style));
+      choice.setOnCheckedChangeListener((v,on)->{if(on){Haptics.tap(this);chosen[0]=style;}});
+    }
+    panel.addView(text(tr("左侧日间 / 右侧夜间；通知使用同款透明底单色轮廓，深浅由Android系统决定。","Day on the left / night on the right. Notifications use the same monochrome transparent glyph, tinted by Android."),11,muted,false));
+    RadioGroup appearance=new RadioGroup(this);panel.addView(appearance);
+    String[] names={tr("跟随系统","Follow system"),tr("日间图标","Day icon"),tr("夜间图标","Night icon")};
+    for(int i=0;i<AppIcons.MODES.length;i++){String mode=AppIcons.MODES[i];RadioButton b=new RadioButton(this);b.setId(View.generateViewId());b.setButtonDrawable(R.drawable.vi_checkbox);b.setTypeface(regular);b.setTag("app_icon_mode_"+mode);b.setText(names[i]);b.setTextColor(ink);b.setMinHeight(dp(44));appearance.addView(b);b.setChecked(chosen[1].equals(mode));b.setOnCheckedChangeListener((v,on)->{if(on){Haptics.tap(this);chosen[1]=mode;}});}
+    panel.addView(text(tr("三款仅为图标外观，不代表车辆警报。主题图标开启时，系统可能覆盖红/橙配色。部分桌面缓存更新较慢，返回桌面后稍候即可；不需要重新登录。","These are cosmetic styles, not vehicle warnings. Android themed icons may replace red/amber colors. Some launchers refresh cached icons slowly; return home and allow time. No sign-in is needed."),11,muted,false));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    new HapticDialogBuilder(this).setTitle(tr("程序与通知图标","App and notification icons")).setView(scroll).setPositiveButton(tr("应用","Apply"),(d,w)->{if(AppIcons.select(this,chosen[0],chosen[1]))render();else toast(tr("图标切换暂不可用，请稍后重试","Icon switching is unavailable. Try again later."));}).setNegativeButton(tr("取消","Cancel"),null).show();
   }
 
   private void climateTargetDialog(){

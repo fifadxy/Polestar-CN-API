@@ -31,7 +31,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -661,13 +660,7 @@ public final class ChinaPolestarApi {
       if (canonical.length() > 0) canonical.append('&');
       canonical.append(rfc3986(key)).append('=').append(rfc3986(params.get(key)));
     }
-    String secret = signatureProvider.resolve();
-    byte[] digest =
-        MessageDigest.getInstance("MD5")
-            .digest((secret + canonical + secret).getBytes(StandardCharsets.UTF_8));
-    StringBuilder hex = new StringBuilder();
-    for (byte b : digest) hex.append(String.format(Locale.US, "%02x", b & 0xff));
-    params.put("sign", hex.toString());
+    params.put("sign", signatureProvider.sign(canonical.toString()));
 
     StringBuilder query = new StringBuilder();
     for (Map.Entry<String, String> e : params.entrySet()) {

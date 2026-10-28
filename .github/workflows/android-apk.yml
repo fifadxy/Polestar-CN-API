@@ -16,6 +16,10 @@ on:
     branches:
       - android-polestar-assistant-main
   workflow_dispatch:
+concurrency:
+  group: android-companion-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   assemble-debug:
     runs-on: ubuntu-latest

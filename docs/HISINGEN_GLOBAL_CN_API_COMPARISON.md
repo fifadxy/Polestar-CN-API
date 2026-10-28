@@ -1087,3 +1087,8 @@ Health/GetHealth 按上游定义改为服务端流式读取首条即取消，4 �
 ## Android v0.8.5 独立安装与数据呈现
 
 账户签名算法与车辆RPC不改，配置由私有构建注入自身资产，运行时不探测或导入其他APK。车况以异常/已报告项目优先、未知单独折叠；不把12V/制动液告警当电压/液位。见[KB30](../knowledge/30_V085_INLINE_CONDITION_STANDALONE.md)。
+
+
+## v0.8.7 当前增量 · 2026-10-28
+
+两份不同模板的ClimatizationStart字段3=float32，全部调用22.0f；目标回报ParkingClimatization字段8。历史China P2 supportsParkingClimatizationDirectStartSettings=false保持有效；Mac integrate/hisingen-china-0.19.5 f50820b远控unsupported。v087仅增加默认关闭的App实验范围18–28°C与回报校验，未证明车端能力。详见KB32及reference-climate-start-20261028.json。

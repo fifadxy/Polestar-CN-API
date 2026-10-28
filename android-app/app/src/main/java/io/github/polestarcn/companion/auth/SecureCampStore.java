@@ -12,7 +12,7 @@ public final class SecureCampStore {
   public static void save(Context c, CampSession s) throws Exception {
     JSONObject o = new JSONObject();
     o.put("id", s.id).put("vin", s.vin).put("name", s.vehicleName).put("endsAt", s.endsAt)
-        .put("interval", s.intervalMinutes).put("minimum", s.minimumBattery).put("air", s.keepAir);
+        .put("interval", s.intervalMinutes).put("minimum", s.minimumBattery).put("air", s.keepAir).put("targetC",s.targetTemperatureC).put("customTarget",s.verifyClimateTarget);
     String encrypted = Base64.encodeToString(SecureSessionStore.encrypt(
         o.toString().getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP);
     if (!c.getSharedPreferences("camp_mode_secure", 0).edit().putString("config", encrypted).commit())
@@ -25,7 +25,7 @@ public final class SecureCampStore {
       JSONObject o = new JSONObject(new String(SecureSessionStore.decrypt(
           Base64.decode(blob, Base64.NO_WRAP)), StandardCharsets.UTF_8));
       return new CampSession(o.getString("id"), o.getString("vin"), o.optString("name", "Vehicle"),
-          o.getLong("endsAt"), o.getInt("interval"), o.getInt("minimum"), o.getBoolean("air"));
+          o.getLong("endsAt"), o.getInt("interval"), o.getInt("minimum"), o.getBoolean("air"),(float)o.optDouble("targetC",22.0),o.optBoolean("customTarget",false));
     } catch (Exception e) { clear(c); return null; }
   }
   public static void clear(Context c) {

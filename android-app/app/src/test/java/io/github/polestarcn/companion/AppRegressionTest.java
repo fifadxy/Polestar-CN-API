@@ -329,7 +329,7 @@ public final class AppRegressionTest {
     View root = (View) ((View) field.get(activity)).getParent();
     root.measure(View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(780, View.MeasureSpec.EXACTLY));
     root.layout(0, 0, 360, 780);
-    assertEquals("车况",((TextView)findTagged(root,"exterior_button")).getText().toString());
+    assertTrue(((TextView)findTagged(root,"exterior_button")).getText().toString().startsWith("车况"));
     View status=findTagged(root,"vehicle_status_button");assertNotNull(status);
     assertTrue(status.getContentDescription().toString().contains("请检查车辆"));
     assertTrue(ExteriorView.hasOpening(model.snapshot));

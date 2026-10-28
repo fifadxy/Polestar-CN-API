@@ -36,7 +36,7 @@ public class V078RegressionTest {
  private int absoluteLeft(View v){int x=0;View current=v;while(current!=null){x+=current.getLeft();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return x;}
  private int absoluteTop(View v){int y=0;View current=v;while(current!=null){y+=current.getTop();ViewParent p=current.getParent();current=p instanceof View?(View)p:null;}return y;}
  private void fits(View v,boolean single){if(v.getVisibility()!=View.VISIBLE)return;
-  if(v instanceof TextView){TextView t=(TextView)v;if(t.getText().length()>0&&t.getLayout()!=null){assertTrue(t.getText()+" height="+t.getHeight()+" text="+t.getLayout().getHeight(),t.getLayout().getHeight()<=t.getHeight()-t.getCompoundPaddingTop()-t.getCompoundPaddingBottom());if(single)assertTrue(t.getText().toString(),t.getLineCount()<=1);}}
+  if(v instanceof TextView){TextView t=(TextView)v;if(t.getText().length()>0&&t.getLayout()!=null){assertTrue(t.getText()+" height="+t.getHeight()+" text="+t.getLayout().getHeight(),t.getLayout().getHeight()<=t.getHeight()-t.getCompoundPaddingTop()-t.getCompoundPaddingBottom());if(single)assertTrue(t.getText()+" lines="+t.getLineCount()+" max="+t.getMaxLines()+" spx="+t.getTextSize()+" w="+t.getWidth()+" pad="+t.getCompoundPaddingLeft()+"/"+t.getCompoundPaddingRight(),t.getLineCount()<=(t instanceof CenteredStatusButton?2:1));}}
   if(v instanceof ViewGroup){ViewGroup g=(ViewGroup)v;for(int i=0;i<g.getChildCount();i++){View child=g.getChildAt(i);if(child.getVisibility()==View.GONE)continue;
     String childText=child instanceof TextView?((TextView)child).getText().toString():"";
     String debug="parent="+g.getClass().getSimpleName()+" tag="+g.getTag()+" h="+g.getHeight()

@@ -1,3 +1,5 @@
+当前增量：[v0.8.7 空调试验、原生车况、图标与光效](32_V087_CLIMATE_NATIVE_STATUS_GLOW.md)。当前版本 **v0.8.7-beta1 / 88**，本增量优先于历史记录。
+
 当前增量：[v0.8.6 UI、Widget与刷新策略](31_V086_UI_WIDGET_REFRESH_POLICIES.md)。以本增量和版本说明为准；历史文档保留原验收上下文。
 
 当前版本增量：**v0.8.5-beta1 / 86**，见[KB30](30_V085_INLINE_CONDITION_STANDALONE.md)。历史模板导入要求已被完整签名版独立构建替代。
@@ -50,6 +52,6 @@
 
 `APK_CONFIRMED` 仅代表 APK 字节/类/方法/字段存在；`REFERENCE_USER_VERIFIED` 代表**用户亲测参考 APK**功能可用；`EXTERNAL_ANALYSIS` 代表外部报告判断；`IMPLEMENTED_DEMO` 代表新代码只有演示模型；`CI_VERIFIED` 代表可编译；`PROJECT_DEVICE_VERIFIED` 才代表**本项目新 APK 在授权车辆上端到端成功**；`PLANNED` 或 `MAPPING_REQUIRED` 代表待开发。
 
-**当前状态**：Android v0.8.2-beta1 延续真实 China 登录、车况/远控、停车位置和 Widget 能力，并在 CI 中持续做手机多皮肤/大字号布局回归；尚未完成本轮账号、车辆和独立 Wear OS 端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
+**当前状态**：Android v0.8.7-beta1 延续真实 China 登录、车况/远控、停车位置和 Widget 能力，并在 CI 中持续做手机多皮肤/大字号布局回归；尚未完成本轮账号、车辆和独立 Wear OS 端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
 
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。

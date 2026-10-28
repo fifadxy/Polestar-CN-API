@@ -495,6 +495,7 @@ public final class ChinaPolestarApi {
   }
 
   public byte[] climateStart(String vin, float temperatureC) throws Exception {
+    io.github.polestarcn.companion.ClimateTarget.validate(temperatureC);
     byte[] body =
         ProtoWire.concat(
             baseControl(vin), ProtoWire.varintField(2, 1), ProtoWire.fixed32Field(3, temperatureC));

@@ -67,3 +67,10 @@ print("PASS: v0.8.5 inline condition, settings groups and independent package bo
 assert '](31_V086_UI_WIDGET_REFRESH_POLICIES.md)' in index
 assert (root/'docs/Psa_v086_UI_Refresh_Specification.md').is_file()
 print('PASS: v0.8.6 UI/widget/independent refresh and location scopes indexed')
+
+assert '](32_V087_CLIMATE_NATIVE_STATUS_GLOW.md)' in index
+assert (root/'docs/Psa_v087_Update.md').is_file()
+climate = json.loads((kb/'evidence/reference-climate-start-20261028.json').read_text())
+assert climate['distinct_apks'] == 2 and not climate['vehicle_arbitrary_target_verified']
+assert climate['parking_climatization']['target_c_field'] == 8
+print('PASS: v0.8.7 native status, effects and experimental climate evidence indexed')

@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-28",
+  "label": "APK_CONFIRMED",
+  "distinct_apks": 2,
+  "references": [
+    {
+      "version": "0.1.0",
+      "sha256": "8cae07a3b5c6050487443914ebb55b1d2f2f26e258f4b369837f2b88de052735"
+    },
+    {
+      "version": "0.1.20261027.081805",
+      "version_code": 215223485,
+      "sha256": "f468c76eae50cfe753d62d6efd4a4706efb084a9bceb7ec26e0fa0fca6a161c6"
+    }
+  ],
+  "climate_start": {
+    "request_field_2": 1,
+    "request_field_3": "fixed32 IEEE754 float target Celsius",
+    "all_template_call_sites_celsius": 22.0
+  },
+  "parking_climatization": {
+    "timestamp_field": 1,
+    "state_field": 2,
+    "cabin_c_field": 7,
+    "target_c_field": 8
+  },
+  "historical_china_capability": {
+    "supportsParkingClimatizationDirectStartSettings": false,
+    "parkingClimatizationMaxRuntime": 30
+  },
+  "mac_branch": "integrate/hisingen-china-0.19.5",
+  "mac_commit": "f50820bd9c34c3bc56d18b51543c60ddcc6bde91",
+  "mac_remote_control": "unsupported",
+  "experimental_app_bounds_celsius": [
+    18,
+    28
+  ],
+  "vehicle_arbitrary_target_verified": false
+}

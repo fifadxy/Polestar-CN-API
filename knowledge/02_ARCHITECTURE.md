@@ -96,3 +96,8 @@ flowchart TD
 ## v0.8.6 当前增量
 
 参见[KB31](31_V086_UI_WIDGET_REFRESH_POLICIES.md)和[更新说明](../docs/Psa_v086_Update.md)：VoLike合并切换、车况/反馈/字体配置、拖动排序、5×1与自选Widget按钮、Health状态选择、独立刷新策略。车辆c3Lbs与手机定位分开；手机定位只在二级预览按需获取。运行时间h/m无~，计算来源未改变。此前与上述行为不同的说明作为历史记录。完整发行包本地编译签名，无需其他APK。
+
+
+## v0.8.7 当前增量 · 2026-10-28
+
+原生CenteredStatusButton替代车况/辅助按钮自绘文字，AllGoodTextView只在前台可见绘制。车辆图进入受生命周期管理的carStatusDialog。ClimateTarget统一请求偏好，露营捕获会话目标。

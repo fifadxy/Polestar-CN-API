@@ -198,6 +198,7 @@ public final class VehicleCoordinator {
     if(!FirstUseConsent.accepted(context))return;
     if (busy || commandPending || selected == null) return;
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
+    final float requestedTarget=ClimateTarget.request(context);final boolean verifyTarget=action.equals("climate-start")&&ClimateTarget.enabled(context);final long commandIssuedAt=System.currentTimeMillis();
     busy = true;
     activeAction = action;commandPending=true;commandAccepted=false;readbackPercent=0;
     operation = OperationState.SENDING;
@@ -220,7 +221,7 @@ public final class VehicleCoordinator {
                 api.tailgate(vehicle.vin, false);
                 break;
               case "climate-start":
-                api.climateStart(vehicle.vin, 22f);
+                api.climateStart(vehicle.vin, requestedTarget);
                 break;
               case "climate-stop":
                 api.climateStop(vehicle.vin);
@@ -253,7 +254,7 @@ public final class VehicleCoordinator {
                 () -> {
                   commandAccepted=true;operation = OperationState.SERVER_ACCEPTED;
                   message=tr("指令已发送，按5/10/15/20秒回读…","Sent; checking at 5/10/15/20 seconds…");
-                  confirmCommand(vehicle,action);
+                  confirmCommand(vehicle,action,verifyTarget?requestedTarget:null,commandIssuedAt);
 
                 });
           } catch (Exception e) {
@@ -262,7 +263,7 @@ public final class VehicleCoordinator {
                   if (uncertain(e)) {
                     operation = OperationState.UNCONFIRMED;
                     message=tr("发送结果未确认，正在回读车况…","Delivery uncertain; checking vehicle…");
-                    confirmCommand(vehicle,action);
+                    confirmCommand(vehicle,action,verifyTarget?requestedTarget:null,commandIssuedAt);
                   } else {
                     commandPending=false;
                     operation = OperationState.FAILED;
@@ -274,7 +275,7 @@ public final class VehicleCoordinator {
         });
   }
 
-  private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle,String action){
+  private void confirmCommand(ChinaPolestarApi.VehicleInfo vehicle,String action,Float target,long issuedAt){
     busy=false;readbackStarted=android.os.SystemClock.elapsedRealtime();main.removeCallbacks(progressTick);main.post(progressTick);changed();
     new CommandReadback(()->api.readVehicle(vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
       public void progress(VehicleSnapshot updated,int count){
@@ -285,11 +286,14 @@ public final class VehicleCoordinator {
       public void finished(VehicleSnapshot updated,boolean reached){
         if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
         commandPending=false;readbackPercent=100;main.removeCallbacks(progressTick);
-        operation=momentary(action)?(commandAccepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED):reached?OperationState.VEHICLE_CONFIRMED:OperationState.UNCONFIRMED;
+        boolean targetConfirmed=target==null||ClimateTarget.confirmed(updated,target,issuedAt);
+        boolean verified=reached&&targetConfirmed;
+        operation=momentary(action)?(commandAccepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED):verified?OperationState.VEHICLE_CONFIRMED:OperationState.UNCONFIRMED;
         if(reached&&"climate-start".equals(action))ClimateRuntime.started(context,identity(vehicle.vin),System.currentTimeMillis());
         if(reached&&"climate-stop".equals(action))ClimateRuntime.stopped(context);
         message=momentary(action)&&!commandAccepted?tr("寻车发送结果仍未确认；四次刷新完成，未重复发送","Find-car delivery unconfirmed; four updates complete, command not repeated"):momentary(action)?tr("寻车指令已发送，四次车况刷新完成；声音/闪灯无法远程确认","Find-car sent; four updates complete. Sound/flash cannot be confirmed remotely")
             :reached?tr("车辆状态已确认","Vehicle state confirmed"):tr("车辆状态尚未确认；未重复发送","Vehicle state unconfirmed; command not repeated");
+        if(target!=null)message=verified?tr("空调运行与目标温度已回报确认：","Climate running and target confirmed: ")+target.intValue()+"°C":tr("空调目标温度尚未确认，请求 ","Climate target unconfirmed. Requested ")+target.intValue()+"°C"+tr("；车辆上报 ","; reported ")+DisplayMetric.TARGET_TEMPERATURE.value(context,updated,true,AppPreferences.english(context))+tr("；未重复发送","; command not repeated");
         activeAction="";changed();
       }
     }).start(action);
@@ -318,6 +322,7 @@ public final class VehicleCoordinator {
     if(!FirstUseConsent.accepted(context))return;
     if (busy || commandPending || selected == null || hours < 1 || hours > 24) return;
     final ChinaPolestarApi.VehicleInfo vehicle = selected;
+    final float requestedTarget=ClimateTarget.request(context);final boolean customTarget=ClimateTarget.enabled(context);
     busy = true;
     message = tr("正在检查露营电量…", "Checking camping battery…");
     changed();
@@ -332,7 +337,7 @@ public final class VehicleCoordinator {
             || fresh.timestampMillis > now + 300_000L)
           throw new IllegalStateException(tr("电量数据已过期，请刷新后重试", "Battery data is stale. Refresh and try again"));
         CampSession camping = new CampSession(java.util.UUID.randomUUID().toString(), vehicle.vin,
-            fresh.name, now + hours * 3_600_000L, CampModeManager.interval(context), minimum, keepAir);
+            fresh.name, now + hours * 3_600_000L, CampModeManager.interval(context), minimum, keepAir,requestedTarget,customTarget);
         CampModeManager.start(context, camping);
         VehicleSnapshotStore.saveChina(context, fresh);
         main.post(() -> { snapshot = fresh; message = CampModeManager.status(context); finish(); });
@@ -365,7 +370,7 @@ public final class VehicleCoordinator {
     changed();
     io.execute(() -> {
       final VehicleSnapshot[] read = {null};
-      final boolean[] wrote = {false};
+      final boolean[] wrote = {false};final long[] climateIssuedAt={0};
       ChinaPolestarApi.VehicleInfo vehicle = new ChinaPolestarApi.VehicleInfo();
       vehicle.vin = camping.vin; vehicle.modelName = camping.vehicleName;
       CampEngine.Backend backend = new CampEngine.Backend() {
@@ -375,7 +380,7 @@ public final class VehicleCoordinator {
         public void write(CampSession s, String action) throws Exception {
           wrote[0] = true;
           switch (action) {
-            case "climate-start": api.climateStart(s.vin, 22f); break;
+            case "climate-start": climateIssuedAt[0]=System.currentTimeMillis();api.climateStart(s.vin, s.targetTemperatureC); break;
             case "climate-stop": api.climateStop(s.vin); break;
             case "air-start": api.purify(s.vin, true); break;
             case "air-stop": api.purify(s.vin, false); break;
@@ -387,7 +392,9 @@ public final class VehicleCoordinator {
             if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
             Thread.sleep(i == 0 ? CommandReadback.INITIAL_DELAY_MS : CommandReadback.RETRY_DELAY_MS);
             if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            if (api.commandReached(s.vin, action)) {
+            boolean reached;
+            if(action.equals("climate-start")&&s.verifyClimateTarget){read[0]=api.readVehicle(vehicle);reached=ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]);}else reached=api.commandReached(s.vin, action);
+            if (reached) {
               if ("climate-start".equals(action)) ClimateRuntime.started(context, identity(s.vin), System.currentTimeMillis());
               if ("climate-stop".equals(action)) ClimateRuntime.stopped(context);
               return true;

@@ -5,6 +5,7 @@ on:
       - android-polestar-china-api
       - feature/android-companion-v0.1
       - android-polestar-assistant-main
+      - android-polestar-assistant-v093-work
     paths:
       - 'android-app/**'
       - 'knowledge/**'
@@ -86,28 +87,28 @@ jobs:
       - name: Check output
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.2-beta1-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.3-beta1-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.9.2-beta1-debug
-          path: PsAssistant-v0.9.2-beta1-debug.apk
+          name: PsAssistant-v0.9.3-beta1-debug
+          path: PsAssistant-v0.9.3-beta1-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
-          name: PsAssistant-v0.9.2-beta1-release
+          name: PsAssistant-v0.9.3-beta1-release
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
-          name: PsAssistant-v0.9.2-beta1-preview
+          name: PsAssistant-v0.9.3-beta1-preview
           path: android-app/app/build/outputs/apk/preview/app-preview.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-v0.9.2-beta1-checks
+          name: PsAssistant-v0.9.3-beta1-checks
           path: |
             android-app/app/build/reports/previews/
             android-app/app/build/test-results/testDebugUnitTest/

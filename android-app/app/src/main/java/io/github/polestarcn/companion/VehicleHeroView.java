@@ -14,17 +14,27 @@ final class VehicleHeroView extends ImageView {
     super(context);
     int resource=VehicleArt.dashboard(context);
     setImageResource(resource);setScaleType(ScaleType.FIT_CENTER);setAdjustViewBounds(false);
-    roof=BitmapFactory.decodeResource(getResources(),resource);
+    // Reuse the BitmapDrawable already loaded by ImageView; do not decode the large PNG twice.
+    android.graphics.drawable.Drawable drawable=getDrawable();
+    roof=drawable instanceof android.graphics.drawable.BitmapDrawable
+        ?((android.graphics.drawable.BitmapDrawable)drawable).getBitmap()
+        :BitmapFactory.decodeResource(getResources(),resource);
     renderer=new VehicleEffectRenderer(context);renderer.configure(context);
     setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
   }
-  void setSnapshot(VehicleSnapshot snapshot){
-    live=VehicleEffectSettings.vehicle(getContext(),snapshot);
-    renderer.mode(preview==null?live:preview);invalidate();
+  private void syncMode(){
+    VehicleEffectSettings.Mode requested=preview==null?live:preview;
+    // The animation master switch must apply to settings preview and the dashboard equally.
+    if(!AppPreferences.visible(getContext(),"effect_enabled",true))requested=VehicleEffectSettings.Mode.NONE;
+    renderer.mode(requested);
+    invalidate();
   }
-  void preview(VehicleEffectSettings.Mode mode){preview=mode;renderer.configure(getContext());renderer.mode(mode);invalidate();}
-  void resetPreview(){preview=null;renderer.configure(getContext());renderer.mode(live);invalidate();}
-  void reloadEffectSettings(){renderer.configure(getContext());invalidate();}
+  void setSnapshot(VehicleSnapshot snapshot){
+    live=VehicleEffectSettings.vehicle(getContext(),snapshot);syncMode();
+  }
+  void preview(VehicleEffectSettings.Mode mode){preview=mode;renderer.configure(getContext());syncMode();}
+  void resetPreview(){preview=null;renderer.configure(getContext());syncMode();}
+  void reloadEffectSettings(){renderer.configure(getContext());syncMode();}
   @Override protected void onDraw(Canvas canvas){
     if(roof==null){super.onDraw(canvas);return;}
     int width=getWidth()-getPaddingLeft()-getPaddingRight(),height=getHeight()-getPaddingTop()-getPaddingBottom();

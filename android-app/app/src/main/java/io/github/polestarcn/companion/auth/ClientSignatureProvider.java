@@ -81,7 +81,7 @@ public final class ClientSignatureProvider {
 
       source = Source.MISSING;
       throw new IllegalStateException(
-          "This is a public verification APK without China account client configuration. "
+          "This verification build has no China account client configuration. "
               + "Use the complete PsAssistant build with its original signing identity.");
     }
   }

@@ -15,8 +15,9 @@ public final class SkinPreviewView extends View {
     super(context);
     this.skin = skin;
     this.car = BitmapFactory.decodeResource(getResources(),
-        (UiSkin.NIO_LIKE.equals(skin)||UiSkin.NIO_LIKE_2.equals(skin))
-            ? R.drawable.vehicle_hero : R.drawable.vehicle_top);
+        VehicleArt.drawable(VehicleArt.key(context),AppPreferences.dark(context),
+          UiSkin.PS_DEFAULT.equals(skin),
+          UiSkin.NIO_LIKE.equals(skin)||UiSkin.NIO_LIKE_2.equals(skin)));
     setTag("skin_preview");
     setContentDescription(UiSkin.label(context, skin) + " preview");
   }
@@ -92,7 +93,7 @@ public final class SkinPreviewView extends View {
       if(car!=null){
         canvas.save();
         canvas.translate(detailed?151:176,107);
-        canvas.rotate(-90);
+        canvas.rotate(VehicleArt.portraitRotation(getContext()));
         float width=detailed?88:110;
         float height=width*car.getHeight()/(float)car.getWidth();
         canvas.drawBitmap(car,null,new RectF(-width/2,-height/2,width/2,height/2),paint);

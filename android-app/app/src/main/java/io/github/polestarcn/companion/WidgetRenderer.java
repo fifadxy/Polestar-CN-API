@@ -86,7 +86,7 @@ public final class WidgetRenderer {
   }
 
   static RemoteViews createNativeViews(Context c,int id,Size size,int width,int height,Bitmap backing,VehicleSnapshot s,String design){
-    boolean styled=!VoLikeWidgetRenderer.CLASSIC.equals(design),pseu=VoLikeWidgetRenderer.PSEU.equals(design);
+    boolean styled=!VoLikeWidgetRenderer.CLASSIC.equals(design)||!"car".equals(VehicleArt.widgetChoice(c)),pseu=VoLikeWidgetRenderer.PSEU.equals(design);
     boolean horizontal=height<110&&width>=230;
     Size layoutSize=horizontal?Size.WIDE:(size==Size.WIDE||size==Size.EXTRA_WIDE)?Size.LARGE:size;
     java.util.List<String> buttons=WidgetButtons.read(c,size);
@@ -134,11 +134,9 @@ public final class WidgetRenderer {
     float density = c.getResources().getDisplayMetrics().density;
     int padding = Math.round(plan.padding * density);
     views.setViewPadding(R.id.widget_content, padding, padding, padding, padding);
-    String preference = AppPreferences.get(c, "widget_ink", "system");
-    boolean white = "light".equals(preference) || ("system".equals(preference) && AppPreferences.dark(c));
-    int ink = PsaDesign.ink(white), secondary = PsaDesign.muted(white);
-    if(styled){ink=PsaDesign.ink(AppPreferences.dark(c));secondary=PsaDesign.muted(AppPreferences.dark(c));}
-    int accentText = styled?ink:nioColors ? ink : PsaDesign.accentText(white);
+    boolean white = AppPreferences.dark(c);
+    int ink = WidgetColors.ink(c), secondary = WidgetColors.secondary(c,ink);
+    int accentText = WidgetColors.explicit(c) ? ink : styled || nioColors ? ink : PsaDesign.accentText(white);
     if(styled||horizontal)views.setViewVisibility(R.id.widget_card_header,plan.title?android.view.View.VISIBLE:android.view.View.GONE);
     views.setViewVisibility(R.id.widget_title, plan.title ? android.view.View.VISIBLE : android.view.View.GONE);
     widgetText(views,c,R.id.widget_title, s == null ? c.getString(R.string.app_name) : s.name);
@@ -235,6 +233,8 @@ public final class WidgetRenderer {
       views.setImageViewResource(R.id.widget_brand,AppIcons.small(c));views.setInt(R.id.widget_brand,"setColorFilter",ink);
       views.setInt(R.id.widget_card_location,"setColorFilter",ink);views.setOnClickPendingIntent(R.id.widget_card_location,pending(c,id,size,"location"));
       views.setViewVisibility(R.id.widget_car,car?android.view.View.VISIBLE:android.view.View.GONE);
+      views.setImageViewResource(R.id.widget_car,VehicleArt.widgetDrawable(c));
+      views.setContentDescription(R.id.widget_car,VehicleArt.widgetLabel(c,VehicleArt.widgetChoice(c)));
       boolean extras=width>=240&&!horizontal;
       views.setViewVisibility(R.id.volike_widget_charge,extras?android.view.View.VISIBLE:android.view.View.GONE);
       views.setViewVisibility(R.id.volike_widget_location,extras?android.view.View.VISIBLE:android.view.View.GONE);

@@ -9,7 +9,7 @@ public final class VehicleConditionButton extends CenteredStatusButton {
  public static String displayMode(Context c){String value=AppPreferences.get(c,"condition_display","bar");return value.equals("percent")||value.equals("text")?value:"bar";}
  public void refreshService(){String mode=displayMode(getContext()),base=title();Integer percent=mode.equals("text")?null:ServiceReading.cyclePercent(getContext(),snapshot.get());
   String fullDetail=percent==null?"":AppPreferences.tr(getContext(),"保养周期 ","Service cycle ")+percent+"%";
-  String detail=percent==null?"":UiSkin.nioLayout(getContext())?percent+"%":fullDetail;
+  String detail=percent==null?"":(UiSkin.nioLayout(getContext())||UiSkin.PS_DEFAULT.equals(UiSkin.get(getContext())))?percent+"%":fullDetail;
   // Percent-only removes the bar, not the native title or the PS Default icon slot.
   contents(detail,mode.equals("bar")?percent:null);
   setContentDescription(base+(percent==null?"":" · "+fullDetail)+AppPreferences.tr(getContext()," · 点击展开车况"," · Expand vehicle condition"));

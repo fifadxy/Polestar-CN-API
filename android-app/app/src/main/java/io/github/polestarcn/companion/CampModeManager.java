@@ -109,6 +109,16 @@ public final class CampModeManager {
     }
     return AppPreferences.tr(c, zh, en);
   }
+  /** Short, bounded display-only countdown based on the scheduled end time. */
+  public static String remainingCaption(Context c){
+    CampSession s=session(c);
+    if(s==null||(!active(c)&&!"STOPPING".equals(phase(c))))return compactStatus(c);
+    long left=Math.max(0,s.endsAt-System.currentTimeMillis());
+    long min=(left+59999L)/60000L;
+    long hours=min/60,mins=min%60;
+    return hours>0 ? (AppPreferences.english(c)?"":"剩余 ")+hours+"h"+String.format(java.util.Locale.ROOT,"%02d",mins)+"m"
+        : (AppPreferences.english(c)?"":"剩余 ")+mins+"m";
+  }
   public static long checkedAt(Context c) { return c.getSharedPreferences(PREF, 0).getLong("checked_at", 0); }
   /** Short button caption; the full diagnostic remains in status() and the camp details. */
   public static String compactStatus(Context c) {

@@ -1156,9 +1156,8 @@ public final class MainActivity extends FragmentActivity {
 
   private LinearLayout vehicleVisual() {
     LinearLayout box=column();
-    ImageView car=nioSkin()?new VehicleHeroView(this):new ImageView(this);
+    ImageView car=new VehicleHeroView(this);
     car.setTag("polestar_vehicle");
-    if(!nioSkin()){car.setImageResource(R.drawable.vehicle_top);car.setScaleType(ImageView.ScaleType.FIT_CENTER);stylePolestarVehicle(car);}
     car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);
     car.setContentDescription(tr("查看车门与车窗状态","View doors and windows")); click(car,this::carStatusDialog);
     box.addView(car,new LinearLayout.LayoutParams(-1,0,1));
@@ -1166,7 +1165,7 @@ public final class MainActivity extends FragmentActivity {
     ImageView symbol=new ImageView(this); symbol.setTag("health_symbol");
     boolean compact=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp
         ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
-    int summarySp=compact?15:24;
+    int summarySp=UiSkin.PS_DEFAULT.equals(UiSkin.get(this))?11:compact?15:24;
     TextView label=goodText("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);
     health.addView(symbol,new LinearLayout.LayoutParams(dp(18),dp(18)));
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.leftMargin=dp(5);health.addView(label,lp);
@@ -1529,6 +1528,8 @@ public final class MainActivity extends FragmentActivity {
       toast(tr("没有可用的地图或浏览器应用","No map or browser application available"));
   }
 
+  private void openVehicleSpecifications(){startActivity(new Intent(this,VehicleSpecificationsActivity.class));}
+
   private void vehicleInfoDialog() {
     io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo info = model.selected;
     LinearLayout panel = column();
@@ -1548,6 +1549,7 @@ public final class MainActivity extends FragmentActivity {
       detailRow(panel, "VIN", info.vin == null || info.vin.trim().isEmpty() ? "--" : info.vin.trim());
     }
     detailRow(panel,tr("充电上限","Charge limit"),DisplayMetric.CHARGE_LIMIT.value(this,model.snapshot,true,AppPreferences.english(this)));
+    panel.addView(button(tr("车辆规格 · 查看详情", "Vehicle specifications · details"), this::openVehicleSpecifications));
     panel.addView(button(tr("切换车辆", "Select another vehicle"), () -> chooseVehicle()));
     new HapticDialogBuilder(this)
         .setTitle(tr("车辆详情", "Vehicle details"))
@@ -1724,7 +1726,7 @@ public final class MainActivity extends FragmentActivity {
     disclosure(panel,"data_air",tr("空调与空气质量","Climate and air quality"),false,this::airContents);
     disclosure(panel,"data_service",tr("保养周期与原始读数","Service cycle and raw values"),false,this::serviceContents);
     final int desired=dataScrollY;((ScrollView)panel.getParent()).post(()->((ScrollView)panel.getParent()).scrollTo(0,desired));
-    disclosure(panel,"data_identity",tr("车辆信息 · 型号 / 年款 / VIN","Vehicle info · model / year / VIN"),false,p->{io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo info=model.selected;detailRow(p,tr("车型","Model"),info==null?"--":info.modelName);detailRow(p,tr("年款","Year"),info==null?"--":info.modelYear);detailRow(p,"VIN",info==null?"--":info.vin);setting(p,tr("切换车辆","Select vehicle"),this::chooseVehicle);});
+    disclosure(panel,"data_identity",tr("车辆信息 · 型号 / 年款 / VIN","Vehicle info · model / year / VIN"),false,p->{io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo info=model.selected;detailRow(p,tr("车型","Model"),info==null?"--":info.modelName);detailRow(p,tr("年款","Year"),info==null?"--":info.modelYear);detailRow(p,"VIN",info==null?"--":info.vin);setting(p,tr("车辆规格 · 官方数据","Vehicle specifications · official data"),this::openVehicleSpecifications);setting(p,tr("切换车辆","Select vehicle"),this::chooseVehicle);});
   }
 
   private void languageDialog() {
@@ -1792,6 +1794,137 @@ public final class MainActivity extends FragmentActivity {
         .setNegativeButton(tr("取消","Cancel"),null).show();
   }
 
+  private void note(LinearLayout parent,String title,String detail){
+    LinearLayout row=row();row.setGravity(Gravity.CENTER_VERTICAL);
+    TextView question=text("?",15,muted,true);question.setGravity(Gravity.CENTER);
+    question.setBackground(bg(surface,20));question.setContentDescription(title);
+    click(question,()->info(title,detail));row.addView(question,new LinearLayout.LayoutParams(dp(30),dp(30)));
+    TextView hint=text(tr("  说明","  Info"),12,muted,false);row.addView(hint);
+    click(hint,()->info(title,detail));parent.addView(row);gap(parent,4);
+  }
+
+  private void vehicleArtDialog(boolean night){
+    String key=night?"vehicle_art_night":"vehicle_art_day";
+    LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    final AlertDialog[] dialog={null};
+    String selected=AppPreferences.get(this,key,"auto");
+    for(String type:VehicleArt.TYPES){
+      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);
+      entry.setPadding(dp(8),dp(7),dp(8),dp(7));
+      GradientDrawable frame=bg(surface,10);
+      frame.setStroke(dp(1),type.equals(VehicleArt.type(selected))?orange:line);
+      entry.setBackground(frame);
+      ImageView thumbnail=new ImageView(this);thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      String[] choices=VehicleArt.variants(type);
+      String defaultKey=type.equals(VehicleArt.type(selected))?selected:choices[0];
+      thumbnail.setImageResource(VehicleArt.drawable(defaultKey,night,true,false));
+      entry.addView(thumbnail,new LinearLayout.LayoutParams(dp(94),dp(66)));
+      LinearLayout textGroup=column();textGroup.setPadding(dp(10),0,0,0);
+      textGroup.addView(text(VehicleArt.typeLabel(this,type)+
+          (type.equals(VehicleArt.type(selected))?" ✓":""),15,ink,true));
+      textGroup.addView(text(type.equals("auto")?tr("自动匹配白天 / 夜间","Automatic day / night") :
+          tr("选择颜色与配置 · ","Choose color / trim · ")+choices.length,11,muted,false));
+      entry.addView(textGroup,new LinearLayout.LayoutParams(0,-2,1));
+      click(entry,()->{
+        if(dialog[0]!=null)dialog[0].dismiss();
+        if("auto".equals(type)){
+          AppPreferences.set(this,key,"auto");WidgetRenderer.refreshAll(this);render();
+        }else vehicleArtColorDialog(night,type);
+      });
+      panel.addView(entry);gap(panel,8);
+    }
+    dialog[0]=new HapticDialogBuilder(this)
+        .setTitle(night?tr("夜间车辆图 · 先选视角","Night image · choose angle"):
+                tr("白天车辆图 · 先选视角","Day image · choose angle"))
+        .setView(scroll).setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog[0].show();
+  }
+
+  private void vehicleArtColorDialog(boolean night,String type){
+    String key=night?"vehicle_art_night":"vehicle_art_day";
+    LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    final AlertDialog[] dialog={null};
+    for(String value:VehicleArt.variants(type)){
+      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);
+      entry.setPadding(dp(6),dp(5),dp(6),dp(5));
+      boolean selected=value.equals(AppPreferences.get(this,key,"auto"));
+      GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),selected?orange:line);
+      entry.setBackground(frame);
+      ImageView thumbnail=new ImageView(this);
+      thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      thumbnail.setImageResource(VehicleArt.drawable(value,night,true,false));
+      entry.addView(thumbnail,new LinearLayout.LayoutParams(dp(116),dp(74)));
+      TextView label=text(VehicleArt.label(this,value)+(selected?" ✓":""),13,ink,false);
+      label.setPadding(dp(10),0,dp(5),0);
+      entry.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+      click(entry,()->{
+        AppPreferences.set(this,key,value);WidgetRenderer.refreshAll(this);
+        if(dialog[0]!=null)dialog[0].dismiss();render();
+      });
+      panel.addView(entry);gap(panel,7);
+    }
+    dialog[0]=new HapticDialogBuilder(this)
+      .setTitle(VehicleArt.typeLabel(this,type)+" · "+tr("选择颜色","Choose color"))
+      .setView(scroll)
+      .setNeutralButton(tr("返回视角","Back to angles"),(d,w)->vehicleArtDialog(night))
+      .setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog[0].show();
+  }
+
+  private void widgetVisualDialog(){
+    LinearLayout panel=column();panel.setPadding(dp(8),dp(6),dp(8),dp(6));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    final AlertDialog[] dialog={null};
+    for(String option:VehicleArt.WIDGET_CHOICES){
+      LinearLayout line=row();line.setPadding(dp(8),dp(6),dp(8),dp(6));line.setGravity(Gravity.CENTER_VERTICAL);
+      ImageView preview=new ImageView(this);preview.setImageResource(VehicleArt.widgetDrawableFor(this,option));
+      preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      line.addView(preview,new LinearLayout.LayoutParams(dp(76),dp(62)));
+      TextView name=text(VehicleArt.widgetLabel(this,option)+
+          (option.equals(VehicleArt.widgetChoice(this))?" ✓":""),13,ink,false);
+      name.setPadding(dp(10),0,0,0);
+      line.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+      GradientDrawable frame=bg(surface,8);frame.setStroke(dp(1),
+          option.equals(VehicleArt.widgetChoice(this))?orange:line);
+      line.setBackground(frame);
+      click(line,()->{AppPreferences.set(this,"widget_visual",option);
+          WidgetRenderer.refreshAll(this);if(dialog[0]!=null)dialog[0].dismiss();render();});
+      panel.addView(line);gap(panel,6);
+    }
+    dialog[0]=new HapticDialogBuilder(this).setTitle(tr("Widget 图像 · 透明图标/车图","Widget image · icons / cars"))
+        .setView(scroll).setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog[0].show();
+  }
+
+  private void widgetColorDialog(){
+    String[] keys=WidgetColors.KEYS, names=new String[keys.length];
+    for(int i=0;i<keys.length;i++)names[i]=WidgetColors.label(this,keys[i]);
+    new HapticDialogBuilder(this).setTitle(tr("Widget 字体颜色","Widget text color"))
+      .setSingleChoiceItems(names,Math.max(0,java.util.Arrays.asList(keys).indexOf(AppPreferences.get(this,"widget_ink","system"))),
+        (dialog,index)->{
+          dialog.dismiss();if("custom".equals(keys[index])){customWidgetColorDialog();return;}
+          AppPreferences.set(this,"widget_ink",keys[index]);WidgetRenderer.refreshAll(this);render();
+        }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void customWidgetColorDialog(){
+    LinearLayout content=column();content.setPadding(dp(18),dp(8),dp(18),dp(8));
+    TextView description=text(tr("输入 6 位十六进制颜色，例如 #FF6B00","Enter six-digit HEX, e.g. #FF6B00"),13,muted,false);
+    content.addView(description);gap(content,8);
+    EditText hex=new EditText(this);hex.setText(AppPreferences.get(this,"widget_ink_custom","#FF6B00"));
+    hex.setSingleLine(true);hex.setTextColor(ink);
+    hex.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+    content.addView(hex);
+    new HapticDialogBuilder(this).setTitle(tr("自定义 Widget 文字颜色","Custom widget text color"))
+      .setView(content).setPositiveButton(tr("应用","Apply"),(d,w)->{
+        String value=hex.getText().toString().trim().toUpperCase(java.util.Locale.ROOT);
+        if(!WidgetColors.validHex(value)){toast(tr("请输入 #RRGGBB 颜色","Enter #RRGGBB"));return;}
+        AppPreferences.set(this,"widget_ink_custom",value);
+        AppPreferences.set(this,"widget_ink","custom");WidgetRenderer.refreshAll(this);render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+
   private void setting(LinearLayout parent,String title,Runnable action){TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);parent.addView(entry);gap(parent,6);}
   private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
     Switch toggle=new Switch(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(48));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
@@ -1827,12 +1960,14 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
+      setting(p,tr("白天车辆图片 · ","Day vehicle image · ")+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_day","auto")),()->vehicleArtDialog(false));
+      setting(p,tr("夜间车辆图片 · ","Night vehicle image · ")+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_night","auto")),()->vehicleArtDialog(true));
       settingToggle(p,"show_car",tr("车辆图","Vehicle image"),true,false);settingToggle(p,"show_charging",tr("充电状态（开始/充电时显示）","Charging status (while starting/charging)"),true,false);settingToggle(p,"show_update",tr("数据更新时间","Data update time"),true,false);
       settingToggle(p,"show_tire_status",tr("显示胎压状态（含车况汇总）","Show tyre status (including summary)"),true,true);
       settingToggle(p,"experimental_tire",tr("四轮iTPMS示意图（无未验证kPa）","Four-wheel iTPMS diagram (no unverified kPa)"),false,false);
       setting(p,tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),this::vehicleStatusDialog);
       setting(p,tr("保养周期 · 自动读取","Service cycle · automatic"),this::maintenanceDialog);
-      p.addView(text(tr("保养周期参考365天/30,000km，余量取较小值。完整读数在车况页展开查看。","Service ratio uses the lower of the 365-day / 30,000-km references. Expand the condition page for raw readings."),12,muted,false));
+      note(p,tr("保养周期说明","Service cycle notes"),tr("保养周期参考365天/30,000km，余量取较小值。完整读数在车况页展开查看。","Service ratio uses the lower of the 365-day / 30,000-km references. Expand the condition page for raw readings."));
     });
     disclosure(root,"settings_widget",tr("桌面 Widget","Home-screen widgets"),false,p->{
       setting(p,tr("Widget 风格 · ","Widget design · ")+VoLikeWidgetRenderer.label(this,VoLikeWidgetRenderer.style(this)),this::widgetDesignDialog);
@@ -1841,13 +1976,14 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("Widget 字号（独立设置）","Widget text size (independent)"),this::fontDialog);
       settingToggle(p,"widget_bold",tr("Widget 加粗字体（所有风格）","Bold widget text (all styles)"),false,true);
       setting(p,tr("Widget 语言 · 中文 / English","Widget language · 中文 / English"),this::widgetLanguageDialog);
+      setting(p,tr("Widget 车辆图片 / 透明程序图标","Widget vehicle / transparent icon"),this::widgetVisualDialog);
       setting(p,tr("背景样式 · 不透明 / 透明","Background · opaque / transparent"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 背景","Widget background")).setItems(new String[]{tr("不透明","Opaque"),tr("透明","Transparent")},(d,w)->{AppPreferences.set(this,"widget_style",w==0?"opaque":"transparent");WidgetRenderer.refreshAll(this);}).show());
-      setting(p,tr("Widget 文字颜色","Widget text color"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 文字颜色","Widget text color")).setItems(new String[]{tr("跟随日夜","Follow day/night"),tr("浅色文字","Light text"),tr("深色文字","Dark text")},(d,w)->{AppPreferences.set(this,"widget_ink",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);}).show());
-      widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);p.addView(text(tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."),11,muted,false));
+      setting(p,tr("Widget 文字颜色 · 预设 / 自定义","Widget text color · presets / custom"),this::widgetColorDialog);
+      widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);note(p,tr("磨砂玻璃说明","Frosted glass"),tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."));
     });
-    disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);p.addView(text(tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."),12,muted,false));});
+    disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});
     disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,p->{residentSettings(p);setting(p,tr("App / Widget 刷新规则","App / Widget refresh rules"),this::refreshRulesDialog);});
-    disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);p.addView(text(tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."),12,muted,false));});
+    disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);note(p,tr("手表预览说明","Watch preview"),tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."));});
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
       p.addView(text(new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."),12,muted,false));
       setting(p,tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this)));

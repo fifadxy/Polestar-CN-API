@@ -15,14 +15,14 @@ final class VehicleHeroView extends ImageView {
 
   VehicleHeroView(Context context) {
     super(context);
-    setImageResource(R.drawable.vehicle_hero);
+    setImageResource(VehicleArt.dashboard(context));
     setScaleType(ScaleType.FIT_CENTER);
     setAdjustViewBounds(false);
-    roof = BitmapFactory.decodeResource(getResources(),R.drawable.vehicle_top);
+    roof = BitmapFactory.decodeResource(getResources(),VehicleArt.dashboard(context));
   }
 
   @Override protected void onDraw(Canvas canvas) {
-    if (UiSkin.nioLayout(getContext()) || roof == null) {
+    if (VehicleArt.portraitRotation(getContext())==0 || roof == null) {
       super.onDraw(canvas);
       return;
     }
@@ -34,7 +34,7 @@ final class VehicleHeroView extends ImageView {
     // points toward the upper edge of a portrait phone after -90 degrees.
     canvas.save();
     canvas.translate(getPaddingLeft()+innerW/2f,getPaddingTop()+innerH/2f);
-    canvas.rotate(-90);
+    canvas.rotate(VehicleArt.portraitRotation(getContext()));
     RectF dest=new RectF(-roof.getWidth()*scale/2,-roof.getHeight()*scale/2,
         roof.getWidth()*scale/2,roof.getHeight()*scale/2);
     paint.setAlpha(255);

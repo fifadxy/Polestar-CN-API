@@ -1887,7 +1887,7 @@ public final class MainActivity extends FragmentActivity {
       name.setPadding(dp(10),0,0,0);
       line.addView(name,new LinearLayout.LayoutParams(0,-2,1));
       GradientDrawable frame=bg(surface,8);frame.setStroke(dp(1),
-          option.equals(VehicleArt.widgetChoice(this))?orange:line);
+          option.equals(VehicleArt.widgetChoice(this))?orange:this.line);
       line.setBackground(frame);
       click(line,()->{AppPreferences.set(this,"widget_visual",option);
           WidgetRenderer.refreshAll(this);if(dialog[0]!=null)dialog[0].dismiss();render();});

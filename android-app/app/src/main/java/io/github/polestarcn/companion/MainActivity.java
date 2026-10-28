@@ -128,7 +128,7 @@ public final class MainActivity extends FragmentActivity {
     if (!fixed&&!"lock-choice".equals(request) && !"climate-choice".equals(request)) return;
     page = 0;
     render();
-    if (!model.hasSession() || model.selected == null || model.busy) {
+    if (!model.hasSession() || model.selected == null) {
       toast(tr("请先连接车辆，刷新后重试", "Connect and refresh the vehicle before controlling"));
       if (model.hasSession() && model.selected == null && !model.busy) model.refresh(null);
       return;
@@ -885,7 +885,7 @@ public final class MainActivity extends FragmentActivity {
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
-      item.setEnabled(!(model.busy&&!model.quietRefresh)&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
+      item.setEnabled(model.canControl(control));item.setAlpha(item.isEnabled()?1f:.5f);
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
     click(item,()->directControl(control));
@@ -1055,7 +1055,7 @@ public final class MainActivity extends FragmentActivity {
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
-      item.setEnabled(!(model.busy&&!model.quietRefresh)&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
+      item.setEnabled(model.canControl(control));item.setAlpha(item.isEnabled()?1f:.5f);
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
     click(item,()->directControl(control));
@@ -1311,9 +1311,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private boolean controlSending(String control) {
-    String pending = model.activeAction;
-    return (model.busy||model.commandPending) && (control.equals("lock") ? pending.equals("lock") || pending.equals("unlock")
-        : control.equals("trunk") ? pending.startsWith("trunk") : pending.startsWith(control));
+    return model.isCommandPending(control);
   }
 
   private int controlIcon(String control,String raw){
@@ -1328,7 +1326,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private String controlFeedback(String control, boolean compact) {
-    if (controlSending(control)) return model.operation == OperationState.SENDING
+    if (controlSending(control)) return model.controlOperation(control) == OperationState.SENDING
         ? tr("发送中", "Sending") : tr("待确认", "Verifying");
     VehicleSnapshot v = model.snapshot;
     if (control.equals("climate") && v != null && "开启".equals(v.climate)) {
@@ -1402,7 +1400,7 @@ public final class MainActivity extends FragmentActivity {
           : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
       support.setText("");support.setVisibility(View.GONE);
-      card.setEnabled(!(model.busy&&!model.quietRefresh) && !model.commandPending && model.selected != null);
+      card.setEnabled(model.canControl(control));
       card.setAlpha(card.isEnabled() ? 1f : .55f);
       card.setContentDescription(label+" · "+feedbackValue);
     });
@@ -1570,7 +1568,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void directControl(String control) {
-    if (model.busy || model.commandPending || authPending || model.selected == null) return;
+    if (!model.canControl(control) || authPending) return;
     String action = ControlAction.next(control, model.snapshot);
     if (action == null) {
       toast(tr("状态未知或未确认，请刷新车况后再试", "State unknown or unconfirmed. Refresh before controlling"));
@@ -1594,7 +1592,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void signalMenu() {
-    if (model.busy || model.commandPending || authPending || model.selected == null) return;
+    if (!model.canControl("signal") || authPending) return;
     new HapticDialogBuilder(this)
         .setTitle(tr("寻车", "Find car"))
         .setItems(
@@ -1617,7 +1615,9 @@ public final class MainActivity extends FragmentActivity {
     if(!FirstUseConsent.accepted(this)){FirstUseConsent.show(this,()->{});return;}
     if(action.equals("climate-start")&&ClimateTarget.enabled(this))label+=tr(" · 请求 "," · request ")+(int)ClimateTarget.request(this)+"°C";
     final CampSession campTarget = "camp-stop".equals(action) ? CampModeManager.session(this) : null;
-    if (authPending || model.busy || model.commandPending || (model.selected == null && campTarget == null)) return;
+    if (authPending || ("camp-start".equals(action) && (model.busy || model.commandPending))
+        || (!"camp-start".equals(action) && campTarget == null && !model.canCommand(action))
+        || (model.selected == null && campTarget == null)) return;
     int available =
         BiometricManager.from(this)
             .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
@@ -1645,7 +1645,7 @@ public final class MainActivity extends FragmentActivity {
                       if (generation != authGeneration) return;
                       authGeneration++;
                       authPending = false;
-                      if (model.busy) return;
+                      if (campTarget == null && !"camp-start".equals(action) && !model.canCommand(action)) return;
                       if (campTarget != null) {
                         if (CampModeManager.current(MainActivity.this, campTarget.id)) model.stopCamp();
                       } else if (model.selected != null && vin.equals(model.selected.vin)) {

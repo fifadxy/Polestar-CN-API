@@ -1001,12 +1001,12 @@ public final class AppRegressionTest {
     io.github.polestarcn.companion.auth.ClientSignatureProvider provider=
         new io.github.polestarcn.companion.auth.ClientSignatureProvider(activity);
     if(provider.isReady()){
-      assertEquals(32,provider.resolve().length());
       assertTrue(provider.source()!=io.github.polestarcn.companion.auth.ClientSignatureProvider.Source.MISSING);
+      assertTrue(provider.sign("a=1&b=2").matches("[0-9a-f]{32}"));
     }else{
       assertEquals(io.github.polestarcn.companion.auth.ClientSignatureProvider.Source.MISSING,provider.source());
       try{
-        provider.resolve();
+        provider.sign("a=1&b=2");
         fail("missing build configuration must be explicit");
       }catch(IllegalStateException expected){
         assertTrue(expected.getMessage().contains("verification build"));

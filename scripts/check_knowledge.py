@@ -80,3 +80,7 @@ assert (root/'docs/Psa_Icon_Design_Specification_v3.md').is_file()
 assert len(list((root/'branding/android/icons/v3').glob('*.svg'))) == 9
 assert (root/'scripts/generate_app_icons.py').is_file()
 print('PASS: v0.8.8 icon families, widget fan/runtime and short camping labels indexed')
+
+assert '](35_V092_ENERGY_REFRESH_STATUS.md)' in index
+assert (root/'docs/Psa_v092_Energy_History.md').is_file()
+print('PASS: v092 bounded local energy and quiet refresh indexed')

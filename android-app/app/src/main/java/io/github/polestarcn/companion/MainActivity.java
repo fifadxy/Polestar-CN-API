@@ -53,8 +53,10 @@ public final class MainActivity extends FragmentActivity {
       displayHandler.postDelayed(this, 60_000L);
     }
   };
+  private static boolean openingRefreshClaimed,openingRefreshFinished;private static long openingRefreshDue;
+  private final Runnable openingRefresh=()->{openingRefreshFinished=true;if(getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)&&model.hasSession()&&!model.busy&&!model.commandPending)model.refreshQuiet();};
   private final Runnable foregroundRefresh=new Runnable(){public void run(){
-    if(FirstUseConsent.accepted(MainActivity.this)&&model.hasSession()&&!model.busy&&!model.commandPending&&page!=2)model.refresh(null);
+    if(FirstUseConsent.accepted(MainActivity.this)&&model.hasSession()&&!model.busy&&!model.commandPending )model.refreshQuiet();
     scheduleForeground();
   }};
   private void scheduleForeground(){displayHandler.removeCallbacks(foregroundRefresh);int minutes=RefreshPolicy.foreground(this);if(minutes>0)displayHandler.postDelayed(foregroundRefresh,minutes*60_000L);}
@@ -93,7 +95,7 @@ public final class MainActivity extends FragmentActivity {
   }
   private void startConsented(){
     handleWidgetIntent(getIntent());
-    if (initialCreation && AppPreferences.visible(this,"refresh_on_open",true) && model.hasSession() && !model.busy) model.refresh(null);
+    if(AppPreferences.visible(this,"refresh_on_open",true)){if(!openingRefreshClaimed){openingRefreshClaimed=true;openingRefreshDue=android.os.SystemClock.elapsedRealtime()+3000L;}if(!openingRefreshFinished)displayHandler.postDelayed(openingRefresh,Math.max(0,openingRefreshDue-android.os.SystemClock.elapsedRealtime()));}
     if (AppPreferences.enabled(this))
       try {
         ResidentService.apply(this);
@@ -140,7 +142,7 @@ public final class MainActivity extends FragmentActivity {
 
   @Override
   protected void onDestroy() {
-    displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);
+    displayHandler.removeCallbacks(openingRefresh);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);
     dismissParking();if(carDialog!=null)carDialog.dismiss();
     model.remove(listener);
     authGeneration++; authPending = false;
@@ -229,7 +231,7 @@ public final class MainActivity extends FragmentActivity {
   private void stylePolestarVehicle(ImageView car) {
     car.setScaleX(1.08f);
     car.setScaleY(1.08f);
-    if (!AppPreferences.dark(this)) {
+    if (!AppPreferences.dark(this)||UiSkin.PS_DEFAULT.equals(UiSkin.get(this))) {
       car.clearColorFilter();
       return;
     }
@@ -518,7 +520,7 @@ public final class MainActivity extends FragmentActivity {
             });
     sign.setBackground(bg(orange, 8));
     sign.setTextColor(Color.BLACK);
-    sign.setEnabled(!model.busy);
+    sign.setEnabled(!(model.busy&&!model.quietRefresh));
     v.addView(sign, new LinearLayout.LayoutParams(-1, dp(54)));
     gap(v, 12);
     v.addView(text(model.message, 13, muted, false));
@@ -548,7 +550,7 @@ public final class MainActivity extends FragmentActivity {
     refresh.setOnChildScrollUpCallback(
         (parent, child) -> controlCanScrollUp(child));
     refresh.setOnRefreshListener(this::requestPullRefresh);
-    refresh.setRefreshing(model.busy && model.activeAction.isEmpty());
+    refresh.setRefreshing(model.busy && !model.quietRefresh && model.activeAction.isEmpty());
 
     LinearLayout content = column();
     content.setTag("control_pull_content");
@@ -614,7 +616,7 @@ public final class MainActivity extends FragmentActivity {
     if (dashboardReady && page == 0 && model.hasSession()) {
       for (Runnable binding : new java.util.ArrayList<>(dashboardBindings)) binding.run();
       if (controlRefresh != null)
-        controlRefresh.setRefreshing(model.busy && model.activeAction.isEmpty());
+        controlRefresh.setRefreshing(model.busy && !model.quietRefresh && model.activeAction.isEmpty());
     } else {View old=findViewById(android.R.id.content).findViewWithTag("status_scroll");if(old instanceof ScrollView)statusScrollY=((ScrollView)old).getScrollY();render();}
   }
 
@@ -646,6 +648,7 @@ public final class MainActivity extends FragmentActivity {
     VehicleSnapshot v = model.snapshot;
     String stamp = v == null || v.timestampMillis <= 0 ? tr("更新时间未知", "Update time unknown")
         : tr("更新 ", "Updated ") + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
+    if(model.quietRefresh)return tr("正在刷新 · ","Refreshing · ")+stamp;
     if(model.commandPending)return tr("指令核实 ","Command verification ")+model.readbackPercent+"% · "+model.readbackChecks+"/5 · "+stamp;
     return (model.message.isEmpty() ? "" : model.message + " · ")
         + (AppPreferences.visible(this, "show_update", true) ? stamp : "");
@@ -737,10 +740,10 @@ public final class MainActivity extends FragmentActivity {
     click(name,this::vehicleInfoDialog);head.addView(name,new LinearLayout.LayoutParams(0,-1,.65f));
     ImageView location=new ImageView(this);location.setImageResource(R.drawable.ic_location);location.setColorFilter(ink);
     location.setScaleType(ImageView.ScaleType.CENTER_INSIDE);location.setPadding(dp(9),dp(9),dp(9),dp(9));location.setTag("vehicle_location");
-    click(location,this::locationDialog);bindDashboard(()->{location.setEnabled(!model.locationBusy&&!model.busy&&!model.commandPending&&model.selected!=null);location.setAlpha(location.isEnabled()?1f:.45f);});
+    click(location,this::locationDialog);bindDashboard(()->{location.setEnabled(!model.locationBusy&&!(model.busy&&!model.quietRefresh)&&!model.commandPending&&model.selected!=null);location.setAlpha(location.isEnabled()?1f:.45f);});
     ImageView refresh=new ImageView(this);refresh.setImageResource(R.drawable.ic_refresh);refresh.setColorFilter(ink);refresh.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
     refresh.setPadding(dp(9),dp(9),dp(9),dp(9));refresh.setTag("refresh_vehicle");click(refresh,()->model.refreshUser(null));
-    bindDashboard(()->{refresh.setEnabled(!model.busy);refresh.setAlpha(refresh.isEnabled()?1f:.45f);});
+    bindDashboard(()->{refresh.setEnabled(!(model.busy&&!model.quietRefresh));refresh.setAlpha(refresh.isEnabled()?1f:.45f);});
     head.addView(parkingCaption(),new LinearLayout.LayoutParams(0,-1,1.35f));
     head.addView(location,new LinearLayout.LayoutParams(dp(40),-1));head.addView(refresh,new LinearLayout.LayoutParams(dp(40),-1));
     body.addView(head,new LinearLayout.LayoutParams(-1,dp(landscape?36:42)));
@@ -882,7 +885,7 @@ public final class MainActivity extends FragmentActivity {
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
-      item.setEnabled(!model.busy&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
+      item.setEnabled(!(model.busy&&!model.quietRefresh)&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
     click(item,()->directControl(control));
@@ -1052,7 +1055,7 @@ public final class MainActivity extends FragmentActivity {
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
       circle.setBackground(oval(fill));
       icon.setColorFilter((warning||active&&(control.equals("climate")||control.equals("air")))?Color.WHITE:ink);
-      item.setEnabled(!model.busy&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
+      item.setEnabled(!(model.busy&&!model.quietRefresh)&&!model.commandPending&&model.selected!=null);item.setAlpha(item.isEnabled()?1f:.5f);
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
     click(item,()->directControl(control));
@@ -1063,8 +1066,8 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout row=row();row.setTag("volike_utilities");
     VehicleConditionButton condition=conditionButton(tr("车况","Status"));
     TextView windows=utility(tr("车窗","Windows"),false,false,()->directControl("windows"));utilityIcon(windows,R.drawable.ic_window);windows.setTag("windows_control_button");
-    TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);camp.setTag("camp_button");
-    TextView signal=utility(tr("寻车","Find car"),false,false,this::signalMenu);signal.setTag("signal_control_button");
+    TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);utilityIcon(camp,R.drawable.ic_camp);camp.setTag("camp_button");
+    TextView signal=utility(tr("寻车","Find car"),false,false,this::signalMenu);utilityIcon(signal,R.drawable.ic_horn);signal.setTag("signal_control_button");
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       condition.setText(tr("车况","Status"));condition.refreshService();
@@ -1098,13 +1101,13 @@ public final class MainActivity extends FragmentActivity {
     GradientDrawable refreshFrame=bg(Color.TRANSPARENT,nioSkin()?24:8);refreshFrame.setStroke(dp(1),line);refresh.setBackground(refreshFrame);
     click(refresh,()->model.refreshUser(null));
     refresh.setContentDescription(tr("刷新车辆状态","Refresh vehicle status"));
-    bindDashboard(()->{refresh.setEnabled(!model.busy);refresh.setAlpha(model.busy?.4f:1f);});
+    bindDashboard(()->{refresh.setEnabled(!(model.busy&&!model.quietRefresh));refresh.setAlpha((model.busy&&!model.quietRefresh)?.4f:1f);});
     if(landscape) {LinearLayout energy=column();addBatterySummary(energy,true);
       LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(dp(230),-2);ep.leftMargin=dp(8);ep.rightMargin=dp(8);head.addView(energy,ep);}
     ImageView location=new ImageView(this);location.setTag("vehicle_location");location.setImageResource(R.drawable.ic_location);
     location.setColorFilter(ink);location.setScaleType(ImageView.ScaleType.CENTER_INSIDE);location.setPadding(dp(10),dp(10),dp(10),dp(10));
     location.setContentDescription(tr("最后停车位置","Last parked location"));click(location,this::locationDialog);
-    bindDashboard(()->{location.setEnabled(!model.locationBusy&&!model.busy&&!model.commandPending&&model.selected!=null);location.setAlpha(model.locationBusy?.4f:1f);});
+    bindDashboard(()->{location.setEnabled(!model.locationBusy&&!(model.busy&&!model.quietRefresh)&&!model.commandPending&&model.selected!=null);location.setAlpha(model.locationBusy?.4f:1f);});
     head.addView(parkingCaption(),new LinearLayout.LayoutParams(0,-1,1.35f));
     head.addView(location,new LinearLayout.LayoutParams(dp(44),dp(48)));
     head.addView(refresh,new LinearLayout.LayoutParams(dp(48),dp(48)));
@@ -1212,7 +1215,7 @@ public final class MainActivity extends FragmentActivity {
     parent.addView(features,new LinearLayout.LayoutParams(-1,Math.max(dp(84),textLineHeight(14)+textLineHeight(22)+textLineHeight(12)+textLineHeight(11)+dp(8))));gap(parent,5);
     LinearLayout utilities=row();
     VehicleConditionButton bodyButton=conditionButton(tr("车况","Status"));
-    TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);camp.setTag("camp_button");
+    TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);utilityIcon(camp,R.drawable.ic_camp);camp.setTag("camp_button");
     bindDashboard(()->{
       boolean opened=VehicleCondition.problem(model.snapshot,showTires()),active=CampModeManager.active(this);
       bodyButton.setText(tr("车况","Status")+(opened?" !":""));
@@ -1269,15 +1272,9 @@ public final class MainActivity extends FragmentActivity {
           : kind.equals("health") ? tr("车况", "Health") : kind.equals("camp") ? tr("露营", "Camp") : tr("寻车", "Find car");
       TextView view = kind.equals("body")?conditionButton(initialLabel):utility(initialLabel, false, false, action);
       view.setTextSize(11);
-      if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this))&&!kind.equals("body"))utilityIcon(view,kind.equals("windows")?R.drawable.ic_window:kind.equals("camp")?R.drawable.ic_camp:R.drawable.ic_horn);
+      if(!kind.equals("body"))utilityIcon(view,kind.equals("windows")?R.drawable.ic_window:kind.equals("camp")?R.drawable.ic_camp:R.drawable.ic_horn);
 
       view.setPadding(dp(3), dp(2), dp(3), dp(2));
-      if(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))) {
-        android.graphics.drawable.Drawable glyph=getDrawable(kind.equals("windows")?R.drawable.ic_window:R.drawable.ic_horn).mutate();glyph.setTint(ink);
-        GradientDrawable circle=oval(Color.TRANSPARENT);circle.setStroke(dp(1),line);
-        android.graphics.drawable.LayerDrawable badge=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{circle,glyph});
-        badge.setLayerInset(1,dp(5),dp(5),dp(5),dp(5));badge.setBounds(0,0,dp(32),dp(32));view.setCompoundDrawables(badge,null,null,null);
-      }
       view.setTag(kind.equals("windows") ? "windows_control_button" : kind.equals("body")
           ? "exterior_button" : kind.equals("health") ? "vehicle_status_button"
           : kind.equals("camp") ? "camp_button" : "signal_control_button");
@@ -1292,7 +1289,7 @@ public final class MainActivity extends FragmentActivity {
             : kind.equals("health") ? (good ? "ALL GOOD" : tr("车况", "Health"))
             : kind.equals("camp") ? tr("露营", "Camp") : tr("寻车", "Find car");
         view.setMaxLines(good ? 2 : 1);
-        view.setText(nioSkin()&&(kind.equals("windows")||kind.equals("signal"))?"":good ? "ALL\nGOOD" : label + (warn ? " !" : ""));
+        view.setText(good ? "ALL\nGOOD" : label + (warn ? " !" : ""));
         GradientDrawable background = (GradientDrawable) view.getBackground();
         background.setColor(active ? orange : surface);
         background.setStroke(dp(1), active || good ? orange : line);
@@ -1397,7 +1394,7 @@ public final class MainActivity extends FragmentActivity {
       int color=nioSkin()?ink:known&&active?Color.rgb(21,22,23):AppPreferences.dark(this)?ink:known?Color.rgb(21,22,23):ink;
       icon.setColorFilter(nioSkin() && active ? activeColor : color);
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
-      title.setTextColor(color); feedback.setTextColor(color);
+      title.setTextColor(color); feedback.setTextColor(active?color:muted);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
       feedback.setText(feedbackValue);feedback.setVisibility(AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")
@@ -1405,7 +1402,7 @@ public final class MainActivity extends FragmentActivity {
           : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
       support.setText("");support.setVisibility(View.GONE);
-      card.setEnabled(!model.busy && !model.commandPending && model.selected != null);
+      card.setEnabled(!(model.busy&&!model.quietRefresh) && !model.commandPending && model.selected != null);
       card.setAlpha(card.isEnabled() ? 1f : .55f);
       card.setContentDescription(label+" · "+feedbackValue);
     });
@@ -1717,12 +1714,13 @@ public final class MainActivity extends FragmentActivity {
   private void details(){
     LinearLayout panel=scrollBody();((ScrollView)panel.getParent()).setTag("data_scroll");VehicleSnapshot v=model.snapshot;
     panel.addView(text(tr("车辆数据","Vehicle data"),24,ink,false));if(v==null){panel.addView(text(tr("暂无车况，请连接车辆后刷新。","No vehicle snapshot. Connect and refresh first."),14,muted,false));setting(panel,tr("刷新车辆","Refresh vehicle"),()->model.refreshUser(null));return;}
-    detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.CHARGE_LIMIT,DisplayMetric.SERVICE_CYCLE);
+    detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.BATTERY_12V,DisplayMetric.SERVICE_CYCLE);if(v.chargingDetails.targetPercent!=null)metricRows(panel,DisplayMetric.CHARGE_LIMIT);
+    setting(panel,tr("行驶 / 驻车空调能耗","Driving / parked climate energy"),this::energyHistory);
     disclosure(panel,"data_health",tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),true,this::healthOverview);
     disclosure(panel,"data_exterior",tr("车门 / 车窗 / 尾箱","Doors / windows / tailgate"),false,this::exteriorContents);
     if(showTires())disclosure(panel,"data_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
     disclosure(panel,"data_trips",tr("行程 · TA / TM / 充电后","Trips · TA / TM / since charge"),false,this::tripContents);
-    if(ChargingVisibility.shouldShow(v))disclosure(panel,"data_charging",tr("充电详情","Charging details"),false,p->{for(DisplayMetric metric:DisplayMetric.values())if(ChargingVisibility.isChargingMetric(metric)||metric==DisplayMetric.CHARGE_LIMIT)metricRows(p,metric);});
+    if(ChargingVisibility.shouldShow(v))disclosure(panel,"data_charging",tr("充电详情","Charging details"),false,p->{for(DisplayMetric metric:DisplayMetric.values())if((ChargingVisibility.isChargingMetric(metric)||metric==DisplayMetric.CHARGE_LIMIT)&&(metric!=DisplayMetric.CHARGE_LIMIT||v.chargingDetails.targetPercent!=null))metricRows(p,metric);});
     disclosure(panel,"data_air",tr("空调与空气质量","Climate and air quality"),false,this::airContents);
     disclosure(panel,"data_service",tr("保养周期与原始读数","Service cycle and raw values"),false,this::serviceContents);
     final int desired=dataScrollY;((ScrollView)panel.getParent()).post(()->((ScrollView)panel.getParent()).scrollTo(0,desired));
@@ -2196,6 +2194,7 @@ public final class MainActivity extends FragmentActivity {
         .setPositiveButton(tr("关闭","Close"),null).show();
   }
 
+  private void energyHistory(){if(model.selected!=null)startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",VehicleCoordinator.identity(model.selected.vin)));else toast(tr("请先连接车辆","Connect a vehicle first"));}
   private void vehicleStatusDialog(){if(page!=3){statusReturnPage=page;statusScrollY=0;}page=3;render();}
   private void openStatusSection(String key){AppPreferences.set(this,"expand_"+key,"on");vehicleStatusDialog();ScrollView scroll=findViewById(android.R.id.content).findViewWithTag("status_scroll");View section=findViewById(android.R.id.content).findViewWithTag("disclosure_"+key);if(scroll!=null&&section!=null)scroll.post(()->scroll.smoothScrollTo(0,section.getTop()));}
   private static final class HealthRow {
@@ -2234,8 +2233,9 @@ public final class MainActivity extends FragmentActivity {
   private void vehicleStatusPage(){
     LinearLayout panel=scrollBody();ScrollView scroll=(ScrollView)panel.getParent();scroll.setTag("status_scroll");
     panel.addView(text(tr("车辆状况","Vehicle condition"),24,ink,true));panel.addView(text(VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()),16,VehicleCondition.problem(model.snapshot,showTires())?accentText():ink,false));
-    TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!model.busy&&model.hasSession());panel.addView(refresh);gap(panel,12);
+    TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!(model.busy&&!model.quietRefresh)&&model.hasSession());panel.addView(refresh);gap(panel,12);
     healthOverview(panel);
+    disclosure(panel,"status_energy",tr("行驶 / 驻车空调能耗","Driving / parked climate energy"),false,p->{setting(p,tr("能耗记录与曲线","Energy history and charts"),()->{if(model.selected!=null)startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",VehicleCoordinator.identity(model.selected.vin)));else toast(tr("请先连接车辆","Connect a vehicle first"));});});
     disclosure(panel,"status_service",tr("保养周期与原始上报值","Service cycle and reported values"),false,this::serviceContents);
     disclosure(panel,"status_exterior",tr("车门 / 车窗 / 尾箱位置状态","Doors / windows / tailgate positions")+(model.snapshot!=null&&ExteriorView.hasOpening(model.snapshot)?" !":""),false,this::exteriorContents);
     if(showTires())disclosure(panel,"status_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
@@ -2316,7 +2316,7 @@ public final class MainActivity extends FragmentActivity {
     campSlider(panel, tr("电量下限（%）", "Battery limit (%)"), 5, 90,
         CampModeManager.minimum(this), "camp_minimum", value -> {
           if (dialog[0] != null) dialog[0].getButton(AlertDialog.BUTTON_POSITIVE)
-              .setEnabled(model.selected != null && !model.busy && model.snapshot != null
+              .setEnabled(model.selected != null && !(model.busy&&!model.quietRefresh) && model.snapshot != null
                   && CampSession.batteryAllows(model.snapshot.batteryPercent, value));
         });
     CheckBox air = new CheckBox(this);
@@ -2332,7 +2332,7 @@ public final class MainActivity extends FragmentActivity {
           authenticate(tr("开启露营空调托管", "Enable camping climate maintenance"), "camp-start");
         }).setNegativeButton(tr("取消", "Cancel"), null).create();
     dialog[0].show();
-    dialog[0].getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(model.selected != null && !model.busy
+    dialog[0].getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(model.selected != null && !(model.busy&&!model.quietRefresh)
         && model.snapshot != null && CampSession.batteryAllows(model.snapshot.batteryPercent, CampModeManager.minimum(this)));
   }
 

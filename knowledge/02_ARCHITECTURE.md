@@ -106,3 +106,8 @@ flowchart TD
 ## v0.8.8 当前增量 · 2026-10-28
 
 AppIcons统一alias切换、日夜资源、通知与Widget标识；MainActivity始终启用。WidgetButtons固定风扇与剩余时间，原生数字测量不插入省略号。CampModeManager.compactStatus只影响短按钮文案。
+
+
+## v0.9.2 当前增量
+
+新增EnergyLog SQLite与EnergyActivity，仅后台串行读写，UI分桶图表。

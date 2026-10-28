@@ -97,6 +97,7 @@ public final class VehicleCoordinator {
   }
 
   private void finish() {
+    quietRefresh=false;
     busy = false;
     if(!commandPending)activeAction = "";
     changed();
@@ -135,6 +136,8 @@ public final class VehicleCoordinator {
     refresh(done);
   }
 
+  public boolean quietRefresh;
+  public void refreshQuiet(){if(busy||commandPending)return;quietRefresh=true;refresh(null);}
   public void refresh(Runnable done) {
     if(!FirstUseConsent.accepted(context)){if(done!=null)done.run();return;}
     if (done != null) completions.add(done);
@@ -158,7 +161,7 @@ public final class VehicleCoordinator {
             for (ChinaPolestarApi.VehicleInfo car : found)
               if (identity(car.vin).equals(wanted)) picked = car;
             VehicleSnapshot live = api.readVehicle(picked);
-            VehicleSnapshotStore.saveChina(context, live);
+            VehicleSnapshotStore.saveChina(context, live);EnergyLog.record(context,identity(picked.vin),live);
             final ChinaPolestarApi.VehicleInfo pick = picked;
             main.post(
                 () -> {
@@ -284,7 +287,7 @@ public final class VehicleCoordinator {
         if(!commandPending||selected==null||!vehicle.vin.equals(selected.vin))return;
         readbackChecks=count;
         message=tr("正在核实车辆状态 ","Verifying vehicle state ")+readbackPercent+"% · "+count+"/5";
-        if(updated!=null){snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);}
+        if(updated!=null){snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);EnergyLog.record(context,identity(vehicle.vin),updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);}
         changed();
       }
       public void finished(VehicleSnapshot updated,boolean reached){
@@ -343,7 +346,7 @@ public final class VehicleCoordinator {
         CampSession camping = new CampSession(java.util.UUID.randomUUID().toString(), vehicle.vin,
             fresh.name, now + hours * 3_600_000L, CampModeManager.interval(context), minimum, keepAir,requestedTarget,customTarget);
         CampModeManager.start(context, camping);
-        VehicleSnapshotStore.saveChina(context, fresh);
+        VehicleSnapshotStore.saveChina(context, fresh);EnergyLog.record(context,identity(vehicle.vin),fresh);
         main.post(() -> { snapshot = fresh; message = CampModeManager.status(context); finish(); });
       } catch (Exception e) {
         main.post(() -> { message = tr("露营未开启：", "Camping not started: ") + safe(e); finish(); });
@@ -429,7 +432,7 @@ public final class VehicleCoordinator {
       }
       main.post(() -> {
         if (read[0] != null && selected != null && camping.vin.equals(selected.vin)) {
-          snapshot = read[0]; VehicleSnapshotStore.saveChina(context, snapshot); WidgetRenderer.refreshAll(context);
+          snapshot = read[0]; VehicleSnapshotStore.saveChina(context, snapshot);EnergyLog.record(context,identity(camping.vin),snapshot); WidgetRenderer.refreshAll(context);
         }
         message = CampModeManager.status(context);
         finish();

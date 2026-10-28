@@ -77,3 +77,8 @@
 ## v0.8.8 当前增量 · 2026-10-28
 
 Widget剩余时间显示继续使用EnvironmentSnapshot.climateRuntimeMinutes（ParkingClimatization field3）和climateReportedAt；0m不等于关闭，缺失--m。未改变任何API字段。
+
+
+## v0.9.2 当前增量
+
+能耗日志只保存当前已有字段；SOC差×0.71，TM累计能量约等于TMkm×TM平均kWh/100km，不是新API实测总能量。

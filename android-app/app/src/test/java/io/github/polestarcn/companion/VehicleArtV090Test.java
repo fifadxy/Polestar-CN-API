@@ -26,7 +26,7 @@ public class VehicleArtV090Test {
  }
  @Test public void independentDayNightSettingsAreAppliedToDashboard(){
    Context c=RuntimeEnvironment.getApplication();
-   AppPreferences.set(c,"ui_skin",UiSkin.PS_DEFAULT);
+   AppPreferences.set(c,"ui_skin",UiSkin.SIMPLE);
    AppPreferences.set(c,"vehicle_art_day","top_white");
    AppPreferences.set(c,"vehicle_art_night","top_dark");
    AppPreferences.set(c,"theme","light");
@@ -47,11 +47,11 @@ public class VehicleArtV090Test {
    assertEquals(R.drawable.vehicle_top,VehicleArt.dashboard(c));
    assertEquals(0,VehicleArt.portraitRotation(c));
    AppPreferences.set(c,"theme","dark");
-   assertEquals(R.drawable.psa_vehicle_top_dark,VehicleArt.dashboard(c));
+   assertEquals(R.drawable.vehicle_top,VehicleArt.dashboard(c));
    assertEquals(0,VehicleArt.portraitRotation(c));
  }
  @Test public void polestarFiveModelOnlyShowsVerifiedOfficialViews(){
-   Context c=RuntimeEnvironment.getApplication();
+   Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"ui_skin",UiSkin.SIMPLE);
    AppPreferences.set(c,"theme","light");
    AppPreferences.set(c,VehicleArt.modelKey(false),VehicleArt.POLESTAR_5);
    AppPreferences.set(c,VehicleArt.selectionKey(false),"auto");

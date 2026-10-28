@@ -1,4 +1,8 @@
-[最新 Android v0.9.1 · 高清 PNG 车图及远控回读](../docs/Psa_v091_PNG_And_Command_Readback.md)：恢复默认黑白车图、加入极星 2/5 分车型图库，5/10/15/18/26 秒五次读回与连续三次确认；公开 CI 缺私有配置不能实车登录。\n\n当前增量：[v0.8.9 China 登录构建兼容](34_V089_CHINA_LOGIN_BUILD.md)。本项修复不等于公开 CI Debug 可以登录；完整构建需私有配置和固定签名。
+[当前v0.9.2 · 本地能耗、刷新与状态](35_V092_ENERGY_REFRESH_STATUS.md) · versionCode93。
+
+[最新 Android v0.9.1 · 高清 PNG 车图及远控回读](../docs/Psa_v091_PNG_And_Command_Readback.md)：恢复默认黑白车图、加入极星 2/5 分车型图库，5/10/15/18/26 秒五次读回与连续三次确认；公开 CI 缺私有配置不能实车登录。
+
+当前增量：[v0.8.9 China 登录构建兼容](34_V089_CHINA_LOGIN_BUILD.md)。本项修复不等于公开 CI Debug 可以登录；完整构建需私有配置和固定签名。
 
 当前增量：[v0.8.8 图标家族、Widget与露营可读性](33_V088_ICON_FAMILIES_WIDGET_CAMP.md)。当前版本 **v0.8.8-beta1 / 89**，本增量优先于历史图标与Widget显示约定。
 

@@ -126,6 +126,7 @@ public final class VehicleArt {
   }
   public static boolean isTop(String key){return "auto".equals(key)||key.startsWith("top_");}
   public static int dashboard(Context c){
+    if(UiSkin.PS_DEFAULT.equals(UiSkin.get(c)))return R.drawable.vehicle_top;
     String selection=key(c);
     if(POLESTAR_5.equals(model(c))&&"auto".equals(selection))
       return drawable(AppPreferences.dark(c)?"p5_side_space":"p5_side_snow",AppPreferences.dark(c),false,false);

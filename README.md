@@ -1,3 +1,5 @@
+当前版本：**v0.9.2-beta1 / 93**。详见[刷新、状态和本地能耗记录](docs/Psa_v092_Energy_History.md)。本增量优先于下方历史记录。
+
 当前交付说明：[v0.9.1 高清 PNG 车辆图库及车控回读](docs/Psa_v091_PNG_And_Command_Readback.md) · [v0.8.9 登录兼容](docs/Psa_v089_Login_Compatibility.md)。公开 CI Debug 缺私有配置时只能验证界面，完整发行包需有效的已有 PsAssistant 客户端配置和固定签名。
 
 # PsAssistant for Android

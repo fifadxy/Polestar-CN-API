@@ -19,6 +19,8 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false">
+        <activity android:name=".VehicleEffectsActivity" android:exported="false"/>
+        <activity android:name=".VehicleSimulationActivity" android:exported="false"/>
         <activity android:name=".EnergyActivity" android:exported="false"/>
         <service android:name=".ResidentService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-enabled private vehicle status notification between battery-aware scheduled updates" />

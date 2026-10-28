@@ -916,7 +916,7 @@ public final class MainActivity extends FragmentActivity {
 
   private LinearLayout voDetailRail(boolean compact) {
     LinearLayout rail=column();rail.setTag("volike_detail_rail");rail.setPadding(dp(4),dp(4),dp(4),dp(4));GradientDrawable frame=bg(viSoft(),16);frame.setStroke(dp(1),line);rail.setBackground(frame);
-    TextView title=text(tr("详细数据","Details"),11,ink,false);title.setGravity(Gravity.CENTER);title.setTypeface(buttonTypeface());rail.addView(title,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(2)));
+    TextView title=text(tr("详细数据","Details"),11,ink,false);title.setGravity(Gravity.CENTER);title.setTypeface(buttonTypeface());rail.addView(title,new LinearLayout.LayoutParams(-1,textLineHeight(11)+dp(4)));
     java.util.List<DisplayMetric> metrics=controlMetrics();
     metrics.removeIf(m->m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE||ChargingVisibility.isChargingMetric(m));
     // Prioritise TM, distance and energy; all remaining metrics stay on the vehicle-data page.

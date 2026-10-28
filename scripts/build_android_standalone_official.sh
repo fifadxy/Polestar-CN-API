@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+umask 077
 
 # Build a complete standalone PsAssistant release from the exact user-provided
 # official Polestar China 4.25.0 APK without requiring any APK at runtime.
@@ -57,6 +58,7 @@ with open(out, "wb") as f:
     f.write(values[0] + b"\n")
 print("Verified standalone client configuration derived from exact official build input.")
 PY
+chmod 600 "$CONFIG"
 
 export PSA_CLIENT_CONFIG_FILE="$CONFIG"
 

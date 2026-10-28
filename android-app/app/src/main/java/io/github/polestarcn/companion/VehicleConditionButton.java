@@ -2,43 +2,29 @@ package io.github.polestarcn.companion;
 import android.content.Context;
 import android.graphics.*;
 import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
 import android.widget.TextView;
 import java.util.function.Supplier;
-/** One aligned icon/title row plus separate remaining-service bars; no overlapping TextView draw. */
+/** Centered condition group with optional percentage/bar, bounded to the same utility slot. */
 public final class VehicleConditionButton extends TextView {
  private final Supplier<VehicleSnapshot> snapshot;
  private final android.text.TextPaint paint=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
-
- private Integer timePercent,distancePercent;
+ private Integer percent;private String mode;private Drawable icon;
  public VehicleConditionButton(Context c,Supplier<VehicleSnapshot> source){super(c);snapshot=source;setIncludeFontPadding(false);}
- public void refreshService(){
-  timePercent=ServiceReading.cyclePercent(getContext(),snapshot.get());distancePercent=null;
-  boolean bars=timePercent!=null||distancePercent!=null;float d=getResources().getDisplayMetrics().density;
-  setPadding((int)(4*d),(int)(2*d),(int)(4*d),(int)((bars?20:2)*d));
-  setContentDescription(getText()+" · "+(timePercent==null?"":AppPreferences.tr(getContext(),"保养周期剩余 ","Service cycle remaining ")+timePercent+"% · ")
-      +(distancePercent==null?"":AppPreferences.tr(getContext(),"里程剩余 ","Distance remaining ")+distancePercent+"% · ")
-      +AppPreferences.tr(getContext(),"参考周期比例，点按查看车辆上报值","Reference-cycle ratios. Tap for vehicle-reported values"));invalidate();
- }
- @Override protected void onDraw(Canvas canvas){
-  float d=getResources().getDisplayMetrics().density;int count=(timePercent==null?0:1)+(distancePercent==null?0:1);
-  float band=count==0?0:22*d,heading=Math.max(12*d,getHeight()-band),iconSize=0,gap=0;
-  paint.setTypeface(getTypeface());paint.setTextSize(getTextSize());paint.setTextAlign(Paint.Align.LEFT);
-  boolean warning=VehicleCondition.problem(snapshot.get(),AppPreferences.visible(getContext(),"show_tire_status",true));int color=warning?PsaDesign.accentText(AppPreferences.dark(getContext())):getCurrentTextColor();paint.setColor(color);
-  Paint.FontMetrics fm=paint.getFontMetrics();float fontHeight=fm.descent-fm.ascent;
-  if(fontHeight>heading-4*d){paint.setTextSize(paint.getTextSize()*(heading-4*d)/fontHeight);fm=paint.getFontMetrics();}
-  CharSequence title=android.text.TextUtils.ellipsize(getText(),paint,Math.max(0,getWidth()-iconSize-gap-8*d),android.text.TextUtils.TruncateAt.END);
-  float titleWidth=paint.measureText(title.toString()),left=Math.max(4*d,(getWidth()-iconSize-gap-titleWidth)/2);
-  canvas.drawText(title.toString(),left+iconSize+gap,(heading-fm.descent-fm.ascent)/2,paint);
-  if(count==0)return;float width=(getWidth()-10*d)/count;int i=0;
-  if(timePercent!=null)bar(canvas,i++,width,timePercent,AppPreferences.tr(getContext(),"保养周期","Service cycle"));
-  if(distancePercent!=null)bar(canvas,i,width,distancePercent,"km");
- }
- private void bar(Canvas canvas,int index,float width,int percent,String label){
-  float d=getResources().getDisplayMetrics().density,left=5*d+index*width;
-  paint.setTypeface(PsaDesign.regular());paint.setTextAlign(Paint.Align.CENTER);paint.setColor(getCurrentTextColor());paint.setTextSize(8*getResources().getDisplayMetrics().scaledDensity);
-  String value=label+" "+percent+"%";float measured=paint.measureText(value);if(measured>width-5*d)paint.setTextSize(paint.getTextSize()*(width-5*d)/measured);
-  canvas.drawText(value,left+width/2,getHeight()-8*d,paint);paint.setColor(PsaDesign.line(AppPreferences.dark(getContext())));
-  canvas.drawRoundRect(left,getHeight()-5*d,left+width-4*d,getHeight()-2*d,1*d,1*d,paint);paint.setColor(PsaDesign.ORANGE);
-  canvas.drawRoundRect(left,getHeight()-5*d,left+(width-4*d)*percent/100f,getHeight()-2*d,1*d,1*d,paint);
+ public void setConditionIcon(int res){icon=res==0?null:getContext().getDrawable(res).mutate();invalidate();}
+ public static String displayMode(Context c){String v=AppPreferences.get(c,"condition_display","bar");return v.equals("percent")||v.equals("text")?v:"bar";}
+ public void refreshService(){mode=displayMode(getContext());percent=mode.equals("text")?null:ServiceReading.cyclePercent(getContext(),snapshot.get());setPadding(0,0,0,0);
+  setContentDescription(getText()+(percent==null?"":" · "+AppPreferences.tr(getContext(),"保养周期剩余 ","Service cycle remaining ")+percent+"%")+AppPreferences.tr(getContext()," · 点击展开车况"," · Expand vehicle condition"));invalidate();}
+ @Override protected void onDraw(Canvas c){if(getWidth()<=0||getHeight()<=0)return;
+  float d=getResources().getDisplayMetrics().density,w=getWidth()-10*d;boolean bar=percent!=null&&"bar".equals(mode),glyph=icon!=null&&"bar".equals(mode);float heading=getHeight()-(bar?15*d:0);
+  paint.setTypeface(Typeface.create(getTypeface(),AppPreferences.visible(getContext(),"ui_button_bold",true)?Typeface.BOLD:Typeface.NORMAL));paint.setTextSize(Math.min(getTextSize(),heading*.56f));paint.setTextAlign(Paint.Align.LEFT);paint.setColor(getCurrentTextColor());
+  String title=getText().toString()+(percent!=null&&!bar?" "+percent+"%":"");float size=glyph?Math.min(16*d,heading*.65f):0,gap=glyph?4*d:0;
+  while(paint.getTextSize()>6*d&&paint.measureText(title)>w-size-gap)paint.setTextSize(paint.getTextSize()-.5f*d);
+  title=TextUtils.ellipsize(title,paint,Math.max(0,w-size-gap),TextUtils.TruncateAt.END).toString();float x=(getWidth()-size-gap-paint.measureText(title))/2;
+  if(glyph){icon.setTint(getCurrentTextColor());int top=Math.round((heading-size)/2);icon.setBounds(Math.round(x),top,Math.round(x+size),Math.round(top+size));icon.draw(c);}
+  Paint.FontMetrics fm=paint.getFontMetrics();c.drawText(title,x+size+gap,(heading-fm.descent-fm.ascent)/2,paint);if(!bar)return;
+  paint.setTypeface(ButtonFeedback.typeface(getContext()));paint.setTextSize(Math.min(ButtonFeedback.sp(getContext())*getResources().getDisplayMetrics().scaledDensity,10*d));paint.setTextAlign(Paint.Align.CENTER);
+  String label=AppPreferences.tr(getContext(),"保养周期 ","Service cycle ")+percent+"%";while(paint.getTextSize()>6*d&&paint.measureText(label)>w)paint.setTextSize(paint.getTextSize()-.5f*d);c.drawText(label,getWidth()/2f,getHeight()-6*d,paint);
+  float length=Math.max(0,Math.min(w,96*d)),left=(getWidth()-length)/2;paint.setColor(PsaDesign.line(AppPreferences.dark(getContext())));c.drawRoundRect(left,getHeight()-4*d,left+length,getHeight()-2*d,d,d,paint);paint.setColor(PsaDesign.ORANGE);c.drawRoundRect(left,getHeight()-4*d,left+length*percent/100f,getHeight()-2*d,d,d,paint);
  }
 }

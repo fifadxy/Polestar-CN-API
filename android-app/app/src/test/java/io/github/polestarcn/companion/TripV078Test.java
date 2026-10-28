@@ -25,7 +25,7 @@ public class TripV078Test {
   }
   @Test public void tripTimeIsEstimatedAndStoppedOrMissingSpeedStaysUnknown(){
     assertEquals(120.0,MileageSnapshot.estimatedMinutes(100.0,50.0),.001);
-    assertEquals("~2 h 0 min",MileageSnapshot.durationText(120.0,true));
+    assertEquals("2h 0m",MileageSnapshot.durationText(120.0,true));
     assertNull(MileageSnapshot.estimatedMinutes(5.0,0.0));assertNull(MileageSnapshot.estimatedMinutes(null,50.0));
     assertEquals("--",MileageSnapshot.durationText(null,true));
   }

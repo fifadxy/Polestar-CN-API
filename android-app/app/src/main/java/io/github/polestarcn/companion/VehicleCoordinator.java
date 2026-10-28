@@ -35,15 +35,27 @@ public final class VehicleCoordinator {
 
   public boolean locationBusy;
   private int locationGeneration;
-  public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete) {
-    if(locationBusy||!signedIn||selected==null||selected.vin==null||selected.vin.isEmpty())return;
+  private long parkingFetchedAt;
+  private final List<java.util.function.BiConsumer<LocationSnapshot,String>> locationCompletions=new ArrayList<>();
+  public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete){readLastParkedLocation(true,complete);}
+  public void readLastParkedLocation(boolean force,java.util.function.BiConsumer<LocationSnapshot,String> complete) {
+    if(!FirstUseConsent.accepted(context)||!signedIn||selected==null||selected.vin==null||selected.vin.isEmpty()){complete.accept(null,tr("请先连接车辆","Connect a vehicle first"));return;}
+    int cacheMinutes=RefreshPolicy.map(context);
+    if(!force&&cacheMinutes>0&&parkedLocation!=null&&!parkedLocation.stale&&android.os.SystemClock.elapsedRealtime()-parkingFetchedAt<cacheMinutes*60_000L){complete.accept(parkedLocation,"");return;}
+    locationCompletions.add(complete);if(locationBusy)return;
     String vin=selected.vin;int generation=locationGeneration;locationBusy=true;changed();
     io.execute(()->{
       LocationSnapshot result=null;String error="";
       try{result=api.readLastParkedLocation(vin);}catch(Exception e){DiagnosticLog.add("Last parked location unavailable; vehicle session unchanged");error=tr("暂时无法读取停车位置，请稍后重试","Parking location is unavailable. Try again later.");}
       LocationSnapshot location=result;String message=error;
-      main.post(()->{locationBusy=false;changed();
-        if(generation==locationGeneration&&signedIn&&selected!=null&&vin.equals(selected.vin)){parkedLocation=location;changed();complete.accept(location,message);}
+      main.post(()->{
+        if(generation!=locationGeneration)return;
+        locationBusy=false;
+        List<java.util.function.BiConsumer<LocationSnapshot,String>> callbacks=new ArrayList<>(locationCompletions);locationCompletions.clear();
+        if(signedIn&&selected!=null&&vin.equals(selected.vin)){
+          if(location!=null){parkedLocation=location;parkingFetchedAt=android.os.SystemClock.elapsedRealtime();}
+          changed();for(java.util.function.BiConsumer<LocationSnapshot,String> callback:callbacks)callback.accept(location,message);
+        }
       });
     });
   }
@@ -173,7 +185,7 @@ public final class VehicleCoordinator {
 
   public void choose(ChinaPolestarApi.VehicleInfo car) {
     if (busy || commandPending) return;
-    parkedLocation=null;locationGeneration++;
+    parkedLocation=null;parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
     snapshot = null;
@@ -285,7 +297,7 @@ public final class VehicleCoordinator {
 
   public void logout() {
     if (busy || commandPending) return;
-    parkedLocation=null;locationGeneration++;
+    parkedLocation=null;parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
     CampModeManager.clear(context);
     api.logout();

@@ -12,6 +12,14 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
  */
 public final class HorizontalSwipeRefreshLayout extends SwipeRefreshLayout {
   private float downX, downY;
+  private Runnable rightSwipe;
+  public void setOnRightSwipe(Runnable action){rightSwipe=action;}
+  @Override public boolean dispatchTouchEvent(MotionEvent event){
+    if(event.getActionMasked()==MotionEvent.ACTION_DOWN){downX=event.getX();downY=event.getY();}
+    if(event.getActionMasked()==MotionEvent.ACTION_UP&&rightSwipe!=null&&event.getX()-downX>Math.max(64*getResources().getDisplayMetrics().density,touchSlop*3)&&Math.abs(event.getY()-downY)<Math.abs(event.getX()-downX)*.45f){
+      MotionEvent cancel=MotionEvent.obtain(event);cancel.setAction(MotionEvent.ACTION_CANCEL);super.dispatchTouchEvent(cancel);cancel.recycle();rightSwipe.run();return true;
+    }return super.dispatchTouchEvent(event);
+  }
   private boolean horizontalGesture;
   private final int touchSlop;
 

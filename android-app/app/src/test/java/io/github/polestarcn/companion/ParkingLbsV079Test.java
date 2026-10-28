@@ -25,6 +25,7 @@ public class ParkingLbsV079Test {
  @Before public void start()throws Exception{
   Field instance=VehicleCoordinator.class.getDeclaredField("instance");instance.setAccessible(true);instance.set(null,null);
   Store.current=new ChinaPolestarApi.Session();Store.current.access="fixture";Store.current.expiresAt=System.currentTimeMillis()+3600000;Store.current.c3LbsHost="lbs.volvocars.com.cn";Store.current.c3Host="cars.volvocars.com.cn";Store.clears=0;
+  RuntimeEnvironment.getApplication().getSharedPreferences("legal",0).edit().putBoolean("accepted_disclaimer_v1",true).commit();
   model=VehicleCoordinator.get(RuntimeEnvironment.getApplication());model.selected=new ChinaPolestarApi.VehicleInfo();model.selected.vin="VIN_FIXTURE_A";api=model.api;
   channel=new FakeChannel();set(api,"sharedChannel",channel);set(api,"sharedHost","lbs.volvocars.com.cn:443");
  }

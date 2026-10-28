@@ -412,9 +412,8 @@ public final class AppRegressionTest {
         .withCharging(new ChargingSnapshot(1, 2, 4, 180, 6000.0, 29.0));
     VehicleSnapshotStore.saveChina(activity, v);
     for (WidgetRenderer.Size size : WidgetRenderer.Size.values()) {
-      int width = size == WidgetRenderer.Size.MINI || size == WidgetRenderer.Size.SQUARE ? 150 : 300;
-      int height = size == WidgetRenderer.Size.MINI ? 88 : size == WidgetRenderer.Size.WIDE ? 70
-          : size == WidgetRenderer.Size.DATA ? 260 : 170;
+      int width = WidgetRenderer.defaultWidth(size);
+      int height = WidgetRenderer.defaultHeight(size);
       RemoteViews remote = WidgetRenderer.createViews(activity, 100 + size.ordinal(), size);
       View root = remote.apply(activity, new FrameLayout(activity));
       root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -788,8 +787,8 @@ public final class AppRegressionTest {
         "LIVE", false, "开启", "关闭")
         .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
             null, null, 18, null, System.currentTimeMillis(), System.currentTimeMillis()));
-    assertEquals("运行中 · 剩余18分钟", ClimateRuntime.label(activity, live, "vehicle"));
-    assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("剩余 18分钟"));
+    assertEquals("运行中 · 剩余18m", ClimateRuntime.label(activity, live, "vehicle"));
+    assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("剩余 18m"));
     assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("车内 23.0 °C"));
     assertTrue(ClimateRuntime.detail(activity, live, "vehicle").contains("设定 22.0 °C"));
 
@@ -799,7 +798,7 @@ public final class AppRegressionTest {
         "LIVE", false, "开启", "关闭")
         .withEnvironment(new EnvironmentSnapshot("开启", "关闭", 23.0, 22.0,
             null, null, null, null, 1, 1));
-    assertTrue(ClimateRuntime.label(activity, fallback, "vehicle").contains("估算剩余"));
+    assertTrue(ClimateRuntime.label(activity, fallback, "vehicle").contains("剩余"));
   }
 
   @Test

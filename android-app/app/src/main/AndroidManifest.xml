@@ -37,29 +37,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <receiver android:name=".VehicleWidgetProvider" android:exported="true" android:label="@string/widget_standard_name">
+        <receiver android:name=".VehicleWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="@string/widget_standard_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_standard" />
         </receiver>
-        <receiver android:name=".CompactWidgetProvider" android:exported="true" android:label="@string/widget_compact_name">
+        <receiver android:name=".CompactWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="@string/widget_compact_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_compact" />
         </receiver>
-        <receiver android:name=".WideStripWidgetProvider" android:exported="true" android:label="@string/widget_wide_name">
+        <receiver android:name=".WideStripWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="@string/widget_wide_name">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_wide"/>
         </receiver>
-        <receiver android:name=".MiniStripWidgetProvider" android:exported="true" android:label="@string/widget_mini_name">
+        <receiver android:name=".MiniStripWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="@string/widget_mini_name">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_mini"/>
         </receiver>
-        <receiver android:name=".DataWidgetProvider" android:exported="true" android:label="@string/widget_data_name">
+        <receiver android:name=".DataWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="@string/widget_data_name">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_data"/>
+        </receiver>
+        <receiver android:name=".ExtraWideWidgetProvider" android:exported="true" android:icon="@mipmap/ic_launcher" android:label="PsAssistant 5×1">
+          <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_extra_wide"/>
         </receiver>
     </application>
 </manifest>

@@ -22,13 +22,19 @@ public final class ResidentService extends Service {
 
   public static void scheduleUpdates(Context c) {
     JobScheduler jobs = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
-    if (AppPreferences.enabled(c) || WidgetRenderer.hasWidgets(c)) {
-      if (jobs != null && jobs.getPendingJob(41) == null)
+    int minutes=RefreshPolicy.background(c,AppPreferences.enabled(c),WidgetRenderer.hasWidgets(c));
+    if (minutes>0) {
+      JobInfo pending=jobs==null?null:jobs.getPendingJob(41);
+      int network=AppPreferences.visible(c,"refresh_wifi_only",false)?JobInfo.NETWORK_TYPE_UNMETERED:JobInfo.NETWORK_TYPE_ANY;
+      boolean plugged=AppPreferences.visible(c,"refresh_only_charging",false);
+      if (jobs != null && (pending==null||pending.getIntervalMillis()!=minutes*60_000L||pending.getNetworkType()!=network||pending.isRequireCharging()!=plugged))
         jobs.schedule(
             new JobInfo.Builder(41, new ComponentName(c, VehicleRefreshJob.class))
                 .setPersisted(true)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPeriodic(30 * 60 * 1000L, 5 * 60 * 1000L)
+                .setRequiredNetworkType(network)
+                .setRequiresCharging(plugged)
+                .setRequiresBatteryNotLow(true)
+                .setPeriodic(minutes * 60_000L, 5 * 60_000L)
                 .build());
     } else {
       if (jobs != null) jobs.cancel(41);

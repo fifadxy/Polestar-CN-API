@@ -63,3 +63,7 @@ print("PASS: v0.8.4 target SoC evidence, consent, service cycle and four readbac
 assert (root/"knowledge/30_V085_INLINE_CONDITION_STANDALONE.md").is_file()
 assert (root/"docs/Psa_Standalone_Build.md").is_file()
 print("PASS: v0.8.5 inline condition, settings groups and independent package boundaries indexed")
+
+assert '](31_V086_UI_WIDGET_REFRESH_POLICIES.md)' in index
+assert (root/'docs/Psa_v086_UI_Refresh_Specification.md').is_file()
+print('PASS: v0.8.6 UI/widget/independent refresh and location scopes indexed')

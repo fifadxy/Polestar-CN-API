@@ -2,7 +2,7 @@ package io.github.polestarcn.companion;
 
 /** Responsive widget density; reserves timestamps, actions and separate charging content first. */
 public final class WidgetLayoutPlan {
-  public final int count, rows, columns, padding, chargeRows;
+  public final int count, rows, columns, padding, chargeRows, actionWidthDp;
   public final boolean wide, title, stacked, progress, chargeTitle;
   public final float labelSp, valueSp, cellWidthDp, rowHeightDp, typeScale;
 
@@ -12,7 +12,11 @@ public final class WidgetLayoutPlan {
 
   public WidgetLayoutPlan(WidgetRenderer.Size size, int requested, int requestedCharge,
       boolean battery, int width, int height, float scale) {
-    wide = size == WidgetRenderer.Size.WIDE;
+    this(size,requested,requestedCharge,battery,width,height,scale,104);
+  }
+  public WidgetLayoutPlan(WidgetRenderer.Size size,int requested,int requestedCharge,boolean battery,int width,int height,float scale,int actionWidth) {
+    wide = size == WidgetRenderer.Size.WIDE||size==WidgetRenderer.Size.EXTRA_WIDE;
+    actionWidthDp=actionWidth;
     scale = Math.max(.8f, scale);typeScale=scale;
     padding = height<60?0:size == WidgetRenderer.Size.MINI && height <= 96 && scale > 1.1f ? 0
         : size == WidgetRenderer.Size.MINI || height < 110 ? 2 : 8;
@@ -33,13 +37,13 @@ public final class WidgetLayoutPlan {
     count = Math.min(wanted, fit);
     columns = count == 1 ? 1 : 2;
     rows = Math.max(1, (count + columns - 1) / columns);
-    cellWidthDp = Math.max(28, (width - 2f * padding - (wide ? 104 : 0)) / columns - 6);
+    cellWidthDp = Math.max(28, (width - 2f * padding - (wide ? actionWidthDp : 0)) / columns - 6);
     float row = Math.max(1, available / rows);
     rowHeightDp=row;
     stacked = row >= 42 * scale;
     labelSp = 10;
     float ideal = count <= 1 ? 30 : count <= 2 ? 24 : count <= 4 ? 20 : 16;
-    valueSp = Math.max(12, Math.min(ideal,
-        stacked ? row / scale - 16 : Math.min(14, row / (1.25f * scale))));
+    valueSp = Math.max(8, Math.min(ideal,
+        stacked ? (row-6) / (1.25f*scale) - 12 : Math.min(14, (row-2) / (1.3f * scale))));
   }
 }

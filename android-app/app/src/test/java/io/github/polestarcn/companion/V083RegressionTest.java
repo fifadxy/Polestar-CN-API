@@ -51,7 +51,7 @@ public class V083RegressionTest {
  @Test public void optInAllowsOnlyTrustedWebGeolocationAndNeverRetainsGrant(){
   Shadows.shadowOf(activity.getApplication()).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION);AppPreferences.set(activity,MapLocationPermission.KEY,"on");
   java.util.Map<Integer,Object> reply=new java.util.HashMap<>();reply.put(2,io.github.polestarcn.companion.api.ProtoWire.concat(io.github.polestarcn.companion.api.ProtoWire.fixed32Field(1,120.5f),io.github.polestarcn.companion.api.ProtoWire.fixed32Field(2,30.25f)));LocationSnapshot point=LocationSnapshot.fromReply(reply);
-  ParkingWebPreview map=new ParkingWebPreview(activity,point,false,()->{});android.webkit.WebView web=(android.webkit.WebView)map.view.findViewWithTag("parking_webview");android.webkit.WebChromeClient chrome=Shadows.shadowOf(web).getWebChromeClient();final boolean[] grant={false},remember={true};
+  ParkingWebPreview map=new ParkingWebPreview(activity,point,false,()->{});android.webkit.WebView web=(android.webkit.WebView)map.view.findViewWithTag("parking_webview");android.webkit.WebChromeClient chrome=Shadows.shadowOf(web).getWebChromeClient();final boolean[] grant={false},remember={true};map.requestPhoneLocation();
   chrome.onGeolocationPermissionsShowPrompt("https://m.amap.com",(o,g,r)->{grant[0]=g;remember[0]=r;});assertTrue(grant[0]);assertFalse(remember[0]);
   AppPreferences.set(activity,MapLocationPermission.KEY,"off");map.refreshPhoneLocation();chrome.onGeolocationPermissionsShowPrompt("https://m.amap.com",(o,g,r)->grant[0]=g);assertFalse(grant[0]);map.close();
  }

@@ -11,8 +11,8 @@ public enum DisplayMetric {
   TM_DISTANCE("tm_distance", "Since Reset · TM 距离", "Since Reset · TM distance", " km"),
   TM_SPEED("tm_speed", "TM 平均速度", "TM · AVG Speed", " km/h"),
   TM_CONSUMPTION("tm_consumption", "TM 百公里能耗", "TM · Average Consumption", " kWh/100 km"),
-  TA_DURATION("ta_duration", "TA 行驶时间（估算）", "TA driving time (estimated)", ""),
-  TM_DURATION("tm_duration", "TM 行驶时间（估算）", "TM driving time (estimated)", ""),
+  TA_DURATION("ta_duration", "TA 行驶时间", "TA driving time", ""),
+  TM_DURATION("tm_duration", "TM 行驶时间", "TM driving time", ""),
   SINCE_CHARGE_DISTANCE("since_charge_distance", "充电后行程距离", "Since charge distance", " km"),
   SINCE_CHARGE_SPEED("since_charge_speed", "充电后平均速度", "Since charge average speed", " km/h"),
   SINCE_CHARGE_CONSUMPTION("since_charge_consumption", "充电后平均能耗", "Since charge consumption", " kWh/100 km"),
@@ -28,6 +28,11 @@ public enum DisplayMetric {
   CHARGE_CURRENT("charge_current", "充电电流", "Charging current", " A"),
   CHARGE_ETA("charge_eta", "预计充满", "Time to full", ""),
   POWER_STATUS("power_status", "电源状态", "Power status", ""),
+  BATTERY_12V("battery_12v", "12V 电池", "12 V battery", ""),
+  BRAKE_FLUID("brake_fluid", "制动液", "Brake fluid", ""),
+  COOLANT("coolant", "冷却液", "Coolant", ""),
+  WASHER_FLUID("washer_fluid", "玻璃水", "Washer fluid", ""),
+  OIL_STATUS("oil_status", "机油（适用时）", "Oil (if applicable)", ""),
   VEHICLE_STATUS("vehicle_status", "车况", "Vehicle status", ""),
   TIRE_STATUS("tire_status", "胎压状态", "Tire status", ""),
   SERVICE_HOURS_LEFT("service_hours_left", "保养剩余工时", "Service engine hours left", " h"),
@@ -40,8 +45,9 @@ public enum DisplayMetric {
   public String label(boolean english) { return english ? en : zh; }
   public String shortLabel(boolean english) {
     switch (this) {
-      case TA_DURATION: return english ? "TA time ~" : "TA 时长 ~";
-      case TM_DURATION: return english ? "TM time ~" : "TM 时长 ~";
+      case BATTERY_12V:return "12V";case BRAKE_FLUID:return english?"Brake":"制动液";case COOLANT:return english?"Coolant":"冷却液";case WASHER_FLUID:return english?"Washer":"玻璃水";case OIL_STATUS:return english?"Oil":"机油";
+      case TA_DURATION: return english ? "TA time" : "TA 时长";
+      case TM_DURATION: return english ? "TM time" : "TM 时长";
       case SINCE_CHARGE_DISTANCE: return english ? "SC km" : "充电后 km";
       case SINCE_CHARGE_SPEED: return "SC km/h";
       case SINCE_CHARGE_CONSUMPTION: return "SC kWh/100km";
@@ -78,6 +84,7 @@ public enum DisplayMetric {
   public long reportedAt(VehicleSnapshot s) {
     if (s == null) return 0;
     switch (this) {
+      case BATTERY_12V: case BRAKE_FLUID: case COOLANT: case WASHER_FLUID: case OIL_STATUS:return s.health.reportedAt;
       case CHARGE_LIMIT:return s.chargingDetails.targetReportedAt;
       case SERVICE_CYCLE:return s.health.reportedAt;
       case VEHICLE_STATUS: return s.health.reportedAt;
@@ -102,6 +109,8 @@ public enum DisplayMetric {
   }
   public String value(Context c, VehicleSnapshot s, boolean includeUnit, boolean english) {
     if (s == null) return "--";
+    int check=this==BATTERY_12V?s.health.lowVoltageBattery:this==BRAKE_FLUID?s.health.brakeFluid:this==COOLANT?s.health.coolant:this==WASHER_FLUID?s.health.washerFluid:this==OIL_STATUS?s.health.oil:Integer.MIN_VALUE;
+    if(check!=Integer.MIN_VALUE)return check==VehicleHealthSnapshot.UNKNOWN?"--":VehicleHealthSnapshot.label(check,english);
     if(this==CHARGE_LIMIT)return ServiceReading.number(s.chargingDetails.targetPercent,includeUnit?unit:"");
     if(this==SERVICE_CYCLE)return ServiceReading.number(ServiceReading.cyclePercent(c,s),includeUnit?unit:"");
     if (this == VEHICLE_STATUS) return VehicleCondition.summary(s,english,c == null || AppPreferences.visible(c,"show_tire_status",true));

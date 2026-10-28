@@ -12,6 +12,8 @@ public final class UiSkin {
   private UiSkin(){}
   public static final String[] CHOICES={
       SIMPLE,DETAILED,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT};
+  public static String[] pickerChoices(){return new String[]{SIMPLE,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT};}
+  public static boolean detailedView(Context c){return AppPreferences.visible(c,"volike_detail",DETAILED.equals(get(c))||VOLIKE_POLESTAR.equals(get(c)));}
   public static String get(Context c){
     String value=AppPreferences.get(c,"ui_skin",DETAILED);
     for(String choice:CHOICES)if(choice.equals(value))return value;
@@ -19,7 +21,7 @@ public final class UiSkin {
     AppPreferences.set(c,"ui_skin",migrated);return migrated;
   }
   public static void set(Context c,String value){
-    for(String choice:CHOICES)if(choice.equals(value)){AppPreferences.set(c,"ui_skin",value);return;}
+    for(String choice:CHOICES)if(choice.equals(value)){AppPreferences.set(c,"ui_skin",value);if(SIMPLE.equals(value)||DETAILED.equals(value))AppPreferences.set(c,"volike_detail",DETAILED.equals(value)?"on":"off");return;}
     AppPreferences.set(c,"ui_skin",DETAILED);
   }
   public static int index(Context c){

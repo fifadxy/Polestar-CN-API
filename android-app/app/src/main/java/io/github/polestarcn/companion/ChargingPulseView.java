@@ -1,77 +1,27 @@
 package io.github.polestarcn.companion;
-
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.*;
+import android.os.SystemClock;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
-
-/** Small charging-only energy pulse. It animates only while attached and active. */
+/** A 4.8-second full-card sweep behind charging text; paused when hidden or animations disabled. */
 public final class ChargingPulseView extends View {
-  private final Paint track = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private ValueAnimator animator;
-  private float phase;
-  private int accent = Color.rgb(94, 141, 122);
-  private boolean active = true;
-
-  public ChargingPulseView(Context context) {
-    super(context);
-    setTag("charging_pulse");
-    setContentDescription("Charging energy animation");
-  }
-
-  public void setAccentColor(int color) { accent = color; invalidate(); }
-
-  public void setActive(boolean value) {
-    active = value;
-    setVisibility(value ? VISIBLE : GONE);
-    if (value && isAttachedToWindow()) start();
-    else stop();
-  }
-
-  @Override protected void onAttachedToWindow() {
-    super.onAttachedToWindow();
-    if (active) start();
-  }
-
-  @Override protected void onDetachedFromWindow() {
-    stop();
-    super.onDetachedFromWindow();
-  }
-
-  private void start() {
-    if (animator != null) return;
-    animator = ValueAnimator.ofFloat(0f, 1f);
-    animator.setDuration(1800L);
-    animator.setRepeatCount(ValueAnimator.INFINITE);
-    animator.setInterpolator(new LinearInterpolator());
-    animator.addUpdateListener(a -> { phase = (Float) a.getAnimatedValue(); invalidate(); });
-    animator.start();
-  }
-
-  private void stop() {
-    if (animator != null) {
-      animator.cancel();
-      animator = null;
-    }
-  }
-
-  @Override protected void onDraw(Canvas canvas) {
-    super.onDraw(canvas);
-    float d = getResources().getDisplayMetrics().density;
-    float h = Math.max(3f*d, getHeight()*.42f);
-    float top = (getHeight()-h)/2f, radius = h/2f;
-    track.setColor(Color.argb(38, Color.red(accent), Color.green(accent), Color.blue(accent)));
-    canvas.drawRoundRect(0, top, getWidth(), top+h, radius, radius, track);
-    if (!active || getWidth() <= 0) return;
-    float center = -getWidth()*.18f + phase*getWidth()*1.36f;
-    float spread = Math.max(34f*d, getWidth()*.20f);
-    glow.setShader(new LinearGradient(center-spread,0,center+spread,0,
-        new int[]{Color.TRANSPARENT, Color.argb(70,Color.red(accent),Color.green(accent),Color.blue(accent)),
-            accent, Color.argb(70,Color.red(accent),Color.green(accent),Color.blue(accent)), Color.TRANSPARENT},
-        new float[]{0f,.28f,.5f,.72f,1f}, Shader.TileMode.CLAMP));
-    canvas.drawRoundRect(0, top, getWidth(), top+h, radius, radius, glow);
-    glow.setShader(null);
-  }
+ private final Paint glow=new Paint(Paint.ANTI_ALIAS_FLAG);private final Matrix matrix=new Matrix();
+ private ValueAnimator animator;private LinearGradient shader;private float phase;private long lastFrame;private int accent=PsaDesign.ORANGE;private boolean active;
+ public ChargingPulseView(Context c){super(c);setTag("charging_pulse");setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}
+ public void setAccentColor(int color){if(color!=accent){accent=color;shader=null;invalidate();}}
+ public void setActive(boolean value){active=value;setVisibility(value?VISIBLE:GONE);sync();}
+ private void sync(){boolean animate=active&&isAttachedToWindow()&&isShown()&&getWindowVisibility()==VISIBLE&&AppPreferences.visible(getContext(),"charging_animation",true)&&ValueAnimator.areAnimatorsEnabled();if(!animate){stop();return;}if(animator!=null)return;
+  animator=ValueAnimator.ofFloat(0,1);animator.setDuration(4800);animator.setRepeatCount(ValueAnimator.INFINITE);animator.setInterpolator(new LinearInterpolator());animator.addUpdateListener(a->{long now=SystemClock.uptimeMillis();if(now-lastFrame<48)return;lastFrame=now;phase=(Float)a.getAnimatedValue();invalidate();});animator.start();}
+ @Override protected void onAttachedToWindow(){super.onAttachedToWindow();sync();}
+ @Override protected void onDetachedFromWindow(){stop();super.onDetachedFromWindow();}
+ @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);sync();}
+ @Override public void onVisibilityAggregated(boolean visible){super.onVisibilityAggregated(visible);sync();}
+ private void stop(){if(animator!=null){animator.cancel();animator=null;}phase=0;invalidate();}
+ @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){shader=null;}
+ @Override protected void onDraw(Canvas c){if(!active||getWidth()==0||!AppPreferences.visible(getContext(),"charging_animation",true)||!ValueAnimator.areAnimatorsEnabled())return;float spread=getWidth()*.32f;
+  if(shader==null){shader=new LinearGradient(-spread,0,spread,0,new int[]{Color.TRANSPARENT,Color.argb(18,Color.red(accent),Color.green(accent),Color.blue(accent)),Color.argb(42,Color.red(accent),Color.green(accent),Color.blue(accent)),Color.TRANSPARENT},new float[]{0,.36f,.53f,1},Shader.TileMode.CLAMP);glow.setShader(shader);}
+  matrix.setTranslate(-spread+phase*(getWidth()+2*spread),0);shader.setLocalMatrix(matrix);float radius=12*getResources().getDisplayMetrics().density;c.drawRoundRect(0,0,getWidth(),getHeight(),radius,radius,glow);
+ }
 }

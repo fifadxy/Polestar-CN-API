@@ -63,6 +63,10 @@ public final class ExteriorView extends View {
     paint.setColor(color); paint.setStyle(Paint.Style.FILL); paint.setTextAlign(align);
     paint.setTextSize(size); c.drawText(text, x, y, paint);
   }
+  private void boundedWord(Canvas c,float width,String value,float size,float x,float y,int color,Paint.Align align){
+    paint.setTextSize(size);while(size>6*getResources().getDisplayMetrics().density&&paint.measureText(value)>width){size-=.5f;paint.setTextSize(size);}
+    String fitted=android.text.TextUtils.ellipsize(value,new android.text.TextPaint(paint),Math.max(0,width),android.text.TextUtils.TruncateAt.END).toString();word(c,fitted,size,x,y,color,align);
+  }
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
     float w = getWidth(), h = getHeight(), d = getResources().getDisplayMetrics().density;
@@ -88,9 +92,10 @@ public final class ExteriorView extends View {
       canvas.drawLine(left ? cw : w - cw, y + ch / 2, anchorX, anchorY, paint);
       paint.setStyle(Paint.Style.FILL); paint.setColor(open ? orange : line);
       canvas.drawCircle(anchorX, anchorY, 3 * d, paint);
-      word(canvas, position(i) + (open ? " !" : ""), 10 * text, x + 7 * d, y + 16 * text, muted, Paint.Align.LEFT);
-      word(canvas, (english ? "Door · " : "门 · ") + status(door), 11 * text, x + 7 * d, y + 36 * text, color(door), Paint.Align.LEFT);
-      word(canvas, (english ? "Win · " : "窗 · ") + status(window), 11 * text, x + 7 * d, y + 54 * text, color(window), Paint.Align.LEFT);
+      canvas.save();canvas.clipRect(x,y,x+cw,y+ch);
+      boundedWord(canvas,cw-14*d, position(i) + (open ? " !" : ""), 10 * text, x + 7 * d, y + 16 * text, muted, Paint.Align.LEFT);
+      boundedWord(canvas,cw-14*d, (english ? "Door · " : "门 · ") + status(door), 11 * text, x + 7 * d, y + 36 * text, color(door), Paint.Align.LEFT);
+      boundedWord(canvas,cw-14*d, (english ? "Win · " : "窗 · ") + status(window), 11 * text, x + 7 * d, y + 54 * text, color(window), Paint.Align.LEFT);canvas.restore();
     }
     boolean tailOpen = state != null && ("已打开".equals(state.tailgate) || "未关严".equals(state.tailgate));
     word(canvas, (english ? "Tailgate · " : "尾箱 · ") + (state == null ? "--" : AppPreferences.status(getContext(), state.tailgate)),

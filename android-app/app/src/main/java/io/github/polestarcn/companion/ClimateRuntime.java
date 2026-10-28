@@ -70,10 +70,10 @@ public final class ClimateRuntime {
     Integer vehicle = vehicleRemainingMinutes(s);
     if (vehicle != null) {
       if (vehicle == 0) return en ? "Check status" : "待更新";
-      return (extrapolated(s) ? "~" : "") + formatTime(vehicle, en);
+      return formatTime(vehicle,en);
     }
     Integer estimate = fallbackMinutes(c, vehicleHash);
-    return estimate == null ? (en ? "Running" : "运行中") : "~" + formatTime(estimate, en);
+    return estimate == null ? (en ? "Running" : "运行中") : formatTime(estimate,en);
   }
 
   public static String label(Context c, VehicleSnapshot s, String vehicleHash) {
@@ -84,12 +84,12 @@ public final class ClimateRuntime {
     Integer vehicle = vehicleRemainingMinutes(s);
     if (vehicle != null) {
       if (vehicle == 0) return en ? "Runtime elapsed · refresh to verify" : "预计时间已到 · 请刷新确认";
-      return en ? "Running · " + (extrapolated(s) ? "~" : "") + formatTime(vehicle, true) + " left"
-          : "运行中 · " + (extrapolated(s) ? "估算剩余" : "剩余") + formatTime(vehicle, false);
+      return en ? "Running · " + formatTime(vehicle,true) + " left"
+          : "运行中 · " + "剩余" + formatTime(vehicle, false);
     }
     Integer estimate = fallbackMinutes(c, vehicleHash);
-    if (estimate != null) return en ? "Running · ~" + formatTime(estimate, true) + " left"
-        : "运行中 · 估算剩余" + formatTime(estimate, false);
+    if (estimate != null) return en ? "Running · " + formatTime(estimate, true) + " left"
+        : "运行中 · 剩余" + formatTime(estimate, false);
     return en ? "Running · remaining time unavailable" : "运行中 · 剩余时间暂无";
   }
 
@@ -109,13 +109,7 @@ public final class ClimateRuntime {
     return android.text.TextUtils.join(" · ", parts).toString();
   }
 
-  private static String formatTime(int minutes, boolean english) {
-    int safe = Math.max(0, minutes);
-    if (safe < 60) return safe + (english ? " min" : "分钟");
-    int hours = safe / 60, remain = safe % 60;
-    if (remain == 0) return hours + (english ? " h" : "小时");
-    return english ? hours + " h " + remain + " min" : hours + "小时" + remain + "分钟";
-  }
+  private static String formatTime(int minutes,boolean english){int safe=Math.max(0,minutes);return (safe>=60?safe/60+"h ":"")+safe%60+"m";}
 
   public static String widgetLabel(Context c, VehicleSnapshot s, String vehicleHash) {
     return shortLabel(c, s, vehicleHash, AppPreferences.widgetEnglish(c));

@@ -18,23 +18,25 @@ final class ParkingWebPreview {
   private final TextView status;
   private final Handler handler=new Handler(Looper.getMainLooper());
   private WebView web;
-  private boolean closed,failed;
+  private boolean closed,failed,phoneRequestAllowed,autoPhoneRequested;
+  private LocationSnapshot point;
   private final Runnable timeout=()->fail();
 
   @SuppressLint("SetJavaScriptEnabled")
   ParkingWebPreview(Context context,LocationSnapshot point,boolean dark,Runnable openExternal){
+    this.point=point;
     view=new FrameLayout(context);view.setTag("parking_web_preview");view.setBackgroundColor(PsaDesign.surface(dark));
     status=new TextView(context);status.setTextColor(PsaDesign.muted(dark));status.setTypeface(PsaDesign.regular());status.setTextSize(12);status.setPadding(12,8,12,8);
     try{
       web=new WebView(context);web.setTag("parking_webview");web.setSaveEnabled(false);web.setSaveFromParentEnabled(false);web.setBackgroundColor(PsaDesign.surface(dark));
       WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
-      settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(MapLocationPermission.enabled(context));
+      settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(false);
       settings.setCacheMode(WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
       settings.setSupportMultipleWindows(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setMediaPlaybackRequiresUserGesture(true);
       settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(dark);
       CookieManager.getInstance().setAcceptCookie(false);CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
       web.setWebChromeClient(new WebChromeClient(){
-        @Override public void onGeolocationPermissionsShowPrompt(String origin,GeolocationPermissions.Callback callback){callback.invoke(origin,MapLocationPermission.allowOrigin(context,origin),false);}
+        @Override public void onGeolocationPermissionsShowPrompt(String origin,GeolocationPermissions.Callback callback){callback.invoke(origin,phoneRequestAllowed&&!closed&&MapLocationPermission.allowOrigin(context,origin),false);}
         @Override public void onPermissionRequest(PermissionRequest request){request.deny();}
       });
       web.setWebViewClient(new WebViewClient(){
@@ -45,7 +47,9 @@ final class ParkingWebPreview {
         @Override public void onPageStarted(WebView v,String url,Bitmap icon){if(!closed){failed=false;status.setVisibility(View.VISIBLE);status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));}}
         @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
           if(allowedPage(Uri.parse(url))){v.evaluateJavascript(compactScript(context),null);
-            String distance=resourceScript(context,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,%s);",point.latitude,point.longitude,AppPreferences.english(context)?"true":"false",MapLocationPermission.enabled(context)?"true":"false");v.evaluateJavascript(distance,null);}}}
+            String distance=resourceScript(context,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,%s);",point.latitude,point.longitude,AppPreferences.english(context)?"true":"false","false");v.evaluateJavascript(distance,null);
+            if(!autoPhoneRequested&&"on_open".equals(AppPreferences.get(context,"phone_location_refresh","manual"))){autoPhoneRequested=true;requestPhoneLocation();}
+          }}}
         @Override public void onReceivedError(WebView v,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())fail();}
         @Override public void onReceivedHttpError(WebView v,WebResourceRequest request,WebResourceResponse error){if(request.isForMainFrame())fail();}
       });
@@ -65,7 +69,17 @@ final class ParkingWebPreview {
       return new String(bytes.toByteArray(),java.nio.charset.StandardCharsets.UTF_8);
     }catch(java.io.IOException unavailable){return "void 0";}
   }
-  void refreshPhoneLocation(){if(!closed&&web!=null){web.getSettings().setGeolocationEnabled(MapLocationPermission.enabled(view.getContext()));try{GeolocationPermissions.getInstance().clearAll();}catch(RuntimeException unavailable){}web.reload();}}
+  void refreshPhoneLocation(){
+    if(closed||web==null)return;phoneRequestAllowed=false;web.getSettings().setGeolocationEnabled(false);
+    try{GeolocationPermissions.getInstance().clearAll();}catch(RuntimeException unavailable){}
+    if(MapLocationPermission.enabled(view.getContext())&&"on_open".equals(AppPreferences.get(view.getContext(),"phone_location_refresh","manual")))requestPhoneLocation();
+  }
+  void requestPhoneLocation(){
+    Context c=view.getContext();if(closed||web==null||!MapLocationPermission.enabled(c))return;
+    phoneRequestAllowed=true;web.getSettings().setGeolocationEnabled(true);
+    String script=resourceScript(c,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,true);",point.latitude,point.longitude,AppPreferences.english(c)?"true":"false");
+    web.evaluateJavascript(script,null);handler.postDelayed(()->{phoneRequestAllowed=false;if(!closed&&web!=null){web.getSettings().setGeolocationEnabled(false);try{GeolocationPermissions.getInstance().clearAll();}catch(RuntimeException unavailable){}}},10_000L);
+  }
   static boolean allowedPage(Uri uri){
     if(uri==null||!"https".equalsIgnoreCase(uri.getScheme()))return false;
     String host=uri.getHost();if(host==null)return false;host=host.toLowerCase(Locale.US);
@@ -77,7 +91,7 @@ final class ParkingWebPreview {
     if(web!=null)web.stopLoading();
   }
   void close(){
-    if(closed)return;closed=true;handler.removeCallbacksAndMessages(null);
+    if(closed)return;closed=true;phoneRequestAllowed=false;handler.removeCallbacksAndMessages(null);
     if(web!=null){web.stopLoading();web.setWebChromeClient(null);web.setWebViewClient(new WebViewClient());web.loadUrl("about:blank");web.clearHistory();web.clearCache(true);web.clearFormData();view.removeView(web);web.destroy();web=null;}
     try{WebStorage.getInstance().deleteAllData();}catch(RuntimeException unavailable){/* Missing WebView provider keeps external links available. */}
   }

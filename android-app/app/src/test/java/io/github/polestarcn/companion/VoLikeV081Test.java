@@ -60,7 +60,7 @@ public class VoLikeV081Test {
     assertNotNull(dialog);
     java.util.List<View> previews=new java.util.ArrayList<>();
     collect(dialog.getWindow().getDecorView(),"skin_preview",previews);
-    assertEquals(6,previews.size());
+    assertEquals(5,previews.size());
     for(View preview:previews)assertTrue(preview instanceof SkinPreviewView);
     dialog.dismiss();
   }
@@ -93,7 +93,7 @@ public class VoLikeV081Test {
     View detailed=render();
     assertNotNull(detailed.findViewWithTag("volike_detail_rail"));
     java.util.List<View> serviceBars=new java.util.ArrayList<>();collect(detailed,"volike_service_bar",serviceBars);
-    assertEquals(2,serviceBars.size());
+    assertNotNull(detailed.findViewWithTag("home_value_odometer"));
 
     UiSkin.set(activity,UiSkin.VOLIKE_POLESTAR);
     View polestar=render();

@@ -16,7 +16,7 @@ import android.text.format.DateFormat;
 import android.widget.RemoteViews;
 
 public final class WidgetRenderer {
-  public enum Size { LARGE, SQUARE, WIDE, MINI, DATA }
+  public enum Size { LARGE, SQUARE, WIDE, MINI, DATA, EXTRA_WIDE }
   private WidgetRenderer() {}
 
   public static void refreshAll(Context context) {
@@ -27,6 +27,7 @@ public final class WidgetRenderer {
     refresh(context, m, WideStripWidgetProvider.class, Size.WIDE, snapshot);
     refresh(context, m, MiniStripWidgetProvider.class, Size.MINI, snapshot);
     refresh(context, m, DataWidgetProvider.class, Size.DATA, snapshot);
+    refresh(context,m,ExtraWideWidgetProvider.class,Size.EXTRA_WIDE,snapshot);
   }
   private static void refresh(Context c, AppWidgetManager m, Class<?> receiver, Size size, VehicleSnapshot snapshot) {
     for (int id : m.getAppWidgetIds(new ComponentName(c, receiver))) update(c, m, id, size, snapshot);
@@ -65,7 +66,7 @@ public final class WidgetRenderer {
   public static boolean hasWidgets(Context c) {
     AppWidgetManager m = AppWidgetManager.getInstance(c);
     for (Class<?> provider : new Class<?>[]{VehicleWidgetProvider.class, CompactWidgetProvider.class,
-        WideStripWidgetProvider.class, MiniStripWidgetProvider.class, DataWidgetProvider.class})
+        WideStripWidgetProvider.class, MiniStripWidgetProvider.class, DataWidgetProvider.class, ExtraWideWidgetProvider.class})
       if (m.getAppWidgetIds(new ComponentName(c, provider)).length > 0) return true;
     return false;
   }
@@ -74,8 +75,8 @@ public final class WidgetRenderer {
     return createViews(c, id, size, defaultWidth(size), defaultHeight(size), background(c, size), VehicleSnapshotStore.loadChina(c));
   }
 
-  static int defaultWidth(Size size) { return size == Size.MINI || size == Size.SQUARE ? 150 : 300; }
-  static int defaultHeight(Size size) { return size == Size.MINI ? 88 : size == Size.WIDE ? 70 : size == Size.DATA ? 260 : 170; }
+  static int defaultWidth(Size size) { return size==Size.EXTRA_WIDE?380:size == Size.MINI || size == Size.SQUARE ? 150 : 300; }
+  static int defaultHeight(Size size) { return size == Size.MINI ? 88 : size == Size.WIDE||size==Size.EXTRA_WIDE ? 70 : size == Size.DATA ? 260 : 170; }
 
   static RemoteViews createViews(Context c, int id, Size size, int width, int height,
       Bitmap backing, VehicleSnapshot snapshot) {
@@ -87,14 +88,19 @@ public final class WidgetRenderer {
   static RemoteViews createNativeViews(Context c,int id,Size size,int width,int height,Bitmap backing,VehicleSnapshot s,String design){
     boolean styled=!VoLikeWidgetRenderer.CLASSIC.equals(design),pseu=VoLikeWidgetRenderer.PSEU.equals(design);
     boolean horizontal=height<110&&width>=230;
-    Size layoutSize=horizontal?Size.WIDE:size==Size.WIDE?Size.LARGE:size;
+    Size layoutSize=horizontal?Size.WIDE:(size==Size.WIDE||size==Size.EXTRA_WIDE)?Size.LARGE:size;
+    java.util.List<String> buttons=WidgetButtons.read(c,size);
+    int actionLimit=Math.min(6,Math.max(1,(horizontal?width-128:width-16)/48));
+    int actionCount=Math.min(buttons.size(),actionLimit);
+    int actionWidth=horizontal?(actionCount<=2?104:actionCount*48):0;
     String type=AppPreferences.get(c,"pseu_type","battery");
     boolean car=styled&&width>=220&&height>=130&&(pseu?"car".equals(type):!VoLikeWidgetRenderer.SIMPLE.equals(design));
     boolean voGreen=styled&&!pseu&&!VoLikeWidgetRenderer.POLESTAR.equals(design);
     int styleAccent=voGreen?(AppPreferences.dark(c)?0xFF79B79F:0xFF5E8D7A):PsaDesign.ORANGE;
     int layout = layoutSize == Size.DATA ? R.layout.widget_data : layoutSize == Size.LARGE ? R.layout.widget_standard
         : layoutSize == Size.SQUARE ? R.layout.widget_compact : layoutSize == Size.WIDE ? R.layout.widget_wide : R.layout.widget_mini;
-    if(styled)layout=horizontal?R.layout.widget_native_wide:R.layout.widget_native_card;
+    if(styled||horizontal)layout=horizontal?R.layout.widget_native_wide:R.layout.widget_native_card;
+    if(horizontal&&actionCount>2)layout=actionCount==3?R.layout.widget_native_wide_3:actionCount==4?R.layout.widget_native_wide_4:actionCount==5?R.layout.widget_native_wide_5:R.layout.widget_native_wide_6;
     RemoteViews views = new RemoteViews(c.getPackageName(), layout);
     views.setImageViewBitmap(R.id.widget_bg, background(c,size,width,height,design));
     boolean en = AppPreferences.widgetEnglish(c);
@@ -123,7 +129,7 @@ public final class WidgetRenderer {
     int serviceReserve=serviceBand?(int)Math.ceil(16*c.getResources().getConfiguration().fontScale*requestedFont)+3:0;
     int headerReserve=styled&&layoutSize!=Size.WIDE&&layoutSize!=Size.MINI&&height-serviceReserve>=130?Math.max(0,(int)Math.ceil(24-15*c.getResources().getConfiguration().fontScale*requestedFont)):0;
     WidgetLayoutPlan plan = new WidgetLayoutPlan(layoutSize, Math.min(capacity(size),main.size()), charging.size(), battery,
-        width-(car?74:0), height-serviceReserve-headerReserve, c.getResources().getConfiguration().fontScale*requestedFont);
+        width-(car?74:0), height-serviceReserve-headerReserve+(actionCount==0&&!horizontal?48:0), c.getResources().getConfiguration().fontScale*requestedFont,actionCount==0?0:actionWidth);
     float font=widgetFont(c,size,height);
     float density = c.getResources().getDisplayMetrics().density;
     int padding = Math.round(plan.padding * density);
@@ -133,6 +139,7 @@ public final class WidgetRenderer {
     int ink = PsaDesign.ink(white), secondary = PsaDesign.muted(white);
     if(styled){ink=PsaDesign.ink(AppPreferences.dark(c));secondary=PsaDesign.muted(AppPreferences.dark(c));}
     int accentText = styled?ink:nioColors ? ink : PsaDesign.accentText(white);
+    if(styled||horizontal)views.setViewVisibility(R.id.widget_card_header,plan.title?android.view.View.VISIBLE:android.view.View.GONE);
     views.setViewVisibility(R.id.widget_title, plan.title ? android.view.View.VISIBLE : android.view.View.GONE);
     widgetText(views,c,R.id.widget_title, s == null ? c.getString(R.string.app_name) : s.name);
     views.setTextColor(R.id.widget_title, secondary);
@@ -264,6 +271,7 @@ public final class WidgetRenderer {
         for(int i=0;i<roots.length;i++){views.setOnClickPendingIntent(roots[i],pending(c,id,size,commands[i]));views.setContentDescription(roots[i],names[i]+(en?" · biometric verification":" · 生物验证"));}
       }
     }
+    WidgetButtons.bind(views,c,id,size,s,ink,actionLimit);
     return views;
   }
 
@@ -309,7 +317,7 @@ public final class WidgetRenderer {
     java.util.List<DisplayMetric> shown = new java.util.ArrayList<>();
     android.text.SpannableStringBuilder text = new android.text.SpannableStringBuilder();
     if (plan.chargeRows == 0 || selected.isEmpty()) return new ChargeContent(text, shown);
-    float maxWidth = (width - 2f * plan.padding - (plan.wide ? 104 : 0)
+    float maxWidth = (width - 2f * plan.padding - (plan.wide ? plan.actionWidthDp : 0)
         - (plan.chargeTitle ? 0 : 20)) * density;
     android.text.TextPaint valuePaint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
     valuePaint.setTypeface(android.graphics.Typeface.create("sans-serif", AppPreferences.visible(c,"widget_bold",false)?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL));
@@ -464,18 +472,18 @@ public final class WidgetRenderer {
 
   public static int capacity(Size size) {
     return size == Size.DATA ? 8 : size == Size.LARGE ? 8 : size == Size.SQUARE ? 4
-        : size == Size.WIDE ? 4 : 2;
+        : size == Size.WIDE||size==Size.EXTRA_WIDE ? 4 : 2;
   }
   public static String metricKey(Size size) { return "widget_metrics_" + size.name(); }
   public static String defaults(Size size) {
     if (size == Size.MINI) return "battery,range";
-    if (size == Size.WIDE) return "battery,range,vehicle_status,service_km_left";
+    if (size == Size.WIDE||size==Size.EXTRA_WIDE) return "battery,range,vehicle_status,service_km_left";
     if (size == Size.SQUARE) return "battery,range,vehicle_status,service_days_left";
     return size == Size.DATA ? "battery,range,vehicle_status,service_days_left,service_km_left,service_time_percent,service_km_percent,odometer"
         : "battery,range,vehicle_status,service_days_left,service_km_left,ta_distance,tm_distance,odometer";
   }
 
-  private static PendingIntent pending(Context c, int id, Size size, String action) {
+  static PendingIntent pending(Context c, int id, Size size, String action) {
     Intent i = new Intent(c, MainActivity.class);
     i.setAction("io.github.polestarcn.companion.WIDGET");
     i.setData(Uri.parse("psassistant://widget/" + id + "/" + size + "/" + action));

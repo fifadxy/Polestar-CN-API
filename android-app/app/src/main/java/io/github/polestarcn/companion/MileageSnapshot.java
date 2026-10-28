@@ -85,7 +85,7 @@ public final class MileageSnapshot {
   public static String durationText(Double minutes, boolean english) {
     if(valid(minutes)==null || minutes>Integer.MAX_VALUE) return "--";
     long rounded=Math.round(minutes),hours=rounded/60,remainder=rounded%60;
-    return "~"+(hours>0 ? hours+(english?" h ":"小时") : "")+remainder+(english?" min":"分");
+    return (hours>0 ? hours+"h " : "")+remainder+"m";
   }
 
   public Integer wholeKm() {

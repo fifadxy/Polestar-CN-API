@@ -1,8 +1,8 @@
-当前交付说明：[v0.8.5](docs/Psa_v085_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
+当前交付说明：[v0.8.6](docs/Psa_v086_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
 
 # PsAssistant for Android
 
-当前版本：**v0.8.5-beta1**（versionCode 86）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.6-beta1**（versionCode 87）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android应用统一使用用户确认的黑白车辆线框图标，启动器保留遮罩安全区，通知栏用透明单色图形。昼夜仅换色；图形与规范见[图标与使用约定](branding/android/README.md)。
 
@@ -10,7 +10,11 @@ Android应用统一使用用户确认的黑白车辆线框图标，启动器保�
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
 
-## v0.8.5 当前功能增量
+## v0.8.6 当前功能增量
+
+[更新说明](docs/Psa_v086_Update.md)：统一居中的车况/百分比与可配置反馈、分离按钮/数据粗体、合并VoLike切换/右侧详情、主页拖动排序、5×1与自选Widget按钮、Health状态字段、充电慢速流光。前台/后台/Widget刷新与车辆位置缓存、手机二级预览定位分别配置；完整APK在本地编译签名直接交付。
+
+## v0.8.5 历史功能增量
 
 车况按钮统一进入页内展开详情，异常/已报告12V及制动液等优先；设置分为7组并保留偏好。独立安装移除其他APK探测与导入，交付包已内置客户端配置，手机号/密码、会话加密和生物验证不变。
 

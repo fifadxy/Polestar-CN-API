@@ -125,6 +125,9 @@ public final class AppRegressionTest {
     VehicleCoordinator model = VehicleCoordinator.get(activity);
     model.selected = new io.github.polestarcn.companion.api.ChinaPolestarApi.VehicleInfo();
     model.selected.vin = "TEST-FIXTURE";
+    Field signed = VehicleCoordinator.class.getDeclaredField("signedIn");
+    signed.setAccessible(true);
+    signed.setBoolean(model, true);
     Method verify =
         MainActivity.class.getDeclaredMethod("authenticate", String.class, String.class);
     verify.setAccessible(true);

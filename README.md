@@ -1,8 +1,8 @@
-当前交付说明：[v0.8.8](docs/Psa_v088_Update.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
+当前交付说明：[v0.8.9](docs/Psa_v089_Login_Compatibility.md) · [独立构建](docs/Psa_Standalone_Build.md)。完整签名版无需安装或导入其他APK；公开CI缺私有配置时仅为开发验证包。
 
 # PsAssistant for Android
 
-当前版本：**v0.8.8-beta1**（versionCode 89）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
+当前版本：**v0.8.9-beta1**（versionCode 90）。Android 主开发分支：`android-polestar-assistant-main`；包名继续使用 `io.github.polestarcn.companion`，保留更新兼容所需的应用身份。
 
 Android应用可选车辆轮廓、红色车辆、防滑图形三款图标，分别提供自动/日间/夜间启动器资源及透明单色通知图形；默认车辆轮廓。图形和安全区见[Psa图标规范v3](docs/Psa_Icon_Design_Specification_v3.md)。
 
@@ -10,7 +10,11 @@ Android应用可选车辆轮廓、红色车辆、防滑图形三款图标，分�
 
 [v0.8.3 更新说明](docs/Psa_v083_Update.md)记录恢复的PS默认皮肤、自动保养、精简地图/可选定位、原生自适应Widget/PSeu/粗体与公用图标规范。Release 使用保留签名构建；不同来源的 Debug APK 不保证能覆盖更新；为已安装 CI 包的用户另提供独立包名的 PsAssistant Preview，并保留旧版和旧数据。
 
-## v0.8.8 当前功能增量
+## v0.8.9 登录兼容和独立构建
+
+保持 v0.8.8 的车控、UI、Widget 与图标不变。修复 v0.8.8 公共 Debug 缺少客户端配置时无法登录的问题：恢复此前完整 PsAssistant Standalone 的账户配置兼容构建入口，并同时支持历史 32 位、Standalone v0.8.5 资源及 v2 48 位封装。完整 Release 仍需原持久签名和私有客户端配置；公开 CI Debug 仅供开发验证，不应称为可登录的发行包。详见 [v0.8.9 登录修复与构建方法](docs/Psa_v089_Login_Compatibility.md)。
+
+## v0.8.8 历史功能增量
 
 [更新说明](docs/Psa_v088_Update.md)：设置内可切换三款程序/通知图标及日夜模式，不禁用MainActivity、不清除登录；App标识与Widget同步。所有Widget空调保持同一个风扇图标，真实状态通过颜色表达，运行时显示剩余h/m；原生排版按实际宽度缩字/减少辅助标签，完整数值不加省略号。默认皮肤露营状态简化为未开启/运行中/待检查等，标题与相邻按钮一致。
 

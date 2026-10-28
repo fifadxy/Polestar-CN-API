@@ -27,6 +27,9 @@ assert 'class VehicleWidgetProvider' in all_java
 assert 'class CompactWidgetProvider' in all_java
 client=(main/'java/io/github/polestarcn/companion/auth/ClientSignatureProvider.java').read_text()
 assert 'client-signing.bin' in client and 'getInstalledPackages' not in client
+assert 'standalone/account_compat.bin' in client
+assert 'PSA_PRIOR_PSASSISTANT_APK' in gradle
+assert 'PSACFG2' in gradle
 assert 'app.c3garage.companion' not in all_java
 assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'private client material must not be committed'
 assert 'ACTION_OPEN_DOCUMENT' not in (main/'java/io/github/polestarcn/companion/MainActivity.java').read_text()

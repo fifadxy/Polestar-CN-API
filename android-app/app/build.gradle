@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 89
-        versionName '0.8.8-beta1'
+        versionCode 90
+        versionName '0.8.9-beta1'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -69,22 +69,94 @@ tasks.withType(Test).configureEach {
     }
 }
 
-// Private account client configuration is generated only under ignored build output.
-// The public repository and validation CI builds never contain the value.
+// Build-only client compatibility input. No third-party app is scanned on the phone.
+// Complete releases accept the previous self-contained PsAssistant APK or private config
+// on the build machine. Public CI debug builds deliberately omit this asset.
 def clientAsset = layout.buildDirectory.file("generated/standaloneAssets/client-signing.bin")
+def previousClientSha = "59e1ca066e23a43e3976ded60c6691800dd19c4b173bd94b241bee42be5a7274"
 tasks.register("prepareClientConfig") {
     outputs.upToDateWhen { false }
     doLast {
-        def configuredPath = System.getenv("PSA_CLIENT_CONFIG_FILE")
-        def configured = configuredPath ? new File(configuredPath).getText("US-ASCII").trim() : (System.getenv("PSA_CLIENT_CONFIG") ?: "").trim()
+        def path = System.getenv("PSA_CLIENT_CONFIG_FILE")
+        def direct = path ? new File(path).getText("US-ASCII").trim() : (System.getenv("PSA_CLIENT_CONFIG") ?: "").trim()
+        def previous = (System.getenv("PSA_PRIOR_PSASSISTANT_APK") ?: "").trim()
         def asset = clientAsset.get().asFile
-        if (configured) {
-            if (!(configured ==~ /[0-9A-F]{32}/)) throw new GradleException("Invalid private client configuration format")
-            asset.parentFile.mkdirs(); asset.setText(configured, "US-ASCII")
-        } else { asset.delete() }
+        asset.delete()  // Never allow an earlier private asset to leak into a public validation build.
+        if (direct && previous)
+            throw new GradleException("Choose one private input: PSA_CLIENT_CONFIG or PSA_PRIOR_PSASSISTANT_APK")
+        String configured = direct
+        if (previous) {
+            def priorFile = new File(previous)
+            if (!priorFile.isFile()) throw new GradleException("Previous PsAssistant APK is unavailable")
+            def previousZip = new java.util.zip.ZipFile(priorFile)
+            try {
+                def modernEntry = previousZip.getEntry("assets/client-signing.bin")
+                def legacyEntry = previousZip.getEntry("assets/standalone/account_compat.bin")
+                if (modernEntry != null) {
+                    byte[] data = previousZip.getInputStream(modernEntry).bytes
+                    if (data.length == 32) {
+                        configured = new String(data, "US-ASCII").trim()
+                    } else if (data.length == 48) {
+                        byte[] magic = "PSACFG2\u0000".getBytes("US-ASCII")
+                        for (int i = 0; i < 8; i++)
+                            if (data[i] != magic[i]) throw new GradleException("Previous PsAssistant client asset header mismatch")
+                        byte[] mask = java.security.MessageDigest.getInstance("SHA-256")
+                                .digest("PsAssistant-Standalone-ClientConfig-v2".getBytes("UTF-8"))
+                        byte[] plain = new byte[32]
+                        for (int i = 0; i < 32; i++) plain[i] = (byte)(data[8 + i] ^ mask[i])
+                        byte[] sum = java.security.MessageDigest.getInstance("SHA-256").digest(plain)
+                        if (!java.security.MessageDigest.isEqual(java.util.Arrays.copyOf(sum, 8),
+                                java.util.Arrays.copyOfRange(data, 40, 48)))
+                            throw new GradleException("Previous PsAssistant client asset failed its checksum")
+                        configured = new String(plain, "US-ASCII")
+                        java.util.Arrays.fill(plain, (byte)0)
+                    } else {
+                        throw new GradleException("Previous PsAssistant client asset has an unsupported format")
+                    }
+                } else if (legacyEntry != null) {
+                    byte[] old = previousZip.getInputStream(legacyEntry).bytes
+                    if (old.length != 32) throw new GradleException("Previous PsAssistant standalone asset size mismatch")
+                    byte[] mask = java.security.MessageDigest.getInstance("SHA-256")
+                            .digest("PsAssistant-Standalone-Account-Compatibility-v1".getBytes("UTF-8"))
+                    byte[] plain = new byte[32]
+                    for (int i = 0; i < 32; i++) plain[i] = (byte)(old[i] ^ mask[i])
+                    configured = new String(plain, "US-ASCII")
+                    java.util.Arrays.fill(plain, (byte)0)
+                } else {
+                    throw new GradleException("Previous PsAssistant APK has no standalone client configuration")
+                }
+            } finally {
+                previousZip.close()
+            }
+        }
+        if (!configured) return
+        if (!(configured ==~ /[0-9A-F]{32}/))
+            throw new GradleException("Account client configuration syntax is invalid")
+        byte[] plain = configured.getBytes("US-ASCII")
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(plain)
+            String fingerprint = digest.collect { String.format("%02x", it & 255) }.join()
+            if (fingerprint != previousClientSha)
+                throw new GradleException("Account client configuration does not match the previously approved PsAssistant version")
+            byte[] mask = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest("PsAssistant-Standalone-ClientConfig-v2".getBytes("UTF-8"))
+            byte[] encoded = new byte[48]
+            System.arraycopy("PSACFG2\u0000".getBytes("US-ASCII"), 0, encoded, 0, 8)
+            for (int i = 0; i < 32; i++) encoded[8 + i] = (byte)(plain[i] ^ mask[i])
+            System.arraycopy(digest, 0, encoded, 40, 8)
+            asset.parentFile.mkdirs()
+            asset.bytes = encoded
+        } finally {
+            java.util.Arrays.fill(plain, (byte)0)
+        }
     }
 }
 tasks.named("preBuild").configure { dependsOn("prepareClientConfig") }
 tasks.matching { it.name in ["assembleRelease", "assemblePreview"] }.configureEach {
-    doFirst { if (!clientAsset.get().asFile.exists()) throw new GradleException("A complete distribution APK requires private client configuration") }
+    doFirst {
+        if (!clientAsset.get().asFile.exists() || clientAsset.get().asFile.length() != 48L)
+            throw new GradleException("Complete PsAssistant release requires private client configuration")
+        if (!System.getenv("PSA_SIGNING_KEYSTORE"))
+            throw new GradleException("Complete PsAssistant release also requires the original persistent signing identity")
+    }
 }

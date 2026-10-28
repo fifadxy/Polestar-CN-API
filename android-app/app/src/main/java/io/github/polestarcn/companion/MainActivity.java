@@ -1803,72 +1803,85 @@ public final class MainActivity extends FragmentActivity {
     click(hint,()->info(title,detail));parent.addView(row);gap(parent,4);
   }
 
+  /** Models -> view types -> verified original PNG colors. Day/night are independent. */
   private void vehicleArtDialog(boolean night){
-    String key=night?"vehicle_art_night":"vehicle_art_day";
-    LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
-    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    LinearLayout panel=column();panel.setPadding(dp(10),dp(8),dp(10),dp(8));
     final AlertDialog[] dialog={null};
-    String selected=AppPreferences.get(this,key,"auto");
-    for(String type:VehicleArt.TYPES){
-      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);
-      entry.setPadding(dp(8),dp(7),dp(8),dp(7));
-      GradientDrawable frame=bg(surface,10);
-      frame.setStroke(dp(1),type.equals(VehicleArt.type(selected))?orange:line);
-      entry.setBackground(frame);
-      ImageView thumbnail=new ImageView(this);thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
-      String[] choices=VehicleArt.variants(type);
-      String defaultKey=type.equals(VehicleArt.type(selected))?selected:choices[0];
-      thumbnail.setImageResource(VehicleArt.drawable(defaultKey,night,true,false));
-      entry.addView(thumbnail,new LinearLayout.LayoutParams(dp(94),dp(66)));
-      LinearLayout textGroup=column();textGroup.setPadding(dp(10),0,0,0);
-      textGroup.addView(text(VehicleArt.typeLabel(this,type)+
-          (type.equals(VehicleArt.type(selected))?" ✓":""),15,ink,true));
-      textGroup.addView(text(type.equals("auto")?tr("自动匹配白天 / 夜间","Automatic day / night") :
-          tr("选择颜色与配置 · ","Choose color / trim · ")+choices.length,11,muted,false));
-      entry.addView(textGroup,new LinearLayout.LayoutParams(0,-2,1));
-      click(entry,()->{
-        if(dialog[0]!=null)dialog[0].dismiss();
-        if("auto".equals(type)){
-          AppPreferences.set(this,key,"auto");WidgetRenderer.refreshAll(this);render();
-        }else vehicleArtColorDialog(night,type);
-      });
+    for(String model:VehicleArt.MODELS){
+      boolean checked=model.equals(VehicleArt.modelFor(this,night));
+      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);entry.setPadding(dp(8),dp(6),dp(8),dp(6));
+      ImageView preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      preview.setImageResource(VehicleArt.drawable(VehicleArt.POLESTAR_5.equals(model)?"p5_side_snow":"top_original",night,true,false));
+      entry.addView(preview,new LinearLayout.LayoutParams(dp(105),dp(62)));
+      TextView label=text(VehicleArt.modelLabel(this,model)+(checked?" ✓":""),14,ink,true);
+      label.setPadding(dp(10),0,0,0);entry.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+      GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),checked?orange:line);entry.setBackground(frame);
+      click(entry,()->{if(dialog[0]!=null)dialog[0].dismiss();vehicleArtTypeDialog(night,model);});
       panel.addView(entry);gap(panel,8);
     }
     dialog[0]=new HapticDialogBuilder(this)
-        .setTitle(night?tr("夜间车辆图 · 先选视角","Night image · choose angle"):
-                tr("白天车辆图 · 先选视角","Day image · choose angle"))
-        .setView(scroll).setNegativeButton(tr("取消","Cancel"),null).create();
+        .setTitle(night?tr("夜间车辆 · 选择车型","Night car · choose model"):tr("白天车辆 · 选择车型","Day car · choose model"))
+        .setView(panel).setNegativeButton(tr("取消","Cancel"),null).create();
     dialog[0].show();
   }
 
-  private void vehicleArtColorDialog(boolean night,String type){
-    String key=night?"vehicle_art_night":"vehicle_art_day";
+  private void vehicleArtTypeDialog(boolean night,String model){
     LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
     ScrollView scroll=new ScrollView(this);scroll.addView(panel);
     final AlertDialog[] dialog={null};
-    for(String value:VehicleArt.variants(type)){
-      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);
-      entry.setPadding(dp(6),dp(5),dp(6),dp(5));
-      boolean selected=value.equals(AppPreferences.get(this,key,"auto"));
-      GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),selected?orange:line);
-      entry.setBackground(frame);
-      ImageView thumbnail=new ImageView(this);
+    String current=AppPreferences.get(this,VehicleArt.selectionKey(night),"auto");
+    for(String viewType:VehicleArt.types(model)){
+      String[] choices=VehicleArt.variants(viewType,model);
+      String previewKey=viewType.equals(VehicleArt.type(current))&&model.equals(VehicleArt.modelFor(this,night))?current:choices[0];
+      if(VehicleArt.POLESTAR_5.equals(model)&&"auto".equals(previewKey))
+        previewKey=night?"p5_side_space":"p5_side_snow";
+      boolean checked=model.equals(VehicleArt.modelFor(this,night))&&viewType.equals(VehicleArt.type(current));
+      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);entry.setPadding(dp(8),dp(7),dp(8),dp(7));
+      ImageView thumbnail=new ImageView(this);thumbnail.setImageResource(VehicleArt.drawable(previewKey,night,true,false));
       thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
-      thumbnail.setImageResource(VehicleArt.drawable(value,night,true,false));
-      entry.addView(thumbnail,new LinearLayout.LayoutParams(dp(116),dp(74)));
-      TextView label=text(VehicleArt.label(this,value)+(selected?" ✓":""),13,ink,false);
-      label.setPadding(dp(10),0,dp(5),0);
-      entry.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+      entry.addView(thumbnail,new LinearLayout.LayoutParams(dp(114),dp(68)));
+      TextView label=text(VehicleArt.typeLabel(this,viewType)+(checked?" ✓":""),14,ink,true);
+      label.setPadding(dp(10),0,0,0);entry.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+      GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),checked?orange:line);entry.setBackground(frame);
       click(entry,()->{
-        AppPreferences.set(this,key,value);WidgetRenderer.refreshAll(this);
-        if(dialog[0]!=null)dialog[0].dismiss();render();
+        if(dialog[0]!=null)dialog[0].dismiss();
+        if("auto".equals(viewType)){
+          AppPreferences.set(this,VehicleArt.modelKey(night),model);
+          AppPreferences.set(this,VehicleArt.selectionKey(night),"auto");
+          WidgetRenderer.refreshAll(this);render();
+        }else vehicleArtColorDialog(night,model,viewType);
       });
-      panel.addView(entry);gap(panel,7);
+      panel.addView(entry);gap(panel,8);
     }
-    dialog[0]=new HapticDialogBuilder(this)
-      .setTitle(VehicleArt.typeLabel(this,type)+" · "+tr("选择颜色","Choose color"))
-      .setView(scroll)
-      .setNeutralButton(tr("返回视角","Back to angles"),(d,w)->vehicleArtDialog(night))
+    dialog[0]=new HapticDialogBuilder(this).setTitle(VehicleArt.modelLabel(this,model)+" · "+tr("选择视角","Angle"))
+      .setView(scroll).setNeutralButton(tr("返回车型","Models"),(d,w)->vehicleArtDialog(night))
+      .setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog[0].show();
+  }
+
+  private void vehicleArtColorDialog(boolean night,String model,String viewType){
+    LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    final AlertDialog[] dialog={null};
+    String key=VehicleArt.selectionKey(night);
+    for(String choice:VehicleArt.variants(viewType,model)){
+      boolean checked=choice.equals(AppPreferences.get(this,key,"auto"))&&model.equals(VehicleArt.modelFor(this,night));
+      LinearLayout entry=row();entry.setPadding(dp(8),dp(6),dp(8),dp(6));entry.setGravity(Gravity.CENTER_VERTICAL);
+      ImageView preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      preview.setImageResource(VehicleArt.drawable(choice,night,true,false));
+      entry.addView(preview,new LinearLayout.LayoutParams(dp(114),dp(75)));
+      TextView name=text(VehicleArt.label(this,choice)+(checked?" ✓":""),13,ink,false);
+      name.setPadding(dp(10),0,0,0);entry.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+      GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),checked?orange:line);entry.setBackground(frame);
+      click(entry,()->{
+        AppPreferences.set(this,VehicleArt.modelKey(night),model);
+        AppPreferences.set(this,key,choice);
+        WidgetRenderer.refreshAll(this);if(dialog[0]!=null)dialog[0].dismiss();render();
+      });
+      panel.addView(entry);gap(panel,8);
+    }
+    dialog[0]=new HapticDialogBuilder(this).setTitle(VehicleArt.typeLabel(this,viewType)+" · "+tr("选择颜色","Color"))
+      .setView(scroll).setNeutralButton(tr("返回视角","Angles"),(d,w)->vehicleArtTypeDialog(night,model))
       .setNegativeButton(tr("取消","Cancel"),null).create();
     dialog[0].show();
   }
@@ -1960,8 +1973,8 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
-      setting(p,tr("白天车辆图片 · ","Day vehicle image · ")+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_day","auto")),()->vehicleArtDialog(false));
-      setting(p,tr("夜间车辆图片 · ","Night vehicle image · ")+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_night","auto")),()->vehicleArtDialog(true));
+      setting(p,tr("白天车辆图片 · ","Day vehicle image · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,false))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_day","auto")),()->vehicleArtDialog(false));
+      setting(p,tr("夜间车辆图片 · ","Night vehicle image · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,true))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_night","auto")),()->vehicleArtDialog(true));
       settingToggle(p,"show_car",tr("车辆图","Vehicle image"),true,false);settingToggle(p,"show_charging",tr("充电状态（开始/充电时显示）","Charging status (while starting/charging)"),true,false);settingToggle(p,"show_update",tr("数据更新时间","Data update time"),true,false);
       settingToggle(p,"show_tire_status",tr("显示胎压状态（含车况汇总）","Show tyre status (including summary)"),true,true);
       settingToggle(p,"experimental_tire",tr("四轮iTPMS示意图（无未验证kPa）","Four-wheel iTPMS diagram (no unverified kPa)"),false,false);

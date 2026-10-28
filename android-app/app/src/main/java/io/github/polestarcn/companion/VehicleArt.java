@@ -19,8 +19,9 @@ public final class VehicleArt {
 
   public static String modelKey(boolean night){return night?"vehicle_art_model_night":"vehicle_art_model_day";}
   public static String selectionKey(boolean night){return night?"vehicle_art_night":"vehicle_art_day";}
-  public static String model(Context c){
-    String value=AppPreferences.get(c,modelKey(AppPreferences.dark(c)),POLESTAR_2);
+  public static String model(Context c){return modelFor(c,AppPreferences.dark(c));}
+  public static String modelFor(Context c,boolean night){
+    String value=AppPreferences.get(c,modelKey(night),POLESTAR_2);
     return POLESTAR_5.equals(value)?POLESTAR_5:POLESTAR_2;
   }
   public static String modelLabel(Context c,String model){

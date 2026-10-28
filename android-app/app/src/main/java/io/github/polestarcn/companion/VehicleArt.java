@@ -130,10 +130,20 @@ public final class VehicleArt {
     String selection=key(c);
     if(POLESTAR_5.equals(model(c))&&"auto".equals(selection))
       return drawable(AppPreferences.dark(c)?"p5_side_space":"p5_side_snow",AppPreferences.dark(c),false,false);
+    // Skin-specific defaults apply only to Auto; explicit day/night gallery choices win.
+    if("auto".equals(selection)&&POLESTAR_2.equals(model(c))){
+      if(UiSkin.nioLayout(c))return drawable(AppPreferences.dark(c)?"angled_black":"angled_white",AppPreferences.dark(c),false,true);
+      if(UiSkin.SIMPLE.equals(UiSkin.get(c))||UiSkin.DETAILED.equals(UiSkin.get(c))||UiSkin.polestarVo(c))
+        return drawable(AppPreferences.dark(c)?"top_dark":"top_white",AppPreferences.dark(c),false,false);
+    }
     return drawable(selection,AppPreferences.dark(c),UiSkin.PS_DEFAULT.equals(UiSkin.get(c)),UiSkin.nioLayout(c));
   }
-  /** All supplied top-down PNGs have already been rotated into landscape: never rotate at display time. */
-  static int portraitRotation(Context c){return 0;}
+  /** Rotate only the default VoLike overhead PNG, preserving the original photo aspect ratio. */
+  static int portraitRotation(Context c){
+    String skin=UiSkin.get(c),key=key(c);
+    boolean vo=UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin)||UiSkin.polestarVo(c);
+    return vo&&POLESTAR_2.equals(model(c))&&(key.startsWith("top_")||"auto".equals(key))?-90:0;
+  }
   public static final String[] WIDGET_CHOICES={"car","app_outline","app_red","app_skid","photo_dark","line_black","line_white"};
   public static String widgetChoice(Context c){
     String chosen=AppPreferences.get(c,"widget_visual","car");

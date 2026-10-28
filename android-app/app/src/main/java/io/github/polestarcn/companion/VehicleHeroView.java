@@ -1,44 +1,46 @@
 package io.github.polestarcn.companion;
-
 import android.content.Context;
 import android.graphics.*;
+import android.animation.ValueAnimator;
 import android.widget.ImageView;
-
-/**
- * Polestar 2 vehicle view. VoLike uses the project's true top-down Polestar art,
- * rotated to portrait without distorting its original proportions; NIO keeps
- * its existing front three-quarter image.
- */
+/** A single immutable HD PNG with efficient real-time visual overlays; image geometry never stretches. */
 final class VehicleHeroView extends ImageView {
   private final Bitmap roof;
-  private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-
-  VehicleHeroView(Context context) {
+  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+  private final VehicleEffectRenderer renderer;
+  private VehicleEffectSettings.Mode preview;
+  private VehicleEffectSettings.Mode live=VehicleEffectSettings.Mode.NONE;
+  VehicleHeroView(Context context){
     super(context);
-    setImageResource(VehicleArt.dashboard(context));
-    setScaleType(ScaleType.FIT_CENTER);
-    setAdjustViewBounds(false);
-    roof = BitmapFactory.decodeResource(getResources(),VehicleArt.dashboard(context));
+    int resource=VehicleArt.dashboard(context);
+    setImageResource(resource);setScaleType(ScaleType.FIT_CENTER);setAdjustViewBounds(false);
+    roof=BitmapFactory.decodeResource(getResources(),resource);
+    renderer=new VehicleEffectRenderer(context);renderer.configure(context);
+    setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
   }
-
-  @Override protected void onDraw(Canvas canvas) {
-    if (VehicleArt.portraitRotation(getContext())==0 || roof == null) {
-      super.onDraw(canvas);
-      return;
-    }
-    int innerW=getWidth()-getPaddingLeft()-getPaddingRight();
-    int innerH=getHeight()-getPaddingTop()-getPaddingBottom();
-    if (innerW <= 0 || innerH <= 0) return;
-    float scale=Math.min(innerW/(float)roof.getHeight(),innerH/(float)roof.getWidth());
-    // Keep the same original aspect ratio. The car's front, at image right,
-    // points toward the upper edge of a portrait phone after -90 degrees.
-    canvas.save();
-    canvas.translate(getPaddingLeft()+innerW/2f,getPaddingTop()+innerH/2f);
-    canvas.rotate(VehicleArt.portraitRotation(getContext()));
-    RectF dest=new RectF(-roof.getWidth()*scale/2,-roof.getHeight()*scale/2,
-        roof.getWidth()*scale/2,roof.getHeight()*scale/2);
-    paint.setAlpha(255);
-    canvas.drawBitmap(roof,null,dest,paint);
+  void setSnapshot(VehicleSnapshot snapshot){
+    live=VehicleEffectSettings.vehicle(getContext(),snapshot);
+    renderer.mode(preview==null?live:preview);invalidate();
+  }
+  void preview(VehicleEffectSettings.Mode mode){preview=mode;renderer.configure(getContext());renderer.mode(mode);invalidate();}
+  void resetPreview(){preview=null;renderer.configure(getContext());renderer.mode(live);invalidate();}
+  void reloadEffectSettings(){renderer.configure(getContext());invalidate();}
+  @Override protected void onDraw(Canvas canvas){
+    if(roof==null){super.onDraw(canvas);return;}
+    int width=getWidth()-getPaddingLeft()-getPaddingRight(),height=getHeight()-getPaddingTop()-getPaddingBottom();
+    if(width<=0||height<=0)return;
+    int rotation=VehicleArt.portraitRotation(getContext());
+    float scale=rotation==0?Math.min(width/(float)roof.getWidth(),height/(float)roof.getHeight()):
+        Math.min(width/(float)roof.getHeight(),height/(float)roof.getWidth());
+    canvas.save();canvas.translate(getPaddingLeft()+width/2f,getPaddingTop()+height/2f);
+    canvas.rotate(rotation);
+    RectF bounds=new RectF(-roof.getWidth()*scale/2f,-roof.getHeight()*scale/2f,
+        roof.getWidth()*scale/2f,roof.getHeight()*scale/2f);
+    renderer.draw(canvas,bounds,false);
+    paint.setAlpha(255);canvas.drawBitmap(roof,null,bounds,paint);
+    renderer.draw(canvas,bounds,true);
     canvas.restore();
+    if(renderer.active()&&isShown()&&getWindowVisibility()==VISIBLE&&ValueAnimator.areAnimatorsEnabled()
+        &&AppPreferences.visible(getContext(),"light_effects",true))postInvalidateDelayed(34);
   }
 }

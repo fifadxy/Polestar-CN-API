@@ -49,3 +49,24 @@ v0.8.6 的公开 Debug 验证流程**不注入**私有客户端配置，并额�
 - 持久签名 `PSA_SIGNING_*`。
 
 完整 Release 构建后，CI 只验证该资产存在且长度为 48 bytes，不输出配置值。
+
+
+## 从已核验官方 4.25.0 样本生成完整独立包
+
+对于本人测试环境，也可以不单独准备 `PSA_CLIENT_CONFIG` 文件，而使用已核验的官方 Polestar China 4.25.0 APK 作为**构建机输入**：
+
+```sh
+PSA_SIGNING_KEYSTORE=/secure/app.keystore \
+PSA_SIGNING_STORE_PASSWORD="$PRIVATE_STORE_PASSWORD" \
+PSA_SIGNING_KEY_ALIAS=psassistant \
+PSA_SIGNING_KEY_PASSWORD="$PRIVATE_KEY_PASSWORD" \
+sh scripts/build_android_standalone_official.sh /path/to/极星Polestar-com.polestar.china.android-4.25.0.apk
+```
+
+脚本先校验官方 APK SHA-256：
+
+`99070211e99b374090ffbc3702ff7888b3d8d2cc811f4e52d1a6de4ded9074ef`
+
+随后仅从该固定官方样本中定位与已知指纹匹配的**非用户客户端配置**，写入临时文件，再走 v0.8.6 的 v2 资产生成流程。临时目录退出时删除。
+
+该脚本不会复制账号密码、Token、VIN、数字钥匙、私钥、证书缓存或已配对状态；官方 APK 也不会进入最终安装包。手机安装最终 PsAssistant 后不需要官方 APK。

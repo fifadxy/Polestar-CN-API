@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 86
-        versionName '0.8.5-beta1'
+        versionCode 87
+        versionName '0.8.6-beta1'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -70,21 +70,80 @@ tasks.withType(Test).configureEach {
 }
 
 // Private account client configuration is generated only under ignored build output.
-// The public repository and validation CI builds never contain the value.
+// Public validation builds omit it. Complete release/preview builds package a
+// versioned opaque container instead of the raw 32-character value.
 def clientAsset = layout.buildDirectory.file("generated/standaloneAssets/client-signing.bin")
+def expectedClientConfigSha256 = "59e1ca066e23a43e3976ded60c6691800dd19c4b173bd94b241bee42be5a7274"
+def clientMaskLabel = "PsAssistant-Standalone-ClientConfig-v2"
+
 tasks.register("prepareClientConfig") {
     outputs.upToDateWhen { false }
     doLast {
         def configuredPath = System.getenv("PSA_CLIENT_CONFIG_FILE")
-        def configured = configuredPath ? new File(configuredPath).getText("US-ASCII").trim() : (System.getenv("PSA_CLIENT_CONFIG") ?: "").trim()
+        def configured = configuredPath
+                ? new File(configuredPath).getText("US-ASCII").trim()
+                : (System.getenv("PSA_CLIENT_CONFIG") ?: "").trim()
         def asset = clientAsset.get().asFile
-        if (configured) {
-            if (!(configured ==~ /[0-9A-F]{32}/)) throw new GradleException("Invalid private client configuration format")
-            asset.parentFile.mkdirs(); asset.setText(configured, "US-ASCII")
-        } else { asset.delete() }
+        if (!configured) {
+            asset.delete()
+            return
+        }
+
+        configured = configured.toUpperCase(java.util.Locale.ROOT)
+        if (!(configured ==~ /[0-9A-F]{32}/)) {
+            throw new GradleException("Invalid private client configuration format")
+        }
+
+        byte[] plain = configured.getBytes("US-ASCII")
+        byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(plain)
+        String fingerprint = digest.collect { String.format("%02x", it & 0xff) }.join()
+        if (fingerprint != expectedClientConfigSha256) {
+            throw new GradleException("Private client configuration fingerprint mismatch")
+        }
+
+        byte[] mask = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(clientMaskLabel.getBytes("UTF-8"))
+        byte[] magic = new byte[] {
+                (byte)'P', (byte)'S', (byte)'A', (byte)'C',
+                (byte)'F', (byte)'G', (byte)'2', (byte)0
+        }
+        byte[] encoded = new byte[48]
+        System.arraycopy(magic, 0, encoded, 0, magic.length)
+        for (int i = 0; i < 32; i++) encoded[8 + i] = (byte) (plain[i] ^ mask[i])
+        System.arraycopy(digest, 0, encoded, 40, 8)
+
+        asset.parentFile.mkdirs()
+        asset.bytes = encoded
+        java.util.Arrays.fill(plain, (byte)0)
     }
 }
-tasks.named("preBuild").configure { dependsOn("prepareClientConfig") }
+
+tasks.register("verifyStandaloneClientAsset") {
+    dependsOn("prepareClientConfig")
+    doLast {
+        def asset = clientAsset.get().asFile
+        if (asset.exists()) {
+            byte[] bytes = asset.bytes
+            if (bytes.length != 48) throw new GradleException("Standalone client asset size mismatch")
+            byte[] expectedMagic = new byte[] {
+                    (byte)'P', (byte)'S', (byte)'A', (byte)'C',
+                    (byte)'F', (byte)'G', (byte)'2', (byte)0
+            }
+            for (int i = 0; i < expectedMagic.length; i++) {
+                if (bytes[i] != expectedMagic[i]) {
+                    throw new GradleException("Standalone client asset header mismatch")
+                }
+            }
+        }
+    }
+}
+
+tasks.named("preBuild").configure { dependsOn("verifyStandaloneClientAsset") }
 tasks.matching { it.name in ["assembleRelease", "assemblePreview"] }.configureEach {
-    doFirst { if (!clientAsset.get().asFile.exists()) throw new GradleException("A complete distribution APK requires private client configuration") }
+    doFirst {
+        def asset = clientAsset.get().asFile
+        if (!asset.exists() || asset.length() != 48L) {
+            throw new GradleException("A complete distribution APK requires private client configuration")
+        }
+    }
 }

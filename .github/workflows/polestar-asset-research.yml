@@ -1,0 +1,66 @@
+name: Official Polestar PNG image research
+on:
+  push:
+    branches: [android-polestar-assistant-main]
+    paths:
+      - '.github/workflows/polestar-asset-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-png:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch and verify official Polestar PNG references
+        run: |
+          python3 -m pip install --quiet Pillow
+          cat > /tmp/polestar_fetch.py <<'PY'
+          import io, os, ssl, json, hashlib, urllib.request
+          from PIL import Image, ImageOps
+          from pathlib import Path
+          cases = {
+            'official_p2_side_snow': 'https://www.polestar.cn/dato-assets/94392/1773909330-10-1-polestar-2-27-overview-config-snow-d.png',
+            'official_p2_side_vapour': 'https://www.polestar.cn/dato-assets/94392/1773909399-10-2-polestar-2-27-overview-config-vapour-d.png',
+            'official_p2_side_midnight': 'https://www.polestar.cn/dato-assets/94392/1773909417-10-3-polestar-2-27-overview-config-midnight-d.png',
+            'official_p2_side_space': 'https://www.polestar.cn/dato-assets/94392/1773909450-10-5-polestar-2-27-overview-config-space-d.png',
+            'official_p5_angle_storm_matte': 'https://www.polestar.cn/dato-assets/94392/1756805834-04-1-polestar-5-26-overview-nano-configurator-storm-matte-d-1.png',
+            'official_p5_angle_magnesium_matte': 'https://www.polestar.cn/dato-assets/94392/1756805953-04-2-polestar-5-26-overview-nano-configurator-magnesium-matte-d-1.png',
+            'official_p5_angle_snow': 'https://www.polestar.cn/dato-assets/94392/1756806036-04-3-polestar-5-26-overview-nano-configurator-snow-d-1.png',
+            'official_p5_angle_space': 'https://www.polestar.cn/dato-assets/94392/1756806096-04-4-polestar-5-26-overview-nano-configurator-space-d-1.png',
+            'official_p5_top_angle': 'https://www.polestar.cn/dato-assets/94392/1756806502-06-2-polestar-5-26-overview-gallery-d-1.png'
+          }
+          out=Path('polestar-official-png');out.mkdir(exist_ok=True)
+          report=[]
+          for key,url in cases.items():
+            last=None
+            for host in ['www.polestar.cn','www.polestar.com']:
+              target=url.replace('www.polestar.cn',host)
+              try:
+                req=urllib.request.Request(target,headers={'User-Agent':'Mozilla/5.0 (PsAssistant imagery provenance QA)'})
+                with urllib.request.urlopen(req, timeout=35, context=ssl.create_default_context()) as response:
+                  data=response.read(16*1024*1024+1)
+                if len(data)>16*1024*1024: raise ValueError('source exceeds size limit')
+                img=Image.open(io.BytesIO(data));img.load()
+                if img.width<550 or img.height<250:raise ValueError(f'image too small: {img.size}')
+                if img.format not in ('PNG','JPEG','WEBP','AVIF'):raise ValueError('unsupported image format')
+                img=ImageOps.exif_transpose(img)
+                img.thumbnail((1500,1200),Image.Resampling.LANCZOS)
+                if img.mode not in ('RGB','RGBA'): img=img.convert('RGBA' if 'A' in img.getbands() else 'RGB')
+                targetpath=out/(key+'.png');img.save(targetpath,format='PNG',optimize=True)
+                entry={'key':key,'source':target,'source_type':img.format,'size':img.size,'png_bytes':targetpath.stat().st_size,'sha256':hashlib.sha256(targetpath.read_bytes()).hexdigest()}
+                report.append(entry); print('SUCCESS',key,img.size,entry['png_bytes']); break
+              except Exception as e:
+                last=str(e)[:220]
+            else:
+              report.append({'key':key,'source':url,'error':last});print('FAILED',key,last)
+          (out/'provenance.json').write_text(json.dumps(report,indent=2,ensure_ascii=False))
+          if not any('png_bytes' in r for r in report):raise SystemExit('No verified official images')
+          PY
+          python3 /tmp/polestar_fetch.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-official-Polestar-PNG-source-pack
+          path: polestar-official-png
+          if-no-files-found: error
+          retention-days: 7

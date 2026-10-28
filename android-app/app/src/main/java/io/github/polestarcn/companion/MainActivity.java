@@ -45,6 +45,7 @@ public final class MainActivity extends FragmentActivity {
   private int statusReturnPage;
   private int statusScrollY;
   private int settingsScrollY,dataScrollY;
+  private boolean transitionRequested;
   private final Handler displayHandler = new Handler(Looper.getMainLooper());
   private final Runnable displayTick = new Runnable() {
     public void run() {
@@ -418,8 +419,7 @@ public final class MainActivity extends FragmentActivity {
           button(
               names[i],
               () -> {
-                page = tab;
-                render();
+                if(page!=tab){transitionRequested=true;page=tab;render();}
               });
       t.setTag("bottom_nav_button");t.setPadding(dp(3),dp(1),dp(3),dp(1));t.setMinHeight(0);
       GradientDrawable navFrame = bg(i == (page==3?1:page) ? surface : paper, 12);
@@ -440,6 +440,28 @@ public final class MainActivity extends FragmentActivity {
     }
     shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(compactNav ? 52 : 64)));
     disableSystemHaptics(shell);setContentView(shell);
+    boolean transition=transitionRequested&&AppPreferences.visible(this,"page_transition",true)
+        &&android.animation.ValueAnimator.areAnimatorsEnabled();
+    transitionRequested=false;
+    if(transition){
+      final LinearLayout transitioningShell=shell;
+      transitioningShell.setAlpha(.80f);
+      android.graphics.drawable.GradientDrawable frost=new android.graphics.drawable.GradientDrawable(
+          android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+          AppPreferences.dark(this)
+              ?new int[]{android.graphics.Color.argb(80,35,39,45),android.graphics.Color.argb(25,35,39,45),android.graphics.Color.TRANSPARENT}
+              :new int[]{android.graphics.Color.argb(75,240,242,246),android.graphics.Color.argb(25,240,242,246),android.graphics.Color.TRANSPARENT});
+      transitioningShell.setForeground(frost);
+      if(android.os.Build.VERSION.SDK_INT>=31){
+        transitioningShell.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(dp(5),dp(5),android.graphics.Shader.TileMode.CLAMP));
+        transitioningShell.postDelayed(()->transitioningShell.setRenderEffect(null),55);
+      }
+      android.animation.ValueAnimator fade=android.animation.ValueAnimator.ofInt(210,0);
+      fade.setDuration(170);
+      fade.addUpdateListener(a->{frost.setAlpha((int)a.getAnimatedValue());transitioningShell.invalidate();});
+      fade.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){transitioningShell.setForeground(null);}});
+      fade.start();transitioningShell.animate().alpha(1f).setDuration(165).start();
+    }
   }
 
   private void disableSystemHaptics(View view) {
@@ -779,7 +801,7 @@ public final class MainActivity extends FragmentActivity {
         // every remote-control tile remains at least 48–60dp and fully visible.
         if(detailed){
           body.addView(voEnergyStrip(false,true),new LinearLayout.LayoutParams(-1,Math.max(dp(48),textLineHeight(17)+dp(18))));
-          LinearLayout stage=column();stage.setTag("volike_hero");LinearLayout content=row();VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));click(car,this::carStatusDialog);car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);content.addView(car,new LinearLayout.LayoutParams(0,-1,1));content.addView(voDetailRail(true),new LinearLayout.LayoutParams(dp(142),-1));stage.addView(content,new LinearLayout.LayoutParams(-1,0,1));stage.addView(voStatusStrip(true),new LinearLayout.LayoutParams(-1,dp(26)));body.addView(stage,new LinearLayout.LayoutParams(-1,0,1));
+          LinearLayout stage=column();stage.setTag("volike_hero");LinearLayout content=row();VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");bindDashboard(()->car.setSnapshot(model.snapshot));car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));click(car,this::carStatusDialog);car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);content.addView(car,new LinearLayout.LayoutParams(0,-1,1));content.addView(voDetailRail(true),new LinearLayout.LayoutParams(dp(142),-1));stage.addView(content,new LinearLayout.LayoutParams(-1,0,1));stage.addView(voStatusStrip(true),new LinearLayout.LayoutParams(-1,dp(26)));body.addView(stage,new LinearLayout.LayoutParams(-1,0,1));
         }else body.addView(voHero(false),new LinearLayout.LayoutParams(
             -1,dp(compact?150:170),1));
         addChargingSection(body,compact);
@@ -844,7 +866,7 @@ public final class MainActivity extends FragmentActivity {
       addVoSideControl(controls,control,compact);
     middle.addView(controls,new LinearLayout.LayoutParams(dp(compact?56:64),-1));
 
-    VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");
+    VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");bindDashboard(()->car.setSnapshot(model.snapshot));
     car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));
     click(car,this::carStatusDialog);
     car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);
@@ -894,16 +916,31 @@ public final class MainActivity extends FragmentActivity {
 
   private LinearLayout voDetailRail(boolean compact) {
     LinearLayout rail=column();rail.setTag("volike_detail_rail");rail.setPadding(dp(4),dp(4),dp(4),dp(4));GradientDrawable frame=bg(viSoft(),16);frame.setStroke(dp(1),line);rail.setBackground(frame);
-    TextView title=text(tr("详细数据","Details"),9,ink,false);title.setGravity(Gravity.CENTER);title.setTypeface(buttonTypeface());rail.addView(title,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(2)));
-    java.util.List<DisplayMetric> metrics=controlMetrics();metrics.removeIf(m->m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE||ChargingVisibility.isChargingMetric(m));
-    if(metrics.isEmpty()){rail.addView(text(tr("在设置选择数据","Choose data in Settings"),9,muted,false));return rail;}
-    for(int i=0;i<metrics.size();i+=2){LinearLayout row=row();for(int k=i;k<Math.min(i+2,metrics.size());k++){
-      DisplayMetric metric=metrics.get(k);LinearLayout cell=column();cell.setGravity(Gravity.CENTER);
-      TextView label=text(metric.shortLabel(AppPreferences.english(this)),7,muted,false);label.setGravity(Gravity.CENTER);fitSingleLine(label,7);
-      TextView value=liveText(()->(compact?metric.shortLabel(AppPreferences.english(this))+" ":"")+metric.value(this,model.snapshot,true,AppPreferences.english(this)),compact?8:10,ink,false);value.setGravity(Gravity.CENTER);value.setTag("home_value_"+metric.id);
-      cell.addView(value,new LinearLayout.LayoutParams(-1,0,1));if(!compact)cell.addView(label,new LinearLayout.LayoutParams(-1,0,1));
-      click(cell,()->info(metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this))));row.addView(cell,new LinearLayout.LayoutParams(0,-1,1));}
-      rail.addView(row,new LinearLayout.LayoutParams(-1,0,1));}
+    TextView title=text(tr("详细数据","Details"),11,ink,false);title.setGravity(Gravity.CENTER);title.setTypeface(buttonTypeface());rail.addView(title,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(2)));
+    java.util.List<DisplayMetric> metrics=controlMetrics();
+    metrics.removeIf(m->m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE||ChargingVisibility.isChargingMetric(m));
+    // Prioritise TM, distance and energy; all remaining metrics stay on the vehicle-data page.
+    java.util.List<DisplayMetric> priority=java.util.Arrays.asList(DisplayMetric.TM_DISTANCE,
+        DisplayMetric.TM_CONSUMPTION,DisplayMetric.TM_SPEED,DisplayMetric.ODOMETER,
+        DisplayMetric.TA_DISTANCE,DisplayMetric.TA_CONSUMPTION,DisplayMetric.TA_SPEED);
+    metrics.sort((a,b)->{
+      int ia=priority.indexOf(a),ib=priority.indexOf(b);
+      return Integer.compare(ia<0?100+a.ordinal():ia,ib<0?100+b.ordinal():ib);
+    });
+    if(metrics.isEmpty()){rail.addView(text(tr("在设置选择数据","Choose data in Settings"),10,muted,false));return rail;}
+    int limit=Math.min(metrics.size(),compact?5:7);
+    for(int i=0;i<limit;i++){
+      final DisplayMetric metric=metrics.get(i);
+      LinearLayout cell=column();cell.setGravity(Gravity.CENTER_VERTICAL);
+      TextView label=text(metric.shortLabel(AppPreferences.english(this)),compact?8:9,muted,false);
+      label.setGravity(Gravity.CENTER);label.setSingleLine(true);fitSingleLine(label,compact?8:9);
+      TextView value=liveText(()->metric.value(this,model.snapshot,true,AppPreferences.english(this)),compact?11:13,ink,true);
+      value.setGravity(Gravity.CENTER);value.setTag("home_value_"+metric.id);
+      cell.addView(label,new LinearLayout.LayoutParams(-1,-2));
+      cell.addView(value,new LinearLayout.LayoutParams(-1,-2));
+      click(cell,()->info(metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this))));
+      rail.addView(cell,new LinearLayout.LayoutParams(-1,0,1));
+    }
     return rail;
   }
 
@@ -960,7 +997,7 @@ public final class MainActivity extends FragmentActivity {
     data.addView(bar,new LinearLayout.LayoutParams(-1,dp(3)));
     top.addView(data,new LinearLayout.LayoutParams(0,-1,.78f));
 
-    VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");
+    VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");bindDashboard(()->car.setSnapshot(model.snapshot));
     car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));click(car,this::carStatusDialog);
     car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);
     top.addView(car,new LinearLayout.LayoutParams(0,-1,1.22f));
@@ -1159,8 +1196,8 @@ public final class MainActivity extends FragmentActivity {
 
   private LinearLayout vehicleVisual() {
     LinearLayout box=column();
-    ImageView car=new VehicleHeroView(this);
-    car.setTag("polestar_vehicle");
+    VehicleHeroView car=new VehicleHeroView(this);
+    car.setTag("polestar_vehicle");bindDashboard(()->car.setSnapshot(model.snapshot));
     car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);
     car.setContentDescription(tr("查看车门与车窗状态","View doors and windows")); click(car,this::carStatusDialog);
     box.addView(car,new LinearLayout.LayoutParams(-1,0,1));
@@ -1168,7 +1205,7 @@ public final class MainActivity extends FragmentActivity {
     ImageView symbol=new ImageView(this); symbol.setTag("health_symbol");
     boolean compact=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp
         ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
-    int summarySp=UiSkin.PS_DEFAULT.equals(UiSkin.get(this))?11:compact?15:24;
+    int summarySp=UiSkin.PS_DEFAULT.equals(UiSkin.get(this))?(compact?18:26):compact?15:24;
     TextView label=goodText("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);
     health.addView(symbol,new LinearLayout.LayoutParams(dp(18),dp(18)));
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.leftMargin=dp(5);health.addView(label,lp);
@@ -1964,7 +2001,10 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"light_effects",tr("界面光效总开关","UI light effects"),true,false);
       settingToggle(p,"all_good_shimmer",tr("All Good！慢速光效（省电模式自动关闭）","All Good! gentle sweep (off in battery saver)"),true,false);
       settingToggle(p,"charging_animation",tr("充电文字框缓慢流光","Gentle charging-card sweep"),true,false);
-      setting(p,tr("按键震动 · 开关与强度","Button haptics · switch and strength"),this::hapticsDialog);
+      settingToggle(p,"page_transition",tr("底栏切换 · 轻量毛玻璃快速渐变","Fast frosted page transition"),true,false);
+       setting(p,tr("车辆动态效果 · 粒子 / 空调气流 / 参数","Vehicle animation · particles and airflow"),()->startActivity(new Intent(this,VehicleEffectsActivity.class)));
+       setting(p,tr("全功能测试模式 · 离线模拟，不发送指令","Test mode · offline simulation only"),()->startActivity(new Intent(this,VehicleSimulationActivity.class)));
+       setting(p,tr("按键震动 · 开关与强度","Button haptics · switch and strength"),this::hapticsDialog);
       settingToggle(p,"volike_simple_labels",tr("VoLike 显示按钮文字","VoLike control labels"),true,false);
     });
     disclosure(root,"settings_home",tr("首页与车况数据","Home and vehicle data"),false,p->{

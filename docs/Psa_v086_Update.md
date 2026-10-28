@@ -1,6 +1,6 @@
 # Psa v0.8.6 beta1 更新说明
 
-版本：**0.8.6-beta1 / versionCode 87**  
+版本：**0.8.6-beta1 / versionCode 88**  
 分支：`feature/android-standalone-v086-hardening-20261028`
 
 ## 单 APK 独立运行加固

@@ -12,6 +12,9 @@ on:
       - 'scripts/**'
       - 'docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md'
       - '.github/workflows/android-apk.yml'
+  pull_request:
+    branches:
+      - android-polestar-assistant-main
   workflow_dispatch:
 jobs:
   assemble-debug:

@@ -12,17 +12,13 @@ public class VehicleArtV090Test {
    assertEquals(5,VehicleArt.TYPES.length);
    assertEquals(5,VehicleArt.variants("overhead").length);
    assertEquals(5,VehicleArt.variants("three_quarter").length);
-   assertEquals(7,VehicleArt.variants("side").length);
+   assertEquals(2,VehicleArt.variants("side").length);
    for(String type:VehicleArt.TYPES)for(String variant:VehicleArt.variants(type)){
      assertEquals(type,VehicleArt.type(variant));
      assertNotEquals(0,VehicleArt.drawable(variant,false,true,false));
    }
    assertEquals(R.drawable.vehicle_hero,VehicleArt.drawable("angled_original",false,true,false));
-   assertEquals(2,VehicleArt.MODELS.length);
-   assertEquals(2,VehicleArt.types(VehicleArt.POLESTAR_5).length);
-   assertEquals(4,VehicleArt.variants("side",VehicleArt.POLESTAR_5).length);
-   assertEquals("side",VehicleArt.type("p5_side_snow"));
-   assertEquals(R.drawable.official_p5_angle_snow,VehicleArt.drawable("p5_side_snow",false,true,false));
+   assertEquals(1,VehicleArt.MODELS.length);
  }
  @Test public void independentDayNightSettingsAreAppliedToDashboard(){
    Context c=RuntimeEnvironment.getApplication();
@@ -50,14 +46,12 @@ public class VehicleArtV090Test {
    assertEquals(R.drawable.vehicle_top,VehicleArt.dashboard(c));
    assertEquals(0,VehicleArt.portraitRotation(c));
  }
- @Test public void polestarFiveModelOnlyShowsVerifiedOfficialViews(){
+ @Test public void removedModelPreferencesFallBackToPolestarTwo(){
    Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"ui_skin",UiSkin.SIMPLE);
-   AppPreferences.set(c,"theme","light");
-   AppPreferences.set(c,VehicleArt.modelKey(false),VehicleArt.POLESTAR_5);
-   AppPreferences.set(c,VehicleArt.selectionKey(false),"auto");
-   assertEquals(R.drawable.official_p5_angle_snow,VehicleArt.dashboard(c));
-   AppPreferences.set(c,VehicleArt.selectionKey(false),"top_white");
-   assertEquals("auto",VehicleArt.key(c)); // No Polestar 2 roof passed off as Polestar 5
+   AppPreferences.set(c,"theme","light");AppPreferences.set(c,VehicleArt.modelKey(false),"ps5");
+   AppPreferences.set(c,VehicleArt.selectionKey(false),"p5_snow");
+   assertEquals("ps2",VehicleArt.model(c));assertEquals(1,VehicleArt.MODELS.length);
+   assertEquals("auto",VehicleArt.key(c));assertEquals(R.drawable.psa_vehicle_top_white,VehicleArt.dashboard(c));
  }
  @Test public void widgetImagesAndColorsAreSelectable(){
    Context c=RuntimeEnvironment.getApplication();

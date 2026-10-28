@@ -18,20 +18,21 @@ public final class VehicleSimulationActivity extends Activity {
   private final Map<String,String> mockCommands=new LinkedHashMap<>();
   private String tr(String zh,String en){return AppPreferences.tr(this,zh,en);}
   private int dp(int x){return (int)(getResources().getDisplayMetrics().density*x+.5f);}
-  private VehicleEffectSettings.Mode mode(){
-    if(!"live".equals(dataPhase))return VehicleEffectSettings.Mode.NONE;
+  private EffectStateController.Mode mode(){
+    if(!"live".equals(dataPhase))return EffectStateController.Mode.OFF;
     if("active".equals(chargePhase)||"auto".equals(chargePhase)&&Boolean.TRUE.equals(toggles.get("charge")))
-      return VehicleEffectSettings.Mode.CHARGING;
-    if(Boolean.TRUE.equals(toggles.get("cool")))return VehicleEffectSettings.Mode.COOLING;
-    if(Boolean.TRUE.equals(toggles.get("heat")))return VehicleEffectSettings.Mode.HEATING;
-    if(Boolean.TRUE.equals(toggles.get("vent"))||Boolean.TRUE.equals(toggles.get("air")))return VehicleEffectSettings.Mode.VENTILATION;
-    return VehicleEffectSettings.Mode.NONE;
+      return EffectStateController.Mode.CHARGING;
+    if(Boolean.TRUE.equals(toggles.get("cool")))return EffectStateController.Mode.COOLING;
+    if(Boolean.TRUE.equals(toggles.get("heat")))return EffectStateController.Mode.HEATING;
+    if(Boolean.TRUE.equals(toggles.get("air")))return EffectStateController.Mode.PURIFICATION;
+    if(Boolean.TRUE.equals(toggles.get("vent")))return EffectStateController.Mode.VENTILATION;
+    return EffectStateController.Mode.OFF;
   }
   private String enabled(String key) {
     return Boolean.TRUE.equals(toggles.get(key))?tr("开启","On"):tr("关闭","Off");
   }
   private void update(){
-    hero.preview(mode());
+    hero.setPreviewMode(mode());
     StringBuilder line=new StringBuilder(tr("【离线模拟】没有任何真实车辆请求","[OFFLINE SIMULATION] No vehicle requests"));
     line.append("\nSOC ").append(soc).append("% · ")
         .append(tr("动效 ","Visual effect ")).append(mode());
@@ -126,7 +127,7 @@ public final class VehicleSimulationActivity extends Activity {
     title.setTextColor(PsaDesign.ink(AppPreferences.dark(this)));page.addView(title);
     TextView note=new TextView(this);note.setText(tr("此页面所有开关仅修改本地模拟画面，无登录、API、远控或真实车辆写入。","All switches modify this local simulation only. No login, API calls, remote commands, or vehicle writes."));
     note.setTextSize(12);note.setTextColor(PsaDesign.muted(AppPreferences.dark(this)));page.addView(note);
-    hero=new VehicleHeroView(this);page.addView(hero,new LinearLayout.LayoutParams(-1,dp(225)));
+    hero=new VehicleHeroView(this,true);page.addView(hero,new LinearLayout.LayoutParams(-1,dp(225)));
     summary=new TextView(this);summary.setTextSize(15);summary.setPadding(dp(6),dp(6),dp(6),dp(9));
     summary.setTextColor(PsaDesign.ink(AppPreferences.dark(this)));page.addView(summary);
     TextView battery=new TextView(this);battery.setText(tr("模拟电量 · SOC","Simulated battery SOC"));battery.setTextSize(14);
@@ -177,5 +178,7 @@ public final class VehicleSimulationActivity extends Activity {
     page.addView(refresh);
     update();
   }
+  @Override protected void onResume(){super.onResume();AllGoodTextView.host(findViewById(android.R.id.content),true);}
+  @Override protected void onPause(){AllGoodTextView.host(findViewById(android.R.id.content),false);super.onPause();}
   @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);super.onDestroy();}
 }

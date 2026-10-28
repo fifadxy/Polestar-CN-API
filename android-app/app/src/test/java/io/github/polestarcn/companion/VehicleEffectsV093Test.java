@@ -1,47 +1,15 @@
 package io.github.polestarcn.companion;
 import static org.junit.Assert.*;
-import android.content.Context;
-import java.lang.reflect.Field;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
-import org.robolectric.annotation.Config;
-/** The master effect switch must stop even an explicit settings-page preview. */
-@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
+import android.content.Context;import android.view.View;
+import org.junit.Test;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import org.robolectric.annotation.GraphicsMode;
+/** Preserve v093 master-switch and five-style regression intent on the unified renderer. */
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28,qualifiers="w360dp-h780dp-mdpi") @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public final class VehicleEffectsV093Test {
-  @Test public void masterSwitchStopsPreviewAndCanBeRestored() throws Exception {
-    Context context=RuntimeEnvironment.getApplication();
-    context.getSharedPreferences("preferences",0).edit().clear().commit();
-    VehicleHeroView view=new VehicleHeroView(context);
-    Field field=VehicleHeroView.class.getDeclaredField("renderer");
-    field.setAccessible(true);
-    VehicleEffectRenderer engine=(VehicleEffectRenderer)field.get(view);
-    view.preview(VehicleEffectSettings.Mode.CHARGING);
-    assertTrue(engine.active());
-    AppPreferences.set(context,"effect_enabled","off");
-    view.reloadEffectSettings();
-    assertFalse(engine.active());
-    AppPreferences.set(context,"effect_enabled","on");
-    view.reloadEffectSettings();
-    assertTrue(engine.active());
-    view.preview(VehicleEffectSettings.Mode.NONE);
-    assertFalse(engine.active());
-  }
-  @Test public void fiveStylesAllowBothDirectionsAndClampParameters(){
-    Context c=RuntimeEnvironment.getApplication();
-    c.getSharedPreferences("preferences",0).edit().clear().commit();
-    for(String style:new String[]{"C1a","C1d","C1+a","C1+d","C1+c"}){
-      AppPreferences.set(c,"effect_charge_style",style);
-      assertEquals(style,VehicleEffectSettings.style(c));
-      for(String direction:new String[]{"rise","absorb"}){
-        AppPreferences.set(c,"effect_charge_direction",direction);
-        assertEquals("absorb".equals(direction),VehicleEffectSettings.absorption(c));
-      }
-    }
-    AppPreferences.set(c,"effect_particles","200");
-    assertEquals(150,VehicleEffectSettings.count(c));
-    AppPreferences.set(c,"effect_speed","10");
-    assertEquals(.5f,VehicleEffectSettings.speed(c),.001f);
-  }
+ @Test public void masterSwitchStopsPreviewAndCanBeRestored(){
+  Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();
+  org.robolectric.android.controller.ActivityController<VehicleEffectsActivity> controller=Robolectric.buildActivity(VehicleEffectsActivity.class).setup();View root=controller.get().getWindow().getDecorView();root.measure(View.MeasureSpec.makeMeasureSpec(360,1073741824),View.MeasureSpec.makeMeasureSpec(780,1073741824));root.layout(0,0,360,780);VehicleHeroView hero=(VehicleHeroView)root.findViewWithTag("effect_test_preview");hero.setEffectsHostActive(true);assertTrue(hero.effectsRunning());
+  AppPreferences.set(c,"light_effects","off");org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();assertFalse(hero.effectsRunning());
+  AppPreferences.set(c,"light_effects","on");org.robolectric.shadows.ShadowLooper.shadowMainLooper().idle();assertTrue(hero.effectsRunning());hero.setPreviewMode(EffectStateController.Mode.OFF);assertFalse(hero.effectsRunning());controller.pause().stop().destroy();
+ }
+ @Test public void fiveStylesAllowBothDirectionsAndClampParameters(){Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();for(int i=0;i<5;i++){AppPreferences.set(c,"fx_style",EffectSettings.STYLES[i]);assertEquals(i,new EffectSettings(c).style);for(String direction:new String[]{"up","absorb"}){AppPreferences.set(c,"fx_direction",direction);assertEquals("absorb".equals(direction),new EffectSettings(c).absorb);}}AppPreferences.set(c,"fx_particles","200");assertEquals(150,new EffectSettings(c).particles);AppPreferences.set(c,"fx_charge_speed","10");assertEquals(.5f,new EffectSettings(c).chargeSpeed,.001f);}
 }

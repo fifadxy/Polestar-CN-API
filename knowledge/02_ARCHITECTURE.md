@@ -111,3 +111,8 @@ AppIcons统一alias切换、日夜资源、通知与Widget标识；MainActivity�
 ## v0.9.2 当前增量
 
 新增EnergyLog SQLite与EnergyActivity，仅后台串行读写，UI分桶图表。
+
+
+## v0.9.4 当前增量
+
+VehicleHeroView复用FIT_CENTER车辆和原生Canvas固定池；VehicleEffectsActivity是纯本地模拟页，未接入VehicleCoordinator。详情见KB36。

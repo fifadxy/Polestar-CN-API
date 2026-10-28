@@ -1,3 +1,7 @@
+## 2026-10-28 / v0.9.4-beta1
+
+原生充电/气流及独立测试页（17项自动循环）、容量设置、All Good！字号、去底图库与清理极星5，详见[KB36](36_V094_NATIVE_EFFECTS_ASSETS.md)。当前不启用R8，不改API或登录。合并5720c9b最新v0.9.3主线，Debug/Preview各273项通过，Lint无错误；见Psa_v094_Validation。
+
 ## 2026-10-27 / v0.8.2-beta1 — VoLike 参考布局收敛
 
 - `REFERENCE_LAYOUT`：继续基于 v0.8.1-beta1 / Run #104 成功基线，不改 China API、远控、安全确认、停车 LBS 和 Widget 逻辑。VoLike 竖屏从“车辆大卡 + 下方四控制”改为用户参考图的“顶部能源条 + 左侧纵向圆形控制 + 中间 Polestar 2 顶视车辆”。

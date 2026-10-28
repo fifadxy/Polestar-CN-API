@@ -1,3 +1,5 @@
+[当前v0.9.4 · 原生动效、离线测试、容量和透明资源](36_V094_NATIVE_EFFECTS_ASSETS.md) · versionCode95。此页优先于历史图库和字体约定。
+
 [当前v0.9.2 · 本地能耗、刷新与状态](35_V092_ENERGY_REFRESH_STATUS.md) · versionCode93。
 
 [最新 Android v0.9.1 · 高清 PNG 车图及远控回读](../docs/Psa_v091_PNG_And_Command_Readback.md)：恢复默认黑白车图、加入极星 2/5 分车型图库，5/10/15/18/26 秒五次读回与连续三次确认；公开 CI 缺私有配置不能实车登录。

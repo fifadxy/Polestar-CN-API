@@ -1,3 +1,7 @@
+## v0.9.4 追加
+
+新增VehicleEffectsV094Test原生Canvas/生命周期/状态/字体/容量/Alpha回归；完整包沿用v0.9.2私有配置及签名。PNG去底母版与包内无损WebP的完整RGBA相等。测试与APK体积见本次[验收](../docs/Psa_v094_Validation.md)。没有实车登录、写操作或耗电实测。
+
 # 05｜构建、静态校验与设备验证
 
 ## 工程版本

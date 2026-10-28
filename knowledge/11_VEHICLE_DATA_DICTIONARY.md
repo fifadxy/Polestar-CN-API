@@ -82,3 +82,8 @@ Widget剩余时间显示继续使用EnvironmentSnapshot.climateRuntimeMinutes（
 ## v0.9.2 当前增量
 
 能耗日志只保存当前已有字段；SOC差×0.71，TM累计能量约等于TMkm×TM平均kWh/100km，不是新API实测总能量。
+
+
+## v0.9.4 当前增量
+
+battery_capacity_kwh是用户本地估算参数（10–200kWh，默认71），不是API测得容量。1%=该值/100；驻车历史SOC重估，TM行驶推导不按容量缩放。

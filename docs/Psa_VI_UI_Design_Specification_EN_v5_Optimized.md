@@ -682,3 +682,8 @@ The optimized 22-page PDF specifically revises the widget pages to avoid collisi
 ## Psa Android v0.8.4 user-approved amendment
 
 The monochrome front-car master, launcher/notification rules, lock/tailgate glyphs and icon-free equal-size condition/camping buttons now follow [Psa Icon Specification v2](Psa_Icon_Design_Specification_v2.md). This supersedes conflicting earlier launcher-icon guidance; protocol and consent behavior follow [v0.8.4](Psa_v084_Update.md).
+
+
+## Psa v0.9.4 motion and typography amendment
+
+[Native motion and offline test specification](Psa_v094_Effects_And_Assets.md) supersedes previous motion and gallery notes. PS Default uses the battery percentage type size for All Good!; other skins enlarge the status label without wrapping. Solid orange charging particles, blue cooling, orange heating, green laminar ventilation/purification, and neutral live climate without a verified mode field. Native fixed pools only; pause hidden/background/power saver/system-disabled animation. Settings provide local simulation, 18-case autoplay, and immediate parameter controls, with no vehicle commands. Lossless alpha image resources retain source aspect ratio and do not change vehicle opacity.

@@ -440,28 +440,7 @@ public final class MainActivity extends FragmentActivity {
     }
     shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(compactNav ? 52 : 64)));
     disableSystemHaptics(shell);setContentView(shell);
-    boolean transition=transitionRequested&&AppPreferences.visible(this,"page_transition",true)
-        &&android.animation.ValueAnimator.areAnimatorsEnabled();
-    transitionRequested=false;
-    if(transition){
-      final LinearLayout transitioningShell=shell;
-      transitioningShell.setAlpha(.80f);
-      android.graphics.drawable.GradientDrawable frost=new android.graphics.drawable.GradientDrawable(
-          android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-          AppPreferences.dark(this)
-              ?new int[]{android.graphics.Color.argb(80,35,39,45),android.graphics.Color.argb(25,35,39,45),android.graphics.Color.TRANSPARENT}
-              :new int[]{android.graphics.Color.argb(75,240,242,246),android.graphics.Color.argb(25,240,242,246),android.graphics.Color.TRANSPARENT});
-      transitioningShell.setForeground(frost);
-      if(android.os.Build.VERSION.SDK_INT>=31){
-        transitioningShell.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(dp(5),dp(5),android.graphics.Shader.TileMode.CLAMP));
-        transitioningShell.postDelayed(()->transitioningShell.setRenderEffect(null),55);
-      }
-      android.animation.ValueAnimator fade=android.animation.ValueAnimator.ofInt(210,0);
-      fade.setDuration(170);
-      fade.addUpdateListener(a->{frost.setAlpha((int)a.getAnimatedValue());transitioningShell.invalidate();});
-      fade.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){transitioningShell.setForeground(null);}});
-      fade.start();transitioningShell.animate().alpha(1f).setDuration(165).start();
-    }
+    if(transitionRequested)PageTransition.play(shell);transitionRequested=false;
   }
 
   private void disableSystemHaptics(View view) {
@@ -801,7 +780,7 @@ public final class MainActivity extends FragmentActivity {
         // every remote-control tile remains at least 48–60dp and fully visible.
         if(detailed){
           body.addView(voEnergyStrip(false,true),new LinearLayout.LayoutParams(-1,Math.max(dp(48),textLineHeight(17)+dp(18))));
-          LinearLayout stage=column();stage.setTag("volike_hero");LinearLayout content=row();VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");bindDashboard(()->car.setSnapshot(model.snapshot));car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));click(car,this::carStatusDialog);car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);content.addView(car,new LinearLayout.LayoutParams(0,-1,1));content.addView(voDetailRail(true),new LinearLayout.LayoutParams(dp(142),-1));stage.addView(content,new LinearLayout.LayoutParams(-1,0,1));stage.addView(voStatusStrip(true),new LinearLayout.LayoutParams(-1,dp(26)));body.addView(stage,new LinearLayout.LayoutParams(-1,0,1));
+          LinearLayout stage=column();stage.setTag("volike_hero");LinearLayout content=row();VehicleHeroView car=new VehicleHeroView(this);car.setTag("polestar_vehicle");car.setContentDescription(tr("查看车门与车窗状态","View doors and windows"));click(car,this::carStatusDialog);car.setVisibility(AppPreferences.visible(this,"show_car",true)?View.VISIBLE:View.INVISIBLE);content.addView(car,new LinearLayout.LayoutParams(0,-1,1));content.addView(voDetailRail(true),new LinearLayout.LayoutParams(dp(142),-1));stage.addView(content,new LinearLayout.LayoutParams(-1,0,1));stage.addView(voStatusStrip(true),new LinearLayout.LayoutParams(-1,Math.max(dp(26),textLineHeight(14)+dp(4))));body.addView(stage,new LinearLayout.LayoutParams(-1,0,1));
         }else body.addView(voHero(false),new LinearLayout.LayoutParams(
             -1,dp(compact?150:170),1));
         addChargingSection(body,compact);
@@ -876,7 +855,7 @@ public final class MainActivity extends FragmentActivity {
     if(detailed) middle.addView(voDetailRail(compact),
         new LinearLayout.LayoutParams(dp(compact?108:126),-1));
     stage.addView(middle,new LinearLayout.LayoutParams(-1,0,1));
-    stage.addView(voStatusStrip(compact),new LinearLayout.LayoutParams(-1,dp(compact?26:30)));
+    stage.addView(voStatusStrip(compact),new LinearLayout.LayoutParams(-1,Math.max(dp(compact?26:30),textLineHeight(compact?14:18)+dp(4))));
     return stage;
   }
 
@@ -958,8 +937,8 @@ public final class MainActivity extends FragmentActivity {
   private LinearLayout voStatusStrip(boolean compact) {
     LinearLayout statusRow=row();statusRow.setTag("vehicle_status_button");statusRow.setGravity(Gravity.CENTER_VERTICAL);
     ImageView symbol=new ImageView(this);symbol.setTag("health_symbol");statusRow.addView(symbol,new LinearLayout.LayoutParams(dp(16),dp(16)));
-    TextView label=goodText(tr("车况","Status"),compact?9:10,ink,true);
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-1);lp.leftMargin=dp(5);statusRow.addView(label,lp);
+    TextView label=goodText(tr("车况","Status"),compact?14:18,ink,true);
+    label.setSingleLine(true);label.setMaxWidth(dp(180));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-1);lp.leftMargin=dp(5);statusRow.addView(label,lp);
     View spacer=new View(this);statusRow.addView(spacer,new LinearLayout.LayoutParams(0,1,1));
     TextView summary=text("",compact?7:8,muted,false);summary.setSingleLine(true);summary.setEllipsize(android.text.TextUtils.TruncateAt.END);
     statusRow.addView(summary,new LinearLayout.LayoutParams(0,-1,1.7f));
@@ -1005,8 +984,8 @@ public final class MainActivity extends FragmentActivity {
 
     LinearLayout statusRow=row();statusRow.setTag("vehicle_status_button");statusRow.setGravity(Gravity.CENTER_VERTICAL);
     ImageView symbol=new ImageView(this);symbol.setTag("health_symbol");statusRow.addView(symbol,new LinearLayout.LayoutParams(dp(17),dp(17)));
-    TextView label=goodText(tr("车况","Status"),landscape?10:12,ink,true);
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-1);lp.leftMargin=dp(5);statusRow.addView(label,lp);
+    TextView label=goodText(tr("车况","Status"),landscape?14:18,ink,true);
+    label.setSingleLine(true);label.setMaxWidth(dp(180));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-1);lp.leftMargin=dp(5);statusRow.addView(label,lp);
     View spacer=new View(this);statusRow.addView(spacer,new LinearLayout.LayoutParams(0,1,1));
     TextView summary=text("",landscape?8:9,muted,false);summary.setSingleLine(true);summary.setEllipsize(android.text.TextUtils.TruncateAt.END);
     statusRow.addView(summary,new LinearLayout.LayoutParams(0,-1,1.6f));
@@ -1022,7 +1001,7 @@ public final class MainActivity extends FragmentActivity {
           +(model.snapshot==null?"--":status(model.snapshot.windows)));
       statusRow.setContentDescription(tr("车况","Status")+" · "+VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()));
     });
-    hero.addView(statusRow,new LinearLayout.LayoutParams(-1,dp(landscape?26:32)));
+    hero.addView(statusRow,new LinearLayout.LayoutParams(-1,Math.max(dp(landscape?26:32),textLineHeight(landscape?14:18)+dp(4))));
     return hero;
   }
 
@@ -1205,8 +1184,8 @@ public final class MainActivity extends FragmentActivity {
     ImageView symbol=new ImageView(this); symbol.setTag("health_symbol");
     boolean compact=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp
         ||getResources().getConfiguration().screenHeightDp<680||getResources().getConfiguration().fontScale>1.2f;
-    int summarySp=UiSkin.PS_DEFAULT.equals(UiSkin.get(this))?(compact?18:26):compact?15:24;
-    TextView label=goodText("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);
+    int summarySp=compact?18:30;
+    TextView label=goodText("",summarySp,accentText(),true);label.setMaxLines(1);label.setSingleLine(true);if(getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp)label.setAutoSizeTextTypeUniformWithConfiguration(12,summarySp,1,android.util.TypedValue.COMPLEX_UNIT_SP);
     health.addView(symbol,new LinearLayout.LayoutParams(dp(18),dp(18)));
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.leftMargin=dp(5);health.addView(label,lp);
     click(health,this::vehicleStatusDialog);health.setContentDescription(tr("查看车况","View vehicle status"));
@@ -1838,27 +1817,8 @@ public final class MainActivity extends FragmentActivity {
     click(hint,()->info(title,detail));parent.addView(row);gap(parent,4);
   }
 
-  /** Models -> view types -> verified original PNG colors. Day/night are independent. */
-  private void vehicleArtDialog(boolean night){
-    LinearLayout panel=column();panel.setPadding(dp(10),dp(8),dp(10),dp(8));
-    final AlertDialog[] dialog={null};
-    for(String model:VehicleArt.MODELS){
-      boolean checked=model.equals(VehicleArt.modelFor(this,night));
-      LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);entry.setPadding(dp(8),dp(6),dp(8),dp(6));
-      ImageView preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
-      preview.setImageResource(VehicleArt.drawable(VehicleArt.POLESTAR_5.equals(model)?"p5_side_snow":"top_original",night,true,false));
-      entry.addView(preview,new LinearLayout.LayoutParams(dp(105),dp(62)));
-      TextView label=text(VehicleArt.modelLabel(this,model)+(checked?" ✓":""),14,ink,true);
-      label.setPadding(dp(10),0,0,0);entry.addView(label,new LinearLayout.LayoutParams(0,-2,1));
-      GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),checked?orange:line);entry.setBackground(frame);
-      click(entry,()->{if(dialog[0]!=null)dialog[0].dismiss();vehicleArtTypeDialog(night,model);});
-      panel.addView(entry);gap(panel,8);
-    }
-    dialog[0]=new HapticDialogBuilder(this)
-        .setTitle(night?tr("夜间车辆 · 选择车型","Night car · choose model"):tr("白天车辆 · 选择车型","Day car · choose model"))
-        .setView(panel).setNegativeButton(tr("取消","Cancel"),null).create();
-    dialog[0].show();
-  }
+  /** View types -> high-resolution alpha gallery. Day/night are independent. */
+  private void vehicleArtDialog(boolean night){vehicleArtTypeDialog(night,VehicleArt.POLESTAR_2);}
 
   private void vehicleArtTypeDialog(boolean night,String model){
     LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
@@ -1868,8 +1828,6 @@ public final class MainActivity extends FragmentActivity {
     for(String viewType:VehicleArt.types(model)){
       String[] choices=VehicleArt.variants(viewType,model);
       String previewKey=viewType.equals(VehicleArt.type(current))&&model.equals(VehicleArt.modelFor(this,night))?current:choices[0];
-      if(VehicleArt.POLESTAR_5.equals(model)&&"auto".equals(previewKey))
-        previewKey=night?"p5_side_space":"p5_side_snow";
       boolean checked=model.equals(VehicleArt.modelFor(this,night))&&viewType.equals(VehicleArt.type(current));
       LinearLayout entry=row();entry.setGravity(Gravity.CENTER_VERTICAL);entry.setPadding(dp(8),dp(7),dp(8),dp(7));
       ImageView thumbnail=new ImageView(this);thumbnail.setImageResource(VehicleArt.drawable(previewKey,night,true,false));
@@ -1999,15 +1957,16 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"ui_data_bold",tr("数据文字加粗","Bold data values"),false,false);
       setting(p,tr("按钮反馈 · 内容 / 字号 / 粗细","Button feedback · content / size / weight"),this::feedbackDialog);
       settingToggle(p,"light_effects",tr("界面光效总开关","UI light effects"),true,false);
+      setting(p,tr("车辆动态效果 · 参数与全部测试","Vehicle effects · parameters and test all"),()->startActivity(new Intent(this,VehicleEffectsActivity.class)));
       settingToggle(p,"all_good_shimmer",tr("All Good！慢速光效（省电模式自动关闭）","All Good! gentle sweep (off in battery saver)"),true,false);
       settingToggle(p,"charging_animation",tr("充电文字框缓慢流光","Gentle charging-card sweep"),true,false);
       settingToggle(p,"page_transition",tr("底栏切换 · 轻量毛玻璃快速渐变","Fast frosted page transition"),true,false);
-       setting(p,tr("车辆动态效果 · 粒子 / 空调气流 / 参数","Vehicle animation · particles and airflow"),()->startActivity(new Intent(this,VehicleEffectsActivity.class)));
        setting(p,tr("全功能测试模式 · 离线模拟，不发送指令","Test mode · offline simulation only"),()->startActivity(new Intent(this,VehicleSimulationActivity.class)));
        setting(p,tr("按键震动 · 开关与强度","Button haptics · switch and strength"),this::hapticsDialog);
       settingToggle(p,"volike_simple_labels",tr("VoLike 显示按钮文字","VoLike control labels"),true,false);
     });
     disclosure(root,"settings_home",tr("首页与车况数据","Home and vehicle data"),false,p->{
+      setting(p,tr("车辆电池容量 · ","Battery capacity · ")+EnergyLog.capacity(this)+" kWh",this::batteryCapacityDialog);
       setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
@@ -2234,6 +2193,11 @@ public final class MainActivity extends FragmentActivity {
         .setPositiveButton(tr("关闭","Close"),null).show();
   }
 
+  private void batteryCapacityDialog(){
+    EditText input=new EditText(this);input.setTag("battery_capacity_input");input.setTextColor(ink);input.setInputType(8194);input.setText(""+EnergyLog.capacity(this));
+    android.app.AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("电池容量（kWh），默认71","Battery capacity (kWh), default 71")).setView(input).setPositiveButton(tr("保存","Save"),null).setNegativeButton(tr("取消","Cancel"),null).create();dialog.show();
+    dialog.getButton(-1).setOnClickListener(v->{Haptics.tap(this);try{double capacity=Double.parseDouble(input.getText().toString());if(!Double.isFinite(capacity)||capacity<10||capacity>200)throw new IllegalArgumentException();AppPreferences.set(this,"battery_capacity_kwh",""+capacity);dialog.dismiss();render();}catch(Exception e){input.setError(tr("请输入10–200kWh","Enter 10–200kWh"));}});
+  }
   private void energyHistory(){if(model.selected!=null)startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",VehicleCoordinator.identity(model.selected.vin)));else toast(tr("请先连接车辆","Connect a vehicle first"));}
   private void vehicleStatusDialog(){if(page!=3){statusReturnPage=page;statusScrollY=0;}page=3;render();}
   private void openStatusSection(String key){AppPreferences.set(this,"expand_"+key,"on");vehicleStatusDialog();ScrollView scroll=findViewById(android.R.id.content).findViewWithTag("status_scroll");View section=findViewById(android.R.id.content).findViewWithTag("disclosure_"+key);if(scroll!=null&&section!=null)scroll.post(()->scroll.smoothScrollTo(0,section.getTop()));}

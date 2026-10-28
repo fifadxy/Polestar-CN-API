@@ -8,6 +8,8 @@ public final class EnergyLog extends SQLiteOpenHelper {
  public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE samples(vehicle TEXT NOT NULL,t INTEGER NOT NULL,soc REAL,tm REAL,cons REAL,speed REAL,odo REAL,climate INTEGER,charge INTEGER,ac REAL NOT NULL,drive REAL NOT NULL,acvalid INTEGER NOT NULL,PRIMARY KEY(vehicle,t))");db.execSQL("CREATE INDEX sample_time ON samples(t)");}
  public void onUpgrade(SQLiteDatabase db,int old,int next){throw new IllegalStateException("Unsupported energy schema");}
  public static int months(Context c){try{return Math.max(1,Math.min(24,Integer.parseInt(AppPreferences.get(c,"energy_months","24"))));}catch(Exception e){return 24;}}
+ public static double capacity(Context c){try{double v=Double.parseDouble(AppPreferences.get(c,"battery_capacity_kwh","71"));return Double.isFinite(v)&&v>=10&&v<=200?v:71;}catch(Exception e){return 71;}}
+ public static double perPercent(Context c){return capacity(c)/100.;}
  public static double price(Context c){try{double v=Double.parseDouble(AppPreferences.get(c,"energy_price","0"));return Double.isFinite(v)&&v>=0&&v<=100?v:0;}catch(Exception e){return 0;}}
  public static void record(Context c,String vehicle,VehicleSnapshot s){if(s==null||s.isDemo||!"LIVE".equals(s.source)||vehicle==null||vehicle.isEmpty())return;Context app=c.getApplicationContext();WORK.execute(()->{try{get(app).append(vehicle,s);}catch(Exception e){DiagnosticLog.add("Energy observation not saved");}});}
  static Double number(Cursor r,int index){return r.isNull(index)?null:r.getDouble(index);}static void put(ContentValues v,String key,Double x){if(x!=null&&Double.isFinite(x))v.put(key,x);}

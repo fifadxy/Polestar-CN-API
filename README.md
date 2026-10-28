@@ -1,10 +1,12 @@
-当前版本：**v0.9.2-beta1 / 93**。详见[刷新、状态和本地能耗记录](docs/Psa_v092_Energy_History.md)。本增量优先于下方历史记录。
+当前版本：**v0.9.4-beta1 / 95**。设置新增全部动效离线测试（18项循环）、可调原生粒子/气流；电池容量默认71kWh可填，放大All Good！，清理车型及透明资源。详见[更新与设计规范](docs/Psa_v094_Effects_And_Assets.md)。本增量优先于下方历史说明。
+
+历史v0.9.2-beta1 / 93。详见[刷新、状态和本地能耗记录](docs/Psa_v092_Energy_History.md)。本增量优先于下方历史记录。
 
 当前交付说明：[v0.9.1 高清 PNG 车辆图库及车控回读](docs/Psa_v091_PNG_And_Command_Readback.md) · [v0.8.9 登录兼容](docs/Psa_v089_Login_Compatibility.md)。公开 CI Debug 缺私有配置时只能验证界面，完整发行包需有效的已有 PsAssistant 客户端配置和固定签名。
 
 # PsAssistant for Android
 
-当前版本：**v0.9.1-beta1**（versionCode 92）。安卓主分支：`android-polestar-assistant-main`，包名仍为 `io.github.polestarcn.companion`。
+历史v0.9.1-beta1（versionCode 92）。安卓主分支：`android-polestar-assistant-main`，包名仍为 `io.github.polestarcn.companion`。
 
 Android应用可选车辆轮廓、红色车辆、防滑图形三款图标，分别提供自动/日间/夜间启动器资源及透明单色通知图形；默认车辆轮廓。图形和安全区见[Psa图标规范v3](docs/Psa_Icon_Design_Specification_v3.md)。
 

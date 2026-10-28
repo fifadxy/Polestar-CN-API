@@ -84,3 +84,7 @@ print('PASS: v0.8.8 icon families, widget fan/runtime and short camping labels i
 assert '](35_V092_ENERGY_REFRESH_STATUS.md)' in index
 assert (root/'docs/Psa_v092_Energy_History.md').is_file()
 print('PASS: v092 bounded local energy and quiet refresh indexed')
+
+assert (kb / "36_V094_NATIVE_EFFECTS_ASSETS.md").is_file()
+assert (root / "docs/Psa_v094_Effects_And_Assets.md").is_file()
+print("PASS: v094 native effects, local test and capacity/asset rules indexed")

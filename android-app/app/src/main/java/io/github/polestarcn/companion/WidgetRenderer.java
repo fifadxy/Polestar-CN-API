@@ -167,7 +167,7 @@ public final class WidgetRenderer {
     for (int i = 0; i < rows.length; i++)
       views.setViewVisibility(rows[i], i < plan.rows && plan.count > 0 ? android.view.View.VISIBLE : android.view.View.GONE);
     views.setViewVisibility(R.id.widget_metrics, plan.count > 0 ? android.view.View.VISIBLE : android.view.View.GONE);
-    boolean progress = plan.progress && plan.count > 0 && (main.get(0) == DisplayMetric.BATTERY||pseu&&main.get(0)==DisplayMetric.RANGE);
+    boolean progress = AppPreferences.visible(c,"show_battery_bar",true) && plan.progress && plan.count > 0 && (main.get(0) == DisplayMetric.BATTERY||pseu&&main.get(0)==DisplayMetric.RANGE);
     views.setViewVisibility(R.id.widget_soc_progress, progress ? android.view.View.VISIBLE : android.view.View.GONE);
     if (progress) {
       Integer soc = s == null ? null : s.batteryPercent;
@@ -268,7 +268,7 @@ public final class WidgetRenderer {
         int[] roots={R.id.widget_action_lock,R.id.widget_action_climate,R.id.volike_widget_lock,R.id.volike_widget_climate,R.id.volike_widget_charge,R.id.volike_widget_location};
         String[] commands={"widget-lock","widget-unlock","widget-lock","widget-unlock","widget-climate-start","widget-climate-stop"};
         String[] names={en?"Lock":"锁车",en?"Unlock":"解锁",en?"Lock":"锁车",en?"Unlock":"解锁",en?"Start climate":"开启空调",en?"Stop climate":"关闭空调"};
-        for(int i=0;i<roots.length;i++){views.setOnClickPendingIntent(roots[i],pending(c,id,size,commands[i]));views.setContentDescription(roots[i],names[i]+(en?" · biometric verification":" · 生物验证"));}
+        for(int i=0;i<roots.length;i++){views.setOnClickPendingIntent(roots[i],pending(c,id,size,commands[i]));views.setContentDescription(roots[i],names[i]);}
       }
     }
     WidgetButtons.bind(views,c,id,size,s,ink,actionLimit);

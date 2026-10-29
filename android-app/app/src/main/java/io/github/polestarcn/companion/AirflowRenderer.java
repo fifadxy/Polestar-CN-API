@@ -14,11 +14,13 @@ final class AirflowRenderer {
    float t=(seconds*.20f*p.airSpeed*rate[i]+phase[i])%1f;
    float sx=start,sy=b.top+b.height()*(.04f+lane[i]*.92f),ex=end,ey=sy;
    if(p.airAbsorb){sx=(i%2==0?b.left-b.width()*.12f:b.right+b.width()*.12f);ex=b.centerX();ey=b.centerY()+(lane[i]-.5f)*b.height()*.38f;}
-   float x=sx+(ex-sx)*t,y=sy+(ey-sy)*t+(float)Math.sin(t*6.283f+i)*b.height()*.015f;
+   float x=sx+(ex-sx)*t,y=sy+(ey-sy)*t;
    float dx=ex-sx,dy=ey-sy,dist=(float)Math.sqrt(dx*dx+dy*dy);if(dist<1)continue;
-   float len=b.width()*(.07f+.065f*lane[i]);float ux=dx/dist,uy=dy/dist,tx=x-ux*len,ty=y-uy*len;
+   float ux=dx/dist,uy=dy/dist;
+   if(ParticleMotion.curved(i,p)){float amplitude=Math.min(b.width(),b.height())*p.arcPercent/100f;float offset=ParticleMotion.offset(t,i)*amplitude,derivative=ParticleMotion.slope(t,i)*amplitude;x-=uy*offset;y+=ux*offset;float tangentX=dx-uy*derivative,tangentY=dy+ux*derivative;float tangentLength=(float)Math.sqrt(tangentX*tangentX+tangentY*tangentY);if(tangentLength>1){ux=tangentX/tangentLength;uy=tangentY/tangentLength;}}
+   float particleScale=p.particleSizePercent/100f,len=b.width()*(.07f+.065f*lane[i])*(.75f+.25f*particleScale);float tx=x-ux*len,ty=y-uy*len;
    transform[0]=ux*len;transform[1]=-uy;transform[2]=tx;transform[3]=uy*len;transform[4]=ux;transform[5]=ty;matrix.setValues(transform);streak.setLocalMatrix(matrix);
-   float edge=Math.min(1,t*8)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1);paint.setAlpha((int)(Math.min(255,p.strength*2.2f)*edge*fade));paint.setStrokeWidth(density*(.9f+lane[i]*.85f));c.drawLine(tx,ty,x,y,paint);
+   float edge=Math.min(1,t*8)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1);paint.setAlpha((int)(Math.min(255,p.strength*2.2f)*edge*fade));paint.setStrokeWidth(density*(.9f+lane[i]*.85f)*particleScale);c.drawLine(tx,ty,x,y,paint);
   }
  }
 }

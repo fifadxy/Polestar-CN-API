@@ -9,8 +9,8 @@ final class ChargingParticleRenderer {
  void draw(Canvas c,RectF b,float portX,float portY,float seconds,float density,EffectSettings p,int budget,float fade){
   boolean soft=p.style==1||p.style==3;int count=Math.min(p.particles,budget);float margin=12*density;
   for(int i=0;i<count;i++){float t=(seconds*.25f*p.chargeSpeed*speed[i]+phase[i])%1f;
-   float px,py,radius=size[i]*density;
-   if(p.absorb){float angle=x[i]*6.283185f;float sx=b.centerX()+(b.width()*.58f+margin)*(float)Math.cos(angle),sy=b.centerY()+(b.height()*.65f+margin)*(float)Math.sin(angle);float u=t*t*(3-2*t);px=sx+(portX-sx)*u;py=sy+(portY-sy)*u;{float amount=p.style==4?.24f:p.style>=2?.09f:.025f;float arc=(float)Math.sin(t*Math.PI)*drift[i];px+=arc*b.width()*amount;py+=arc*b.height()*amount*2;}radius*=Math.min(1,(1-t)*3);}
+   float px,py,radius=size[i]*density*p.particleSizePercent/100f;
+   if(p.absorb){float angle=x[i]*6.283185f;float sx=b.centerX()+(b.width()*.58f+margin)*(float)Math.cos(angle),sy=b.centerY()+(b.height()*.65f+margin)*(float)Math.sin(angle);float u=t*t*(3-2*t);px=sx+(portX-sx)*u;py=sy+(portY-sy)*u;if(ParticleMotion.curved(i,p)){float dx=portX-sx,dy=portY-sy,dist=(float)Math.sqrt(dx*dx+dy*dy);float arc=ParticleMotion.offset(t,i+(p.style>=2?p.style*19:0))*Math.min(b.width(),b.height())*p.arcPercent/100f;if(dist>1){px-=dy/dist*arc;py+=dx/dist*arc;}}radius*=Math.min(1,(1-t)*3);}
    else{px=b.left+x[i]*b.width()+drift[i]*density*10*(float)Math.sin(t*6.28f);if(p.style>=2)px+=(b.centerX()-px)*.12f*(float)Math.sin(t*Math.PI);if(p.style==4)px+=drift[i]*24*density*(float)Math.sin(t*Math.PI);py=b.bottom+margin-(b.height()+2*margin)*t;}
    radius*=fade;if(radius<.15f*density)continue;
    if(soft){float r=radius*2.8f;transform.setScale(r,r);transform.postTranslate(px,py);glow.setLocalMatrix(transform);c.drawCircle(px,py,r,halo);}

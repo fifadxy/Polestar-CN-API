@@ -1,0 +1,11 @@
+<resources>
+  <string name="ui_widget_text_0" translatable="false">PsAssistant</string>
+  <string name="ui_widget_text_1" translatable="false">--</string>
+  <string name="ui_widget_text_2" translatable="false">Charging</string>
+  <string name="ui_widget_text_3" translatable="false">Door lock</string>
+  <string name="ui_widget_text_4" translatable="false">Climate</string>
+  <string name="ui_widget_text_5" translatable="false">Charging details</string>
+  <string name="ui_widget_text_6" translatable="false">Last parked location</string>
+  <string name="ui_widget_text_7" translatable="false">Parked location</string>
+  <string name="ui_widget_text_8" translatable="false">Polestar 2</string>
+</resources>

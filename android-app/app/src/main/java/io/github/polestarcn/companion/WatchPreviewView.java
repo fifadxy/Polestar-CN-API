@@ -14,6 +14,7 @@ public final class WatchPreviewView extends View {
   private boolean round = true;
   private int style = STYLE_VOLVO;
 
+ public WatchPreviewView(Context context){this(context,null);}
   public WatchPreviewView(Context context, VehicleSnapshot snapshot) {
     super(context);
     this.snapshot = snapshot;

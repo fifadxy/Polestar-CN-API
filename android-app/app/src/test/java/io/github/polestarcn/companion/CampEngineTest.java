@@ -65,7 +65,7 @@ public class CampEngineTest {
   @Test public void timeoutDoesNotReplayWrite() {
     Fixture f = new Fixture(); f.throwWrite = true; f.run();
     assertEquals(java.util.Collections.singletonList("climate-start"), f.writes);
-    assertEquals("CHECK_UNAVAILABLE", f.result);
+    assertEquals("WAITING_FOR_NETWORK", f.result);
   }
   @Test public void unconfirmedStartDoesNotProceedToAir() {
     Fixture f = new Fixture(); f.confirmed = false; f.run();

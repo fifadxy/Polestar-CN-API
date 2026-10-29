@@ -34,10 +34,10 @@ final class ParkingWebPreview {
     view=new FrameLayout(context);view.setTag("parking_web_preview");view.setBackgroundColor(PsaDesign.surface(dark));
     status=new TextView(context);status.setTextColor(PsaDesign.muted(dark));status.setTypeface(PsaDesign.regular());status.setTextSize(12);status.setPadding(12,8,12,8);
     try{
-      web=new WebView(context);web.setTag("parking_webview");web.setSaveEnabled(false);web.setSaveFromParentEnabled(false);web.setBackgroundColor(PsaDesign.surface(dark));
+      web=new WebView(context){@Override public boolean dispatchTouchEvent(android.view.MotionEvent event){if(getParent()!=null)getParent().requestDisallowInterceptTouchEvent(event.getActionMasked()!=android.view.MotionEvent.ACTION_UP&&event.getActionMasked()!=android.view.MotionEvent.ACTION_CANCEL);return super.dispatchTouchEvent(event);}};web.setTag("parking_webview");web.setSaveEnabled(false);web.setSaveFromParentEnabled(false);web.setBackgroundColor(PsaDesign.surface(dark));
       WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
       settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(false);
-      settings.setCacheMode(WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+      settings.setCacheMode(backdrop?WebSettings.LOAD_DEFAULT:WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
       settings.setSupportMultipleWindows(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setMediaPlaybackRequiresUserGesture(true);
       settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(false);
       CookieManager.getInstance().setAcceptCookie(false);CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
@@ -54,7 +54,7 @@ final class ParkingWebPreview {
         @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
           if(allowedPage(Uri.parse(url))){v.evaluateJavascript(compactScript(context),null);
             if(dark&&!backdrop)v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='html{background:#151a20!important}canvas,.amap-layer{filter:invert(.88) hue-rotate(180deg) brightness(.72) saturate(.55)!important}.common_bottom{background:#20262c!important;color:#dce2e7!important}';document.head.appendChild(s);})();",null);
-            if(backdrop){v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='.common_bottom,.common_top,.amap-controls,.amap-toolbar,.amap-marker,.amap-markers,.call_native_button_wrapper,header,nav,button,#psa-parking-distance{display:none!important}html,body{overflow:hidden!important;pointer-events:none!important}';document.head.appendChild(s);})();",ignored->{if(ready!=null)ready.run();});return;}
+            if(backdrop){int zoom=EffectSettings.number(context,"map_backdrop_zoom",16,10,19);v.evaluateJavascript("(function(){var m=window.map||window.amap||window.mapObj;if(m&&typeof m.setZoom==='function')m.setZoom("+zoom+");})();",null);v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='.common_bottom,.common_top,.amap-controls,.amap-toolbar,.amap-marker,.amap-markers,.call_native_button_wrapper,header,nav,button,#psa-parking-distance{display:none!important}html,body{overflow:hidden!important;pointer-events:none!important}';document.head.appendChild(s);})();",ignored->{if(ready!=null)ready.run();});return;}
 
             String distance=resourceScript(context,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,%s);",point.latitude,point.longitude,AppPreferences.english(context)?"true":"false","false");v.evaluateJavascript(distance,null);
             if(!autoPhoneRequested&&"on_open".equals(AppPreferences.get(context,"phone_location_refresh","manual"))){autoPhoneRequested=true;requestPhoneLocation();}
@@ -62,9 +62,8 @@ final class ParkingWebPreview {
         @Override public void onReceivedError(WebView v,WebResourceRequest request,WebResourceError error){if(request.isForMainFrame())fail();}
         @Override public void onReceivedHttpError(WebView v,WebResourceRequest request,WebResourceResponse error){if(request.isForMainFrame())fail();}
       });
-      web.setOnTouchListener((v,event)->{v.getParent().requestDisallowInterceptTouchEvent(event.getActionMasked()!=android.view.MotionEvent.ACTION_UP&&event.getActionMasked()!=android.view.MotionEvent.ACTION_CANCEL);return false;});
       view.addView(web,new FrameLayout.LayoutParams(-1,-1));
-      web.loadUrl(ParkingMapLinks.webUri(point,AppPreferences.tr(context,"最后停车位置","Last parked location")).toString());
+      web.loadUrl(ParkingMapLinks.webUri(point,AppPreferences.tr(context,"最后停车位置","Last parked location")).buildUpon().appendQueryParameter("zoom",String.valueOf(EffectSettings.number(context,"map_backdrop_zoom",16,10,19))).build().toString());
       handler.postDelayed(timeout,20_000L);
     }catch(RuntimeException unavailable){fail();}
     FrameLayout.LayoutParams message=new FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP);view.addView(status,message);
@@ -101,7 +100,7 @@ final class ParkingWebPreview {
   }
   void close(){
     if(closed)return;closed=true;phoneRequestAllowed=false;handler.removeCallbacksAndMessages(null);
-    if(web!=null){web.stopLoading();web.setWebChromeClient(null);web.setWebViewClient(new WebViewClient());web.loadUrl("about:blank");web.clearHistory();web.clearCache(true);web.clearFormData();view.removeView(web);web.destroy();web=null;}
+    if(web!=null){web.stopLoading();web.setWebChromeClient(null);web.setWebViewClient(new WebViewClient());web.loadUrl("about:blank");web.clearHistory();web.clearFormData();view.removeView(web);web.destroy();web=null;}
     try{WebStorage.getInstance().deleteAllData();}catch(RuntimeException unavailable){/* Missing WebView provider keeps external links available. */}
   }
 }

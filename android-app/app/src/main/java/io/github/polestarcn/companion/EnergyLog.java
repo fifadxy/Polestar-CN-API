@@ -2,16 +2,18 @@ package io.github.polestarcn.companion;
 import android.content.*;import android.database.Cursor;import android.database.sqlite.*;import java.util.*;import java.util.concurrent.*;
 /** Bounded, sampled observations, never a vehicle energy meter. All I/O uses WORK. */
 public final class EnergyLog extends SQLiteOpenHelper {
- public static final ExecutorService WORK=Executors.newSingleThreadExecutor();public static final double KWH_PER_PERCENT=.71;private static EnergyLog instance;
+ public static final ExecutorService WORK=Executors.newSingleThreadExecutor();public static final double KWH_PER_PERCENT=.71;@android.annotation.SuppressLint("StaticFieldLeak") private static EnergyLog instance; // Holds app context, never activity context.
  public static synchronized EnergyLog get(Context c){if(instance==null)instance=new EnergyLog(c.getApplicationContext());return instance;}
- private long lastPrune;private int inserts;private final Context c;private EnergyLog(Context c){super(c,"energy_history.db",null,1);this.c=c;setWriteAheadLoggingEnabled(true);}
+ private long lastPrune;private int inserts;private final android.app.Application c;private EnergyLog(Context c){super(c,"energy_history.db",null,1);this.c=(android.app.Application)c.getApplicationContext();setWriteAheadLoggingEnabled(true);}
  public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE samples(vehicle TEXT NOT NULL,t INTEGER NOT NULL,soc REAL,tm REAL,cons REAL,speed REAL,odo REAL,climate INTEGER,charge INTEGER,ac REAL NOT NULL,drive REAL NOT NULL,acvalid INTEGER NOT NULL,PRIMARY KEY(vehicle,t))");db.execSQL("CREATE INDEX sample_time ON samples(t)");}
  public void onUpgrade(SQLiteDatabase db,int old,int next){throw new IllegalStateException("Unsupported energy schema");}
+ public static boolean validVehicle(String id){return id!=null&&id.matches("[a-fA-F0-9]{8,64}");}
+ public synchronized List<String> vehicles(){List<String> ids=new ArrayList<>();try(Cursor r=getReadableDatabase().rawQuery("SELECT vehicle FROM samples GROUP BY vehicle ORDER BY MAX(t) DESC",null)){while(r.moveToNext()){String id=r.getString(0);if(validVehicle(id))ids.add(id);}}return ids;}
  public static int months(Context c){try{return Math.max(1,Math.min(24,Integer.parseInt(AppPreferences.get(c,"energy_months","24"))));}catch(Exception e){return 24;}}
  public static double capacity(Context c){try{double v=Double.parseDouble(AppPreferences.get(c,"battery_capacity_kwh","71"));return Double.isFinite(v)&&v>=10&&v<=200?v:71;}catch(Exception e){return 71;}}
  public static double perPercent(Context c){return capacity(c)/100.;}
  public static double price(Context c){try{double v=Double.parseDouble(AppPreferences.get(c,"energy_price","0"));return Double.isFinite(v)&&v>=0&&v<=100?v:0;}catch(Exception e){return 0;}}
- public static void record(Context c,String vehicle,VehicleSnapshot s){if(s==null||s.isDemo||!"LIVE".equals(s.source)||vehicle==null||vehicle.isEmpty())return;Context app=c.getApplicationContext();WORK.execute(()->{try{get(app).append(vehicle,s);}catch(Exception e){DiagnosticLog.add("Energy observation not saved");}});}
+ public static void record(Context c,String vehicle,VehicleSnapshot s){if(s==null||s.isDemo||!"LIVE".equals(s.source)||vehicle==null||vehicle.isEmpty())return;AppPreferences.set(c,"energy_last_vehicle",vehicle);Context app=c.getApplicationContext();WORK.execute(()->{try{get(app).append(vehicle,s);}catch(Exception e){DiagnosticLog.add("Energy observation not saved");}});}
  static Double number(Cursor r,int index){return r.isNull(index)?null:r.getDouble(index);}static void put(ContentValues v,String key,Double x){if(x!=null&&Double.isFinite(x))v.put(key,x);}
  public synchronized void append(String vehicle,VehicleSnapshot s){long now=System.currentTimeMillis(),t=s.timestampMillis;if(s.isDemo||!"LIVE".equals(s.source)||t<=0||t>now+300000||now-t>1200000)return;
   SQLiteDatabase db=getWritableDatabase();db.beginTransaction();try{

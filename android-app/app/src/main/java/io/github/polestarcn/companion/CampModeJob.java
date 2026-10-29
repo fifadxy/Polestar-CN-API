@@ -21,6 +21,7 @@ public final class CampModeJob extends JobService {
     if(!FirstUseConsent.accepted(this))return false;
     AtomicBoolean token = tasks.remove(parameters.getJobId());
     if (token != null) token.set(true);
-    return false;
+    // Ask JobScheduler to retry after connectivity/process interruption, not to issue commands blindly.
+    return CampModeManager.needsRecovery(this);
   }
 }

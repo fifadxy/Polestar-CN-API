@@ -1,4 +1,5 @@
 package io.github.polestarcn.companion;
+import androidx.appcompat.widget.SwitchCompat;
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
@@ -103,7 +104,7 @@ public final class VehicleSimulationActivity extends Activity {
     },1900);
   }
   private void addToggle(LinearLayout parent,String key,String zh,String en){
-    Switch control=new Switch(this);control.setText(tr(zh,en));control.setTextSize(15);
+    SwitchCompat control=new SwitchCompat(this);control.setText(tr(zh,en));control.setTextSize(15);
     control.setTextColor(PsaDesign.ink(AppPreferences.dark(this)));control.setPadding(dp(8),dp(10),dp(8),dp(10));
     control.setChecked(Boolean.TRUE.equals(toggles.get(key)));
     control.setOnCheckedChangeListener((button,on)->{
@@ -111,7 +112,7 @@ public final class VehicleSimulationActivity extends Activity {
         String other=key.equals("cool")?"heat":"cool";
         toggles.put(other,false);
         for(int i=0;i<parent.getChildCount();i++){android.view.View item=parent.getChildAt(i);
-          if(item instanceof Switch&&other.equals(item.getTag()))((Switch)item).setChecked(false);}
+          if(item instanceof SwitchCompat&&other.equals(item.getTag()))((SwitchCompat)item).setChecked(false);}
       }
       toggles.put(key,on);update();
     });
@@ -162,7 +163,7 @@ public final class VehicleSimulationActivity extends Activity {
     addToggle(page,"location","停车位置可用","Parking location available");
     for(String family:new String[]{"lock","climate","trunk","windows","air","signal"}){
       Button operation=new Button(this);
-      operation.setText(tr("模拟发送独立指令 · ","Simulate independent command · ")+family);
+      operation.setText(getString(R.string.ui_text_parts_2, String.valueOf(tr("模拟发送独立指令 · ","Simulate independent command · ")), String.valueOf(family)));
       operation.setOnClickListener(v->simulate(family));
       page.addView(operation);
     }

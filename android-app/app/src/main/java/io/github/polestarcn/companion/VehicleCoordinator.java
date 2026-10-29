@@ -34,7 +34,7 @@ public final class VehicleCoordinator {
   private boolean exclusive;
   private static final class PendingCommand {
     final String action; final ChinaPolestarApi.VehicleInfo vehicle; final String group;
-    final long issued; final Float target; boolean accepted; int checks; long started;
+    final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;CommandReadback readback;
     OperationState state=OperationState.SENDING;
     PendingCommand(String a, ChinaPolestarApi.VehicleInfo v, long issued, Float target) {
       this.action=a;this.vehicle=v;this.group=CommandSlots.group(a);this.issued=issued;this.target=target;
@@ -42,7 +42,28 @@ public final class VehicleCoordinator {
   }
   public boolean isCommandPending(String control) { return pendingCommands.containsKey(CommandSlots.group(control)); }
   public boolean canCommand(String action) { return signedIn && selected != null && !exclusive && !isCommandPending(action); }
-  public boolean canControl(String control) { return canCommand(control); }
+  /** A pending tile stays tappable only to open the explicit repeat-confirmation dialog. */
+  public boolean canControl(String control) { return signedIn && selected != null && !exclusive; }
+  public String pendingAction(String control) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
+    return ticket==null?null:ticket.action;
+  }
+  public boolean repeatQueued(String control) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
+    return ticket!=null&&ticket.repeatQueued;
+  }
+  /** One explicit user-confirmed repeat at most; it waits until the previous write/readback completes. */
+  public boolean queueRepeat(String action) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(action));
+    if(ticket==null||ticket.repeatQueued||!signedIn||selected==null||!ticket.vehicle.vin.equals(selected.vin))return false;
+    ticket.repeatQueued=true;
+    message=tr("已确认再次发送 · 等待当前指令核实","Repeat authorized · waiting for existing verification");
+    changed();
+    return true;
+  }
+  public boolean canDispatch(String action,boolean repeat){String pending=pendingAction(action);return signedIn&&selected!=null&&!exclusive&&(pending==null||repeat&&pending.equals(action)&&!repeatQueued(action));}
+  public void command(String action,boolean repeat){if(repeat){queueRepeat(action);return;}command(action);}
+  private void dispatchQueuedRepeat(PendingCommand ticket){if(ticket.repeatQueued&&signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin))main.post(()->{if(signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&!isCommandPending(ticket.action))command(ticket.action);});}
   public OperationState controlOperation(String control) {
     PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
     return ticket==null?operation:ticket.state;
@@ -65,6 +86,7 @@ public final class VehicleCoordinator {
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
+  private long sessionGeneration; // Reject late background refresh callbacks after explicit logout.
 
   public boolean locationBusy;
   private int locationGeneration;
@@ -185,6 +207,7 @@ public final class VehicleCoordinator {
     busy = true;
     message = tr("正在更新车辆…", "Updating vehicle…");
     changed();
+    final long requestGeneration=sessionGeneration;
     final String wanted = AppPreferences.get(context, "vehicle", "");
     final List<ChinaPolestarApi.VehicleInfo> known = new ArrayList<>(cars);
     final boolean discover = known.isEmpty() || System.currentTimeMillis() - vehiclesDiscoveredAt >= 15 * 60_000L;
@@ -196,10 +219,12 @@ public final class VehicleCoordinator {
             for (ChinaPolestarApi.VehicleInfo car : found)
               if (identity(car.vin).equals(wanted)) picked = car;
             VehicleSnapshot live = api.readVehicle(picked);
-            VehicleSnapshotStore.saveChina(context, live);EnergyLog.record(context,identity(picked.vin),live);
             final ChinaPolestarApi.VehicleInfo pick = picked;
             main.post(
                 () -> {
+                  if(requestGeneration!=sessionGeneration||!signedIn)return;
+                  VehicleSnapshotStore.saveChina(context,live);
+                  EnergyLog.record(context,identity(pick.vin),live);
                   cars.clear();
                   cars.addAll(found);
                   if (discover) vehiclesDiscoveredAt = System.currentTimeMillis();
@@ -214,6 +239,7 @@ public final class VehicleCoordinator {
           } catch (Exception e) {
             main.post(
                 () -> {
+                  if(requestGeneration!=sessionGeneration||!signedIn)return;
                   lastVehicleReadOk=false;message = tr("更新失败：", "Update failed: ") + safe(e);
                   finish();
                 });
@@ -277,8 +303,14 @@ public final class VehicleCoordinator {
   }
 
   private void confirmCommand(PendingCommand ticket){
+    // There is no telemetry field for horn/flash completion. Reading the vehicle cannot prove it.
+    if(momentary(ticket.action)){
+      pendingCommands.remove(ticket.group);syncCommandStatus();
+      if(!commandPending)operation=ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED;
+      message=ticket.accepted?tr("寻车已发送 · 效果未确认","Find car sent · unverified"):tr("执行结果未确认","Result unconfirmed");changed();dispatchQueuedRepeat(ticket);return;
+    }
     ticket.started=android.os.SystemClock.elapsedRealtime();syncCommandStatus();changed();
-    new CommandReadback(()->api.readVehicle(ticket.vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
+    ticket.readback=new CommandReadback(()->api.readVehicle(ticket.vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
       public void progress(VehicleSnapshot updated,int count){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
         ticket.checks=count;syncCommandStatus();
@@ -298,9 +330,10 @@ public final class VehicleCoordinator {
         message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
             :verified?tr("执行成功","Successful")
             :tr("执行结果未确认","Result unconfirmed");
-        changed();
+        changed();dispatchQueuedRepeat(ticket);
       }
-    }).require(state->ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)).start(ticket.action);
+    }).require(state->EffectStateController.fresh(state,System.currentTimeMillis())&&(ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)));
+    ticket.readback.start(ticket.action);
   }
 
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
@@ -311,11 +344,18 @@ public final class VehicleCoordinator {
     EnergyLog.record(context,identity(vehicle.vin),updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);
   }
 
+  /** Explicit logout cannot be blocked by a camping check or lost connectivity. */
   public void logout() {
-    if (busy || commandPending) return;
+    if(CampModeManager.active(context)||"STOPPING".equals(CampModeManager.phase(context)))CampModeManager.requestStop(context);
+    sessionGeneration++;
+    signedIn=false;exclusive=false;busy=false;quietRefresh=false;userRefreshing=false;
+    for(PendingCommand pending:pendingCommands.values())if(pending.readback!=null)pending.readback.cancel();pendingCommands.clear();syncCommandStatus();completions.clear();
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
-    CampModeManager.clear(context);
+    // Preserve an encrypted pending remote-stop record across local sign-out.
+    // It must not make network calls until the user signs in to the matching vehicle again.
+    if(!CampModeManager.pendingStop(context))CampModeManager.clear(context);
+    else CampModeManager.suspendPendingStopForSignOut(context);
     api.logout();
     selected = null;
     cars.clear();
@@ -360,27 +400,48 @@ public final class VehicleCoordinator {
   }
 
   public void stopCamp() {
-    if (CampModeManager.requestStop(context)) {
-      checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false), () -> {});
+    if(CampModeManager.requestStop(context)){
+      message=tr("本地托管已停止 · 等待核实车辆空调/净化","Camping stopped locally · remote HVAC verification pending");
+      changed();
+      if(!busy)checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false),()->{});
+      else completions.add(()->main.post(()->checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false),()->{})));
     }
   }
 
   public void checkCamp(java.util.concurrent.atomic.AtomicBoolean cancelled, Runnable done) {
-    if (cancelled.get()) { done.run(); return; }
+    if(cancelled.get()){done.run();return;}
+    if(CampModeManager.pendingStop(context)&&!signedIn){
+      CampSession waiting=CampModeManager.session(context);
+      if(waiting!=null)CampModeManager.markPendingStopStatus(context,waiting.id,"LOGIN_REQUIRED");
+      done.run();return;
+    }
     if (busy) {
       completions.add(() -> main.post(() -> checkCamp(cancelled, done)));
       return;
     }
-    CampSession camping = CampModeManager.session(context);
-    String phase = CampModeManager.phase(context);
-    if (camping == null || !("ACTIVE".equals(phase) || "STOPPING".equals(phase))) { done.run(); return; }
-    if (!signedIn) { CampModeManager.deactivate(context, camping.id, "SIGNED_OUT");
-      CampModeManager.finishCheck(context, camping.id); done.run(); return; }
+    CampSession camping=CampModeManager.session(context);
+    String phase=CampModeManager.phase(context);
+    boolean pendingStop=CampModeManager.pendingStop(context);
+    if(camping==null||(!"ACTIVE".equals(phase)&&!"STOPPING".equals(phase)&&!pendingStop)){
+      done.run();return;
+    }
+    if(!signedIn){
+      if(pendingStop)CampModeManager.markPendingStopStatus(context,camping.id,"LOGIN_REQUIRED");
+      else CampModeManager.report(context,camping.id,"LOGIN_REQUIRED");
+      CampModeManager.finishCheck(context,camping.id);done.run();return;
+    }
+    // A pending stop belongs to the previously authorized VIN. Never use a
+    // newly selected account/car to send commands against an old VIN.
+    if(pendingStop&&(selected==null||!camping.vin.equals(selected.vin))){
+      CampModeManager.markPendingStopStatus(context,camping.id,"LOGIN_REQUIRED");
+      done.run();return;
+    }
     busy = true;exclusive=true;
     activeAction = "";
     message = tr("正在检查露营状态…", "Checking camping status…");
     changed();
     io.execute(() -> {
+      if(pendingStop){verifyPendingRemoteStop(cancelled,camping,done);return;}
       final VehicleSnapshot[] read = {null};
       final boolean[] wrote = {false};final long[] climateIssuedAt={0};
       ChinaPolestarApi.VehicleInfo vehicle = new ChinaPolestarApi.VehicleInfo();
@@ -400,27 +461,16 @@ public final class VehicleCoordinator {
           }
         }
         public boolean confirm(CampSession s, String action) throws Exception {
-          int consecutive=0;
-          long previous=0;
-          for (long at:CommandReadback.CHECKPOINT_MS) {
-            if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            Thread.sleep(at-previous);previous=at;
-            if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            boolean reached=false;
-            try {
-              if(action.equals("climate-start")&&s.verifyClimateTarget){
-                read[0]=api.readVehicle(vehicle);
-                reached=ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]);
-              } else reached=api.commandReached(s.vin, action);
-            } catch(Exception unavailable) { DiagnosticLog.add("Camping readback unavailable; waiting for next slot"); }
-            consecutive=reached?consecutive+1:0;
+          boolean reached=CampReadback.verify(()->{
+            read[0]=api.readVehicle(vehicle);
+            return EffectStateController.fresh(read[0],System.currentTimeMillis())&&ControlAction.reached(action,read[0])
+                &&(!action.equals("climate-start")||!s.verifyClimateTarget||ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]));
+          },()->cancelled.get()||!CampModeManager.current(context,s.id),Thread::sleep);
+          if(reached){
+            if("climate-start".equals(action))ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());
+            if("climate-stop".equals(action))ClimateRuntime.stopped(context);
           }
-          if(consecutive>=3) {
-            if("climate-start".equals(action)) ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());
-            if("climate-stop".equals(action)) ClimateRuntime.stopped(context);
-            return true;
-          }
-          return false;
+          return reached;
         }
       };
       CampEngine.Control control = new CampEngine.Control() {
@@ -432,9 +482,7 @@ public final class VehicleCoordinator {
         public void report(String result) { CampModeManager.report(context, camping.id, result); }
       };
       new CampEngine(backend, control).check(camping, "STOPPING".equals(phase), System.currentTimeMillis(), CampModeManager.stopReason(context));
-      if (wrote[0] && !cancelled.get() && CampModeManager.current(context, camping.id)) {
-        try { read[0] = api.readVehicle(vehicle); } catch (Exception ignored) {}
-      }
+
       main.post(() -> {
         if (read[0] != null && selected != null && camping.vin.equals(selected.vin)) {
           snapshot = read[0]; VehicleSnapshotStore.saveChina(context, snapshot);EnergyLog.record(context,identity(camping.vin),snapshot); WidgetRenderer.refreshAll(context);
@@ -445,6 +493,57 @@ public final class VehicleCoordinator {
         CampModeManager.finishCheck(context, camping.id);
       });
     });
+  }
+
+  /** Read fresh vehicle state on reconnect. Never blindly repeat an uncertain write. */
+  private void verifyPendingRemoteStop(java.util.concurrent.atomic.AtomicBoolean cancelled,CampSession camping,Runnable done){
+    VehicleSnapshot read=null;String status="";
+    try{
+      if(cancelled.get()||!signedIn||selected==null||!camping.vin.equals(selected.vin)
+          ||!CampModeManager.pendingStop(context)||!CampModeManager.current(context,camping.id))return;
+      ChinaPolestarApi.VehicleInfo vehicle=new ChinaPolestarApi.VehicleInfo();
+      vehicle.vin=camping.vin;vehicle.modelName=camping.vehicleName;
+      read=api.readVehicle(vehicle);
+      long now=System.currentTimeMillis();
+      if(read==null||read.isDemo||!"LIVE".equals(read.source)||read.timestampMillis<=0
+          ||now-read.timestampMillis>10*60_000L||read.timestampMillis>now+300_000L)
+        status="REMOTE_STOP_UNCONFIRMED";
+      else if("关闭".equals(read.climate)&&(!camping.keepAir||"关闭".equals(read.air))){
+        CampModeManager.completeRemoteStop(context,camping.id);status="REMOTE_STOP_CONFIRMED";
+      }else{
+        int mask=CampModeManager.stopAttemptMask(context);
+        if("开启".equals(read.climate)&&(mask&1)==0){
+          CampModeManager.markStopAttempted(context,camping.id,1);
+          api.climateStop(camping.vin);
+        }
+        if(camping.keepAir&&"开启".equals(read.air)&&(mask&2)==0){
+          CampModeManager.markStopAttempted(context,camping.id,2);
+          api.purify(camping.vin,false);
+        }
+        status="REMOTE_STOP_UNCONFIRMED";
+      }
+    }catch(Exception error){status=sessionRejected(error)?"LOGIN_REQUIRED":"WAITING_FOR_NETWORK";}
+    finally{
+      final VehicleSnapshot latest=read;final String result=status;
+      main.post(()->{
+        if(latest!=null&&selected!=null&&camping.vin.equals(selected.vin)
+          &&(snapshot==null||latest.timestampMillis>=snapshot.timestampMillis)){
+          snapshot=latest;lastVehicleReadOk=true;
+          VehicleSnapshotStore.saveChina(context,latest);
+          EnergyLog.record(context,identity(camping.vin),latest);WidgetRenderer.refreshAll(context);
+        }
+        if(!"REMOTE_STOP_CONFIRMED".equals(result)&&CampModeManager.pendingStop(context))
+          CampModeManager.markPendingStopStatus(context,camping.id,
+            result.isEmpty()?"REMOTE_STOP_UNCONFIRMED":result);
+        message=CampModeManager.status(context);
+        finish();done.run();CampModeManager.finishCheck(context,camping.id);
+      });
+    }
+  }
+  private static boolean sessionRejected(Exception error){
+    String m=String.valueOf(error.getMessage()).toLowerCase(java.util.Locale.ROOT);
+    return m.contains("http 401")||m.contains("http 403")||m.contains("刷新令牌被服务端拒绝")
+      ||m.contains("refresh token")||m.contains("令牌已过期")||m.contains("尚未登录");
   }
 
   private void protectCamp(String vin, VehicleSnapshot state) {

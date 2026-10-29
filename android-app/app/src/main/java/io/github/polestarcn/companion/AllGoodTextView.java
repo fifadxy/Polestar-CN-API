@@ -7,7 +7,7 @@ import android.view.*;
 import android.view.animation.LinearInterpolator;
 import android.widget.TextView;
 /** Native text with one subtle 6.4-second sweep, ~12fps; no layers/bitmaps/network work. */
-public final class AllGoodTextView extends TextView {
+public final class AllGoodTextView extends androidx.appcompat.widget.AppCompatTextView {
  private ValueAnimator animator;private LinearGradient shader;private final Matrix matrix=new Matrix();
  private float phase;private int shaderColor;private long lastFrame;private boolean hostActive=true,registered;
  private final BroadcastReceiver power=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){sync();}};

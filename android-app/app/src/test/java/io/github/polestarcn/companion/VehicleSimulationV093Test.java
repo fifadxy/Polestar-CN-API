@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=28)
 public final class VehicleSimulationV093Test {
   private int switches(View v){
-    int found=v instanceof Switch?1:0;
+    int found=v instanceof android.widget.CompoundButton?1:0;
     if(v instanceof ViewGroup){ViewGroup group=(ViewGroup)v;
       for(int i=0;i<group.getChildCount();i++)found+=switches(group.getChildAt(i));}
     return found;

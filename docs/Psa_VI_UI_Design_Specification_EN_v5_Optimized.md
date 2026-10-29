@@ -1,3 +1,13 @@
+## UI Hotfix addendum · v0.9.5-beta2 (2026-10-29)
+- Settings: keep labels concise; disclose explanations on tap of a 26dp orange circled question mark.
+- Every control tile: icon + action title + live status. Dark mode may use white status text; a single bottom row shows vehicle connection · command feedback. Connection means recently read cloud data.
+- Hide all battery SOC progress bars with a user setting, without hiding SOC text or service-life progress.
+- Per-control-family command security: biometric(default), explicit confirmation, or direct; a tap on an ongoing same-family command always requires separate repeat confirmation and permits at most one queued repeat.
+- Native VI-orange particles (not GIF): adjustable straight fraction 20% default, irregular arc 15% default, size 25–300%, spawn extent 30–150%, fade-in. Top-view absorbs from all sides under the car; oblique/side art absorbs under body and front. These targets are stylistic references, not verified physical charge-port locations.
+- Climate airflow shares irregularity controls; window gradient intensity and speed adjustable. Cooling blue, warming VI orange, purification green; mode choice is visual preference where telematics cannot verify heat/cool.
+- Optional map backdrop: Amap, OpenStreetMap, OpenTopoMap, zoom 10–19, progressive fade and attributions; availability depends on provider/device/network.
+- Camping local stop must be possible offline; remote stop remains explicitly unconfirmed until fresh LIVE read; after reconnect read state first, never blindly replay unknown writes. No bypass of server token expiry.
+
 # Psa — VI/UI Design Specification v5.0 (Optimized Edition)
 
 **English research edition v5.0 — synchronized with the optimized 22-page PDF · 26 October 2026**  

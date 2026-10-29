@@ -10,7 +10,7 @@ import android.view.Choreographer;
 import android.widget.ImageView;
 
 /** Native overlays share the existing FIT_CENTER car. PNG opacity and geometry stay intact. */
-final class VehicleHeroView extends ImageView implements Choreographer.FrameCallback {
+final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView implements Choreographer.FrameCallback {
   private final ChargingParticleRenderer particles=new ChargingParticleRenderer();
   private final AirflowRenderer airflow=new AirflowRenderer();
   private final WindowGlowRenderer windows=new WindowGlowRenderer();
@@ -67,6 +67,7 @@ final class VehicleHeroView extends ImageView implements Choreographer.FrameCall
   @Override protected void onDraw(Canvas canvas){
     if(getDrawable()==null)return;if(mode==EffectStateController.Mode.OFF)sync();int rotation=VehicleArt.portraitRotation(getContext());geometry(rotation);
     float time=(SystemClock.uptimeMillis()-epoch)/1000f,density=getResources().getDisplayMetrics().density;
+    if(!preview&&coordinator!=null&&"behind".equals(AppPreferences.get(getContext(),"all_good_position","below"))&&!ChargingVisibility.shouldShow(coordinator.snapshot)&&VehicleCondition.reported(coordinator.snapshot,AppPreferences.visible(getContext(),"show_tire_status",true))&&!VehicleCondition.problem(coordinator.snapshot,AppPreferences.visible(getContext(),"show_tire_status",true))){backdropText.setColor(AppPreferences.dark(getContext())?0xFF707477:0xFFB7B9BA);backdropText.setTypeface(PsaDesign.regular());backdropText.setTextAlign(android.graphics.Paint.Align.CENTER);backdropText.setTextSize(getWidth()*.17f);canvas.drawText("All Good！",getWidth()/2f,getHeight()*.42f,backdropText);}
     canvas.save();canvas.translate(getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f,getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f);canvas.rotate(rotation);
     if(mode==EffectStateController.Mode.CHARGING&&!bounds.isEmpty()){
       boolean right=VehicleArt.frontAtRight(art);float px=bounds.left+bounds.width()*(right?.13f:.87f),py=bounds.top+bounds.height()*.78f;
@@ -74,16 +75,20 @@ final class VehicleHeroView extends ImageView implements Choreographer.FrameCall
     }
     canvas.save();canvas.translate(imageBounds.left,imageBounds.top);canvas.scale(imageBounds.width()/getDrawable().getIntrinsicWidth(),imageBounds.height()/getDrawable().getIntrinsicHeight());getDrawable().setBounds(0,0,getDrawable().getIntrinsicWidth(),getDrawable().getIntrinsicHeight());getDrawable().draw(canvas);canvas.restore();
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&!bounds.isEmpty())airflow.draw(canvas,bounds,VehicleArt.frontAtRight(art),time,density,settings,mode,lowRam?24:120,1);
-    if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&settings.windowGlow)windows.draw(canvas,imageBounds,art,time,mode,settings.strength);
+    if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&settings.windowGlow)windows.draw(canvas,imageBounds,art,time,mode,settings.windowStrength,settings.windowSpeed);
     canvas.restore();
+    if(isPressed()){touchGlow.setColor(0x24FFFFFF);canvas.drawRoundRect(0,0,getWidth(),getHeight(),12*density,12*density,touchGlow);backdropText.setTextAlign(android.graphics.Paint.Align.CENTER);backdropText.setColor(PsaDesign.muted(AppPreferences.dark(getContext())));backdropText.setTypeface(PsaDesign.regular());backdropText.setTextSize(10*density);canvas.drawText(AppPreferences.tr(getContext(),"长按1.5s选择车辆图片","Hold 1.5s to choose vehicle"),getWidth()/2f,getHeight()-8*density,backdropText);}
   }
-  private final Handler touchHandler=new Handler(Looper.getMainLooper());private float downX,downY;private boolean holdFired;private Runnable holdAction;
+  private final Handler touchHandler=new Handler(Looper.getMainLooper());private float downX,downY;private boolean holdFired,moved;private Runnable holdAction;
   void setVehicleHold(Runnable action){holdAction=action;}
+  private final android.graphics.Paint backdropText=new android.graphics.Paint(3),touchGlow=new android.graphics.Paint(3);
   private final Runnable hold=()->{holdFired=true;Haptics.tap(getContext());if(holdAction!=null)holdAction.run();};
+  @Override public boolean performClick(){return super.performClick();}
   @Override public boolean onTouchEvent(android.view.MotionEvent e){switch(e.getActionMasked()){
-    case android.view.MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();holdFired=false;touchHandler.postDelayed(hold,3000);break;
-    case android.view.MotionEvent.ACTION_MOVE:float slop=android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();if(Math.abs(e.getX()-downX)>slop||Math.abs(e.getY()-downY)>slop)touchHandler.removeCallbacks(hold);break;
-    case android.view.MotionEvent.ACTION_UP:case android.view.MotionEvent.ACTION_CANCEL:touchHandler.removeCallbacks(hold);if(holdFired){setPressed(false);return true;}break;
+    case android.view.MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();holdFired=false;moved=false;Haptics.tap(getContext());invalidate();touchHandler.postDelayed(hold,1500);break;
+    case android.view.MotionEvent.ACTION_MOVE:float slop=android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();if(Math.abs(e.getX()-downX)>slop||Math.abs(e.getY()-downY)>slop){moved=true;touchHandler.removeCallbacks(hold);}break;
+    case android.view.MotionEvent.ACTION_UP:touchHandler.removeCallbacks(hold);setPressed(false);if(!holdFired&&!moved)performClick();return true;
+    case android.view.MotionEvent.ACTION_CANCEL:touchHandler.removeCallbacks(hold);setPressed(false);return true;
   }return super.onTouchEvent(e);}
   boolean effectsRunning(){return mode!=EffectStateController.Mode.OFF&&queued;}
 }

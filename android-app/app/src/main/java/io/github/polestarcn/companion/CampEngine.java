@@ -47,7 +47,7 @@ public final class CampEngine {
       if (!maintain(session, state.climate, "climate-start")) return;
       if (session.keepAir && !maintain(session, state.air, "air-start")) return;
       control.report("RUNNING");
-    } catch (Exception e) { control.report("CHECK_UNAVAILABLE"); }
+    } catch (Exception e) { control.report(CampRecovery.classify(e)); }
   }
 
   private boolean usable(CampSession s) { return !control.cancelled() && control.current(s.id); }

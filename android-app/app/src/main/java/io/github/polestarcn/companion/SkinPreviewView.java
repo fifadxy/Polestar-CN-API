@@ -7,10 +7,12 @@ import android.view.View;
 /** Real drawable-based preview for each switchable control skin; no screenshot assets or network. */
 public final class SkinPreviewView extends View {
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-  private final Bitmap car;
+  private final Bitmap car;private final RectF pictureBounds=new RectF();
+  private void picture(Canvas canvas,float left,float top,float right,float bottom){pictureBounds.set(left,top,right,bottom);canvas.drawBitmap(car,null,pictureBounds,paint);}
   private final String skin;
   private boolean selected;
 
+ public SkinPreviewView(Context context){this(context,UiSkin.get(context));}
   public SkinPreviewView(Context context, String skin) {
     super(context);
     this.skin = skin;
@@ -48,11 +50,11 @@ public final class SkinPreviewView extends View {
     paint.setColor(base); canvas.drawRoundRect(0,0,300,164,17,17,paint);
 
     if(UiSkin.SIMPLE_2.equals(skin)){
-      drawText(canvas,"POLESTAR 2",12,12,18,text,true);paint.setColor(card);canvas.drawRoundRect(10,25,290,106,12,12,paint);drawText(canvas,"78%",23,20,50,text,true);drawText(canvas,"312 km",17,204,50,text,false);paint.setColor(PsaDesign.ORANGE);canvas.drawRoundRect(20,56,244,59,2,2,paint);if(car!=null){paint.setAlpha(255);float h=34,w=h*car.getWidth()/car.getHeight();canvas.drawBitmap(car,null,new RectF(150-w/2,64,150+w/2,98),paint);}for(int i=0;i<6;i++){float x=10+(i%2)*143,y=111+(i/2)*16;paint.setColor(card);canvas.drawRoundRect(x,y,x+137,y+13,5,5,paint);paint.setColor(muted);canvas.drawCircle(x+12,y+6,3,paint);}
+      drawText(canvas,"POLESTAR 2",12,12,18,text,true);paint.setColor(card);canvas.drawRoundRect(10,25,290,106,12,12,paint);drawText(canvas,"78%",23,20,50,text,true);drawText(canvas,"312 km",17,204,50,text,false);paint.setColor(PsaDesign.ORANGE);canvas.drawRoundRect(20,56,244,59,2,2,paint);if(car!=null){paint.setAlpha(255);float h=34,w=h*car.getWidth()/car.getHeight();picture(canvas,150-w/2,64,150+w/2,98);}for(int i=0;i<6;i++){float x=10+(i%2)*143,y=111+(i/2)*16;paint.setColor(card);canvas.drawRoundRect(x,y,x+137,y+13,5,5,paint);paint.setColor(muted);canvas.drawCircle(x+12,y+6,3,paint);}
     }else if(psDefault){
       drawText(canvas,"Polestar 2",14,12,20,text,true);drawText(canvas,"78%",22,12,47,text,true);drawText(canvas,"312 km",17,192,47,text,false);
       paint.setColor(accent);canvas.drawRect(12,53,220,56,paint);
-      if(car!=null){float h=65,w=h*car.getWidth()/(float)car.getHeight();canvas.drawBitmap(car,null,new RectF(150-w/2,61,150+w/2,126),paint);}
+      if(car!=null){float h=65,w=h*car.getWidth()/(float)car.getHeight();picture(canvas,150-w/2,61,150+w/2,126);}
       drawText(canvas,"All Good！",12,116,139,accent,false);
       for(int i=0;i<4;i++){paint.setColor(card);float x=8+i*73;canvas.drawRoundRect(x,145,x+67,160,4,4,paint);paint.setColor(accent);canvas.drawCircle(x+33,152,3,paint);}
     }else if (nio) {
@@ -65,7 +67,7 @@ public final class SkinPreviewView extends View {
       paint.setColor(accent);canvas.drawRoundRect(18,68,111,73,3,3,paint);
       if(car!=null){
         float cw=112,ch=Math.min(93,cw/(car.getWidth()/(float)car.getHeight()));
-        canvas.drawBitmap(car,null,new RectF(20,88,20+cw,88+ch),paint);
+        picture(canvas,20,88,20+cw,88+ch);
       }
       paint.setColor(accent);canvas.drawRoundRect(160,27,282,32,2,2,paint);
       drawText(canvas,"CONTROL",13,166,55,text,true);
@@ -98,7 +100,7 @@ public final class SkinPreviewView extends View {
         canvas.rotate(VehicleArt.portraitRotation(getContext()));
         float width=detailed?88:110;
         float height=width*car.getHeight()/(float)car.getWidth();
-        canvas.drawBitmap(car,null,new RectF(-width/2,-height/2,width/2,height/2),paint);
+        picture(canvas,-width/2,-height/2,width/2,height/2);
         canvas.restore();
       }
 

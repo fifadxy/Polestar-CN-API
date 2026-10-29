@@ -28,7 +28,8 @@ public final class SecureCampStore {
           o.getLong("endsAt"), o.getInt("interval"), o.getInt("minimum"), o.getBoolean("air"),(float)o.optDouble("targetC",22.0),o.optBoolean("customTarget",false));
     } catch (Exception e) { clear(c); return null; }
   }
+  @android.annotation.SuppressLint("ApplySharedPref") // Ensure sensitive camp config is purged synchronously.
   public static void clear(Context c) {
-    c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit();
+    if(!c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit())io.github.polestarcn.companion.DiagnosticLog.add("Camping credentials were not cleared");
   }
 }

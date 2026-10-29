@@ -17,6 +17,7 @@ public final class TirePressureView extends View {
   private final boolean english, dark;
   private final int ink, muted, surface, line, orange = Color.rgb(255, 107, 0);
 
+ public TirePressureView(Context context){this(context,TireSnapshot.unknown());}
   public TirePressureView(Context context, TireSnapshot tyres) {
     super(context);
     this.tyres = tyres == null ? TireSnapshot.unknown() : tyres;

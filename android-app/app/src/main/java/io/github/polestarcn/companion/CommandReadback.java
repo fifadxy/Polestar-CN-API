@@ -3,8 +3,8 @@ import java.util.concurrent.Executor;
 
 /**
  * Five vehicle READ-ONLY checkpoints after one remote write: 5/10/15/18/26 seconds.
- * A confirmed result requires three consecutive actual LIVE states matching the command,
- * successful verification ends immediately after the third matching read.
+ * The first matching LIVE state that passes extra validation ends verification;
+ * cancelled or confirmed commands perform no later checkpoint reads.
  */
 public final class CommandReadback {
   public static final long INITIAL_DELAY_MS=5_000L, RETRY_DELAY_MS=5_000L;
@@ -20,7 +20,7 @@ public final class CommandReadback {
   private final Scheduler scheduler;
   private final Listener listener;
   private VehicleSnapshot latest;
-  private int completed,consecutiveSuccess;
+  private int completed;
   private volatile boolean ended;private java.util.function.Predicate<VehicleSnapshot> extraCheck=state->true;
   public CommandReadback require(java.util.function.Predicate<VehicleSnapshot> check){extraCheck=check;return this;}
 
@@ -28,6 +28,7 @@ public final class CommandReadback {
     this.reader=reader;this.worker=worker;this.scheduler=scheduler;this.listener=listener;
   }
 
+  public void cancel(){ended=true;}
   public void start(String action) {
     for(long at:CHECKPOINT_MS)scheduler.after(at,()->read(action));
   }
@@ -42,13 +43,12 @@ public final class CommandReadback {
       scheduler.after(0,()->{
         if(ended)return;
         if(state!=null)latest=state;
-        if(ControlAction.reached(action,state)&&extraCheck.test(state))consecutiveSuccess++;
-        else consecutiveSuccess=0;
+        boolean confirmed=ControlAction.reached(action,state)&&extraCheck.test(state);
         completed++;
         listener.progress(state,completed);
-        if(consecutiveSuccess>=3||completed>=CHECKPOINT_MS.length) {
+        if(confirmed||completed>=CHECKPOINT_MS.length) {
           ended=true;
-          listener.finished(latest,consecutiveSuccess>=3);
+          listener.finished(latest,confirmed);
         }
       });
     });

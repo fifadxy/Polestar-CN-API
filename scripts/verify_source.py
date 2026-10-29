@@ -32,7 +32,10 @@ assert 'PSA_PRIOR_PSASSISTANT_APK' in gradle
 assert 'PSACFG2' in gradle
 assert 'app.c3garage.companion' not in all_java
 assert not re.search(r'["\\\'][0-9A-F]{32}["\\\']', all_java), 'private client material must not be committed'
-assert 'ACTION_OPEN_DOCUMENT' not in (main/'java/io/github/polestarcn/companion/MainActivity.java').read_text()
+# SAF is permitted for local image backgrounds, never for importing another APK.
+activity=(main/'java/io/github/polestarcn/companion/MainActivity.java').read_text()
+assert 'setType("image/*")' in activity
+assert 'application/vnd.android.package-archive' not in activity
 assert 'ChinaLiveActivity' in manifest
 assert 'grpc-okhttp:1.68.2' in gradle
 version = re.search(r"versionName\s+'([^']+)'", gradle)

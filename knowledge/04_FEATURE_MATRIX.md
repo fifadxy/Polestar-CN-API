@@ -1,3 +1,5 @@
+当前补充：[beta5 直接地图背景与排版](41_V095_BETA5_LIVE_MAP_TYPOGRAPHY.md)，版本100。
+
 当前补充：[beta4 图标选择和后方车图布局](40_V095_BETA4_ICONS_LAYOUT.md)，版本99。
 
 当前增量：[v0.9.5-beta3 合并与背景交互](39_V095_BETA3_INTEGRATION.md)，版本98；优先于历史约定。

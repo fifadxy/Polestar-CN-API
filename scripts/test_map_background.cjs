@@ -1,0 +1,5 @@
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const nodes={};let zoom=0,resized=0;const ctx={window:{map:{setZoom:n=>zoom=n},dispatchEvent:()=>resized++},document:{getElementById:id=>nodes[id],createElement:()=>({style:{}}),head:{appendChild:n=>nodes[n.id]=n},body:{appendChild:n=>nodes[n.id]=n}},Event:function(n){this.type=n;}};
+vm.runInNewContext(fs.readFileSync('android-app/app/src/main/res/raw/parking_backdrop.js','utf8'),ctx);
+ctx.window.PsaBackdrop.style(false,.5,.4,12,60,16);assert.equal(zoom,16);assert(nodes['psa-backdrop-style'].textContent.includes('.amap-container'));assert(!nodes['psa-backdrop-style'].textContent.includes('invert(.88)'));assert(nodes['psa-backdrop-glass'].style.cssText.includes('blur(12px)'));
+ctx.window.PsaBackdrop.style(true,.4,.3,4,80,18);assert.equal(zoom,18);assert(nodes['psa-backdrop-style'].textContent.includes('invert(.88)'));assert.equal(Object.keys(nodes).length,2);assert.equal(resized,2);console.log('PASS: background styling, day/night, zoom hook and idempotent overlays');

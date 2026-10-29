@@ -21,6 +21,7 @@ final class ParkingWebPreview {
   private boolean closed,failed,phoneRequestAllowed,autoPhoneRequested;private Runnable ready;
   void whenReady(Runnable callback){ready=callback;}
   android.graphics.Bitmap capture(){if(web==null||closed||web.getWidth()<=0)return null;int width=Math.min(640,web.getWidth()),height=Math.max(1,Math.round(web.getHeight()*width/(float)web.getWidth()));android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(width,height,android.graphics.Bitmap.Config.ARGB_8888);android.graphics.Canvas canvas=new android.graphics.Canvas(image);canvas.scale(width/(float)web.getWidth(),height/(float)web.getHeight());try{web.draw(canvas);return image;}catch(RuntimeException unavailable){image.recycle();return null;}}
+  private boolean backgroundMode;private int mapChecks,reloads;private boolean paused;
   private LocationSnapshot point;
   private final Runnable timeout=()->fail();
 
@@ -30,13 +31,14 @@ final class ParkingWebPreview {
   }
   @SuppressLint("SetJavaScriptEnabled")
   ParkingWebPreview(Context context,LocationSnapshot point,boolean dark,Runnable openExternal,boolean backdrop){
-    this.point=point;
+    this.point=point;backgroundMode=backdrop;
     view=new FrameLayout(context);view.setTag("parking_web_preview");view.setBackgroundColor(PsaDesign.surface(dark));
     status=new TextView(context);status.setTextColor(PsaDesign.muted(dark));status.setTypeface(PsaDesign.regular());status.setTextSize(12);status.setPadding(12,8,12,8);
     try{
       web=new WebView(context){@Override public boolean dispatchTouchEvent(android.view.MotionEvent event){if(getParent()!=null)getParent().requestDisallowInterceptTouchEvent(event.getActionMasked()!=android.view.MotionEvent.ACTION_UP&&event.getActionMasked()!=android.view.MotionEvent.ACTION_CANCEL);return super.dispatchTouchEvent(event);}};web.setTag("parking_webview");web.setSaveEnabled(false);web.setSaveFromParentEnabled(false);web.setBackgroundColor(PsaDesign.surface(dark));
       WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);
       settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(false);
+      if(backdrop){web.setLayerType(View.LAYER_TYPE_HARDWARE,null);settings.setUseWideViewPort(true);settings.setLoadWithOverviewMode(true);}
       settings.setCacheMode(backdrop?WebSettings.LOAD_DEFAULT:WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
       settings.setSupportMultipleWindows(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setMediaPlaybackRequiresUserGesture(true);
       settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(false);
@@ -51,10 +53,10 @@ final class ParkingWebPreview {
           if(request.isForMainFrame()&&request.hasGesture())openExternal.run();return true;
         }
         @Override public void onPageStarted(WebView v,String url,Bitmap icon){if(!closed){failed=false;status.setVisibility(View.VISIBLE);status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));}}
-        @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
+        @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){if(!backdrop)handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
           if(allowedPage(Uri.parse(url))){v.evaluateJavascript(compactScript(context),null);
             if(dark&&!backdrop)v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='html{background:#151a20!important}canvas,.amap-layer{filter:invert(.88) hue-rotate(180deg) brightness(.72) saturate(.55)!important}.common_bottom{background:#20262c!important;color:#dce2e7!important}';document.head.appendChild(s);})();",null);
-            if(backdrop){int zoom=EffectSettings.number(context,"map_backdrop_zoom",16,10,19);v.evaluateJavascript("(function(){var m=window.map||window.amap||window.mapObj;if(m&&typeof m.setZoom==='function')m.setZoom("+zoom+");})();",null);v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='.common_bottom,.common_top,.amap-controls,.amap-toolbar,.amap-marker,.amap-markers,.call_native_button_wrapper,header,nav,button,#psa-parking-distance{display:none!important}html,body{overflow:hidden!important;pointer-events:none!important}';document.head.appendChild(s);})();",ignored->{if(ready!=null)ready.run();});return;}
+            if(backdrop){styleBackdrop(.5f,.42f);checkMapReady();return;}
 
             String distance=resourceScript(context,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,%s);",point.latitude,point.longitude,AppPreferences.english(context)?"true":"false","false");v.evaluateJavascript(distance,null);
             if(!autoPhoneRequested&&"on_open".equals(AppPreferences.get(context,"phone_location_refresh","manual"))){autoPhoneRequested=true;requestPhoneLocation();}
@@ -69,6 +71,10 @@ final class ParkingWebPreview {
     FrameLayout.LayoutParams message=new FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP);view.addView(status,message);
     if(!failed)status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));
   }
+  void styleBackdrop(float x,float y){if(closed||web==null||!backgroundMode)return;Context c=view.getContext();String script=resourceScript(c,R.raw.parking_backdrop)+String.format(Locale.US,";PsaBackdrop.style(%s,%.4f,%.4f,%d,%d,%d);",AppPreferences.dark(c)?"true":"false",x,y,EffectSettings.number(c,"map_backdrop_blur",12,0,24),EffectSettings.number(c,"map_backdrop_spread",60,20,100),EffectSettings.number(c,"map_backdrop_zoom",16,10,19));web.evaluateJavascript(script,null);}
+  private void checkMapReady(){if(closed||web==null||!backgroundMode||paused)return;web.evaluateJavascript("(function(){var m=document.querySelector('.amap-container');if(!m)return false;var c=m.querySelector('canvas');return !!((c&&c.width>0&&c.height>0)||m.querySelector('img.amap-tile'));})()",value->{if(closed||web==null)return;if("true".equals(value)){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);AppPreferences.set(view.getContext(),"map_background_status","ready");if(ready!=null)ready.run();}else if(++mapChecks<40)handler.postDelayed(this::checkMapReady,500);else fail();});}
+  void pause(){paused=true;if(web!=null)web.onPause();}
+  void resume(){paused=false;if(web!=null){web.onResume();if(backgroundMode)checkMapReady();}}
   private static String compactScript(Context context){return resourceScript(context,R.raw.parking_map_compact);}
   private static String resourceScript(Context context,int resource){
     try(java.io.InputStream input=context.getResources().openRawResource(resource);
@@ -94,8 +100,10 @@ final class ParkingWebPreview {
     return host.equals("amap.com")||host.endsWith(".amap.com")||host.equals("autonavi.com")||host.endsWith(".autonavi.com");
   }
   private void fail(){
-    if(closed)return;failed=true;handler.removeCallbacks(timeout);
-    status.setVisibility(View.VISIBLE);status.setText(AppPreferences.tr(view.getContext(),"地图暂不可用，请使用下方“打开地图”。","Map unavailable. Use Open map below."));
+    if(closed)return;
+    if(backgroundMode&&web!=null&&reloads++<1){mapChecks=0;web.reload();handler.removeCallbacks(timeout);handler.postDelayed(timeout,25000);return;}
+    failed=true;handler.removeCallbacks(timeout);AppPreferences.set(view.getContext(),"map_background_status","unavailable");
+    status.setVisibility(View.VISIBLE);status.setText(backgroundMode?AppPreferences.tr(view.getContext(),"地图背景暂不可用","Map background unavailable"):AppPreferences.tr(view.getContext(),"地图暂不可用，请使用下方“打开地图”。","Map unavailable. Use Open map below."));
     if(web!=null)web.stopLoading();
   }
   void close(){

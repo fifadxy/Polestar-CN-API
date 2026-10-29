@@ -1,3 +1,5 @@
+当前版本 **v0.9.5-beta5 / 100**：硬件WebView直接地图背景、尾门加粗、All Good大字单/双行。[更新与验证边界](docs/Psa_v095_beta5_Update.md)。
+
 当前版本 **v0.9.5-beta4 / 99**：新尾门图标默认、三款可选；确认的净化颗粒图案；All Good后方车图等比缩小并下移。[更新](docs/Psa_v095_beta4_Update.md)。
 
 当前版本：**v0.9.5-beta3 / 98**。合并两版hotfix与露营恢复，新增地图加载/缓存、本机日夜图片裁切、All Good后方模式、1.5秒按压反馈和确认的尾箱图标。[更新说明](docs/Psa_v095_beta3_Update.md)。以下保留历史版本记录。

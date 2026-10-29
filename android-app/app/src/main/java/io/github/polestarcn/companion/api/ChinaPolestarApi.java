@@ -639,6 +639,7 @@ public final class ChinaPolestarApi {
     return (JSONObject) value;
   }
 
+  @android.annotation.SuppressLint("HardwareIds") // Required by the authorized China client compatibility contract.
   private String signedUrl(String path) throws Exception {
     String androidId =
         Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);

@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import io.github.polestarcn.companion.auth.SecureCampStore;
 
+@android.annotation.SuppressLint("ApplySharedPref") // Persist safety-critical camp stop before any network task.
 public final class CampModeManager {
   private static final String PREF = "camp_status";
   private static final int PERIODIC = 72, IMMEDIATE = 73, EXPIRY = 74;

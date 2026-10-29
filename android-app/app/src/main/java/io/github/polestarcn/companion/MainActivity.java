@@ -481,7 +481,7 @@ public final class MainActivity extends FragmentActivity {
       t.setTextColor(i == (page==3?1:page) ? orange : muted);
       {
         int resource = i == 0 ? AppIcons.small(this) : i==1?R.drawable.ic_nav_vehicle_data_ref:R.drawable.ic_settings;
-        android.graphics.drawable.Drawable navIcon = getDrawable(resource).mutate();
+        android.graphics.drawable.Drawable navIcon = androidx.core.content.ContextCompat.getDrawable(this,resource).mutate();
         navIcon.setTint(i == (page==3?1:page) ? orange : muted);
         navIcon.setBounds(0, 0, dp(compactNav ? 23 : 25), dp(compactNav ? 23 : 25));
         t.setCompoundDrawables(null, navIcon, null, null);
@@ -1360,7 +1360,7 @@ public final class MainActivity extends FragmentActivity {
 
   private void utilityIcon(TextView view,int resource) {
     if(view instanceof UtilityButton){((UtilityButton)view).setUtilityIcon(resource);return;}
-    android.graphics.drawable.Drawable icon=getDrawable(resource).mutate();icon.setTintList(new android.content.res.ColorStateList(new int[][]{new int[0]},new int[]{ink}));
+    android.graphics.drawable.Drawable icon=androidx.core.content.ContextCompat.getDrawable(this,resource).mutate();icon.setTintList(new android.content.res.ColorStateList(new int[][]{new int[0]},new int[]{ink}));
     icon.setBounds(0,0,dp(16),dp(16));view.setCompoundDrawablesRelative(icon,null,null,null);view.setCompoundDrawablePadding(dp(4));view.setGravity(Gravity.CENTER);
   }
 

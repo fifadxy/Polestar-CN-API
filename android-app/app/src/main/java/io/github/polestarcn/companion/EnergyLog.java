@@ -2,7 +2,7 @@ package io.github.polestarcn.companion;
 import android.content.*;import android.database.Cursor;import android.database.sqlite.*;import java.util.*;import java.util.concurrent.*;
 /** Bounded, sampled observations, never a vehicle energy meter. All I/O uses WORK. */
 public final class EnergyLog extends SQLiteOpenHelper {
- public static final ExecutorService WORK=Executors.newSingleThreadExecutor();public static final double KWH_PER_PERCENT=.71;private static EnergyLog instance;
+ public static final ExecutorService WORK=Executors.newSingleThreadExecutor();public static final double KWH_PER_PERCENT=.71;@android.annotation.SuppressLint("StaticFieldLeak") private static EnergyLog instance; // Holds app context, never activity context.
  public static synchronized EnergyLog get(Context c){if(instance==null)instance=new EnergyLog(c.getApplicationContext());return instance;}
  private long lastPrune;private int inserts;private final Context c;private EnergyLog(Context c){super(c,"energy_history.db",null,1);this.c=c;setWriteAheadLoggingEnabled(true);}
  public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE samples(vehicle TEXT NOT NULL,t INTEGER NOT NULL,soc REAL,tm REAL,cons REAL,speed REAL,odo REAL,climate INTEGER,charge INTEGER,ac REAL NOT NULL,drive REAL NOT NULL,acvalid INTEGER NOT NULL,PRIMARY KEY(vehicle,t))");db.execSQL("CREATE INDEX sample_time ON samples(t)");}

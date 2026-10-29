@@ -29,7 +29,7 @@ public final class VehicleSpecificationsActivity extends Activity {
     setContentView(root);
     LinearLayout bar=new LinearLayout(this);bar.setPadding(dp(12),dp(8),dp(12),dp(8));bar.setGravity(Gravity.CENTER_VERTICAL);
     TextView back=item("‹  "+(en?"Vehicle":"返回"),15,()->finish());bar.addView(back,new LinearLayout.LayoutParams(0,dp(46),1));
-    TextView title=item(en?"Polestar 2 Specs":"Polestar 2 车辆规格",18,null);title.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+    TextView title=item(en?"Polestar 2 Specs":"Polestar 2 车辆规格",18,null);title.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
     bar.addView(title,new LinearLayout.LayoutParams(0,dp(46),2));root.addView(bar);
     LinearLayout tabs=new LinearLayout(this);tabs.setPadding(dp(12),0,dp(12),dp(8));
     TextView local=item(en?"Specifications index":"规格目录",14,this::showIndex);
@@ -81,6 +81,7 @@ public final class VehicleSpecificationsActivity extends Activity {
     TextView full=item(en?"View complete official specifications online ›":"在应用内查看极星官网完整规格 ›",15,this::showOfficial);
     full.setTextColor(dark?0xFFFFB16C:0xFFB34700);full.setPadding(dp(14),dp(18),dp(14),dp(25));body.addView(full);
   }
+  @android.annotation.SuppressLint("SetJavaScriptEnabled") // Official HTTPS site only; disable file/content access and off-domain navigation.
   private void showOfficial(){
     clearBody();web=new WebView(this);
     web.getSettings().setJavaScriptEnabled(true);web.getSettings().setDomStorageEnabled(true);

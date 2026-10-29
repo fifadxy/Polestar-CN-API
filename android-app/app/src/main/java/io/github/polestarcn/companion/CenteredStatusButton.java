@@ -14,7 +14,7 @@ class CenteredStatusButton extends TextView {
  CenteredStatusButton(Context c){super(c);setIncludeFontPadding(false);}
  @Override public void setText(CharSequence value,BufferType type){if(!composing)title=value==null?"":value.toString().split("\n",2)[0];super.setText(value,type);}
  final String title(){return title;}
- final void glyph(int resource){glyph=resource==0?null:getContext().getDrawable(resource).mutate();compose();}
+ final void glyph(int resource){glyph=resource==0?null:androidx.core.content.ContextCompat.getDrawable(getContext(),resource).mutate();compose();}
  final void reserveIconRow(boolean value){slot=value;compose();}
  final void contents(String detail,Integer progress){feedback=detail==null?"":detail;bar=progress;compose();}
  @Override public void setTextColor(int color){super.setTextColor(color);if(glyph!=null)glyph.setTint(color);for(Drawable d:getCompoundDrawablesRelative())if(d!=null)d.setTint(color);}

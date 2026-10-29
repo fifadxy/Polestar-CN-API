@@ -49,23 +49,21 @@ public final class VehicleEffectsActivity extends Activity {
     choice(tr("粒子形状","Particle shape"),"fx_air_shape",new String[]{tr("轨迹气流（默认）","Trajectory streaks (default)"),tr("球型粒子 · 吸入","Spheres · absorption")},new EffectSettings(this).airSpheres?1:0,index->{AppPreferences.set(this,"fx_air_shape",index==1?"spheres":"streaks");if(index==1){AppPreferences.set(this,"fx_air_direction","absorb");if(airflowDirection!=null)airflowDirection.setSelection(1);}});
     airflowDirection=choice(tr("气流方向","Airflow direction"),"fx_air_direction",new String[]{tr("穿过整车","Through vehicle"),tr("吸入车内","Absorb into cabin")},new EffectSettings(this).airAbsorb?1:0,index->{AppPreferences.set(this,"fx_air_direction",index==1?"absorb":"through");});
     String[] tintKeys={"neutral","heating","cooling"};choice(tr("空调运行时的视觉配色（不是车端模式）","Running climate visual tint (not vehicle HVAC mode)"),"fx_air_tint",new String[]{tr("中性（默认）","Neutral (default)"),tr("制热 · VI橙","Heating · VI orange"),tr("制冷 · 蓝色","Cooling · blue")},Math.max(0,java.util.Arrays.asList(tintKeys).indexOf(new EffectSettings(this).airTint)),index->AppPreferences.set(this,"fx_air_tint",tintKeys[index]));
-    section(tr("吸入范围与四方向密度","Absorption range and directional density"),false);
-    slider("fx_absorb_range",tr("吸入范围（%）","Absorption range (%)"),100,50,250);
-    slider("fx_density_top",tr("上方密度（%）","Top density (%)"),100,0,200);
-    slider("fx_density_bottom",tr("下方密度（%）","Bottom density (%)"),100,0,200);
-    slider("fx_density_left",tr("左侧密度（%）","Left density (%)"),100,0,200);
-    slider("fx_density_right",tr("右侧密度（%）","Right density (%)"),100,0,200);
-    HelpDisclosure.add(controls,this,tr("密度说明","Density notes"),tr("0关闭该方向；100为基准。前后两层共享数量预算；顶视/旋转车图按车辆图局部方向计算。","0 disables a side; 100 is baseline. Both depth layers share a particle budget. Directions follow local vehicle-image axes, including rotated views."));
+    fieldControls(tr("充电 · 吸入与分层","Charging · absorption and depth"),"fx_charge_field_",new EffectSettings(this).chargeField,true);
+    fieldControls(tr("空调 · 吸入与分层","Climate · absorption and depth"),"fx_climate_field_",new EffectSettings(this).climateField,false);
+    fieldControls(tr("净化 · 吸入与分层","Purification · absorption and depth"),"fx_clean_field_",new EffectSettings(this).cleanField,false);
     section(tr("车窗光效","Window glow"),false);
     toggle("fx_window_glow",tr("车窗内渐变循环光效","Pulsing gradient inside windows"),true);
-    slider("fx_window_strength",tr("车窗光效强度（%）","Window glow intensity (%)"),60,0,100);
-    slider("fx_window_speed",tr("车窗光效速度（%）","Window glow speed (%)"),100,25,300);
+    slider("fx_window_strength",tr("车窗光效强度（%）","Window glow intensity (%)"),60,0,300);
+    slider("fx_window_range",tr("车窗渐变覆盖范围（%）","Window gradient coverage (%)"),100,25,300);
+    slider("fx_window_period",tr("车窗渐变循环时间（s）","Window gradient cycle (s)"),new EffectSettings(this).windowPeriod,1,60);
     section(tr("轨迹、拖影与尺寸","Paths, trails and size"),false);
     toggle("fx_turbulence",tr("不规则弧线扰动（关闭为直线）","Irregular arcs (off: straight paths)"),true);
 
 
     slider("fx_turbulence_percent",tr("弧线粒子比例（%）","Curved particles (%)"),20,0,100);
     slider("fx_arc_percent",tr("弧线范围（%）","Arc range (%)"),15,0,100);
+    slider("fx_trail_length",tr("气流尾迹长度（%）","Airflow trail length (%)"),100,10,300);
     slider("fx_particle_size",tr("颗粒大小（%）","Particle size (%)"),100,25,300);
     HelpDisclosure.add(controls,this,tr("轨迹与配色说明","Paths and colors"),tr("扰动作用于气流和充电吸入；弧线范围按车辆显示尺寸计算。颗粒大小也调整气流粗细。制冷蓝、制热VI橙、净化绿；未知空调模式仍为中性配色。","Perturbation affects airflow and charging absorption. Arc range is relative to the displayed vehicle; size also changes airflow thickness. Cooling: blue; heating: VI orange; purification: green. Unreported climate mode stays neutral."));
     slider("fx_air_speed",tr("气流速度（%）","Airflow speed (%)"),100,50,200);slider("fx_lines",tr("气流密度","Airflow density"),36,12,120);slider("fx_strength",tr("气流强度（%）","Airflow strength (%)"),60,20,100);toggle("fx_fade",tr("车尾气流渐隐","Fade airflow beyond rear"),true);
@@ -74,6 +72,7 @@ public final class VehicleEffectsActivity extends Activity {
     toggle("page_transition",tr("页面切换光效","Page transition"),true);toggle("all_good_shimmer",tr("All Good！慢速光效","All Good! sweep"),true);toggle("charging_animation",tr("充电文字框流光","Charging-card sweep"),true);
     controls=settingsRoot;controls.addView(button(tr("恢复动效默认参数","Reset effect parameters"),()->{stopCycle();EffectSettings.defaults(this);build();}));showScene();
   }
+  private void fieldControls(String title,String key,ParticleField field,boolean charging){section(title,false);slider(key+"range",tr("吸入范围（%）","Absorption range (%)"),field.range,25,400);slider(key+"top",tr("上方密度（%）","Top density (%)"),field.top,0,300);slider(key+"bottom",tr("下方密度（%）","Bottom density (%)"),field.bottom,0,300);slider(key+"left",tr("左侧密度（%）","Left density (%)"),field.left,0,300);slider(key+"right",tr("右侧密度（%）","Right density (%)"),field.right,0,300);slider(key+"behind",tr("车后粒子比例（%，其余在车前）","Behind car (%, rest in front)"),field.behind,0,100);slider(key+"focus_x",tr("吸入焦点 · 横向（%）","Absorption focus · horizontal (%)"),field.customX?field.focusX:charging?13:50,0,100);slider(key+"focus_y",tr("吸入焦点 · 纵向（%）","Absorption focus · vertical (%)"),field.customY?field.focusY:charging?78:50,0,100);HelpDisclosure.add(controls,this,tr("范围、焦点与分层说明","Range, focus and depth notes"),tr("方向按车辆图片局部坐标计算；0关闭该方向。焦点百分比相对车辆范围，未调整的充电焦点沿用原充电口。车前车后共享总数量预算。","Directions follow vehicle-image axes; 0 disables a side. Focus is relative to car bounds; untouched charging focus keeps its original charge port. Both layers share the same particle budget."));}
   private void section(String title,boolean open){LinearLayout group=new LinearLayout(this);group.setOrientation(LinearLayout.VERTICAL);group.setVisibility(open?View.VISIBLE:View.GONE);Button heading=button(getString(R.string.ui_text_parts_2,open?"⌄  ":"›  ",title),()->{});heading.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);heading.setOnClickListener(v->{Haptics.tap(this);boolean show=group.getVisibility()!=View.VISIBLE;group.setVisibility(show?View.VISIBLE:View.GONE);heading.setText(getString(R.string.ui_text_parts_2,show?"⌄  ":"›  ",title));});settingsRoot.addView(heading);settingsRoot.addView(group);controls=group;}
   private void showVisual(int index){preview.setVisibility(index<7||index==9?View.VISIBLE:View.INVISIBLE);goodPreview.setVisibility(index==7?View.VISIBLE:View.GONE);pulseCard.setVisibility(index==8?View.VISIBLE:View.GONE);pulse.setActive(index==8);if(index==9)PageTransition.play(stage);else PageTransition.stop(stage);}
   private void showScene(){preview.setPreviewAir(-1);preview.setPreviewCharge(-1,false);preview.setPreviewMode(MODES[scene]);showVisual(scene);caption.setText(getString(R.string.ui_text_parts_2, String.valueOf(tr("模拟测试 · ","Simulation · ")), String.valueOf(scenes()[scene])));}

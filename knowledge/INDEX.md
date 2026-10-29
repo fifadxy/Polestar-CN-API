@@ -83,3 +83,5 @@
 - [beta8 独立动效开关](44_V095_BETA8_EFFECT_SWITCHES.md)
 
 - [beta9 C排版与分层轨迹动效](45_V095_BETA9_LAYERED_AIRFLOW.md)
+
+- [beta10 独立吸入场与柔化动效](46_V095_BETA10_PARTICLE_FIELDS.md)

@@ -76,12 +76,13 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     canvas.save();canvas.translate(getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f+(offsetC()?Math.min(getWidth()*.08f,Math.max(0,(getWidth()-imageBounds.width())/2)):0),getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f+verticalOffset(rotation));canvas.rotate(rotation);
     if(mode==EffectStateController.Mode.CHARGING&&!bounds.isEmpty()){
       boolean right=VehicleArt.frontAtRight(art);float px=bounds.left+bounds.width()*(right?.13f:.87f),py=bounds.top+bounds.height()*.78f;
-      particles.draw(canvas,bounds,px,py,time,density,settings,lowRam?45:150,1);
+      particles.drawLayer(canvas,bounds,px,py,time,density,settings,lowRam?45:150,1,0);
     }
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&!bounds.isEmpty())airflow.drawLayer(canvas,bounds,VehicleArt.frontAtRight(art),time,density,settings,mode,lowRam?24:120,1,0);
     canvas.save();canvas.translate(imageBounds.left,imageBounds.top);canvas.scale(imageBounds.width()/getDrawable().getIntrinsicWidth(),imageBounds.height()/getDrawable().getIntrinsicHeight());getDrawable().setBounds(0,0,getDrawable().getIntrinsicWidth(),getDrawable().getIntrinsicHeight());getDrawable().draw(canvas);canvas.restore();
+    if(mode==EffectStateController.Mode.CHARGING&&!bounds.isEmpty())particles.drawLayer(canvas,bounds,bounds.left+bounds.width()*(VehicleArt.frontAtRight(art)?.13f:.87f),bounds.top+bounds.height()*.78f,time,density,settings,lowRam?45:150,1,1);
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&!bounds.isEmpty())airflow.drawLayer(canvas,bounds,VehicleArt.frontAtRight(art),time,density,settings,mode,lowRam?24:120,1,1);
-    if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&settings.windowGlow)windows.draw(canvas,imageBounds,art,time,mode,settings.windowStrength,settings.windowSpeed);
+    if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&settings.windowGlow)windows.draw(canvas,imageBounds,art,time,mode,settings.windowStrength,1f,settings.windowRange,settings.windowPeriod);
     canvas.restore();
     if(isPressed()){touchGlow.setColor(0x24FFFFFF);canvas.drawRoundRect(0,0,getWidth(),getHeight(),12*density,12*density,touchGlow);backdropText.setTextAlign(android.graphics.Paint.Align.CENTER);backdropText.setColor(PsaDesign.muted(AppPreferences.dark(getContext())));backdropText.setTypeface(PsaDesign.regular());backdropText.setFakeBoldText(false);backdropText.setTextSize(10*density);canvas.drawText(AppPreferences.tr(getContext(),"长按1.5s选择车辆图片","Hold 1.5s to choose vehicle"),getWidth()/2f,getHeight()-8*density,backdropText);}
   }

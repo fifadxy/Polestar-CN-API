@@ -83,6 +83,7 @@ public final class VehicleCoordinator {
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
+  private long sessionGeneration; // Reject late background refresh callbacks after explicit logout.
 
   public boolean locationBusy;
   private int locationGeneration;
@@ -203,6 +204,7 @@ public final class VehicleCoordinator {
     busy = true;
     message = tr("正在更新车辆…", "Updating vehicle…");
     changed();
+    final long requestGeneration=sessionGeneration;
     final String wanted = AppPreferences.get(context, "vehicle", "");
     final List<ChinaPolestarApi.VehicleInfo> known = new ArrayList<>(cars);
     final boolean discover = known.isEmpty() || System.currentTimeMillis() - vehiclesDiscoveredAt >= 15 * 60_000L;
@@ -214,10 +216,12 @@ public final class VehicleCoordinator {
             for (ChinaPolestarApi.VehicleInfo car : found)
               if (identity(car.vin).equals(wanted)) picked = car;
             VehicleSnapshot live = api.readVehicle(picked);
-            VehicleSnapshotStore.saveChina(context, live);EnergyLog.record(context,identity(picked.vin),live);
             final ChinaPolestarApi.VehicleInfo pick = picked;
             main.post(
                 () -> {
+                  if(requestGeneration!=sessionGeneration||!signedIn)return;
+                  VehicleSnapshotStore.saveChina(context,live);
+                  EnergyLog.record(context,identity(pick.vin),live);
                   cars.clear();
                   cars.addAll(found);
                   if (discover) vehiclesDiscoveredAt = System.currentTimeMillis();
@@ -232,6 +236,7 @@ public final class VehicleCoordinator {
           } catch (Exception e) {
             main.post(
                 () -> {
+                  if(requestGeneration!=sessionGeneration||!signedIn)return;
                   lastVehicleReadOk=false;message = tr("更新失败：", "Update failed: ") + safe(e);
                   finish();
                 });
@@ -335,6 +340,7 @@ public final class VehicleCoordinator {
   /** Explicit logout cannot be blocked by a camping check or lost connectivity. */
   public void logout() {
     if(CampModeManager.active(context)||"STOPPING".equals(CampModeManager.phase(context)))CampModeManager.requestStop(context);
+    sessionGeneration++;
     signedIn=false;exclusive=false;busy=false;quietRefresh=false;userRefreshing=false;
     pendingCommands.clear();syncCommandStatus();completions.clear();
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();

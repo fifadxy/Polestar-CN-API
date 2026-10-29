@@ -3,9 +3,20 @@ import android.content.*;
 /** Display parameters only. Never creates requests or changes vehicle settings. */
 public final class EffectSettings {
  public static final String[] STYLES={"c1a","c1d","c1+a","c1+d","c1+c"};
- public final boolean master,charge,air,absorb,fade,airAbsorb,windowGlow;public final int style,particles,lines,strength;public final float chargeSpeed,airSpeed;public final String airTint;
- public EffectSettings(Context c){migrate(c);airAbsorb="absorb".equals(AppPreferences.get(c,"fx_air_direction","through"));windowGlow=AppPreferences.visible(c,"fx_window_glow",true);airTint=AppPreferences.get(c,"fx_air_tint","neutral");master=AppPreferences.visible(c,"light_effects",true);charge=AppPreferences.visible(c,"fx_charge",true);air=AppPreferences.visible(c,"fx_air",true);absorb="absorb".equals(AppPreferences.get(c,"fx_direction","up"));fade=AppPreferences.visible(c,"fx_fade",true);int s=java.util.Arrays.asList(STYLES).indexOf(AppPreferences.get(c,"fx_style","c1a"));style=Math.max(0,s);particles=number(c,"fx_particles",60,20,150);lines=number(c,"fx_lines",36,12,120);strength=number(c,"fx_strength",60,20,100);chargeSpeed=number(c,"fx_charge_speed",100,50,200)/100f;airSpeed=number(c,"fx_air_speed",100,50,200)/100f;}
- private EffectSettings(EffectSettings p,int s,boolean direction,boolean airDirection){airAbsorb=airDirection;windowGlow=p.windowGlow;airTint=p.airTint;master=p.master;charge=p.charge;air=p.air;absorb=direction;fade=p.fade;style=Math.max(0,Math.min(4,s));particles=p.particles;lines=p.lines;strength=p.strength;chargeSpeed=p.chargeSpeed;airSpeed=p.airSpeed;}
+ public final boolean master,charge,air,absorb,fade,airAbsorb,windowGlow;
+ public final int style,particles,lines,strength,arcAmount,straightPercent,particleScale,spawnRange,glowStrength;
+ public final float chargeSpeed,airSpeed,glowSpeed;
+ public final String airTint;
+ public EffectSettings(Context c){migrate(c);airAbsorb="absorb".equals(AppPreferences.get(c,"fx_air_direction","through"));windowGlow=AppPreferences.visible(c,"fx_window_glow",true);airTint=AppPreferences.get(c,"fx_air_tint","neutral");master=AppPreferences.visible(c,"light_effects",true);charge=AppPreferences.visible(c,"fx_charge",true);air=AppPreferences.visible(c,"fx_air",true);absorb="absorb".equals(AppPreferences.get(c,"fx_direction","up"));fade=AppPreferences.visible(c,"fx_fade",true);int s=java.util.Arrays.asList(STYLES).indexOf(AppPreferences.get(c,"fx_style","c1a"));style=Math.max(0,s);particles=number(c,"fx_particles",60,20,150);lines=number(c,"fx_lines",36,12,120);strength=number(c,"fx_strength",60,20,100);chargeSpeed=number(c,"fx_charge_speed",100,50,200)/100f;airSpeed=number(c,"fx_air_speed",100,50,200)/100f;
+  arcAmount=number(c,"fx_arc_amount",15,0,60);
+  straightPercent=number(c,"fx_straight_percent",20,0,100);
+  particleScale=number(c,"fx_particle_size",100,25,300);
+  spawnRange=number(c,"fx_spawn_range",100,30,150);
+  glowStrength=number(c,"fx_window_glow_strength",60,0,100);
+  glowSpeed=number(c,"fx_window_glow_speed",100,50,200)/100f;}
+ private EffectSettings(EffectSettings p,int s,boolean direction,boolean airDirection){airAbsorb=airDirection;windowGlow=p.windowGlow;airTint=p.airTint;master=p.master;charge=p.charge;air=p.air;absorb=direction;fade=p.fade;style=Math.max(0,Math.min(4,s));particles=p.particles;lines=p.lines;strength=p.strength;chargeSpeed=p.chargeSpeed;airSpeed=p.airSpeed;
+  arcAmount=p.arcAmount;straightPercent=p.straightPercent;particleScale=p.particleScale;
+  spawnRange=p.spawnRange;glowStrength=p.glowStrength;glowSpeed=p.glowSpeed;}
  EffectSettings previewCharge(int s,boolean direction){return new EffectSettings(this,s,direction,airAbsorb);}
  EffectSettings previewAir(boolean direction){return new EffectSettings(this,style,absorb,direction);}
  private static void migrate(Context c){SharedPreferences p=c.getSharedPreferences("preferences",0);if(p.getBoolean("fx_legacy_migrated",false))return;SharedPreferences.Editor e=p.edit().putBoolean("fx_legacy_migrated",true);
@@ -17,5 +28,5 @@ public final class EffectSettings {
   e.apply();
  }
  static int number(Context c,String key,int fallback,int low,int high){try{return Math.max(low,Math.min(high,Integer.parseInt(AppPreferences.get(c,key,""+fallback))));}catch(Exception e){return fallback;}}
- public static void defaults(Context c){android.content.SharedPreferences.Editor e=c.getSharedPreferences("preferences",0).edit();for(String key:new String[]{"light_effects","all_good_shimmer","charging_animation","page_transition","fx_charge","fx_air","fx_direction","fx_fade","fx_style","fx_particles","fx_lines","fx_strength","fx_charge_speed","fx_air_speed","fx_air_direction","fx_window_glow","fx_air_tint"})e.remove(key);e.apply();}
+ public static void defaults(Context c){android.content.SharedPreferences.Editor e=c.getSharedPreferences("preferences",0).edit();for(String key:new String[]{"light_effects","all_good_shimmer","charging_animation","page_transition","fx_charge","fx_air","fx_direction","fx_fade","fx_style","fx_particles","fx_lines","fx_strength","fx_charge_speed","fx_air_speed","fx_air_direction","fx_window_glow","fx_air_tint","fx_arc_amount","fx_straight_percent","fx_particle_size","fx_spawn_range","fx_window_glow_strength","fx_window_glow_speed"})e.remove(key);e.apply();}
 }

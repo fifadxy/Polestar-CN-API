@@ -6,7 +6,7 @@
         android:layout_height="match_parent" android:scaleType="fitXY"
         android:contentDescription="@null"/>
     <LinearLayout android:layout_width="match_parent" android:layout_height="42dp"
-        android:layout_gravity="bottom" android:orientation="horizontal"
+        android:layout_gravity="bottom" android:orientation="horizontal" android:baselineAligned="false"
         android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingBottom="3dp">
         <FrameLayout android:id="@+id/volike_widget_lock"
             android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"

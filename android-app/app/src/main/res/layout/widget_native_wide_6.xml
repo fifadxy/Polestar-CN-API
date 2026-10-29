@@ -1,6 +1,6 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent">
  <ImageView android:id="@+id/widget_bg" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:contentDescription="@null"/>
- <LinearLayout android:id="@+id/widget_content" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="match_parent">
+ <LinearLayout android:id="@+id/widget_content" android:orientation="horizontal" android:baselineAligned="false" android:layout_width="match_parent" android:layout_height="match_parent">
  <include layout="@layout/widget_native_summary" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
  <include layout="@layout/widget_native_actions" android:layout_width="288dp" android:layout_height="48dp" android:layout_gravity="center_vertical"/>
  </LinearLayout></FrameLayout>

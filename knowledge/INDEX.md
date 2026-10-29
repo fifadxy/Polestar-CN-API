@@ -79,3 +79,5 @@
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。
 
 - [beta7 外观与地图复用](43_V095_BETA7_APPEARANCE.md)
+
+- [beta8 独立动效开关](44_V095_BETA8_EFFECT_SWITCHES.md)

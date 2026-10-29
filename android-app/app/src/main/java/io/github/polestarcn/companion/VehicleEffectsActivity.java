@@ -43,7 +43,7 @@ public final class VehicleEffectsActivity extends Activity {
     choice(tr("粒子风格","Particle style"),"fx_style",new String[]{tr("C1a · 自然星尘","C1a · natural stardust"),tr("C1d · 羽化柔光","C1d · feather glow"),tr("C1+a · 自然聚拢","C1+a · natural convergence"),tr("C1+d · 柔光聚拢","C1+d · soft convergence"),tr("C1+c · 弧线引导","C1+c · guided arcs")},new EffectSettings(this).style,index->{stopCycle();AppPreferences.set(this,"fx_style",EffectSettings.STYLES[index]);showScene();});
     choice(tr("运动方向","Motion direction"),"fx_direction",new String[]{tr("上升","Rising"),tr("吸入充电口","Absorb into charge port")},new EffectSettings(this).absorb?1:0,index->{stopCycle();AppPreferences.set(this,"fx_direction",index==1?"absorb":"up");showScene();});
     slider("fx_charge_speed",tr("粒子速度（%）","Particle speed (%)"),100,50,200);slider("fx_particles",tr("粒子数量","Particle count"),60,20,150);
-    controls.addView(text(tr("气流效果 · A1 / A2","Airflow · A1 / A2"),17));toggle("fx_air",tr("空调 / 通风 / 净化气流","Climate / ventilation / purification"),true);
+    controls.addView(text(tr("气流效果 · A1 / A2","Airflow · A1 / A2"),17));toggle("fx_air",tr("空调动态效果（制冷 / 通风）","Climate effects (cooling / ventilation)"),true);
     choice(tr("气流方向","Airflow direction"),"fx_air_direction",new String[]{tr("穿过整车","Through vehicle"),tr("吸入车内","Absorb into cabin")},new EffectSettings(this).airAbsorb?1:0,index->{AppPreferences.set(this,"fx_air_direction",index==1?"absorb":"through");});
     toggle("fx_window_glow",tr("车窗内渐变循环光效","Pulsing gradient inside windows"),true);
     slider("fx_window_strength",tr("车窗光效强度（%）","Window glow intensity (%)"),60,0,100);
@@ -51,6 +51,8 @@ public final class VehicleEffectsActivity extends Activity {
     String[] tintKeys={"neutral","heating","cooling"};choice(tr("空调运行时的视觉配色（不是车端模式）","Running climate visual tint (not vehicle HVAC mode)"),"fx_air_tint",new String[]{tr("中性（默认）","Neutral (default)"),tr("制热 · VI橙","Heating · VI orange"),tr("制冷 · 蓝色","Cooling · blue")},Math.max(0,java.util.Arrays.asList(tintKeys).indexOf(new EffectSettings(this).airTint)),index->AppPreferences.set(this,"fx_air_tint",tintKeys[index]));
     controls.addView(text(tr("粒子轨迹与尺寸","Particle paths and size"),17));
     toggle("fx_turbulence",tr("不规则弧线扰动（关闭为直线）","Irregular arcs (off: straight paths)"),true);
+    toggle("fx_purification",tr("空气净化动态效果","Air purification effects"),AppPreferences.visible(this,"fx_air",true));
+    toggle("fx_heating",tr("制热动态效果","Heating effects"),AppPreferences.visible(this,"fx_air",true));
     slider("fx_turbulence_percent",tr("弧线粒子比例（%）","Curved particles (%)"),20,0,100);
     slider("fx_arc_percent",tr("弧线范围（%）","Arc range (%)"),15,0,100);
     slider("fx_particle_size",tr("颗粒大小（%）","Particle size (%)"),100,25,300);

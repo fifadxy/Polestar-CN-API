@@ -2109,6 +2109,9 @@ public final class MainActivity extends FragmentActivity {
     });
     disclosure(root,"settings_effects",tr("动画、特效与测试","Animations, effects and testing"),false,p->{
       settingToggle(p,"light_effects",tr("界面光效总开关","UI light effects"),true,false);
+      settingToggle(p,"fx_air",tr("空调动态效果（制冷 / 通风）","Climate effects (cooling / ventilation)"),true,false);
+      settingToggle(p,"fx_purification",tr("空气净化动态效果","Air purification effects"),AppPreferences.visible(this,"fx_air",true),false);
+      settingToggle(p,"fx_heating",tr("制热动态效果","Heating effects"),AppPreferences.visible(this,"fx_air",true),false);
       setting(p,tr("车辆动态效果 · 参数与全部测试","Vehicle effects · parameters and test all"),()->startActivity(new Intent(this,VehicleEffectsActivity.class)));
       settingToggle(p,"all_good_shimmer",tr("All Good！慢速光效","All Good! gentle sweep"),true,false);
       settingToggle(p,"charging_animation",tr("充电文字框缓慢流光","Gentle charging-card sweep"),true,false);

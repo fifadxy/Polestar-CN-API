@@ -46,7 +46,7 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     if(settings==null)return;
     EffectStateController.Mode next=EffectStateController.Mode.OFF;
     if(allowed()){
-      if(preview){if(settings.master&&(testMode==EffectStateController.Mode.CHARGING?settings.charge:settings.air))next=testMode;}
+      if(preview){if(settings.master&&settings.enabled(testMode))next=testMode;}
       else if(coordinator!=null)next=EffectStateController.resolve(coordinator.snapshot,settings,System.currentTimeMillis());
     }
     boolean different=mode!=next;mode=next;

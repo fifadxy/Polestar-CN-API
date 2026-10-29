@@ -47,6 +47,44 @@ public final class MainActivity extends FragmentActivity {
   private int settingsScrollY,dataScrollY;
   private boolean transitionRequested;private int transitionDirection=1;
   private final Handler displayHandler = new Handler(Looper.getMainLooper());
+  private android.net.ConnectivityManager campConnectivity;
+  private android.net.ConnectivityManager.NetworkCallback campNetworkCallback;
+  private long lastCampRecoveryElapsed;
+  private void recoverCampingOnNetwork(){
+    if(!FirstUseConsent.accepted(this)||model==null||!CampModeManager.needsRecovery(this))return;
+    if(!model.hasSession())return;
+    long now=android.os.SystemClock.elapsedRealtime();
+    if(now-lastCampRecoveryElapsed<60_000L&&lastCampRecoveryElapsed>0)return;
+    lastCampRecoveryElapsed=now;
+    CampModeManager.retryNetworkRecovery(this);
+    model.refresh(()->{
+      if(!isFinishing()&&CampModeManager.needsRecovery(this))
+        model.checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false),()->{});
+    });
+  }
+  private void monitorCampingNetwork(){
+    if(!CampModeManager.needsRecovery(this)||campNetworkCallback!=null)return;
+    try{
+      campConnectivity=(android.net.ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);
+      if(campConnectivity==null)return;
+      campNetworkCallback=new android.net.ConnectivityManager.NetworkCallback(){
+        @Override public void onCapabilitiesChanged(android.net.Network network,android.net.NetworkCapabilities caps){
+          if(caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+              &&caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+            runOnUiThread(()->recoverCampingOnNetwork());
+        }
+      };
+      campConnectivity.registerDefaultNetworkCallback(campNetworkCallback);
+      android.net.Network active=campConnectivity.getActiveNetwork();
+      android.net.NetworkCapabilities caps=active==null?null:campConnectivity.getNetworkCapabilities(active);
+      if(caps!=null&&caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED))recoverCampingOnNetwork();
+    }catch(RuntimeException unavailable){DiagnosticLog.add("Camping network monitor unavailable; JobScheduler remains active");}
+  }
+  private void stopCampingNetworkMonitor(){
+    if(campConnectivity!=null&&campNetworkCallback!=null)
+      try{campConnectivity.unregisterNetworkCallback(campNetworkCallback);}catch(RuntimeException ignored){}
+    campNetworkCallback=null;campConnectivity=null;
+  }
   private final Runnable displayTick = new Runnable() {
     public void run() {
       if(statusDockBinding!=null)statusDockBinding.run();
@@ -145,6 +183,7 @@ public final class MainActivity extends FragmentActivity {
 
   @Override
   protected void onDestroy() {
+    stopCampingNetworkMonitor();
     displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);
     displayHandler.removeCallbacks(openingRefresh);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);
     dismissParking();if(carDialog!=null)carDialog.dismiss();if(backdrop!=null)backdrop.release();
@@ -159,9 +198,13 @@ public final class MainActivity extends FragmentActivity {
     if (model != null) { model.listen(listener); if (resumeRender) { resumeRender = false; render(); } }
   }
   @Override protected void onResume() {
-    super.onResume();AllGoodTextView.host(findViewById(android.R.id.content),true);if(model!=null&&dashboardReady&&page==0)onModelChanged();scheduleForeground();displayHandler.removeCallbacks(displayTick); displayHandler.postDelayed(displayTick, 60_000L);
+    super.onResume();AllGoodTextView.host(findViewById(android.R.id.content),true);
+    if(model!=null&&dashboardReady&&page==0)onModelChanged();
+    scheduleForeground();displayHandler.removeCallbacks(displayTick);
+    displayHandler.postDelayed(displayTick,60_000L);monitorCampingNetwork();
   }
   @Override protected void onPause() {
+    stopCampingNetworkMonitor();
     AllGoodTextView.host(findViewById(android.R.id.content),false);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);View pulse=findViewById(android.R.id.content).findViewWithTag("charging_pulse");if(pulse instanceof ChargingPulseView)((ChargingPulseView)pulse).setActive(false); super.onPause();
   }
 
@@ -2058,7 +2101,37 @@ public final class MainActivity extends FragmentActivity {
     p.addView(text(tr("静默显示电量、充电、空调/净化与更新时间。刷新周期在下方独立设置，Android省电限制可能延迟；锁屏隐藏详情。","Silent battery, charging, climate/air and update time. Configure refresh below; Android battery restrictions can delay it. Lock-screen details stay private."),12,muted,false));
     setting(p,tr("后台与电池设置","Background and battery settings"),()->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+getPackageName()))));
   }
-  private void signOut(){if(model.busy||model.commandPending){toast(tr("正在处理车辆操作，请稍后退出","A vehicle operation is pending. Sign out after it finishes."));return;}new HapticDialogBuilder(this).setMessage(tr("退出并清除本机登录会话？","Sign out and clear this phone's session?")).setPositiveButton(tr("退出","Sign out"),(d,w)->{inputPhone="";inputPassword="";model.logout();page=0;render();}).setNegativeButton(tr("取消","Cancel"),null).show();}
+  private void signOut(){
+    boolean camping=CampModeManager.active(this)||CampModeManager.pendingStop(this);
+    String message=camping
+      ?tr("即使网络或会话失效，也可以立即退出本机登录。退出会停止本地托管并清除本机令牌，但车端空调/净化可能仍在运行、且退出后不能自动核实；请到车辆或官方 App 确认。",
+          "You can sign out offline. Local camping and local credentials will be cleared, but remote climate/air may still be running and will not be verified after sign-out. Check the car or official app.")
+      :tr("退出并清除本机登录会话？正在发送的指令可能仍在车端完成。",
+          "Sign out and clear local credentials? An in-flight vehicle command might still complete remotely.");
+    new HapticDialogBuilder(this).setTitle(tr("退出登录","Sign out")).setMessage(message)
+      .setPositiveButton(tr("确认退出","Sign out"),(d,w)->{
+        inputPhone="";inputPassword="";model.logout();page=0;render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void reauthenticateDialog(){
+    LinearLayout panel=detailPanel();
+    note(panel,tr("会话说明","Session handling"),
+      tr("登录状态会安全保存在本机，按服务端允许的规则刷新令牌。服务端拒绝刷新时需要重新输入账户密码，无法绕过服务器会话有效期。",
+        "Session tokens are encrypted locally and refreshed only while authorized. Server-rejected refresh requires interactive sign-in and cannot be bypassed."));
+    EditText phone=new EditText(this);phone.setTextColor(ink);phone.setHint(tr("中国区手机号","China phone"));phone.setInputType(InputType.TYPE_CLASS_PHONE);panel.addView(phone);
+    EditText password=new EditText(this);password.setTextColor(ink);password.setHint(tr("账户密码","Password"));
+    password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);panel.addView(password);
+    AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("重新验证中国区登录","Reauthenticate China session"))
+      .setView(panel).setPositiveButton(tr("登录","Sign in"),null)
+      .setNegativeButton(tr("取消","Cancel"),null).create();
+    dialog.show();dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+      if(model.busy){toast(tr("请等待当前请求结束","Wait for current request"));return;}
+      String number=phone.getText().toString().trim(),pass=password.getText().toString();
+      if(number.isEmpty()||pass.isEmpty()){phone.setError(tr("请输入手机号和密码","Phone and password required"));return;}
+      model.login(number,pass);password.setText("");dialog.dismiss();
+      CampModeManager.retryNetworkRecovery(this);
+    });
+  }
   private void settings(){
     LinearLayout root=scrollBody();((ScrollView)root.getParent()).setTag("settings_scroll");root.addView(text(tr("设置","Settings"),24,ink,false));root.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立版本","Standalone version"),12,muted,false));gap(root,16);
     disclosure(root,"settings_appearance",tr("外观与交互","Appearance and interaction"),true,p->{
@@ -2115,6 +2188,7 @@ public final class MainActivity extends FragmentActivity {
     disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,p->{residentSettings(p);setting(p,tr("App / Widget 刷新规则","App / Widget refresh rules"),this::refreshRulesDialog);});
     disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);note(p,tr("手表预览说明","Watch preview"),tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."));});
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
+      setting(p,tr("重新验证中国区账户（会话失效时）","Reauthenticate China account"),this::reauthenticateDialog);
       p.addView(text(new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."),12,muted,false));
       setting(p,tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this)));
       setting(p,tr("复制诊断日志","Copy diagnostic log"),()->{ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);cm.setPrimaryClip(ClipData.newPlainText("Diagnostics",DiagnosticLog.export()));toast(tr("已复制","Copied"));});
@@ -2419,8 +2493,18 @@ public final class MainActivity extends FragmentActivity {
   private void campDialog() {
     LinearLayout panel = column(); panel.setPadding(dp(20), dp(10), dp(20), dp(4));
     CampSession current = CampModeManager.session(this);
-    boolean active = CampModeManager.active(this) || "STOPPING".equals(CampModeManager.phase(this));
-    panel.addView(text(CampModeManager.status(this), 14, ink, false));
+    boolean active=CampModeManager.active(this)||"STOPPING".equals(CampModeManager.phase(this));
+    boolean pendingStop=CampModeManager.pendingStop(this);
+    panel.addView(text(CampModeManager.status(this),14,ink,false));
+    if(pendingStop){
+      panel.addView(text(tr("本地托管已停止。若网络断开或令牌失效，车辆空调/净化状态可能无法确认；恢复联网后先读取真实车况，再确认远程停止，不会盲目重复发送。",
+        "Local camping is stopped. Vehicle HVAC may still be running if offline or signed out. On reconnection a fresh state read precedes any remaining stop; uncertain writes are not automatically retried."),12,muted,false));
+      new HapticDialogBuilder(this).setTitle(tr("托管远程状态待核实","Remote camping status pending"))
+        .setView(panel)
+        .setPositiveButton(tr("立即联网核实","Check when online"),(d,w)->recoverCampingOnNetwork())
+        .setNegativeButton(tr("关闭","Close"),null).show();
+      return;
+    }
     if (active && current != null) {
       gap(panel, 12);
       panel.addView(text(current.vehicleName + "\n" + tr("结束 ", "Ends ")
@@ -2434,7 +2518,11 @@ public final class MainActivity extends FragmentActivity {
           : android.text.format.DateFormat.format("MM-dd HH:mm", checked)), 12, muted, false));
       new HapticDialogBuilder(this).setTitle(tr("露营模式", "Camping mode")).setView(panel)
           .setPositiveButton(tr("结束托管", "End camping"), (d, w) ->
-              authenticate(tr("结束露营，并停止托管的空调／净化", "End camping and stop managed climate / air"), "camp-stop"))
+              new HapticDialogBuilder(this).setTitle(tr("立即结束本地托管","Stop camping locally"))
+                .setMessage(tr("停止本地托管不依赖网络。远程空调/净化将在联网、登录有效并读取新车况后尝试停止一次，结果未确认时请使用官方 App 或车辆核实。",
+                  "Stopping local camping does not require network access. Remote HVAC stop will be attempted once after fresh authenticated state is read. If unconfirmed, check your car or official app."))
+                .setPositiveButton(tr("立即停止","Stop now"),(x,y)->model.stopCamp())
+                .setNegativeButton(tr("取消","Cancel"),null).show())
           .setNegativeButton(tr("关闭", "Close"), null).show();
       return;
     }

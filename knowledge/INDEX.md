@@ -77,3 +77,5 @@
 **当前状态**：Android v0.8.7-beta1 延续真实 China 登录、车况/远控、停车位置和 Widget 能力，并在 CI 中持续做手机多皮肤/大字号布局回归；尚未完成本轮账号、车辆和独立 Wear OS 端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
 
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。
+
+- [beta7 外观与地图复用](43_V095_BETA7_APPEARANCE.md)

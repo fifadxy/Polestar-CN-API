@@ -497,8 +497,8 @@ public final class MainActivity extends FragmentActivity {
     if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){
       if(mapHost==null){mapHost=new FrameLayout(this);setContentView(mapHost);}
       for(int i=mapHost.getChildCount()-1;i>=0;i--)if(mapHost.getChildAt(i)!=backdrop)mapHost.removeViewAt(i);
-      shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));updateBackdrop();
-    }else{if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;if(AppPreferences.visible(this,"background_image_enabled",false)&&BackgroundImages.file(this).isFile())softenMapCards(shell);setContentView(BackgroundImages.wrap(this,shell));}
+      shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);applyButtonOpacity(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));updateBackdrop();
+    }else{if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;if(AppPreferences.visible(this,"background_image_enabled",false)&&BackgroundImages.file(this).isFile())softenMapCards(shell);applyButtonOpacity(shell);setContentView(BackgroundImages.wrap(this,shell));}
 
     if(transitionRequested)PageTransition.slide(body,transitionDirection);transitionRequested=false;
   }
@@ -745,7 +745,7 @@ public final class MainActivity extends FragmentActivity {
     scheduleOpeningLocation();if(mapHost==null&&AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){render();return;}updateBackdrop();
     if (dashboardReady && page == 0 && model.hasSession()) {
       for (Runnable binding : new java.util.ArrayList<>(dashboardBindings)) binding.run();
-      applyButtonHierarchy(shell);
+      applyButtonHierarchy(shell);applyButtonOpacity(shell);
       if (controlRefresh != null)
         controlRefresh.setRefreshing(model.busy && model.userRefreshing && model.activeAction.isEmpty());
     } else {View old=contentRoot.findViewWithTag("status_scroll");if(old instanceof ScrollView)statusScrollY=((ScrollView)old).getScrollY();render();}
@@ -814,6 +814,24 @@ public final class MainActivity extends FragmentActivity {
   private boolean showTires() { return AppPreferences.visible(this, "show_tire_status", true); }
   private int accentText() { return PsaDesign.accentText(AppPreferences.dark(this)); }
 
+  private void applyHeroWeight(TextView view){
+    int weight=500;try{weight=Integer.parseInt(AppPreferences.get(this,"hero_number_weight","700"));}catch(NumberFormatException ignored){}
+    weight=Math.max(300,Math.min(900,weight));view.getPaint().setFakeBoldText(weight>=700);
+    if(android.os.Build.VERSION.SDK_INT>=28)view.setTypeface(Typeface.create(regular,weight,false));
+    else view.setTypeface(Typeface.create(weight<=300?"sans-serif-light":weight>=500?"sans-serif-medium":"sans-serif",weight>=700?Typeface.BOLD:Typeface.NORMAL));
+  }
+  private void visualControlsDialog(){LinearLayout p=detailPanel();
+    int weight=700,opacity=100;try{weight=Integer.parseInt(AppPreferences.get(this,"hero_number_weight","700"));opacity=Integer.parseInt(AppPreferences.get(this,"button_background_percent","100"));}catch(NumberFormatException ignored){}
+    SeekBar w=campSlider(p,tr("默认皮肤电量与续航粗细","Default skin battery / range weight"),300,900,Math.max(300,Math.min(900,weight)),null,null);
+    SeekBar o=campSlider(p,tr("所有皮肤按钮背景不透明度 %","All skins button background opacity %"),0,100,Math.max(0,Math.min(100,opacity)),null,null);
+    new HapticDialogBuilder(this).setTitle(tr("数字粗细与按钮背景","Number weight and button backgrounds")).setView(p).setPositiveButton(tr("保存","Save"),(d,x)->{AppPreferences.set(this,"hero_number_weight",String.valueOf(300+w.getProgress()));AppPreferences.set(this,"button_background_percent",String.valueOf(o.getProgress()));render();}).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void applyButtonOpacity(View v){
+    int value;try{value=Integer.parseInt(AppPreferences.get(this,"button_background_percent","100"));}catch(NumberFormatException e){value=100;}
+    boolean control=v.isClickable()||v instanceof android.widget.CompoundButton;
+    if(control&&v.getBackground()!=null&&!(v instanceof VehicleHeroView))v.getBackground().mutate().setAlpha(Math.max(0,Math.min(100,value))*255/100);
+    if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)applyButtonOpacity(((ViewGroup)v).getChildAt(i));
+  }
   private void batteryBarVisibility(ProgressBar bar){bar.setTag("vi_progress");bar.setVisibility(AppPreferences.visible(this,"show_battery_bar",true)?View.VISIBLE:View.GONE);}
 
   private void addBatterySummary(LinearLayout parent, boolean compact) {
@@ -821,7 +839,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout soc = column();
     TextView percent = liveText(() -> model.snapshot == null ? "--%"
         : VehicleSnapshot.metric(model.snapshot.batteryPercent, "%"), compact ? 22 : 38, ink, true);
-    percent.setTag("battery_soc");if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this))){percent.setTypeface(android.graphics.Typeface.create(regular,android.graphics.Typeface.BOLD));percent.getPaint().setFakeBoldText(true);}soc.addView(percent);
+    percent.setTag("battery_soc");if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this))){applyHeroWeight(percent);}soc.addView(percent);
     ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
     batteryBarVisibility(bar); bar.setMax(100); styleViProgress(bar);
     if (nioColors()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(32,196,121)));
@@ -832,7 +850,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout range = column(); range.setGravity(Gravity.END);
     TextView km = liveText(() -> model.snapshot == null ? "-- km"
         : VehicleSnapshot.metric(model.snapshot.rangeKm, " km"), compact ? 21 : 30, ink, true);
-    km.setTag("battery_range"); range.addView(km);
+    km.setTag("battery_range"); if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this)))applyHeroWeight(km);range.addView(km);
     if (!compact) range.addView(text(tr("预计续航", "Estimated range"), 10, muted, false));
     LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1); rp.leftMargin = dp(20);
     headline.addView(range, rp); parent.addView(headline);
@@ -1905,7 +1923,7 @@ public final class MainActivity extends FragmentActivity {
         UiSkin.set(this,skin);
         WidgetRenderer.refreshAll(this);
         if(dialog[0]!=null)dialog[0].dismiss();
-        recreate();
+        render();
       });
       option.setOnLongClickListener(v->{Haptics.tap(this);return v.startDragAndDrop(ClipData.newPlainText("skin",skin),new View.DragShadowBuilder(v),skin,0);});
       panel.addView(option);gap(panel,7);
@@ -2083,6 +2101,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("尾门图标 · 新款 / 旧款 / 门锁","Tailgate icon · new / previous / lock"),()->choice(tr("尾门图标","Tailgate icon"),"trunk_icon",new String[]{"detail","car","door"},new String[]{tr("新尾门细节（默认）","New hatch detail (default)"),tr("旧车辆轮廓","Previous car outline"),tr("门锁图标","Door lock icon")},"detail",()->{WidgetRenderer.refreshAll(this);render();}));
       setting(p,tr("程序语言 / Language","App language / 语言"),this::languageDialog);
       setting(p,tr("字体大小 · 当前皮肤 / Widget","Font size · current skin / Widget"),this::fontDialog);
+      setting(p,tr("数字粗细 / 按钮背景透明度","Number weight / button opacity"),this::visualControlsDialog);
       settingToggle(p,"ui_button_bold",tr("按钮文字加粗","Bold button labels"),true,false);
       settingToggle(p,"ui_data_bold",tr("数据文字加粗","Bold data values"),false,false);
       setting(p,tr("按钮反馈 · 内容 / 字号 / 粗细","Button feedback · content / size / weight"),this::feedbackDialog);

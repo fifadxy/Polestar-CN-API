@@ -61,6 +61,7 @@ public final class MainActivity extends FragmentActivity {
     lastCampRecoveryElapsed=now;
     final CampSession previous=CampModeManager.session(this);
     if(previous==null)return;
+    CampModeManager.report(this,previous.id,"RECOVERING_REFRESH");
     model.refresh(()->{
       if(isFinishing()||!model.hasSession()||!CampModeManager.needsRecovery(this))return;
       CampSession still=CampModeManager.session(this);
@@ -68,9 +69,17 @@ public final class MainActivity extends FragmentActivity {
       boolean safe=CampRecoveryGate.permits(previous,model.selected,model.snapshot,
           model.hasSession(),model.lastVehicleReadOk,System.currentTimeMillis());
       if(!safe){
-        DiagnosticLog.add("Camping reconnect: live state not verified; no remote commands");
+        if(!model.lastVehicleReadOk){
+          String fail=model.message==null?"":model.message;
+          String classification=CampRecovery.classify(new Exception(fail));
+          CampModeManager.report(this,previous.id,classification);
+        }else{
+          CampModeManager.report(this,previous.id,"LOGIN_REQUIRED");
+        }
+        DiagnosticLog.add("Camping reconnect: live same-VIN state not verified; no remote commands");
         return;
       }
+      CampModeManager.report(this,previous.id,"RECOVERING_VERIFY");
       CampModeManager.retryNetworkRecovery(this);
       model.checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false),()->{});
     });

@@ -161,6 +161,8 @@ public final class CampModeManager {
       case "CHECK_UNAVAILABLE": zh = "本次检查不可用，等待下次检查"; en = "Check unavailable; waiting for next check"; break;
       case "WAITING_FOR_NETWORK": zh = "网络不可用 · 已暂停托管写入，等待连接恢复"; en = "Offline · remote commands paused until connected"; break;
       case "LOGIN_REQUIRED": zh = "登录会话需要重新验证 · 托管已暂停"; en = "Session needs sign-in · camping paused"; break;
+      case "RECOVERING_REFRESH": zh = "网络已恢复 · 正在刷新车辆状态（1/2）"; en = "Reconnected · reading vehicle state (1/2)"; break;
+      case "RECOVERING_VERIFY": zh = "车况已确认 · 正在核实托管状态（2/2）"; en = "Vehicle read confirmed · verifying camping (2/2)"; break;
       case "LOCAL_STOPPED_REMOTE_PENDING": zh = "本地托管已停止 · 等待确认远程空调状态"; en = "Local camping stopped · remote HVAC not yet verified"; break;
       case "REMOTE_STOP_VERIFY": zh = "本地已停止 · 正在核实车端是否停止"; en = "Locally stopped · verifying vehicle shutdown"; break;
       case "REMOTE_STOP_UNCONFIRMED": zh = "本地已停止 · 远程空调停止未确认"; en = "Locally stopped · remote HVAC stop unconfirmed"; break;

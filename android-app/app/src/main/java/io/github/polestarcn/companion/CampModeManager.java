@@ -85,18 +85,27 @@ public final class CampModeManager {
   }
   public static String stopReason(Context c) { return c.getSharedPreferences(PREF, 0).getString("stop_reason", "MANUAL"); }
   public static synchronized void deactivate(Context c, String id, String reason) {
-    if (!current(c, id)) return;
-    c.getSharedPreferences(PREF, 0).edit().putString("phase", "STOPPED").putString("result", reason).commit();
+    if (!current(c,id)) return;
+    // A timeout, low battery or expiry must not lose the unresolved vehicle-stop duty.
+    // Preserve the encrypted vehicle identity until a fresh read confirms HVAC is off.
+    if(active(c)||"STOPPING".equals(phase(c)))requestStop(c,reason);
+    else if(!pendingStop(c))
+      c.getSharedPreferences(PREF,0).edit().putString("phase","STOPPED").putString("result",reason).commit();
   }
   public static void finishCheck(Context c,String id) {
     if(!current(c,id))return;
     if(pendingStop(c)){try{schedule(c);}catch(RuntimeException e){DiagnosticLog.add("Camping pending stop recovery not scheduled");}}
     else if("STOPPED".equals(phase(c)))cancelTasks(c);
   }
-  public static void report(Context c, String id, String result) {
-    if (!current(c, id)) return;
-    c.getSharedPreferences(PREF, 0).edit().putString("result", result)
-        .putLong("checked_at", System.currentTimeMillis()).apply();
+  public static synchronized void report(Context c, String id, String result) {
+    if(!current(c,id))return;
+    // Confirmed readback is the only automatic completion of a pending stop.
+    if(pendingStop(c)&&result!=null&&result.endsWith(":STOPPED")){
+      completeRemoteStop(c,id);
+    }else{
+      c.getSharedPreferences(PREF,0).edit().putString("result",result)
+          .putLong("checked_at",System.currentTimeMillis()).apply();
+    }
     ResidentService.update(c);
   }
   /** Signing out is a local action. Pause remote verification but retain the stop obligation. */

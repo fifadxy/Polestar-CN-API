@@ -757,9 +757,19 @@ public final class MainActivity extends FragmentActivity {
 
   private void onModelChanged() {
     // When signing in after an offline stop, ensure network recovery monitoring starts.
-    if(model.hasSession()&&CampModeManager.needsRecovery(this)&&campNetworkCallback==null
-        &&getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
-      monitorCampingNetwork();
+    if(!model.hasSession())lastCampRecoveryElapsed=0;
+    if(model.hasSession()&&CampModeManager.needsRecovery(this)
+        &&getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)){
+      if(campNetworkCallback==null)monitorCampingNetwork();
+      // A login or vehicle-selection callback can arrive after network validation.
+      // The network callback may already be registered and never fire again.
+      if(!model.busy&&model.lastVehicleReadOk&&model.selected!=null&&campConnectivity!=null){
+        android.net.Network network=campConnectivity.getActiveNetwork();
+        android.net.NetworkCapabilities capabilities=network==null?null:campConnectivity.getNetworkCapabilities(network);
+        if(capabilities!=null&&capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED))
+          recoverCampingOnNetwork();
+      }
+    }
     if(statusDockBinding!=null)statusDockBinding.run();
     if(model.progressOnly&&page==3){TextView label=findViewById(android.R.id.content).findViewWithTag("status_update");if(label!=null)label.setText(dashboardStamp());}
     if(model.progressOnly&&page!=0||page==2&&model.hasSession())return;

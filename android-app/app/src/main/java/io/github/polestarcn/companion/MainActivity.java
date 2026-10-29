@@ -2289,7 +2289,7 @@ public final class MainActivity extends FragmentActivity {
     RadioGroup group=new RadioGroup(this);panel.addView(group);
     for(String style:AppIcons.STYLES){
       RadioButton choice=new RadioButton(this);choice.setId(View.generateViewId());choice.setButtonDrawable(R.drawable.vi_checkbox);choice.setTypeface(regular);choice.setTag("app_icon_"+style);choice.setText(AppIcons.label(this,style));choice.setTextColor(ink);choice.setMinHeight(dp(52));choice.setPadding(dp(4),dp(3),dp(4),dp(3));
-      android.graphics.drawable.Drawable day=getDrawable(AppIcons.launcher(style,"day")),night=getDrawable(AppIcons.launcher(style,"night"));day.setBounds(0,0,dp(48),dp(48));night.setBounds(0,0,dp(48),dp(48));choice.setCompoundDrawables(day,null,night,null);choice.setCompoundDrawablePadding(dp(10));group.addView(choice);choice.setChecked(chosen[0].equals(style));
+      android.graphics.drawable.Drawable day=androidx.core.content.ContextCompat.getDrawable(this,AppIcons.launcher(style,"day")),night=androidx.core.content.ContextCompat.getDrawable(this,AppIcons.launcher(style,"night"));day.setBounds(0,0,dp(48),dp(48));night.setBounds(0,0,dp(48),dp(48));choice.setCompoundDrawables(day,null,night,null);choice.setCompoundDrawablePadding(dp(10));group.addView(choice);choice.setChecked(chosen[0].equals(style));
       choice.setOnCheckedChangeListener((v,on)->{if(on){Haptics.tap(this);chosen[0]=style;}});
     }
     panel.addView(text(tr("左侧日间 / 右侧夜间；通知使用同款透明底单色轮廓，深浅由Android系统决定。","Day on the left / night on the right. Notifications use the same monochrome transparent glyph, tinted by Android."),11,muted,false));

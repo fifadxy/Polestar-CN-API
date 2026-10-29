@@ -62,13 +62,14 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     if(getDrawable()==null)return;float iw=getDrawable().getIntrinsicWidth(),ih=getDrawable().getIntrinsicHeight();if(iw<=0||ih<=0)return;
     float w=getWidth()-getPaddingLeft()-getPaddingRight(),h=getHeight()-getPaddingTop()-getPaddingBottom();
     float scale=rotation==0?Math.min(w/iw,h/ih):Math.min(w/ih,h/iw);
+    if(!preview&&"behind".equals(AppPreferences.get(getContext(),"all_good_position","below")))scale*=.82f;
     imageBounds.set(-iw*scale/2,-ih*scale/2,iw*scale/2,ih*scale/2);bounds.set(imageBounds);VehicleArt.effectBounds(art,bounds);
   }
   @Override protected void onDraw(Canvas canvas){
     if(getDrawable()==null)return;if(mode==EffectStateController.Mode.OFF)sync();int rotation=VehicleArt.portraitRotation(getContext());geometry(rotation);
     float time=(SystemClock.uptimeMillis()-epoch)/1000f,density=getResources().getDisplayMetrics().density;
     if(!preview&&coordinator!=null&&"behind".equals(AppPreferences.get(getContext(),"all_good_position","below"))&&!ChargingVisibility.shouldShow(coordinator.snapshot)&&VehicleCondition.reported(coordinator.snapshot,AppPreferences.visible(getContext(),"show_tire_status",true))&&!VehicleCondition.problem(coordinator.snapshot,AppPreferences.visible(getContext(),"show_tire_status",true))){backdropText.setColor(AppPreferences.dark(getContext())?0xFF707477:0xFFB7B9BA);backdropText.setTypeface(PsaDesign.regular());backdropText.setTextAlign(android.graphics.Paint.Align.CENTER);backdropText.setTextSize(getWidth()*.17f);canvas.drawText("All Good！",getWidth()/2f,getHeight()*.42f,backdropText);}
-    canvas.save();canvas.translate(getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f,getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f);canvas.rotate(rotation);
+    canvas.save();canvas.translate(getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f,getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f+(!preview&&"behind".equals(AppPreferences.get(getContext(),"all_good_position","below"))?getHeight()*.08f:0));canvas.rotate(rotation);
     if(mode==EffectStateController.Mode.CHARGING&&!bounds.isEmpty()){
       boolean right=VehicleArt.frontAtRight(art);float px=bounds.left+bounds.width()*(right?.13f:.87f),py=bounds.top+bounds.height()*.78f;
       particles.draw(canvas,bounds,px,py,time,density,settings,lowRam?45:150,1);

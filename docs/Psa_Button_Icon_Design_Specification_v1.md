@@ -1,3 +1,5 @@
+beta4覆盖条款：新增尾门细节线稿 `ic_tailgate_detail.xml` 为默认，可选旧 `ic_tailgate` 或门锁；净化 `ic_air.xml` 为确认的颗粒图案。均为原生矢量，随主题着色。详见[beta4](Psa_v095_beta4_Update.md)。
+
 2026-10-29 beta3覆盖条款：尾箱改为确认的侧视车辆+上升箭头线稿，资源 `ic_tailgate.xml`；设计母版 [SVG](../branding/android/icons/Psa_Tailgate_Approved_v4.svg)。净化未确认不替换；[背景、All Good与按压规范](Psa_v095_beta3_Update.md)。
 
 最新补充（2026-10-29）：所有手机皮肤含简洁2，车况与露营按钮都保留同风格图标、名称、小号灰色状态，等高对齐；白天黑色主标签，夜间浅色主标签/深底。补充说明收在可展开 `?`。电量横条全局开关不影响SOC数值。连接和指令状态一行以 `·` 分隔。详见 [hotfix1规范](Psa_v095_Hotfix1_Update.md)。

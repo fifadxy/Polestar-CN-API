@@ -21,6 +21,7 @@ public final class WidgetButtons {
   case "climate":return en?"Climate":"空调";case "climate-start":return en?"Start climate":"开空调";case "climate-stop":return en?"Stop climate":"关空调";
   case "air":return en?"Air":"净化";case "windows":return en?"Windows":"车窗";case "trunk":return en?"Trunk":"尾箱";case "find":return en?"Find car":"寻车";
   case "location":return en?"Location":"位置";case "status":return en?"Status":"车况";case "refresh":return en?"Refresh":"刷新";default:return en?"Charging":"充电";}}
+ public static int icon(Context c,String id,VehicleSnapshot s){return "trunk".equals(id)?TrunkIcon.drawable(c,s!=null&&("已打开".equals(s.tailgate)||"未关严".equals(s.tailgate))):icon(id,s);}
  public static int icon(String id,VehicleSnapshot s){switch(id){
   case "lock":return s==null||ControlAction.next("lock",s)==null?R.drawable.ic_warning:"未锁".equals(s.lock)?R.drawable.ic_unlock:R.drawable.ic_lock;
   case "lock-fixed":return R.drawable.ic_lock;case "unlock-fixed":return R.drawable.ic_unlock;
@@ -38,7 +39,7 @@ public final class WidgetButtons {
   int[] labels={R.id.widget_lock_label,R.id.widget_climate_label,R.id.widget_extra2_label,R.id.widget_extra3_label,R.id.widget_extra4_label,R.id.widget_extra5_label};
   v.setViewVisibility(R.id.widget_action_row,count==0?View.GONE:View.VISIBLE);
   for(int i=0;i<roots.length;i++){v.setViewVisibility(wrappers[i],i<count?View.VISIBLE:View.GONE);if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int color=on?Color.BLACK:ink;
-   v.setInt(roots[i],"setBackgroundResource",on?R.drawable.widget_action_on:R.drawable.widget_action_clear);v.setImageViewResource(icons[i],icon(id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
+   v.setInt(roots[i],"setBackgroundResource",on?R.drawable.widget_action_on:R.drawable.widget_action_clear);v.setImageViewResource(icons[i],icon(c,id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
    String name=label(c,id),state=state(c,id,s);String visible=(id.equals("lock")||id.equals("air"))?state:name;
    if(id.startsWith("climate")){
     String action=id.equals("climate-start")?AppPreferences.widgetTr(c,"开启","Start"):id.equals("climate-stop")?AppPreferences.widgetTr(c,"停止","Stop"):name;

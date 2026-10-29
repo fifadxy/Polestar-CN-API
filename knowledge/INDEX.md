@@ -1,3 +1,5 @@
+当前补充：[beta4 图标选择和后方车图布局](40_V095_BETA4_ICONS_LAYOUT.md)，版本99。
+
 当前增量：[v0.9.5-beta3 合并与背景交互](39_V095_BETA3_INTEGRATION.md)，版本98；优先于历史约定。
 
 当前版本：[v0.9.5-hotfix1 · 指令、设置、离线历史与可调动效](38_V095_HOTFIX_AUTH_HELP_EFFECTS.md) · versionCode97。本增量优先于历史回读次数、验证方式、图标和说明展示约定。

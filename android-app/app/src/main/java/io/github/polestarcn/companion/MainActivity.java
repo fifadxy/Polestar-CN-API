@@ -1002,7 +1002,7 @@ public final class MainActivity extends FragmentActivity {
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
     int size=dp(compact?30:32);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock
-        :control.equals("climate")?R.drawable.ic_climate:control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);
+        :control.equals("climate")?R.drawable.ic_climate:control.equals("air")?R.drawable.ic_air:TrunkIcon.drawable(this));
     icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     circle.addView(icon,new FrameLayout.LayoutParams(dp(compact?19:22),dp(compact?19:22),Gravity.CENTER));
     item.addView(circle,new LinearLayout.LayoutParams(size,size));
@@ -1187,7 +1187,7 @@ public final class MainActivity extends FragmentActivity {
     FrameLayout circle=new FrameLayout(this);circle.setTag("volike_control_circle");
     int size=dp(landscape?14:24);circle.setBackground(oval(viSoft()));
     ImageView icon=new ImageView(this);icon.setImageResource(control.equals("lock")?R.drawable.ic_lock:control.equals("climate")?R.drawable.ic_climate
-        :control.equals("air")?R.drawable.ic_air:R.drawable.ic_tailgate);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
+        :control.equals("air")?R.drawable.ic_air:TrunkIcon.drawable(this));icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     circle.addView(icon,new FrameLayout.LayoutParams(dp(landscape?14:22),dp(landscape?14:22),Gravity.CENTER));
     item.addView(circle,new LinearLayout.LayoutParams(size,size));
     TextView label=text(title,landscape?10:11,ink,false);label.setGravity(Gravity.CENTER);label.setSingleLine(true);
@@ -1466,7 +1466,7 @@ public final class MainActivity extends FragmentActivity {
 
   private int controlIcon(String control,String raw){
     if(control.equals("windows"))return R.drawable.ic_window;if(control.equals("signal"))return R.drawable.ic_horn;
-    if(control.equals("trunk"))return R.drawable.ic_tailgate;
+    if(control.equals("trunk"))return TrunkIcon.drawable(this,"已打开".equals(raw)||"未关严".equals(raw));
     if(control.equals("lock"))return "未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw)?R.drawable.ic_unlock:R.drawable.ic_lock;
     return control.equals("climate")?R.drawable.ic_climate:R.drawable.ic_air;
   }
@@ -1499,7 +1499,7 @@ public final class MainActivity extends FragmentActivity {
     GradientDrawable background = bg(surface, nioSkin() ? 16 : 8); card.setBackground(background);
     ImageView icon = new ImageView(this);
     icon.setImageResource(control.equals("lock") ? R.drawable.ic_lock : control.equals("climate")
-        ? R.drawable.ic_climate : control.equals("trunk") ? R.drawable.ic_tailgate : R.drawable.ic_air);
+        ? R.drawable.ic_climate : control.equals("trunk") ? TrunkIcon.drawable(this) : R.drawable.ic_air);
     icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setTag("control_icon_"+control);
     TextView title = text(label, compact ? 12 : 14, ink, false);
     title.setTag("control_title_"+control);
@@ -2064,6 +2064,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("界面皮肤 · ","UI skin · ")+currentSkinLabel(),this::skinDialog);
       setting(p,tr("日夜模式 · 跟随系统 / 浅色 / 深色","Day/night · system / light / dark"),this::themeChoice);setting(p,tr("地图背景 · 试验性 / 模糊与外扩","Map backdrop · experimental / blur and spread"),this::mapBackdropDialog);
       setting(p,tr("程序与通知图标 · ","App and notification icon · ")+AppIcons.label(this,AppIcons.style(this)),this::appIconDialog);
+      setting(p,tr("尾门图标 · 新款 / 旧款 / 门锁","Tailgate icon · new / previous / lock"),()->choice(tr("尾门图标","Tailgate icon"),"trunk_icon",new String[]{"detail","car","door"},new String[]{tr("新尾门细节（默认）","New hatch detail (default)"),tr("旧车辆轮廓","Previous car outline"),tr("门锁图标","Door lock icon")},"detail",()->{WidgetRenderer.refreshAll(this);render();}));
       setting(p,tr("程序语言 / Language","App language / 语言"),this::languageDialog);
       setting(p,tr("字体大小 · 当前皮肤 / Widget","Font size · current skin / Widget"),this::fontDialog);
       settingToggle(p,"ui_button_bold",tr("按钮文字加粗","Bold button labels"),true,false);

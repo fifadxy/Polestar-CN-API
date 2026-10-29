@@ -189,10 +189,12 @@ public final class ChinaPolestarApi {
   }
 
   public void logout() {
-    healthCache.clear();targetSocUnavailableUntil.clear();
-    close();
-    SecureSessionStore.clear(context);
-    DiagnosticLog.add("China session cleared");
+    // A concurrent token refresh must never recreate a session after explicit logout.
+    synchronized(REFRESH_LOCK){
+      healthCache.clear();targetSocUnavailableUntil.clear();
+      close();SecureSessionStore.clear(context);
+      DiagnosticLog.add("China session cleared");
+    }
   }
 
   public Session session() {

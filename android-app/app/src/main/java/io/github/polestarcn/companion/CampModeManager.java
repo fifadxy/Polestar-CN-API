@@ -38,7 +38,9 @@ public final class CampModeManager {
   }
   public static boolean needsRecovery(Context c){return active(c)||pendingStop(c);}
   public static void retryNetworkRecovery(Context c){
-    if(needsRecovery(c))try{schedule(c);}catch(RuntimeException e){DiagnosticLog.add("Camping network recovery reschedule failed");}
+    if(!needsRecovery(c))return;
+    if(pendingStop(c))c.getSharedPreferences(PREF,0).edit().putLong("next_recovery_at",0).apply();
+    try{schedule(c);}catch(RuntimeException e){DiagnosticLog.add("Camping network recovery reschedule failed");}
   }
   public static boolean current(Context c, String id) {
     CampSession s = session(c); return s != null && s.id.equals(id);
@@ -50,7 +52,7 @@ public final class CampModeManager {
     catch (NumberFormatException ignored) { return fallback; }
   }
   public static synchronized void start(Context c, CampSession s) throws Exception {
-    if (active(c) || "STOPPING".equals(phase(c))) throw new IllegalStateException("Camping already active");
+    if (active(c) || "STOPPING".equals(phase(c)) || pendingStop(c)) throw new IllegalStateException("Camping already active");
     SecureCampStore.save(c, s);
     c.getSharedPreferences(PREF, 0).edit().putString("phase", "ACTIVE")
         .putString("result", "QUEUED").putLong("checked_at", 0).commit();

@@ -2,7 +2,7 @@ package io.github.polestarcn.companion;
 import android.content.*;import android.graphics.*;import android.os.*;import android.view.*;import android.widget.*;import java.util.concurrent.*;
 /** Experimental one-shot official web-map capture; native progressive blur thereafter. No map polling/GPS. */
 final class ParkingBackdrop extends FrameLayout {
- private final boolean dark;private final Handler main=new Handler(Looper.getMainLooper());private ParkingWebPreview preview;private Bitmap sharp,soft;private boolean released;private int captureAttempts;private View loadingCover;private final Paint paint=new Paint(3),mask=new Paint(3);private final Matrix transform=new Matrix();private RadialGradient radial;private float x=.5f,y=.42f;private final ExecutorService worker=Executors.newSingleThreadExecutor();
+ private final boolean dark;private final Handler main=new Handler(Looper.getMainLooper());private ParkingWebPreview preview;private Bitmap sharp,soft;private boolean released;private int captureAttempts;private View loadingCover;private TextView attribution;private final Paint paint=new Paint(3),mask=new Paint(3);private final Matrix transform=new Matrix();private RadialGradient radial;private float x=.5f,y=.42f;private final ExecutorService worker=Executors.newSingleThreadExecutor();
  ParkingBackdrop(Context c,LocationSnapshot point){
   super(c);dark=AppPreferences.dark(c);
   setWillNotDraw(false);setBackgroundColor(PsaDesign.canvas(dark));
@@ -14,7 +14,16 @@ final class ParkingBackdrop extends FrameLayout {
   loadingCover=new View(c);loadingCover.setBackgroundColor(PsaDesign.canvas(dark));
   loadingCover.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
   addView(loadingCover,new LayoutParams(-1,-1));
-  preview.whenReady(()->main.postDelayed(this::captureIfReady,700));
+  attribution=new TextView(c);
+  attribution.setTextColor(dark?0xFFD7D7D7:0xFF333333);
+  attribution.setTextSize(9);attribution.setPadding(8,3,8,4);
+  attribution.setBackgroundColor(dark?0xB017191B:0xC9FFFFFF);
+  attribution.setText(MapBackdropOptions.attribution(MapBackdropOptions.provider(c)));
+  addView(attribution,new LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.END));
+  preview.whenReady(()->{
+    if(attribution!=null)attribution.setText(MapBackdropOptions.attribution(preview.renderedProvider()));
+    main.postDelayed(this::captureIfReady,700);
+  });
   main.postDelayed(()->{
     if(released||preview==null)return;
     preview.close();preview=null;removeAllViews();
@@ -41,6 +50,7 @@ final class ParkingBackdrop extends FrameLayout {
     return;
   }
   preview.close();preview=null;removeAllViews();loadingCover=null;
+  if(attribution!=null)addView(attribution,new LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.END));
   worker.execute(()->{
     Bitmap blurred=blur(capture,EffectSettings.number(getContext(),"map_backdrop_blur",12,0,24));
     main.post(()->{

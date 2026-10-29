@@ -23,6 +23,7 @@ final class ParkingWebPreview {
   private String provider;private int zoom;
   private Runnable ready;
   void whenReady(Runnable callback){ready=callback;}
+  String renderedProvider(){return provider;}
   android.graphics.Bitmap capture(){if(web==null||closed||web.getWidth()<=0)return null;int width=Math.min(640,web.getWidth()),height=Math.max(1,Math.round(web.getHeight()*width/(float)web.getWidth()));android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(width,height,android.graphics.Bitmap.Config.ARGB_8888);android.graphics.Canvas canvas=new android.graphics.Canvas(image);canvas.scale(width/(float)web.getWidth(),height/(float)web.getHeight());try{web.draw(canvas);return image;}catch(RuntimeException unavailable){image.recycle();return null;}}
   private LocationSnapshot point;
   private final Runnable timeout=()->fail();

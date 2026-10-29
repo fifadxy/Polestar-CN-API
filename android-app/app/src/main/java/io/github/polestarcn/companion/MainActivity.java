@@ -65,10 +65,9 @@ public final class MainActivity extends FragmentActivity {
       if(isFinishing()||!model.hasSession()||!CampModeManager.needsRecovery(this))return;
       CampSession still=CampModeManager.session(this);
       if(still==null||!previous.id.equals(still.id))return;
-      boolean matching=model.selected!=null&&previous.vin.equals(model.selected.vin);
-      boolean fresh=model.lastVehicleReadOk&&matching
-          &&EffectStateController.fresh(model.snapshot,System.currentTimeMillis());
-      if(!fresh){
+      boolean safe=CampRecoveryGate.permits(previous,model.selected,model.snapshot,
+          model.hasSession(),model.lastVehicleReadOk,System.currentTimeMillis());
+      if(!safe){
         DiagnosticLog.add("Camping reconnect: live state not verified; no remote commands");
         return;
       }

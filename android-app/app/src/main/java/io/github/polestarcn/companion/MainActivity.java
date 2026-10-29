@@ -2195,7 +2195,8 @@ public final class MainActivity extends FragmentActivity {
        setting(p,tr("按键震动 · 开关与强度","Button haptics · switch and strength"),this::hapticsDialog);
     });
     disclosure(root,"settings_home",tr("首页与车况数据","Home and vehicle data"),false,p->{
-      setting(p,tr("车辆电池容量 · ","Battery capacity · ")+EnergyLog.capacity(this)+" kWh",this::batteryCapacityDialog);
+      setting(p,tr("历史能耗曲线（离线也可查看）","Energy history · available offline"),this::energyHistory);
+       setting(p,tr("车辆电池容量 · ","Battery capacity · ")+EnergyLog.capacity(this)+" kWh",this::batteryCapacityDialog);
       setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
@@ -2433,7 +2434,7 @@ public final class MainActivity extends FragmentActivity {
   }
   private void energyHistory(){
     // History is stored locally by vehicle hash, independent of current network connection.
-    String identity=model.selected==null?AppPreferences.get(this,"vehicle",""):VehicleCoordinator.identity(model.selected.vin);
+    String identity=model.selected==null?AppPreferences.get(this,"vehicle",AppPreferences.get(this,"energy_last_vehicle","")):VehicleCoordinator.identity(model.selected.vin);
     if(identity.matches("[a-fA-F0-9]{8,64}"))
       startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",identity));
     else toast(tr("没有已选择车辆的本地能耗记录","No previously selected vehicle history on this device"));

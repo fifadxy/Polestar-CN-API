@@ -55,11 +55,25 @@ public final class MainActivity extends FragmentActivity {
     if(!model.hasSession())return;
     long now=android.os.SystemClock.elapsedRealtime();
     if(now-lastCampRecoveryElapsed<60_000L&&lastCampRecoveryElapsed>0)return;
+    // Refresh must complete successfully before any remote-recovery check.
+    // Network validation only proves internet is available, not a valid vehicle session.
+    if(model.busy)return;
     lastCampRecoveryElapsed=now;
-    CampModeManager.retryNetworkRecovery(this);
+    final CampSession previous=CampModeManager.session(this);
+    if(previous==null)return;
     model.refresh(()->{
-      if(!isFinishing()&&CampModeManager.needsRecovery(this))
-        model.checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false),()->{});
+      if(isFinishing()||!model.hasSession()||!CampModeManager.needsRecovery(this))return;
+      CampSession still=CampModeManager.session(this);
+      if(still==null||!previous.id.equals(still.id))return;
+      boolean matching=model.selected!=null&&previous.vin.equals(model.selected.vin);
+      boolean fresh=model.lastVehicleReadOk&&matching
+          &&EffectStateController.fresh(model.snapshot,System.currentTimeMillis());
+      if(!fresh){
+        DiagnosticLog.add("Camping reconnect: live state not verified; no remote commands");
+        return;
+      }
+      CampModeManager.retryNetworkRecovery(this);
+      model.checkCamp(new java.util.concurrent.atomic.AtomicBoolean(false),()->{});
     });
   }
   private void monitorCampingNetwork(){
@@ -742,6 +756,10 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void onModelChanged() {
+    // When signing in after an offline stop, ensure network recovery monitoring starts.
+    if(model.hasSession()&&CampModeManager.needsRecovery(this)&&campNetworkCallback==null
+        &&getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))
+      monitorCampingNetwork();
     if(statusDockBinding!=null)statusDockBinding.run();
     if(model.progressOnly&&page==3){TextView label=findViewById(android.R.id.content).findViewWithTag("status_update");if(label!=null)label.setText(dashboardStamp());}
     if(model.progressOnly&&page!=0||page==2&&model.hasSession())return;
@@ -2143,8 +2161,8 @@ public final class MainActivity extends FragmentActivity {
   private void signOut(){
     boolean camping=CampModeManager.active(this)||CampModeManager.pendingStop(this);
     String message=camping
-      ?tr("即使网络或会话失效，也可以立即退出本机登录。退出会停止本地托管并清除本机令牌，但车端空调/净化可能仍在运行、且退出后不能自动核实；请到车辆或官方 App 确认。",
-          "You can sign out offline. Local camping and local credentials will be cleared, but remote climate/air may still be running and will not be verified after sign-out. Check the car or official app.")
+      ?tr("可以立即退出并停止本地托管。待核实的远程停止记录会安全保留；以后重新登录同一辆车并确认联网后，先刷新车况再核实是否停止。退出期间无法自动控制车辆，请通过官方 App 或车辆确认。",
+          "You can sign out and stop local camping. A pending remote-stop record remains encrypted; after signing back into the same car, a fresh authenticated read is required before verifying shutdown. No remote control occurs while signed out; check the official app or vehicle.")
       :tr("退出并清除本机登录会话？正在发送的指令可能仍在车端完成。",
           "Sign out and clear local credentials? An in-flight vehicle command might still complete remotely.");
     new HapticDialogBuilder(this).setTitle(tr("退出登录","Sign out")).setMessage(message)

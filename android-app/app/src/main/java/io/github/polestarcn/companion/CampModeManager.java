@@ -99,6 +99,15 @@ public final class CampModeManager {
         .putLong("checked_at", System.currentTimeMillis()).apply();
     ResidentService.update(c);
   }
+  /** Signing out is a local action. Pause remote verification but retain the stop obligation. */
+  public static synchronized void suspendPendingStopForSignOut(Context c){
+    if(!pendingStop(c))return;
+    c.getSharedPreferences(PREF,0).edit()
+        .putString("phase","STOPPED")
+        .putString("result","LOGIN_REQUIRED")
+        .putLong("next_recovery_at",0).commit();
+    cancelTasks(c); // Never spin a JobScheduler task on an unauthenticated session.
+  }
   public static void clear(Context c) {
     cancelTasks(c);
     c.getSharedPreferences(PREF, 0).edit().clear().commit();

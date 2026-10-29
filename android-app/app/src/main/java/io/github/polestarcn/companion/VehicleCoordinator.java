@@ -345,7 +345,10 @@ public final class VehicleCoordinator {
     pendingCommands.clear();syncCommandStatus();completions.clear();
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
-    CampModeManager.clear(context);
+    // Preserve an encrypted pending remote-stop record across local sign-out.
+    // It must not make network calls until the user signs in to the matching vehicle again.
+    if(!CampModeManager.pendingStop(context))CampModeManager.clear(context);
+    else CampModeManager.suspendPendingStopForSignOut(context);
     api.logout();
     selected = null;
     cars.clear();
@@ -419,6 +422,12 @@ public final class VehicleCoordinator {
       if(pendingStop)CampModeManager.markPendingStopStatus(context,camping.id,"LOGIN_REQUIRED");
       else CampModeManager.report(context,camping.id,"LOGIN_REQUIRED");
       CampModeManager.finishCheck(context,camping.id);done.run();return;
+    }
+    // A pending stop belongs to the previously authorized VIN. Never use a
+    // newly selected account/car to send commands against an old VIN.
+    if(pendingStop&&(selected==null||!camping.vin.equals(selected.vin))){
+      CampModeManager.markPendingStopStatus(context,camping.id,"LOGIN_REQUIRED");
+      done.run();return;
     }
     busy = true;exclusive=true;
     activeAction = "";
@@ -497,7 +506,8 @@ public final class VehicleCoordinator {
   private void verifyPendingRemoteStop(java.util.concurrent.atomic.AtomicBoolean cancelled,CampSession camping,Runnable done){
     VehicleSnapshot read=null;String status="";
     try{
-      if(cancelled.get()||!signedIn||!CampModeManager.pendingStop(context)||!CampModeManager.current(context,camping.id))return;
+      if(cancelled.get()||!signedIn||selected==null||!camping.vin.equals(selected.vin)
+          ||!CampModeManager.pendingStop(context)||!CampModeManager.current(context,camping.id))return;
       ChinaPolestarApi.VehicleInfo vehicle=new ChinaPolestarApi.VehicleInfo();
       vehicle.vin=camping.vin;vehicle.modelName=camping.vehicleName;
       read=api.readVehicle(vehicle);

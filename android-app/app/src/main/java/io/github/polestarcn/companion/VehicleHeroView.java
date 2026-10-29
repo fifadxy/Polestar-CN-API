@@ -70,7 +70,7 @@ final class VehicleHeroView extends ImageView implements Choreographer.FrameCall
     canvas.save();canvas.translate(getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f,getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f);canvas.rotate(rotation);
     if(mode==EffectStateController.Mode.CHARGING&&!bounds.isEmpty()){
       boolean right=VehicleArt.frontAtRight(art);float px=bounds.left+bounds.width()*(right?.13f:.87f),py=bounds.top+bounds.height()*.78f;
-      particles.draw(canvas,bounds,px,py,time,density,settings,lowRam?45:150,1);
+      particles.draw(canvas,bounds,px,py,time,density,settings,lowRam?45:150,1,art);
     }
     canvas.save();canvas.translate(imageBounds.left,imageBounds.top);canvas.scale(imageBounds.width()/getDrawable().getIntrinsicWidth(),imageBounds.height()/getDrawable().getIntrinsicHeight());getDrawable().setBounds(0,0,getDrawable().getIntrinsicWidth(),getDrawable().getIntrinsicHeight());getDrawable().draw(canvas);canvas.restore();
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&!bounds.isEmpty())airflow.draw(canvas,bounds,VehicleArt.frontAtRight(art),time,density,settings,mode,lowRam?24:120,1);

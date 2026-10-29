@@ -34,7 +34,7 @@ public final class VehicleCoordinator {
   private boolean exclusive;
   private static final class PendingCommand {
     final String action; final ChinaPolestarApi.VehicleInfo vehicle; final String group;
-    final long issued; final Float target; boolean accepted; int checks; long started;
+    final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;
     OperationState state=OperationState.SENDING;
     PendingCommand(String a, ChinaPolestarApi.VehicleInfo v, long issued, Float target) {
       this.action=a;this.vehicle=v;this.group=CommandSlots.group(a);this.issued=issued;this.target=target;
@@ -42,7 +42,25 @@ public final class VehicleCoordinator {
   }
   public boolean isCommandPending(String control) { return pendingCommands.containsKey(CommandSlots.group(control)); }
   public boolean canCommand(String action) { return signedIn && selected != null && !exclusive && !isCommandPending(action); }
-  public boolean canControl(String control) { return canCommand(control); }
+  /** A pending tile stays tappable only to open the explicit repeat-confirmation dialog. */
+  public boolean canControl(String control) { return signedIn && selected != null && !exclusive; }
+  public String pendingAction(String control) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
+    return ticket==null?null:ticket.action;
+  }
+  public boolean repeatQueued(String control) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
+    return ticket!=null&&ticket.repeatQueued;
+  }
+  /** One explicit user-confirmed repeat at most; it waits until the previous write/readback completes. */
+  public boolean queueRepeat(String action) {
+    PendingCommand ticket=pendingCommands.get(CommandSlots.group(action));
+    if(ticket==null||ticket.repeatQueued||!signedIn||selected==null||!ticket.vehicle.vin.equals(selected.vin))return false;
+    ticket.repeatQueued=true;
+    message=tr("已确认再次发送 · 等待当前指令核实","Repeat authorized · waiting for existing verification");
+    changed();
+    return true;
+  }
   public OperationState controlOperation(String control) {
     PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
     return ticket==null?operation:ticket.state;
@@ -288,6 +306,7 @@ public final class VehicleCoordinator {
       public void finished(VehicleSnapshot updated,boolean reached){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
         pendingCommands.remove(ticket.group);syncCommandStatus();
+        boolean manualRepeat=ticket.repeatQueued;
         boolean verified=reached&&(ticket.target==null||ClimateTarget.confirmed(updated,ticket.target,ticket.issued));
         OperationState result=momentary(ticket.action)
             ?(ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED)
@@ -299,6 +318,8 @@ public final class VehicleCoordinator {
             :verified?tr("执行成功","Successful")
             :tr("执行结果未确认","Result unconfirmed");
         changed();
+        if(manualRepeat && signedIn && selected!=null && ticket.vehicle.vin.equals(selected.vin))
+          main.post(()->{if(signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&!isCommandPending(ticket.action))command(ticket.action);});
       }
     }).require(state->ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)).start(ticket.action);
   }
@@ -414,6 +435,7 @@ public final class VehicleCoordinator {
               } else reached=api.commandReached(s.vin, action);
             } catch(Exception unavailable) { DiagnosticLog.add("Camping readback unavailable; waiting for next slot"); }
             consecutive=reached?consecutive+1:0;
+            if(consecutive>=3)break; // Immediately confirm; do not wait for later checkpoints.
           }
           if(consecutive>=3) {
             if("climate-start".equals(action)) ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());

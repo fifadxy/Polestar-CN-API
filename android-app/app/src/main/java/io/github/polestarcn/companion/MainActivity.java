@@ -220,6 +220,10 @@ public final class MainActivity extends FragmentActivity {
     return Color.parseColor(AppPreferences.dark(this) ? "#242628" : "#F1F0EC");
   }
 
+  private void styleBatteryProgress(ProgressBar bar){
+    styleViProgress(bar);
+    bar.setVisibility(AppPreferences.visible(this,"show_battery_bar",true)?View.VISIBLE:View.GONE);
+  }
   private void styleViProgress(ProgressBar bar) {
     bar.setProgressTintList(android.content.res.ColorStateList.valueOf(orange));
     bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(viTrack()));
@@ -451,7 +455,7 @@ public final class MainActivity extends FragmentActivity {
 
   private void applyButtonHierarchy(View v){String tag=v.getTag() instanceof String?(String)v.getTag():"";boolean role=Boolean.TRUE.equals(v.getTag(R.id.psa_button_label));boolean tile=tag.equals("control_tile")||tag.equals("nio_shortcut")||tag.equals("shortcut_card");
     if(v instanceof TextView&&(role||v instanceof Switch||tag.startsWith("control_title_")||tag.equals("volike_control_label")||tag.equals("shortcut_label")))((TextView)v).setTextColor(AppPreferences.dark(this)?ink:Color.BLACK);
-    if(v instanceof TextView&&(tag.startsWith("control_feedback_")||tag.equals("shortcut_feedback")))((TextView)v).setTextColor(AppPreferences.dark(this)?muted:Color.rgb(115,115,115));
+    if(v instanceof TextView&&(tag.startsWith("control_feedback_")||tag.equals("shortcut_feedback")))((TextView)v).setTextColor(AppPreferences.dark(this)?Color.WHITE:Color.rgb(115,115,115));
     if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)applyButtonHierarchy(((ViewGroup)v).getChildAt(i));
   }
 
@@ -577,9 +581,9 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout head=row();LinearLayout identity=column();identity.addView(liveText(()->vehicleDisplayName(model.snapshot),20,ink,true));identity.addView(parkingCaption());head.addView(identity,new LinearLayout.LayoutParams(0,-1,1));
     for(int icon:new int[]{R.drawable.ic_location,R.drawable.ic_refresh}){ImageView button=new ImageView(this);button.setImageResource(icon);button.setColorFilter(ink);button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);button.setPadding(dp(10),dp(10),dp(10),dp(10));GradientDrawable frame=bg(surface,24);frame.setStroke(dp(1),line);button.setBackground(frame);click(button,()->{if(icon==R.drawable.ic_location)locationDialog();else model.refreshUser(null);});head.addView(button,new LinearLayout.LayoutParams(dp(44),dp(44)));}body.addView(head,new LinearLayout.LayoutParams(-1,dp(52)));
     LinearLayout hero=simple2Card();LinearLayout energy=row();LinearLayout battery=column();TextView soc=liveText(()->model.snapshot==null?"--%":VehicleSnapshot.metric(model.snapshot.batteryPercent,"%"),compact?32:44,ink,true);soc.setTag("battery_soc");battery.addView(soc);battery.addView(text(tr("当前电量","Battery"),11,muted,false));energy.addView(battery,new LinearLayout.LayoutParams(0,-2,1));LinearLayout range=column();range.setGravity(Gravity.END);TextView km=liveText(()->model.snapshot==null?"-- km":VehicleSnapshot.metric(model.snapshot.rangeKm," km"),25,ink,true);km.setTag("battery_range");range.addView(km);range.addView(text(tr("预计续航","Estimated range"),11,muted,false));energy.addView(range,new LinearLayout.LayoutParams(0,-2,1));hero.addView(energy);
-    ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(100);styleViProgress(bar);bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));hero.addView(bar,new LinearLayout.LayoutParams(-1,dp(5)));hero.addView(vehicleVisual(),new LinearLayout.LayoutParams(-1,0,1));body.addView(hero,new LinearLayout.LayoutParams(-1,0,1));gap(body,6);
+    ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setTag("vi_progress");bar.setMax(100);styleBatteryProgress(bar);bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));hero.addView(bar,new LinearLayout.LayoutParams(-1,dp(5)));hero.addView(vehicleVisual(),new LinearLayout.LayoutParams(-1,0,1));body.addView(hero,new LinearLayout.LayoutParams(-1,0,1));gap(body,6);
     for(String[] controls:new String[][]{{"lock","windows"},{"trunk","signal"},{"climate","air"}}){LinearLayout line=row();for(String key:controls){String label=key.equals("lock")?tr("车门锁","Door lock"):key.equals("windows")?tr("车窗","Windows"):key.equals("trunk")?tr("后备箱","Trunk"):key.equals("signal")?tr("寻车","Find car"):key.equals("climate")?tr("驻车空调","Climate"):tr("空气净化","Air purification");simple2Action(line,key,label);}body.addView(line,new LinearLayout.LayoutParams(-1,dp(compact?56:64)));gap(body,6);}
-    LinearLayout utilities=row();VehicleConditionButton condition=conditionButton(tr("车况","Status"));condition.setConditionIcon(0);utilities.addView(condition,new LinearLayout.LayoutParams(0,dp(48),1));TextView camp=utility(tr("露营模式","Camping"),false,false,this::campDialog);camp.setTag("camp_button");LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(48),1);cp.leftMargin=dp(7);utilities.addView(camp,cp);bindDashboard(()->{boolean active=CampModeManager.active(this);camp.setTextColor(active?orange:ink);condition.refreshService();});body.addView(utilities);gap(body,5);
+    LinearLayout utilities=row();VehicleConditionButton condition=conditionButton(tr("车况","Status"));condition.setConditionIcon(R.drawable.ic_nav_vehicle_data_ref);utilities.addView(condition,new LinearLayout.LayoutParams(0,dp(48),1));TextView camp=utility(tr("露营模式","Camping"),false,false,this::campDialog);camp.setTag("camp_button");utilityIcon(camp,R.drawable.ic_camp);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(48),1);cp.leftMargin=dp(7);utilities.addView(camp,cp);bindDashboard(()->{boolean active=CampModeManager.active(this);camp.setTextColor(active?orange:ink);condition.refreshService();});body.addView(utilities);gap(body,5);
     List<DisplayMetric> chosen=controlMetrics();chosen.removeIf(m->ChargingVisibility.isChargingMetric(m)||m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE);if(chosen.size()>3)chosen=new ArrayList<>(chosen.subList(0,3));LinearLayout data=simple2Card();TextView all=button(tr("车辆数据 · 全部数据 ›","Vehicle data · all data ›"),()->{page=1;render();});all.setMinHeight(0);all.setTextSize(12);data.addView(all,new LinearLayout.LayoutParams(-1,dp(26)));addMetricGrid(data,model.snapshot,chosen,true);body.addView(data);dashboardReady=true;
   }
 
@@ -693,13 +697,34 @@ public final class MainActivity extends FragmentActivity {
     height+=dp(1);lineHeightCache.put(sp,height);return height;
   }
 
-  private LinearLayout connectionDock(){LinearLayout dock=column();dock.setTag("connection_command_dock");dock.setPadding(dp(18),0,dp(18),0);LinearLayout first=row();TextView connected=text("",11,ink,false);connected.setTag("vehicle_connection_state");fitSingleLine(connected,11);first.addView(connected,new LinearLayout.LayoutParams(0,dp(18),1));TextView running=text(tr("运行状态未知","Driving state unknown"),9,muted,false);running.setTag("vehicle_running_state");running.setVisibility(View.GONE);fitSingleLine(running,9);running.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);first.addView(running,new LinearLayout.LayoutParams(0,dp(18),1));dock.addView(first);TextView process=text("",9,muted,false);fitSingleLine(process,9);process.setTag("command_status_progress");dock.addView(process,new LinearLayout.LayoutParams(-1,dp(16)));statusDockBinding=()->{boolean live=model.vehicleDataConnected();connected.setText(tr(live?"车辆已连接":"车辆未连接",live?"Vehicle connected":"Vehicle disconnected"));connected.setTextColor(live?ink:muted);process.setText(dashboardStamp());};statusDockBinding.run();connected.setContentDescription(tr("连接表示近期车辆数据读取成功，不代表车端长连接。运行状态暂无已核实字段。","Connected means a recent successful vehicle-data read, not a persistent vehicle socket. No verified driving-state field is available."));return dock;}
+  private LinearLayout connectionDock(){
+    LinearLayout dock=row();dock.setTag("connection_command_dock");
+    dock.setPadding(dp(18),0,dp(18),0);dock.setGravity(Gravity.CENTER_VERTICAL);
+    TextView connected=text("",11,ink,false);connected.setTag("vehicle_connection_state");
+    connected.setSingleLine(true);fitSingleLine(connected,11);
+    dock.addView(connected,new LinearLayout.LayoutParams(-2,dp(30)));
+    TextView bullet=text(" · ",11,orange,false);bullet.setGravity(Gravity.CENTER);
+    dock.addView(bullet,new LinearLayout.LayoutParams(-2,dp(30)));
+    TextView process=text("",10,muted,false);process.setTag("command_status_progress");
+    process.setSingleLine(true);fitSingleLine(process,10);
+    dock.addView(process,new LinearLayout.LayoutParams(0,dp(30),1));
+    TextView drive=text("",9,muted,false);drive.setTag("vehicle_running_state");drive.setVisibility(View.GONE);dock.addView(drive);
+    statusDockBinding=()->{
+      boolean connectedNow=model.vehicleDataConnected();
+      connected.setText(tr(connectedNow?"车辆已连接":"车辆未连接",connectedNow?"Vehicle connected":"Vehicle disconnected"));
+      connected.setTextColor(connectedNow?ink:muted);
+      String message=dashboardStamp();process.setText(message);
+      bullet.setVisibility(message.isEmpty()?View.GONE:View.VISIBLE);
+    };statusDockBinding.run();
+    connected.setContentDescription(tr("连接状态仅表示近期车况读取成功","Connected means a recent vehicle telemetry read"));
+    return dock;
+  }
 
   private String dashboardStamp() {
     VehicleSnapshot v = model.snapshot;
     String stamp = v == null || v.timestampMillis <= 0 ? tr("更新时间未知", "Update time unknown")
         : tr("更新 ", "Updated ") + android.text.format.DateFormat.format("MM-dd HH:mm", v.timestampMillis);
-    if(model.quietRefresh)return tr("正在刷新 · ","Refreshing · ")+stamp;
+    if(model.quietRefresh)return AppPreferences.visible(this,"show_update",true)?stamp:"";
     if(model.commandPending)return tr("执行中 ","In progress ")+model.readbackPercent+"%";
     return (model.message.isEmpty() ? "" : model.message + " · ")
         + (AppPreferences.visible(this, "show_update", true) ? stamp : "");
@@ -721,7 +746,7 @@ public final class MainActivity extends FragmentActivity {
         : VehicleSnapshot.metric(model.snapshot.batteryPercent, "%"), compact ? 22 : 38, ink, true);
     percent.setTag("battery_soc"); soc.addView(percent);
     ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-    bar.setTag("vi_progress"); bar.setMax(100); styleViProgress(bar);
+    bar.setTag("vi_progress"); bar.setMax(100); styleBatteryProgress(bar);
     if (nioColors()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(32,196,121)));
     else if (voLike()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
     bindDashboard(() -> bar.setProgress(model.snapshot == null || model.snapshot.batteryPercent == null ? 0 : model.snapshot.batteryPercent));
@@ -863,7 +888,7 @@ public final class MainActivity extends FragmentActivity {
     card.addView(line1);
 
     ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
-    bar.setTag("vi_progress");bar.setMax(100);styleViProgress(bar);
+    bar.setTag("vi_progress");bar.setMax(100);styleBatteryProgress(bar);
     bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
     bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));
     card.addView(bar,new LinearLayout.LayoutParams(-1,dp(4)));
@@ -1021,7 +1046,7 @@ public final class MainActivity extends FragmentActivity {
     soc.setTag("battery_soc");socRow.addView(soc);
     TextView caption=text(tr(" 电量"," Battery"),landscape?9:10,muted,false);socRow.addView(caption);data.addView(socRow);
     ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setTag("vi_progress");bar.setMax(100);
-    styleViProgress(bar);bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
+    styleBatteryProgress(bar);bar.setProgressTintList(android.content.res.ColorStateList.valueOf(voAccent()));
     bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));
     data.addView(bar,new LinearLayout.LayoutParams(-1,dp(3)));
     top.addView(data,new LinearLayout.LayoutParams(0,-1,.78f));
@@ -1898,10 +1923,11 @@ public final class MainActivity extends FragmentActivity {
 
   private void note(LinearLayout parent,String title,String detail){
     LinearLayout row=row();row.setGravity(Gravity.CENTER_VERTICAL);
-    TextView question=text("?",15,muted,true);question.setGravity(Gravity.CENTER);
-    question.setBackground(bg(surface,20));question.setContentDescription(title);
-    click(question,()->info(title,detail));row.addView(question,new LinearLayout.LayoutParams(dp(30),dp(30)));
-    TextView hint=text(tr("  说明","  Info"),12,muted,false);row.addView(hint);
+    TextView question=text("?",15,orange,true);question.setGravity(Gravity.CENTER);
+    GradientDrawable circle=oval(surface);circle.setStroke(dp(1),orange);
+    question.setBackground(circle);question.setContentDescription(title);
+    click(question,()->info(title,detail));row.addView(question,new LinearLayout.LayoutParams(dp(26),dp(26)));
+    TextView hint=text("  "+title,11,muted,false);row.addView(hint);
     click(hint,()->info(title,detail));parent.addView(row);gap(parent,4);
   }
 
@@ -2044,6 +2070,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"ui_button_bold",tr("按钮文字加粗","Bold button labels"),true,false);
       settingToggle(p,"ui_data_bold",tr("数据文字加粗","Bold data values"),false,false);
       setting(p,tr("按钮反馈 · 内容 / 字号 / 粗细","Button feedback · content / size / weight"),this::feedbackDialog);
+       setting(p,tr("车辆控制验证方式 · 指纹 / 二次确认 / 直接发送","Command approval · biometric / confirm / direct"),this::approvalSettings);
       settingToggle(p,"volike_simple_labels",tr("VoLike 显示按钮文字","VoLike control labels"),true,false);
     });
     disclosure(root,"settings_effects",tr("动画、特效与测试","Animations, effects and testing"),false,p->{
@@ -2062,7 +2089,10 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
       setting(p,tr("白天车辆图片 · ","Day vehicle image · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,false))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_day","auto")),()->vehicleArtDialog(false));
       setting(p,tr("夜间车辆图片 · ","Night vehicle image · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,true))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_night","auto")),()->vehicleArtDialog(true));
-      settingToggle(p,"show_car",tr("车辆图","Vehicle image"),true,false);settingToggle(p,"show_charging",tr("充电状态（开始/充电时显示）","Charging status (while starting/charging)"),true,false);settingToggle(p,"show_update",tr("数据更新时间","Data update time"),true,false);
+      settingToggle(p,"show_car",tr("车辆图","Vehicle image"),true,false);
+       settingToggle(p,"show_battery_bar",tr("所有皮肤显示电量进度条","Battery bars in all skins"),true,false);
+       settingToggle(p,"show_charging",tr("充电状态","Charging status"),true,false);
+       settingToggle(p,"show_update",tr("数据更新时间","Data update time"),true,false);
       settingToggle(p,"show_tire_status",tr("显示胎压状态（含车况汇总）","Show tyre status (including summary)"),true,true);
       settingToggle(p,"experimental_tire",tr("四轮iTPMS示意图（无未验证kPa）","Four-wheel iTPMS diagram (no unverified kPa)"),false,false);
       setting(p,tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),this::vehicleStatusDialog);
@@ -2288,7 +2318,13 @@ public final class MainActivity extends FragmentActivity {
     android.app.AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("电池容量（kWh），默认71","Battery capacity (kWh), default 71")).setView(input).setPositiveButton(tr("保存","Save"),null).setNegativeButton(tr("取消","Cancel"),null).create();dialog.show();
     dialog.getButton(-1).setOnClickListener(v->{Haptics.tap(this);try{double capacity=Double.parseDouble(input.getText().toString());if(!Double.isFinite(capacity)||capacity<10||capacity>200)throw new IllegalArgumentException();AppPreferences.set(this,"battery_capacity_kwh",""+capacity);dialog.dismiss();render();}catch(Exception e){input.setError(tr("请输入10–200kWh","Enter 10–200kWh"));}});
   }
-  private void energyHistory(){if(model.selected!=null)startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",VehicleCoordinator.identity(model.selected.vin)));else toast(tr("请先连接车辆","Connect a vehicle first"));}
+  private void energyHistory(){
+    // History is stored locally by vehicle hash, independent of current network connection.
+    String identity=model.selected==null?AppPreferences.get(this,"vehicle",""):VehicleCoordinator.identity(model.selected.vin);
+    if(identity.matches("[a-fA-F0-9]{8,64}"))
+      startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",identity));
+    else toast(tr("没有已选择车辆的本地能耗记录","No previously selected vehicle history on this device"));
+  }
   private void vehicleStatusDialog(){if(page!=3){statusReturnPage=page;statusScrollY=0;}page=3;render();}
   private void openStatusSection(String key){AppPreferences.set(this,"expand_"+key,"on");vehicleStatusDialog();ScrollView scroll=findViewById(android.R.id.content).findViewWithTag("status_scroll");View section=findViewById(android.R.id.content).findViewWithTag("disclosure_"+key);if(scroll!=null&&section!=null)scroll.post(()->scroll.smoothScrollTo(0,section.getTop()));}
   private static final class HealthRow {
@@ -2329,7 +2365,7 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(text(tr("车辆状况","Vehicle condition"),24,ink,true));panel.addView(text(VehicleCondition.summary(model.snapshot,AppPreferences.english(this),showTires()),16,VehicleCondition.problem(model.snapshot,showTires())?accentText():ink,false));
     TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!(model.busy&&!model.quietRefresh)&&model.hasSession());panel.addView(refresh);gap(panel,12);
     healthOverview(panel);
-    disclosure(panel,"status_energy",tr("行驶 / 驻车空调能耗","Driving / parked climate energy"),false,p->{setting(p,tr("能耗记录与曲线","Energy history and charts"),()->{if(model.selected!=null)startActivity(new Intent(this,EnergyActivity.class).putExtra("vehicle",VehicleCoordinator.identity(model.selected.vin)));else toast(tr("请先连接车辆","Connect a vehicle first"));});});
+    disclosure(panel,"status_energy",tr("行驶 / 驻车空调能耗","Driving / parked climate energy"),false,p->{setting(p,tr("能耗记录与曲线","Energy history and charts"),this::energyHistory);});
     disclosure(panel,"status_service",tr("保养周期与原始上报值","Service cycle and reported values"),false,this::serviceContents);
     disclosure(panel,"status_exterior",tr("车门 / 车窗 / 尾箱位置状态","Doors / windows / tailgate positions")+(model.snapshot!=null&&ExteriorView.hasOpening(model.snapshot)?" !":""),false,this::exteriorContents);
     if(showTires())disclosure(panel,"status_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);

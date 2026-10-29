@@ -492,7 +492,10 @@ public final class MainActivity extends FragmentActivity {
       nav.addView(t, nlp);
     }
     shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(compactNav ? 52 : 64)));
-    applyButtonHierarchy(shell);disableSystemHaptics(shell);if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){if(backdrop!=null)backdrop.release();backdrop=null;backdropPoint=null;mapHost=new FrameLayout(this);shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));mapPin=new View(this);mapPin.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);mapPin.setBackground(oval(orange));FrameLayout.LayoutParams pin=new FrameLayout.LayoutParams(dp(8),dp(8),Gravity.TOP|Gravity.CENTER_HORIZONTAL);mapHost.addView(mapPin,pin);setContentView(mapHost);updateBackdrop();}else{if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;setContentView(shell);}
+    applyButtonHierarchy(shell);disableSystemHaptics(shell);if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){if(backdrop!=null)backdrop.release();backdrop=null;backdropPoint=null;mapHost=new FrameLayout(this);shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));mapPin=new View(this);mapPin.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    GradientDrawable mapMark=oval(orange);mapMark.setStroke(dp(1),Color.WHITE);mapPin.setBackground(mapMark);
+    mapPin.setAlpha(.92f);mapPin.animate().alpha(.24f).setStartDelay(1800).setDuration(800).start();
+    FrameLayout.LayoutParams pin=new FrameLayout.LayoutParams(dp(8),dp(8),Gravity.TOP|Gravity.CENTER_HORIZONTAL);mapHost.addView(mapPin,pin);setContentView(mapHost);updateBackdrop();}else{if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;setContentView(shell);}
     if(transitionRequested)PageTransition.slide(body,transitionDirection);transitionRequested=false;
   }
 
@@ -600,7 +603,41 @@ public final class MainActivity extends FragmentActivity {
 
   private void softenMapCards(View v){if(v!=shell&&v.getBackground()!=null)v.getBackground().setAlpha(222);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)softenMapCards(((ViewGroup)v).getChildAt(i));}
   private void updateBackdrop(){if(mapHost==null)return;if(model.parkedLocation==null){if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);backdrop=null;}backdropPoint=null;if(mapPin!=null)mapPin.setVisibility(View.GONE);return;}if(mapPin!=null)mapPin.setVisibility(View.VISIBLE);LocationSnapshot point=model.parkedLocation;if(backdropPoint!=null&&Math.abs(point.latitude-backdropPoint.latitude)<.00001&&Math.abs(point.longitude-backdropPoint.longitude)<.00001)return;if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);}backdropPoint=point;backdrop=new ParkingBackdrop(this,point);mapHost.addView(backdrop,0,new FrameLayout.LayoutParams(-1,-1));shell.post(()->{if(backdrop==null||mapHost==null)return;View status=shell.findViewWithTag("health_charge_slot");if(status!=null){int[] loc=new int[2],origin=new int[2];status.getLocationOnScreen(loc);mapHost.getLocationOnScreen(origin);float pinY=loc[1]-origin[1]-dp(8);backdrop.anchor(.5f,pinY/(float)Math.max(1,mapHost.getHeight()));if(mapPin!=null)mapPin.setTranslationY(pinY-dp(4));}});}
-  private void mapBackdropDialog(){LinearLayout p=detailPanel();settingToggle(p,"map_backdrop",tr("试验性高德地图背景","Experimental Amap backdrop"),false,false);SeekBar blur=campSlider(p,tr("模糊强度","Blur strength"),0,24,EffectSettings.number(this,"map_backdrop_blur",12,0,24),null,null);SeekBar spread=campSlider(p,tr("渐变模糊外扩比例 %","Blur spread %"),20,100,EffectSettings.number(this,"map_backdrop_spread",60,20,100),null,null);p.addView(text(tr("默认关闭。仅使用车辆停车点；地图加载后静态缓存，向外渐进模糊。不调用手机定位；地图服务不可用时保留普通背景。","Off by default. Uses parked vehicle position only; captures a static map with outward progressive blur. No phone GPS. Falls back to the normal background if unavailable."),12,muted,false));new HapticDialogBuilder(this).setTitle(tr("地图背景试验","Map backdrop experiment")).setView(p).setPositiveButton(tr("应用","Apply"),(d,w)->{AppPreferences.set(this,"map_backdrop_blur",""+blur.getProgress());AppPreferences.set(this,"map_backdrop_spread",""+(spread.getProgress()+20));render();}).show();}
+  private void mapBackdropDialog(){
+    LinearLayout p=detailPanel();
+    settingToggle(p,"map_backdrop",tr("使用停车位置地图背景","Use parked-position map backdrop"),false,false);
+    p.addView(text(tr("地图类型","Map provider"),14,ink,true));
+    Spinner provider=new Spinner(this);provider.setTag("map_backdrop_provider");
+    String[] keys={"amap","osm","topo"};
+    String[] names={tr("高德道路地图","Amap road"),tr("OpenStreetMap 道路","OpenStreetMap road"),
+      tr("OpenTopoMap 地形","OpenTopoMap terrain")};
+    ArrayAdapter<String> adapter=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,names){
+      @Override public View getView(int pos,View view,ViewGroup group){
+        View item=super.getView(pos,view,group);
+        if(item instanceof TextView)((TextView)item).setTextColor(ink);return item;
+      }
+    };
+    provider.setAdapter(adapter);
+    provider.setSelection(Math.max(0,Arrays.asList(keys).indexOf(MapBackdropOptions.provider(this))));
+    p.addView(provider);
+    SeekBar zoom=campSlider(p,tr("地图缩放等级","Map zoom"),10,19,MapBackdropOptions.zoom(this),null,null);
+    SeekBar blur=campSlider(p,tr("模糊强度","Blur strength"),0,24,
+      EffectSettings.number(this,"map_backdrop_blur",12,0,24),null,null);
+    SeekBar spread=campSlider(p,tr("地图渐隐外扩比例（%）","Map feathering radius (%)"),20,100,
+      EffectSettings.number(this,"map_backdrop_spread",60,20,100),null,null);
+    note(p,tr("地图隐私与兼容性","Map privacy and fallback"),
+      tr("地图默认关闭，仅在启用后将已授权车辆停车坐标传给选择的地图提供方。高德无法加载时临时切到开放街图，并保留地图署名。地图捕获后不持续请求。",
+        "Off by default. Enabling sends the parked car coordinates to the selected map provider. If Amap cannot load, an OSM fallback is attempted. Attribution is retained and requests stop after capture."));
+    new HapticDialogBuilder(this).setTitle(tr("地图背景","Map backdrop")).setView(p)
+      .setPositiveButton(tr("应用","Apply"),(d,w)->{
+        AppPreferences.set(this,"map_backdrop_provider",keys[provider.getSelectedItemPosition()]);
+        AppPreferences.set(this,"map_backdrop_zoom",""+(zoom.getProgress()+10));
+        AppPreferences.set(this,"map_backdrop_blur",""+blur.getProgress());
+        AppPreferences.set(this,"map_backdrop_spread",""+(spread.getProgress()+20));
+        if(backdrop!=null){backdrop.release();backdrop=null;backdropPoint=null;}
+        render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
   private List<String> skinOrder(){List<String> values=new ArrayList<>();List<String> valid=Arrays.asList(UiSkin.pickerChoices());for(String key:AppPreferences.get(this,"skin_order","").split(","))if(valid.contains(key)&&!values.contains(key))values.add(key);for(String key:valid)if(!values.contains(key))values.add(key);return values;}
   private void vehicleAppearanceMenu(){new HapticDialogBuilder(this).setTitle(tr("车辆外观快捷设置","Vehicle appearance"))
     .setItems(new String[]{tr("切换皮肤","Change skin"),tr("当前主题车辆图片","Vehicle image for current theme"),tr("白天车辆图片","Day vehicle image"),tr("夜间车辆图片","Night vehicle image")},(d,w)->{if(w==0)skinDialog();else vehicleArtDialog(w==1?AppPreferences.dark(this):w==3);}).show();}

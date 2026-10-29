@@ -91,6 +91,7 @@ public final class VehicleCoordinator {
   public boolean locationBusy;
   private int locationGeneration;
   private long parkingFetchedAt;
+  public long parkingRefreshDelay(){int minutes=RefreshPolicy.map(context);if(minutes==0)return -1;long interval=minutes*60000L;return parkingFetchedAt==0?interval:Math.max(1000,interval-(android.os.SystemClock.elapsedRealtime()-parkingFetchedAt));}
   private final List<java.util.function.BiConsumer<LocationSnapshot,String>> locationCompletions=new ArrayList<>();
   public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete){readLastParkedLocation(true,complete);}
   public void readLastParkedLocation(boolean force,java.util.function.BiConsumer<LocationSnapshot,String> complete) {

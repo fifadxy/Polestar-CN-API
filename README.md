@@ -1,3 +1,5 @@
+当前版本 **v0.9.5-beta6 / 101**：跨页/前后台复用地图，按规则定位；图库黑白文字和默认SOC粗体；修复能耗页两处已复现闪退。[更新](docs/Psa_v095_beta6_Update.md)。
+
 当前版本 **v0.9.5-beta5 / 100**：硬件WebView直接地图背景、尾门加粗、All Good大字单/双行。[更新与验证边界](docs/Psa_v095_beta5_Update.md)。
 
 当前版本 **v0.9.5-beta4 / 99**：新尾门图标默认、三款可选；确认的净化颗粒图案；All Good后方车图等比缩小并下移。[更新](docs/Psa_v095_beta4_Update.md)。

@@ -6,6 +6,7 @@ final class ParkingBackdrop extends FrameLayout {
  public ParkingBackdrop(Context c){this(c,null);}
  ParkingBackdrop(Context c,LocationSnapshot point){super(c);setBackgroundColor(PsaDesign.canvas(AppPreferences.dark(c)));setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);if(point==null)return;preview=new ParkingWebPreview(c,point,AppPreferences.dark(c),()->{},true);addView(preview.view,new LayoutParams(-1,-1));preview.whenReady(()->{if(preview!=null)preview.styleBackdrop(x,y);});}
  void anchor(float x,float y){this.x=Math.max(0,Math.min(1,x));this.y=Math.max(.1f,Math.min(.85f,y));if(preview!=null)preview.styleBackdrop(this.x,this.y);}
+ void restyle(){if(preview!=null)preview.styleBackdrop(x,y);}
  void pause(){if(preview!=null)preview.pause();}
  void resume(){if(preview!=null)preview.resume();}
  @Override public boolean dispatchTouchEvent(android.view.MotionEvent event){return false;}

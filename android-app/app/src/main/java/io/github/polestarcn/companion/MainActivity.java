@@ -23,7 +23,7 @@ import java.util.*;
 public final class MainActivity extends FragmentActivity {
   private VehicleCoordinator model;
   private final Runnable listener = this::onModelChanged;private Runnable statusDockBinding;
-  private LinearLayout shell, body;private FrameLayout mapHost;private ParkingBackdrop backdrop;private View mapPin;private LocationSnapshot backdropPoint;
+  private LinearLayout shell, body;private FrameLayout mapHost;private ParkingBackdrop backdrop;private LocationSnapshot backdropPoint;
   private HorizontalSwipeRefreshLayout controlRefresh;
   private int page = 0, ink, muted, paper, surface, line;
   private final int orange = Color.rgb(255, 107, 0);
@@ -208,7 +208,7 @@ public final class MainActivity extends FragmentActivity {
   protected void onDestroy() {
     displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);
     displayHandler.removeCallbacks(openingRefresh);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);
-    dismissParking();if(carDialog!=null)carDialog.dismiss();if(backdrop!=null)backdrop.release();
+    displayHandler.removeCallbacks(mapRefreshTick);dismissParking();if(carDialog!=null)carDialog.dismiss();if(backdrop!=null)backdrop.release();
     model.remove(listener);
     authGeneration++; authPending = false;
     if (biometric != null) biometric.cancelAuthentication();
@@ -220,15 +220,15 @@ public final class MainActivity extends FragmentActivity {
     if (model != null) { model.listen(listener); if (resumeRender) { resumeRender = false; render(); } }
   }
   @Override protected void onResume() {
-    super.onResume();if(backdrop!=null)backdrop.resume();monitorCampingNetwork();AllGoodTextView.host(findViewById(android.R.id.content),true);if(model!=null&&dashboardReady&&page==0)onModelChanged();scheduleForeground();displayHandler.removeCallbacks(displayTick); displayHandler.postDelayed(displayTick, 60_000L);
+    super.onResume();mapRefreshHostActive=true;scheduleMapRefresh();if(backdrop!=null)backdrop.resume();monitorCampingNetwork();AllGoodTextView.host(findViewById(android.R.id.content),true);if(model!=null&&dashboardReady&&page==0)onModelChanged();scheduleForeground();displayHandler.removeCallbacks(displayTick); displayHandler.postDelayed(displayTick, 60_000L);
   }
   @Override protected void onPause() {
-    if(backdrop!=null)backdrop.pause();stopCampingNetworkMonitor();AllGoodTextView.host(findViewById(android.R.id.content),false);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);View pulse=findViewById(android.R.id.content).findViewWithTag("charging_pulse");if(pulse instanceof ChargingPulseView)((ChargingPulseView)pulse).setActive(false); super.onPause();
+    mapRefreshHostActive=false;displayHandler.removeCallbacks(mapRefreshTick);if(backdrop!=null)backdrop.pause();stopCampingNetworkMonitor();AllGoodTextView.host(findViewById(android.R.id.content),false);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);View pulse=findViewById(android.R.id.content).findViewWithTag("charging_pulse");if(pulse instanceof ChargingPulseView)((ChargingPulseView)pulse).setActive(false); super.onPause();
   }
 
   @Override
   protected void onStop() {
-    dismissParking();if(carDialog!=null)carDialog.dismiss();
+    displayHandler.removeCallbacks(mapRefreshTick);dismissParking();if(carDialog!=null)carDialog.dismiss();
     if (model != null) model.remove(listener);
     resumeRender = true;
     if (biometric != null && authPending) {
@@ -493,7 +493,13 @@ public final class MainActivity extends FragmentActivity {
       nav.addView(t, nlp);
     }
     shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(compactNav ? 52 : 64)));
-    applyButtonHierarchy(shell);disableSystemHaptics(shell);if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){if(backdrop!=null)backdrop.release();backdrop=null;backdropPoint=null;mapHost=new FrameLayout(this);shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));mapPin=new View(this);mapPin.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);mapPin.setBackground(oval(orange));FrameLayout.LayoutParams pin=new FrameLayout.LayoutParams(dp(8),dp(8),Gravity.TOP|Gravity.CENTER_HORIZONTAL);mapHost.addView(mapPin,pin);setContentView(mapHost);updateBackdrop();}else{if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;if(AppPreferences.visible(this,"background_image_enabled",false)&&BackgroundImages.file(this).isFile())softenMapCards(shell);setContentView(BackgroundImages.wrap(this,shell));}
+    applyButtonHierarchy(shell);disableSystemHaptics(shell);
+    if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){
+      if(mapHost==null){mapHost=new FrameLayout(this);setContentView(mapHost);}
+      for(int i=mapHost.getChildCount()-1;i>=0;i--)if(mapHost.getChildAt(i)!=backdrop)mapHost.removeViewAt(i);
+      shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));updateBackdrop();
+    }else{if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;if(AppPreferences.visible(this,"background_image_enabled",false)&&BackgroundImages.file(this).isFile())softenMapCards(shell);setContentView(BackgroundImages.wrap(this,shell));}
+
     if(transitionRequested)PageTransition.slide(body,transitionDirection);transitionRequested=false;
   }
 
@@ -600,7 +606,17 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void softenMapCards(View v){if(v!=shell&&v.getBackground()!=null)v.getBackground().setAlpha(222);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)softenMapCards(((ViewGroup)v).getChildAt(i));}
-  private void updateBackdrop(){if(mapHost==null)return;if(model.parkedLocation==null){if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);backdrop=null;}backdropPoint=null;if(mapPin!=null)mapPin.setVisibility(View.GONE);return;}if(mapPin!=null)mapPin.setVisibility(View.VISIBLE);LocationSnapshot point=model.parkedLocation;if(backdropPoint!=null&&Math.abs(point.latitude-backdropPoint.latitude)<.00001&&Math.abs(point.longitude-backdropPoint.longitude)<.00001)return;if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);}backdropPoint=point;backdrop=new ParkingBackdrop(this,point);mapHost.addView(backdrop,0,new FrameLayout.LayoutParams(-1,-1));shell.post(()->{if(backdrop==null||mapHost==null)return;View status=shell.findViewWithTag("health_charge_slot");if(status!=null){int[] loc=new int[2],origin=new int[2];status.getLocationOnScreen(loc);mapHost.getLocationOnScreen(origin);float pinY=loc[1]-origin[1]-dp(8);backdrop.anchor(.5f,pinY/(float)Math.max(1,mapHost.getHeight()));if(mapPin!=null)mapPin.setTranslationY(pinY-dp(4));}});}
+  private String backdropStyleKey="";
+  private void updateBackdrop(){if(mapHost==null)return;LocationSnapshot point=model.parkedLocation;if(point==null){if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);backdrop=null;}backdropPoint=null;return;}
+    String key=AppPreferences.dark(this)+":"+AppPreferences.get(this,"map_backdrop_blur","12")+":"+AppPreferences.get(this,"map_backdrop_spread","60")+":"+AppPreferences.get(this,"map_backdrop_zoom","16");
+    boolean same=backdropPoint!=null&&Math.abs(point.latitude-backdropPoint.latitude)<.00001&&Math.abs(point.longitude-backdropPoint.longitude)<.00001;
+    if(backdrop!=null&&same){if(!key.equals(backdropStyleKey)){backdrop.restyle();backdropStyleKey=key;}return;}
+    if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);}backdropPoint=point;backdropStyleKey=key;backdrop=new ParkingBackdrop(this,point);mapHost.addView(backdrop,0,new FrameLayout.LayoutParams(-1,-1));
+  }
+  private boolean mapRefreshHostActive;
+  private final Runnable mapRefreshTick=()->{if(model.hasSession()&&model.selected!=null&&AppPreferences.visible(this,"map_backdrop",false))model.readLastParkedLocation(false,(point,error)->scheduleMapRefresh());else scheduleMapRefresh();};
+  private void scheduleMapRefresh(){displayHandler.removeCallbacks(mapRefreshTick);long delay=model==null?-1:model.parkingRefreshDelay();if(mapRefreshHostActive&&delay>=0&&AppPreferences.visible(this,"map_backdrop",false))displayHandler.postDelayed(mapRefreshTick,Math.max(1000,delay));}
+
   private void backgroundChoice(){new HapticDialogBuilder(this).setTitle(tr("界面背景","UI background")).setItems(new String[]{tr("纯色","Solid"),tr("高德停车地图","Amap parking map"),tr("选择本机图片并裁切","Choose and crop local image")},(d,w)->{if(w!=2){AppPreferences.set(this,"background_image_enabled","off");AppPreferences.set(this,"map_backdrop",w==1?"on":"off");}if(w==2){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivityForResult(i,801);}else render();}).show();}
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==801&&result==RESULT_OK&&data!=null&&data.getData()!=null)startActivityForResult(new Intent(this,BackgroundCropActivity.class).setData(data.getData()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),802);else if(request==802&&result==RESULT_OK)render();}
   private void mapBackdropDialog(){LinearLayout p=detailPanel();setting(p,tr("All Good排版 · 单行 / 两行","All Good layout · one / two lines"),()->choice(tr("All Good排版","All Good layout"),"all_good_lines",new String[]{"one","two"},new String[]{tr("单行","One line"),tr("两行 ALL / GOOD！","Two lines ALL / GOOD!")},"one",this::render));setting(p,tr("背景来源 · 纯色 / 高德 / 本机图片","Background · solid / Amap / local image"),this::backgroundChoice);setting(p,tr("All Good位置 · 车辆后方 / 下方","All Good · behind / below vehicle"),()->choice(tr("All Good显示位置","All Good placement"),"all_good_position",new String[]{"below","behind"},new String[]{tr("车辆下方","Below vehicle"),tr("车辆后方 · VI灰","Behind vehicle · VI grey")},"below",this::render));SeekBar zoom=campSlider(p,tr("高德地图缩放","Amap zoom"),10,19,EffectSettings.number(this,"map_backdrop_zoom",16,10,19),null,null);settingToggle(p,"map_backdrop",tr("试验性高德地图背景","Experimental Amap backdrop"),false,false);SeekBar blur=campSlider(p,tr("模糊强度","Blur strength"),0,24,EffectSettings.number(this,"map_backdrop_blur",12,0,24),null,null);SeekBar spread=campSlider(p,tr("渐变模糊外扩比例 %","Blur spread %"),20,100,EffectSettings.number(this,"map_backdrop_spread",60,20,100),null,null);note(p,tr("说明","Info"),tr("默认关闭。仅使用车辆停车点；地图加载后静态缓存，向外渐进模糊。不调用手机定位；地图服务不可用时保留普通背景。","Off by default. Uses parked vehicle position only; captures a static map with outward progressive blur. No phone GPS. Falls back to the normal background if unavailable."));new HapticDialogBuilder(this).setTitle(tr("地图背景试验","Map backdrop experiment")).setView(p).setPositiveButton(tr("应用","Apply"),(d,w)->{AppPreferences.set(this,"map_backdrop_zoom",String.valueOf(zoom.getProgress()+10));AppPreferences.set(this,"map_backdrop_blur",""+blur.getProgress());AppPreferences.set(this,"map_backdrop_spread",""+(spread.getProgress()+20));render();}).show();}
@@ -805,7 +821,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout soc = column();
     TextView percent = liveText(() -> model.snapshot == null ? "--%"
         : VehicleSnapshot.metric(model.snapshot.batteryPercent, "%"), compact ? 22 : 38, ink, true);
-    percent.setTag("battery_soc"); soc.addView(percent);
+    percent.setTag("battery_soc");if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this))){percent.setTypeface(android.graphics.Typeface.create(regular,android.graphics.Typeface.BOLD));percent.getPaint().setFakeBoldText(true);}soc.addView(percent);
     ProgressBar bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
     batteryBarVisibility(bar); bar.setMax(100); styleViProgress(bar);
     if (nioColors()) bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(32,196,121)));
@@ -1935,7 +1951,7 @@ public final class MainActivity extends FragmentActivity {
       ImageView thumbnail=new ImageView(this);thumbnail.setImageResource(VehicleArt.drawable(previewKey,night,true,false));
       thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
       entry.addView(thumbnail,new LinearLayout.LayoutParams(dp(114),dp(68)));
-      TextView label=text(VehicleArt.typeLabel(this,viewType)+(checked?" ✓":""),14,ink,true);
+      TextView label=text(VehicleArt.typeLabel(this,viewType)+(checked?tr(" · 已选"," · Selected"):""),16,AppPreferences.dark(this)?Color.WHITE:Color.BLACK,true);label.setMaxLines(2);label.setTag("vehicle_gallery_label");
       label.setPadding(dp(10),0,0,0);entry.addView(label,new LinearLayout.LayoutParams(0,-2,1));
       GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),checked?orange:line);entry.setBackground(frame);
       click(entry,()->{
@@ -1965,7 +1981,7 @@ public final class MainActivity extends FragmentActivity {
       ImageView preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
       preview.setImageResource(VehicleArt.drawable(choice,night,true,false));
       entry.addView(preview,new LinearLayout.LayoutParams(dp(114),dp(75)));
-      TextView name=text(VehicleArt.label(this,choice)+(checked?" ✓":""),13,ink,false);
+      TextView name=text(VehicleArt.label(this,choice)+(checked?tr(" · 已选"," · Selected"):""),15,AppPreferences.dark(this)?Color.WHITE:Color.BLACK,checked);name.setMaxLines(2);name.setTag("vehicle_gallery_label");
       name.setPadding(dp(10),0,0,0);entry.addView(name,new LinearLayout.LayoutParams(0,-2,1));
       GradientDrawable frame=bg(surface,9);frame.setStroke(dp(1),checked?orange:line);entry.setBackground(frame);
       click(entry,()->{
@@ -2087,8 +2103,8 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
       settingToggle(p,"show_battery_bar",tr("电量指示条（所有皮肤与Widget）","Battery indicator bar (all skins and widgets)"),true,true);
-      setting(p,tr("白天车辆图片 · ","Day vehicle image · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,false))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_day","auto")),()->vehicleArtDialog(false));
-      setting(p,tr("夜间车辆图片 · ","Night vehicle image · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,true))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_night","auto")),()->vehicleArtDialog(true));
+      setting(p,tr("日间车图 · ","Day car · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,false))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_day","auto")),()->vehicleArtDialog(false));
+      setting(p,tr("夜间车图 · ","Night car · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,true))+" · "+VehicleArt.label(this,AppPreferences.get(this,"vehicle_art_night","auto")),()->vehicleArtDialog(true));
       settingToggle(p,"show_car",tr("车辆图","Vehicle image"),true,false);settingToggle(p,"show_charging",tr("充电状态（开始/充电时显示）","Charging status (while starting/charging)"),true,false);settingToggle(p,"show_update",tr("数据更新时间","Data update time"),true,false);
       settingToggle(p,"show_tire_status",tr("显示胎压状态（含车况汇总）","Show tyre status (including summary)"),true,true);
       settingToggle(p,"experimental_tire",tr("四轮iTPMS示意图（无未验证kPa）","Four-wheel iTPMS diagram (no unverified kPa)"),false,false);

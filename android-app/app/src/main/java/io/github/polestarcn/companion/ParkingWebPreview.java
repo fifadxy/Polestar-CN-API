@@ -21,7 +21,7 @@ final class ParkingWebPreview {
   private boolean closed,failed,phoneRequestAllowed,autoPhoneRequested;private Runnable ready;
   void whenReady(Runnable callback){ready=callback;}
   android.graphics.Bitmap capture(){if(web==null||closed||web.getWidth()<=0)return null;int width=Math.min(640,web.getWidth()),height=Math.max(1,Math.round(web.getHeight()*width/(float)web.getWidth()));android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(width,height,android.graphics.Bitmap.Config.ARGB_8888);android.graphics.Canvas canvas=new android.graphics.Canvas(image);canvas.scale(width/(float)web.getWidth(),height/(float)web.getHeight());try{web.draw(canvas);return image;}catch(RuntimeException unavailable){image.recycle();return null;}}
-  private boolean backgroundMode;private int mapChecks,reloads;private boolean paused;
+  private boolean backgroundMode;private int mapChecks,reloads;private boolean paused,mapReady;
   private LocationSnapshot point;
   private final Runnable timeout=()->fail();
 
@@ -72,9 +72,9 @@ final class ParkingWebPreview {
     if(!failed)status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));
   }
   void styleBackdrop(float x,float y){if(closed||web==null||!backgroundMode)return;Context c=view.getContext();String script=resourceScript(c,R.raw.parking_backdrop)+String.format(Locale.US,";PsaBackdrop.style(%s,%.4f,%.4f,%d,%d,%d);",AppPreferences.dark(c)?"true":"false",x,y,EffectSettings.number(c,"map_backdrop_blur",12,0,24),EffectSettings.number(c,"map_backdrop_spread",60,20,100),EffectSettings.number(c,"map_backdrop_zoom",16,10,19));web.evaluateJavascript(script,null);}
-  private void checkMapReady(){if(closed||web==null||!backgroundMode||paused)return;web.evaluateJavascript("(function(){var m=document.querySelector('.amap-container');if(!m)return false;var c=m.querySelector('canvas');return !!((c&&c.width>0&&c.height>0)||m.querySelector('img.amap-tile'));})()",value->{if(closed||web==null)return;if("true".equals(value)){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);AppPreferences.set(view.getContext(),"map_background_status","ready");if(ready!=null)ready.run();}else if(++mapChecks<40)handler.postDelayed(this::checkMapReady,500);else fail();});}
+  private void checkMapReady(){if(closed||web==null||!backgroundMode||paused)return;web.evaluateJavascript("(function(){var m=document.querySelector('.amap-container');if(!m)return false;var c=m.querySelector('canvas');return !!((c&&c.width>0&&c.height>0)||m.querySelector('img.amap-tile'));})()",value->{if(closed||web==null)return;if("true".equals(value)){mapReady=true;handler.removeCallbacks(timeout);status.setVisibility(View.GONE);AppPreferences.set(view.getContext(),"map_background_status","ready");if(ready!=null)ready.run();}else if(++mapChecks<40)handler.postDelayed(this::checkMapReady,500);else fail();});}
   void pause(){paused=true;if(web!=null)web.onPause();}
-  void resume(){paused=false;if(web!=null){web.onResume();if(backgroundMode)checkMapReady();}}
+  void resume(){paused=false;if(web!=null){web.onResume();if(backgroundMode&&!mapReady)checkMapReady();}}
   private static String compactScript(Context context){return resourceScript(context,R.raw.parking_map_compact);}
   private static String resourceScript(Context context,int resource){
     try(java.io.InputStream input=context.getResources().openRawResource(resource);

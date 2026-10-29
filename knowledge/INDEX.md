@@ -1,3 +1,4 @@
+| [38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md](38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md) | v0.9.5-beta2 离线托管、安全会话、UI及动画/地图 Hotfix | 源码实施 / 真车待验 |
 [当前v0.9.5 · 简洁2、气流、指令回读与地图背景](37_V095_UI_EFFECTS_MAP.md) · versionCode96。本页优先于历史动效/回读/R8约定。
 
 [当前v0.9.4 · 原生动效、离线测试、容量和透明资源](36_V094_NATIVE_EFFECTS_ASSETS.md) · versionCode95。此页优先于历史图库和字体约定。

@@ -1,3 +1,5 @@
+**Android 最新开发版本：v0.9.5-beta2 / 97 Hotfix（隔离分支）。** 离线托管退出与网络恢复、指令重复确认、按类别验证、离线能耗、粒子/气流与地图设置。参见 [Hotfix 更新](docs/Psa_v095_beta2_Hotfix.md) / [验收](docs/Psa_v095_beta2_Validation.md) / [KB38](knowledge/38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md)。公共 CI 缺中国区私有客户端配置及稳定签名，Debug 为验证包，不等于完整可登录 Release。
+
 当前版本：**v0.9.5-beta1 / 96**。新增简洁2、渐隐/吸入气流与玻璃内光效、随屏刷新动画、皮肤拖动排序、指令确认后停止回读及地图背景实验。13张车图原文件保留。[本版更新说明](docs/Psa_v095_Update.md) · [验收](docs/Psa_v095_Validation.md)。
 
 历史当前版本：**v0.9.4-beta1 / 95**。设置新增全部动效离线测试（18项循环）、可调原生粒子/气流；电池容量默认71kWh可填，放大All Good！，清理车型及透明资源。详见[更新与设计规范](docs/Psa_v094_Effects_And_Assets.md)。本增量优先于下方历史说明。

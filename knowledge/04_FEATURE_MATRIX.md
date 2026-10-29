@@ -1,3 +1,5 @@
+当前增量：[v0.9.5-beta9 · C排版、字重与分层轨迹动效](45_V095_BETA9_LAYERED_AIRFLOW.md)，版本104。
+
 当前补充：[beta6 地图复用与能耗修复](42_V095_BETA6_MAP_PERSISTENCE_ENERGY.md)，版本101。
 
 当前补充：[beta5 直接地图背景与排版](41_V095_BETA5_LIVE_MAP_TYPOGRAPHY.md)，版本100。

@@ -81,3 +81,5 @@
 - [beta7 外观与地图复用](43_V095_BETA7_APPEARANCE.md)
 
 - [beta8 独立动效开关](44_V095_BETA8_EFFECT_SWITCHES.md)
+
+- [beta9 C排版与分层轨迹动效](45_V095_BETA9_LAYERED_AIRFLOW.md)

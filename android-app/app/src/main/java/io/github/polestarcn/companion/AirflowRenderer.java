@@ -1,26 +1,38 @@
 package io.github.polestarcn.companion;
 import android.graphics.*;import java.util.Random;
-/** Cached unit gradients: a crisp leading head with a continuous fading trail, never uniform dots. */
+/** Fixed particle pool. Trails sample the actual past trajectory; no frame allocations. */
 final class AirflowRenderer {
- private final Paint paint=new Paint(3);private final Matrix matrix=new Matrix();
- private final float[] phase=new float[120],lane=new float[120],rate=new float[120];
- private final float[] transform={1,0,0,0,1,0,0,0,1};private LinearGradient streak;private int lastColor;
+ private final Paint paint=new Paint(3),halo=new Paint(3);private final Matrix matrix=new Matrix();
+ private final float[] phase=new float[120],lane=new float[120],rate=new float[120],head=new float[2],tail=new float[2],previous=new float[2];
+ private RadialGradient glow;private int lastColor;
  AirflowRenderer(){paint.setStrokeCap(Paint.Cap.ROUND);Random r=new Random(930);for(int i=0;i<120;i++){phase[i]=r.nextFloat();lane[i]=r.nextFloat();rate[i]=.8f+.4f*r.nextFloat();}}
  static int color(EffectStateController.Mode m){return m==EffectStateController.Mode.COOLING?0xFF46B0FA:m==EffectStateController.Mode.HEATING?PsaDesign.ORANGE:m==EffectStateController.Mode.NEUTRAL?0xFF9EAFB6:0xFF42D39A;}
- void draw(Canvas c,RectF b,boolean right,float seconds,float density,EffectSettings p,EffectStateController.Mode mode,int budget,float fade){
-  int color=color(mode);if(streak==null||lastColor!=color){lastColor=color;streak=new LinearGradient(0,0,1,0,new int[]{color&0x00FFFFFF,(color&0x00FFFFFF)|0x24000000,(color&0x00FFFFFF)|0x98000000,color},new float[]{0,.25f,.78f,1},Shader.TileMode.CLAMP);paint.setShader(streak);}
-  float start=right?b.right+b.width()*.14f:b.left-b.width()*.14f,end=right?b.left-b.width()*.14f:b.right+b.width()*.14f;
-  for(int i=0,n=Math.min(p.lines,budget);i<n;i++){
-   float t=(seconds*.20f*p.airSpeed*rate[i]+phase[i])%1f;
-   float sx=start,sy=b.top+b.height()*(.04f+lane[i]*.92f),ex=end,ey=sy;
-   if(p.airAbsorb){sx=(i%2==0?b.left-b.width()*.12f:b.right+b.width()*.12f);ex=b.centerX();ey=b.centerY()+(lane[i]-.5f)*b.height()*.38f;}
-   float x=sx+(ex-sx)*t,y=sy+(ey-sy)*t;
-   float dx=ex-sx,dy=ey-sy,dist=(float)Math.sqrt(dx*dx+dy*dy);if(dist<1)continue;
-   float ux=dx/dist,uy=dy/dist;
-   if(ParticleMotion.curved(i,p)){float amplitude=Math.min(b.width(),b.height())*p.arcPercent/100f;float offset=ParticleMotion.offset(t,i)*amplitude,derivative=ParticleMotion.slope(t,i)*amplitude;x-=uy*offset;y+=ux*offset;float tangentX=dx-uy*derivative,tangentY=dy+ux*derivative;float tangentLength=(float)Math.sqrt(tangentX*tangentX+tangentY*tangentY);if(tangentLength>1){ux=tangentX/tangentLength;uy=tangentY/tangentLength;}}
-   float particleScale=p.particleSizePercent/100f,len=b.width()*(.07f+.065f*lane[i])*(.75f+.25f*particleScale);float tx=x-ux*len,ty=y-uy*len;
-   transform[0]=ux*len;transform[1]=-uy;transform[2]=tx;transform[3]=uy*len;transform[4]=ux;transform[5]=ty;matrix.setValues(transform);streak.setLocalMatrix(matrix);
-   float edge=Math.min(1,t*8)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1);paint.setAlpha((int)(Math.min(255,p.strength*2.2f)*edge*fade));paint.setStrokeWidth(density*(.9f+lane[i]*.85f)*particleScale);c.drawLine(tx,ty,x,y,paint);
+ static int side(float fraction,EffectSettings p){float n=fraction*(p.topDensity+p.bottomDensity+p.leftDensity+p.rightDensity);if(n<p.topDensity)return 0;n-=p.topDensity;if(n<p.bottomDensity)return 1;n-=p.bottomDensity;if(n<p.leftDensity)return 2;return 3;}
+ // Point at phase t: the exact same function is used for head and every trail sample.
+ void position(RectF b,boolean right,int i,float t,EffectSettings p,float[] out){
+  float sx=right?b.right+b.width()*.14f:b.left-b.width()*.14f,ex=right?b.left-b.width()*.14f:b.right+b.width()*.14f;
+  float sy=b.top+b.height()*(.04f+lane[i]*.92f),ey=sy;
+  if(p.airAbsorb){float range=p.absorbRange/100f;int side=side(lane[i],p);ex=b.centerX();ey=b.centerY();
+   if(side<2){sx=b.centerX()+(phase[i]-.5f)*b.width()*1.2f*range;sy=b.centerY()+(side==0?-1:1)*b.height()*.7f*range;}
+   else{sx=b.centerX()+(side==2?-1:1)*b.width()*.65f*range;sy=b.centerY()+(phase[i]-.5f)*b.height()*1.3f*range;}
+  }
+  float u=p.airAbsorb?t*t*(3-2*t):t,dx=ex-sx,dy=ey-sy;out[0]=sx+dx*u;out[1]=sy+dy*u;
+  if(ParticleMotion.curved(i,p)){float dist=(float)Math.sqrt(dx*dx+dy*dy);if(dist>1){float arc=ParticleMotion.offset(t,i)*Math.min(b.width(),b.height())*p.arcPercent/100f;out[0]-=dy/dist*arc;out[1]+=dx/dist*arc;}}
+ }
+ void draw(Canvas c,RectF b,boolean right,float seconds,float density,EffectSettings p,EffectStateController.Mode mode,int budget,float fade){drawLayer(c,b,right,seconds,density,p,mode,budget,fade,-1);}
+ void drawLayer(Canvas c,RectF b,boolean right,float seconds,float density,EffectSettings p,EffectStateController.Mode mode,int budget,float fade,int layer){
+  int color=color(mode);paint.setShader(null);paint.setColor(color);if(glow==null||lastColor!=color){lastColor=color;glow=new RadialGradient(0,0,1,new int[]{(color&0xFFFFFF)|0x55000000,color&0xFFFFFF},null,Shader.TileMode.CLAMP);halo.setShader(glow);}
+  int sum=p.topDensity+p.bottomDensity+p.leftDensity+p.rightDensity;if(p.airAbsorb&&sum==0)return;
+  int requested=p.airSpheres?p.particles:p.lines;if(p.airAbsorb)requested=Math.round(requested*sum/400f);int n=Math.min(120,Math.min(requested,budget));
+  for(int i=0;i<n;i++){if(layer>=0&&(i%3==0?0:1)!=layer)continue;
+   float t=(seconds*.20f*p.airSpeed*rate[i]+phase[i])%1f;position(b,right,i,t,p,head);
+   float edge=Math.min(1,t*8)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1),scale=p.particleSizePercent/100f;
+   int alpha=(int)(Math.min(255,p.strength*2.2f)*edge*fade*(layer==0?.7f:1));
+   if(p.airSpheres){float radius=density*(.7f+3f*lane[i]*lane[i])*scale;
+    matrix.setScale(radius*2.8f,radius*2.8f);matrix.postTranslate(head[0],head[1]);glow.setLocalMatrix(matrix);halo.setAlpha(alpha);c.drawCircle(head[0],head[1],radius*2.8f,halo);paint.setAlpha(alpha);c.drawCircle(head[0],head[1],radius,paint);
+   }else{float span=.09f+.07f*lane[i];position(b,right,i,Math.max(0,t-span),p,previous);paint.setStrokeWidth(density*(.9f+lane[i]*.85f)*scale);
+    for(int j=1;j<=10;j++){float f=j/10f;position(b,right,i,Math.max(0,t-span*(1-f)),p,tail);paint.setAlpha((int)(alpha*f*f));c.drawLine(previous[0],previous[1],tail[0],tail[1],paint);previous[0]=tail[0];previous[1]=tail[1];}
+   }
   }
  }
 }

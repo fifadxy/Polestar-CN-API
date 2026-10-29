@@ -617,7 +617,9 @@ public final class AppRegressionTest {
     HorizontalSwipeRefreshLayout refresh =
         (HorizontalSwipeRefreshLayout) findTagged(
             activity.getWindow().getDecorView(), "control_pull_refresh");
-    assertTrue(refresh.isRefreshing());
+    assertFalse("automatic refresh stays silent",refresh.isRefreshing());
+    c.userRefreshing=true;render.invoke(activity);refresh=(HorizontalSwipeRefreshLayout)findTagged(activity.getWindow().getDecorView(),"control_pull_refresh");
+    assertTrue("explicit user refresh displays spinner",refresh.isRefreshing());
 
     c.activeAction = "lock";
     render.invoke(activity);
@@ -625,6 +627,7 @@ public final class AppRegressionTest {
         (HorizontalSwipeRefreshLayout) findTagged(
             activity.getWindow().getDecorView(), "control_pull_refresh");
     assertFalse("remote command does not masquerade as data refresh", refresh.isRefreshing());
+    c.userRefreshing=false;
     c.busy = false;
     c.activeAction = "";
   }

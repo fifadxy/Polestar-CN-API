@@ -1,3 +1,5 @@
+v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
+
 # 08｜Android Polestar Assistant 主线开发路线图（V3.0）
 
 主线 `android-polestar-assistant-main`，基线 `feature/android-companion-v0.1`；本轮同步**计划与知识库**，源码仍为 `v0.1.0-dev2 DEMO/OFFLINE`，旧版 CI Run `40261229408` 已通过。真车数据和远控在新项目均**未实现**。

@@ -1,3 +1,5 @@
+v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
+
 ## v0.9.4 追加
 
 新增VehicleEffectsV094Test原生Canvas/生命周期/状态/字体/容量/Alpha回归；完整包沿用v0.9.2私有配置及签名。PNG去底母版与包内无损WebP的完整RGBA相等。测试与APK体积见本次[验收](../docs/Psa_v094_Validation.md)。没有实车登录、写操作或耗电实测。

@@ -17,6 +17,10 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
   @Override public AlertDialog create() {
     AlertDialog dialog = super.create();
     dialog.setOnShowListener(ignored -> {
+      android.view.Window window=dialog.getWindow();boolean dark=AppPreferences.dark(context);
+      if(window!=null){android.graphics.drawable.GradientDrawable glass=new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR,dark?new int[]{0xF02A3036,0xF2181D22}:new int[]{0xF8FFFFFF,0xF0EDF1F4});glass.setCornerRadius(24*context.getResources().getDisplayMetrics().density);glass.setStroke(1,dark?0x557C8993:0xAAFFFFFF);window.setBackgroundDrawable(glass);window.setDimAmount(.24f);
+        if(android.os.Build.VERSION.SDK_INT>=31){android.view.WindowManager wm=context.getSystemService(android.view.WindowManager.class);if(wm!=null&&wm.isCrossWindowBlurEnabled())window.setBackgroundBlurRadius(24);}
+        android.view.View decor=window.getDecorView();if(AppPreferences.visible(context,"light_effects",true)&&android.animation.ValueAnimator.areAnimatorsEnabled()){android.os.PowerManager power=context.getSystemService(android.os.PowerManager.class);if(power==null||!power.isPowerSaveMode()){decor.setAlpha(0);decor.setScaleX(.97f);decor.setScaleY(.97f);decor.animate().alpha(1).scaleX(1).scaleY(1).setDuration(220).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();}}}
       android.widget.ListView list=dialog.getListView();
       if(list!=null) {
         list.setOnHierarchyChangeListener(new android.view.ViewGroup.OnHierarchyChangeListener() {

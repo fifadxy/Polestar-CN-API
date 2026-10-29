@@ -76,7 +76,7 @@ public class V076RegressionTest {
       View car=tag(root,"polestar_vehicle"),summary=tag(root,"vehicle_status_button");
       assertNotNull(car);assertTrue(summary instanceof LinearLayout);
       int[] carLocation=new int[2],summaryLocation=new int[2];
-      car.getLocationOnScreen(carLocation);summary.getLocationOnScreen(summaryLocation);
+      car.getLocationOnScreen(carLocation);tag(root,"health_charge_slot").getLocationOnScreen(summaryLocation);
       assertTrue("summary stays below the car image",summaryLocation[1]>=carLocation[1]+car.getHeight());
       assertTrue(tag(root,"vi_progress") instanceof ProgressBar);
       assertEquals(63,((ProgressBar)tag(root,"vi_progress")).getProgress());

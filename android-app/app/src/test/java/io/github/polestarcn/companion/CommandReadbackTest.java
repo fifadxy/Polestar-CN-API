@@ -23,14 +23,15 @@ public final class CommandReadbackTest {
     return new VehicleSnapshot("fixture", "masked", 63, 230, 65845, "空闲", "全部关闭", "全部关闭",
         "已关闭", "已上锁", 1, source, false, climate, "关闭");
   }
-  @Test public void fiveExactSlotsAndNoFinalSuccessBeforeTwentySixSeconds(){
+  @Test public void confirmationStopsAfterThreeMatchesAndSkipsRemainingReads(){
     Clock clock=new Clock();int[] reads={0},done={0};
     new CommandReadback(()->{reads[0]++;return state("开启","LIVE");},Runnable::run,clock,(v,ok)->{assertTrue(ok);done[0]++;}).start("climate-start");
     clock.advance(4999);assertEquals(0,reads[0]);
     long[] slots=CommandReadback.CHECKPOINT_MS;assertArrayEquals(new long[]{5000,10000,15000,18000,26000},slots);
-    for(int n=1;n<=5;n++){clock.advance(slots[n-1]);assertEquals(n,reads[0]);assertEquals(n==5?1:0,done[0]);}
-    clock.advance(90000);assertEquals(5,reads[0]);assertEquals(1,done[0]);
+    for(int n=1;n<=5;n++){clock.advance(slots[n-1]);assertEquals(Math.min(n,3),reads[0]);assertEquals(n>=3?1:0,done[0]);}
+    clock.advance(90000);assertEquals(3,reads[0]);assertEquals(1,done[0]);
   }
+  @Test public void targetMismatchDoesNotStopEarlyOnGenericClimateState(){Clock clock=new Clock();int[] count={0};boolean[] ok={true};new CommandReadback(()->{count[0]++;return state("开启","LIVE");},Runnable::run,clock,(v,verified)->ok[0]=verified).require(v->false).start("climate-start");clock.advance(90000);assertEquals(5,count[0]);assertFalse(ok[0]);}
   @Test public void mismatchAfterFiveReadsStaysUnconfirmed(){
     Clock clock=new Clock();int[] reads={0},done={0};new CommandReadback(()->{reads[0]++;return state("关闭","LIVE");},Runnable::run,clock,(v,ok)->{assertFalse(ok);done[0]++;}).start("climate-start");clock.advance(26000);assertEquals(5,reads[0]);assertEquals(1,done[0]);
   }
@@ -47,7 +48,7 @@ public final class CommandReadbackTest {
   @Test public void inconsistentReadbackMustNotDeclareCommandSuccess(){
     Clock clock=new Clock();int[] call={0};boolean[] verified={true};
     new CommandReadback(()->{
-      int n=++call[0];return state(n==4?"关闭":"开启","LIVE");},
+      int n=++call[0];return state(n==2||n==4?"关闭":"开启","LIVE");},
       Runnable::run,clock,(v,ok)->verified[0]=ok).start("climate-start");
     clock.advance(26000);assertFalse(verified[0]);assertEquals(5,call[0]);
   }

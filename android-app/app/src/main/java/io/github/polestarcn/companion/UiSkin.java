@@ -3,6 +3,7 @@ package io.github.polestarcn.companion;
 import android.content.Context;
 
 public final class UiSkin {
+  public static final String SIMPLE_2="simple2";
   public static final String SIMPLE="simple";
   public static final String DETAILED="detailed";
   public static final String NIO_LIKE="niolike";
@@ -11,8 +12,8 @@ public final class UiSkin {
   public static final String PS_DEFAULT="ps_default";
   private UiSkin(){}
   public static final String[] CHOICES={
-      SIMPLE,DETAILED,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT};
-  public static String[] pickerChoices(){return new String[]{SIMPLE,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT};}
+      SIMPLE,DETAILED,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT,SIMPLE_2};
+  public static String[] pickerChoices(){return new String[]{SIMPLE,VOLIKE_POLESTAR,NIO_LIKE,NIO_LIKE_2,PS_DEFAULT,SIMPLE_2};}
   public static boolean detailedView(Context c){return AppPreferences.visible(c,"volike_detail",DETAILED.equals(get(c))||VOLIKE_POLESTAR.equals(get(c)));}
   public static String get(Context c){
     String value=AppPreferences.get(c,"ui_skin",DETAILED);
@@ -34,6 +35,7 @@ public final class UiSkin {
   public static boolean polestarVo(Context c){return VOLIKE_POLESTAR.equals(get(c));}
   public static String label(Context c,String v){
     boolean en=AppPreferences.english(c);
+    if(SIMPLE_2.equals(v))return en?"Simple 2":"简洁2";
     if(PS_DEFAULT.equals(v))return en?"PS Default":"PS默认皮肤";
     if(SIMPLE.equals(v))return en?"VoLike Simple":"VoLike 简洁";
     if(DETAILED.equals(v))return en?"VoLike Detailed":"VoLike 详细";

@@ -16,8 +16,8 @@ public final class ButtonFeedback {
     String running=s==null?"--":"开启".equals(s.climate)?AppPreferences.tr(c,"运行中","Running"):AppPreferences.status(c,s.climate);
     String time=s!=null&&"开启".equals(s.climate)?ClimateRuntime.shortLabel(c,s,AppPreferences.get(c,"vehicle",""),AppPreferences.english(c)):"";
     if(time.equals(running))time="";
-    String target=EnvironmentSnapshot.temperatureText(s==null?null:s.environment.targetTemperatureC,false).replaceAll("\\.0$","")+"°";
-    return running+(time.isEmpty()?"":" "+time)+" · "+target;
+    String target=s==null||s.environment.targetTemperatureC==null?"":EnvironmentSnapshot.temperatureText(s==null?null:s.environment.targetTemperatureC,false).replaceAll("\\.0$","")+"°";
+    return running+(time.isEmpty()?"":" "+time)+(target.isEmpty()?"":" · "+target);
    }
    case "temperature":return DisplayMetric.TEMPERATURE.value(c,s,true,AppPreferences.english(c));
    case "remaining":return s!=null&&"开启".equals(s.climate)?ClimateRuntime.shortLabel(c,s,AppPreferences.get(c,"vehicle",""),AppPreferences.english(c)):"--";

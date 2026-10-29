@@ -24,7 +24,8 @@ public final class VehicleCoordinator {
   public final List<ChinaPolestarApi.VehicleInfo> cars = new ArrayList<>();
   public ChinaPolestarApi.VehicleInfo selected;
   public VehicleSnapshot snapshot;
-  public boolean busy;
+  public boolean busy;public boolean lastVehicleReadOk;
+  public boolean vehicleDataConnected(){return VehicleConnectionStatus.connected(signedIn,selected!=null,lastVehicleReadOk,snapshot,System.currentTimeMillis());}
   public boolean progressOnly;
   public boolean commandPending; public int readbackPercent; public int readbackChecks;
   private long readbackStarted;
@@ -54,7 +55,9 @@ public final class VehicleCoordinator {
       operation=recent.state;
     } else {activeAction="";readbackChecks=0;readbackPercent=100;main.removeCallbacks(progressTick);}
   }
-  public LocationSnapshot parkedLocation;
+  public LocationSnapshot parkedLocation;public String parkingName="";private boolean geocoding;private final ExecutorService placeIO=Executors.newSingleThreadExecutor();
+  public void resolveParkingName(LocationSnapshot point,Runnable done){if(geocoding||point==null||selected==null){if(done!=null)done.run();return;}geocoding=true;String vin=selected.vin;int generation=locationGeneration;placeIO.execute(()->{String name=ParkingPlaceNames.resolve(context,point);main.post(()->{geocoding=false;if(generation==locationGeneration&&selected!=null&&vin.equals(selected.vin)&&parkedLocation!=null&&Math.abs(parkedLocation.latitude-point.latitude)<.0001&&Math.abs(parkedLocation.longitude-point.longitude)<.0001){parkingName=name;changed();if(done!=null)done.run();}});});}
+
   private final Runnable progressTick=new Runnable(){public void run(){if(pendingCommands.isEmpty())return;
     syncCommandStatus(); progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;
     main.postDelayed(this,1000);
@@ -83,8 +86,8 @@ public final class VehicleCoordinator {
         locationBusy=false;
         List<java.util.function.BiConsumer<LocationSnapshot,String>> callbacks=new ArrayList<>(locationCompletions);locationCompletions.clear();
         if(signedIn&&selected!=null&&vin.equals(selected.vin)){
-          if(location!=null){parkedLocation=location;parkingFetchedAt=android.os.SystemClock.elapsedRealtime();}
-          changed();for(java.util.function.BiConsumer<LocationSnapshot,String> callback:callbacks)callback.accept(location,message);
+          if(location!=null){if(parkedLocation==null||Math.abs(parkedLocation.latitude-location.latitude)>.0001||Math.abs(parkedLocation.longitude-location.longitude)>.0001)parkingName="";parkedLocation=location;parkingFetchedAt=android.os.SystemClock.elapsedRealtime();}
+          changed();for(java.util.function.BiConsumer<LocationSnapshot,String> callback:callbacks)callback.accept(location,message);if(location!=null&&parkingName.isEmpty())resolveParkingName(location,null);
         }
       });
     });
@@ -127,7 +130,7 @@ public final class VehicleCoordinator {
   }
 
   private void finish() {
-    quietRefresh=false;
+    quietRefresh=false;userRefreshing=false;
     busy = false; exclusive=false;
     if(!commandPending)activeAction = "";
     changed();
@@ -162,10 +165,12 @@ public final class VehicleCoordinator {
   }
 
   public void refreshUser(Runnable done) {
+    if(!busy){userRefreshing=true;quietRefresh=false;}
     if (!busy && selected != null) api.invalidateHealth(selected.vin);
     refresh(done);
   }
 
+  public boolean userRefreshing;
   public boolean quietRefresh;
   public void refreshQuiet(){if(busy||commandPending)return;quietRefresh=true;refresh(null);}
   public void refresh(Runnable done) {
@@ -200,7 +205,7 @@ public final class VehicleCoordinator {
                   if (discover) vehiclesDiscoveredAt = System.currentTimeMillis();
                   selected = pick;
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
-                  snapshot = live;
+                  snapshot = live;lastVehicleReadOk=true;
                   protectCamp(pick.vin, live);
                   message = tr("车辆状态已更新", "Vehicle updated");
                   WidgetRenderer.refreshAll(context);
@@ -209,7 +214,7 @@ public final class VehicleCoordinator {
           } catch (Exception e) {
             main.post(
                 () -> {
-                  message = tr("更新失败：", "Update failed: ") + safe(e);
+                  lastVehicleReadOk=false;message = tr("更新失败：", "Update failed: ") + safe(e);
                   finish();
                 });
           }
@@ -218,7 +223,7 @@ public final class VehicleCoordinator {
 
   public void choose(ChinaPolestarApi.VehicleInfo car) {
     if (busy || commandPending) return;
-    parkedLocation=null;parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
+    lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
     snapshot = null;
@@ -234,7 +239,7 @@ public final class VehicleCoordinator {
     final Float target="climate-start".equals(action)&&ClimateTarget.enabled(context)?ClimateTarget.request(context):null;
     final PendingCommand ticket=new PendingCommand(action,vehicle,System.currentTimeMillis(),target);
     pendingCommands.put(ticket.group,ticket);syncCommandStatus();
-    message=tr("正在发送指令 · ","Sending command · ")+action;
+    message=tr("发送中","Sending");
     if(pendingCommands.size()==1){main.removeCallbacks(progressTick);main.post(progressTick);}
     changed();
     commandIO.execute(()->{
@@ -257,7 +262,7 @@ public final class VehicleCoordinator {
         }
         main.post(()->{if(pendingCommands.get(ticket.group)!=ticket)return;
           ticket.accepted=true;ticket.state=OperationState.SERVER_ACCEPTED;
-          message=tr("指令已发送 · 正在独立回读 ","Command sent · readback ")+action;
+          message=tr("执行中","In progress");
           syncCommandStatus();changed();confirmCommand(ticket);
         });
       } catch(Exception e){main.post(()->{
@@ -265,7 +270,7 @@ public final class VehicleCoordinator {
         if(e instanceof IllegalArgumentException){pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
           message=tr("指令参数不受支持：","Invalid command: ")+safe(e);changed();return;}
         ticket.state=OperationState.UNCONFIRMED;
-        message=tr("发送结果未知，正在只读核实：","Delivery uncertain; read-only verification: ")+action;
+        message=tr("确认中","Verifying");
         syncCommandStatus();changed();confirmCommand(ticket);
       });}
     });
@@ -277,7 +282,7 @@ public final class VehicleCoordinator {
       public void progress(VehicleSnapshot updated,int count){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
         ticket.checks=count;syncCommandStatus();
-        message=tr("正在核实 ","Verifying ")+ticket.action+" · "+count+"/5";
+        message=tr("确认中","Verifying");
         applyReadback(ticket.vehicle,updated);changed();
       }
       public void finished(VehicleSnapshot updated,boolean reached){
@@ -290,25 +295,25 @@ public final class VehicleCoordinator {
         if(!commandPending)operation=result;
         if(reached&&"climate-start".equals(ticket.action))ClimateRuntime.started(context,identity(ticket.vehicle.vin),System.currentTimeMillis());
         if(reached&&"climate-stop".equals(ticket.action))ClimateRuntime.stopped(context);
-        message=momentary(ticket.action)?tr("寻车已完成只读回读，声光结果不可远程确认","Find-car readback finished; sound/light unverified")
-            :verified?tr("车辆状态已连续三次确认：","Three matching vehicle states confirmed: ")+ticket.action
-            :tr("五次只读回读已完成，执行结果待确认：","Five read-only checks finished; result uncertain: ")+ticket.action;
+        message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
+            :verified?tr("执行成功","Successful")
+            :tr("执行结果未确认","Result unconfirmed");
         changed();
       }
-    }).start(ticket.action);
+    }).require(state->ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)).start(ticket.action);
   }
 
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
     if(updated==null||selected==null||!vehicle.vin.equals(selected.vin))return;
     // A delayed callback cannot overwrite a newer refresh / another family's readback.
     if(snapshot!=null&&updated.timestampMillis<snapshot.timestampMillis)return;
-    snapshot=updated;VehicleSnapshotStore.saveChina(context,updated);
+    snapshot=updated;lastVehicleReadOk=true;VehicleSnapshotStore.saveChina(context,updated);
     EnergyLog.record(context,identity(vehicle.vin),updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);
   }
 
   public void logout() {
     if (busy || commandPending) return;
-    parkedLocation=null;parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
+    lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
     CampModeManager.clear(context);
     api.logout();

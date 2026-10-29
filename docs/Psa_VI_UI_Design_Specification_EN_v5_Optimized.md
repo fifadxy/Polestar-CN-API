@@ -687,3 +687,15 @@ The monochrome front-car master, launcher/notification rules, lock/tailgate glyp
 ## Psa v0.9.4 motion and typography amendment
 
 [Native motion and offline test specification](Psa_v094_Effects_And_Assets.md) supersedes previous motion and gallery notes. PS Default uses the battery percentage type size for All Good!; other skins enlarge the status label without wrapping. Solid orange charging particles, blue cooling, orange heating, green laminar ventilation/purification, and neutral live climate without a verified mode field. Native fixed pools only; pause hidden/background/power saver/system-disabled animation. Settings provide local simulation, 18-case autoplay, and immediate parameter controls, with no vehicle commands. Lossless alpha image resources retain source aspect ratio and do not change vehicle opacity.
+
+## v0.9.5 Simple 2 and motion addendum
+
+This addendum supersedes the historical frame caps and fixed command completion time. See [v0.9.5 specification](Psa_v095_Update.md).
+
+Simple 2 uses a single energy/vehicle card, paired control cards, shared condition/charging slot, three priority metrics and full-details access. Day/night vehicle selections and a three-second vehicle hold are supported in every skin. Existing vehicle pixels are unchanged.
+
+Airflow has a crisp leading tip and continuously fading tail; both through-car and cabin-absorption directions are available. Glass-region gradients use VI orange for explicitly chosen heating visuals, blue for cooling and green for purification. HVAC color selection is visual only, never inferred vehicle telemetry. Native vsync scheduling replaces the former 20fps cap; pause all effects off screen or in power saver.
+
+Use a 230ms directional page slide and a 220ms translucent gradient dialog entrance. Android 12+ system blur is optional; older systems use a visual fallback. Experimental parked-map backdrops default off and use a single temporary snapshot with monochrome day/night grading and radial blur. Remote provider DOM compatibility requires device validation.
+
+Display only concise command progress and result. Stop remaining read requests after three consecutive validated vehicle states; do not repeat vehicle writes. Parking labels show a resolved place name, fall back to reported coordinates, or state that parking data has not updated.

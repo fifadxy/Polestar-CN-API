@@ -1,3 +1,5 @@
+v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
+
 # 12｜Android 分阶段验证总表（参考 APK 与新工程区分）
 
 **重要**：参考 APK 用户已反馈 China 登录、SOC、里程、空调、解锁真实可用，标 `REFERENCE_USER_VERIFIED`；本工程尚无相应 API 实现与端到端实测，故不能标 `PROJECT_DEVICE_VERIFIED`。

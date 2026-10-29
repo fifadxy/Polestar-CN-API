@@ -27,10 +27,10 @@ public class VehicleArtV090Test {
    AppPreferences.set(c,"vehicle_art_night","top_dark");
    AppPreferences.set(c,"theme","light");
    assertEquals(R.drawable.psa_vehicle_top_white,VehicleArt.dashboard(c));
-   assertEquals(-90,VehicleArt.portraitRotation(c));
+   assertEquals(90,VehicleArt.portraitRotation(c));
    AppPreferences.set(c,"theme","dark");
    assertEquals(R.drawable.psa_vehicle_top_dark,VehicleArt.dashboard(c));
-   assertEquals(-90,VehicleArt.portraitRotation(c));
+   assertEquals(90,VehicleArt.portraitRotation(c));
  }
  @Test public void originalBlackWhiteAutoDefaultRestoredWithoutRotatingTopView(){
    Context c=RuntimeEnvironment.getApplication();

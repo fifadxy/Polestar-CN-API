@@ -18,12 +18,18 @@ final class ParkingWebPreview {
   private final TextView status;
   private final Handler handler=new Handler(Looper.getMainLooper());
   private WebView web;
-  private boolean closed,failed,phoneRequestAllowed,autoPhoneRequested;
+  private boolean closed,failed,phoneRequestAllowed,autoPhoneRequested;private Runnable ready;
+  void whenReady(Runnable callback){ready=callback;}
+  android.graphics.Bitmap capture(){if(web==null||closed||web.getWidth()<=0)return null;int width=Math.min(640,web.getWidth()),height=Math.max(1,Math.round(web.getHeight()*width/(float)web.getWidth()));android.graphics.Bitmap image=android.graphics.Bitmap.createBitmap(width,height,android.graphics.Bitmap.Config.ARGB_8888);android.graphics.Canvas canvas=new android.graphics.Canvas(image);canvas.scale(width/(float)web.getWidth(),height/(float)web.getHeight());try{web.draw(canvas);return image;}catch(RuntimeException unavailable){image.recycle();return null;}}
   private LocationSnapshot point;
   private final Runnable timeout=()->fail();
 
   @SuppressLint("SetJavaScriptEnabled")
   ParkingWebPreview(Context context,LocationSnapshot point,boolean dark,Runnable openExternal){
+    this(context,point,dark,openExternal,false);
+  }
+  @SuppressLint("SetJavaScriptEnabled")
+  ParkingWebPreview(Context context,LocationSnapshot point,boolean dark,Runnable openExternal,boolean backdrop){
     this.point=point;
     view=new FrameLayout(context);view.setTag("parking_web_preview");view.setBackgroundColor(PsaDesign.surface(dark));
     status=new TextView(context);status.setTextColor(PsaDesign.muted(dark));status.setTypeface(PsaDesign.regular());status.setTextSize(12);status.setPadding(12,8,12,8);
@@ -33,7 +39,7 @@ final class ParkingWebPreview {
       settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setGeolocationEnabled(false);
       settings.setCacheMode(WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
       settings.setSupportMultipleWindows(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setMediaPlaybackRequiresUserGesture(true);
-      settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(dark);
+      settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(false);
       CookieManager.getInstance().setAcceptCookie(false);CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
       web.setWebChromeClient(new WebChromeClient(){
         @Override public void onGeolocationPermissionsShowPrompt(String origin,GeolocationPermissions.Callback callback){callback.invoke(origin,phoneRequestAllowed&&!closed&&MapLocationPermission.allowOrigin(context,origin),false);}
@@ -47,6 +53,9 @@ final class ParkingWebPreview {
         @Override public void onPageStarted(WebView v,String url,Bitmap icon){if(!closed){failed=false;status.setVisibility(View.VISIBLE);status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));}}
         @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
           if(allowedPage(Uri.parse(url))){v.evaluateJavascript(compactScript(context),null);
+            if(dark&&!backdrop)v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='html{background:#151a20!important}canvas,.amap-layer{filter:invert(.88) hue-rotate(180deg) brightness(.72) saturate(.55)!important}.common_bottom{background:#20262c!important;color:#dce2e7!important}';document.head.appendChild(s);})();",null);
+            if(backdrop){v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='.common_bottom,.common_top,.amap-controls,.amap-toolbar,.amap-marker,.amap-markers,.call_native_button_wrapper,header,nav,button,#psa-parking-distance{display:none!important}html,body{overflow:hidden!important;pointer-events:none!important}';document.head.appendChild(s);})();",ignored->{if(ready!=null)ready.run();});return;}
+
             String distance=resourceScript(context,R.raw.parking_map_distance)+String.format(Locale.US,";PsaParkingDistance.show(%.8f,%.8f,%s,%s);",point.latitude,point.longitude,AppPreferences.english(context)?"true":"false","false");v.evaluateJavascript(distance,null);
             if(!autoPhoneRequested&&"on_open".equals(AppPreferences.get(context,"phone_location_refresh","manual"))){autoPhoneRequested=true;requestPhoneLocation();}
           }}}

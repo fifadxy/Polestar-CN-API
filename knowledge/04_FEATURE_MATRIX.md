@@ -1,3 +1,5 @@
+v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
+
 # 04｜Android 功能矩阵（V3.0：参考 APK / 本项目分开验收）
 
 `REFERENCE_USER_VERIFIED`=用户亲测参考 APK，`APK_CONFIRMED`=静态代码存在，`DEMO_ONLY`=新工程仅演示，`DISABLED_IN_CURRENT_BUILD`=新工程当前不执行，`PLANNED`=未实现但已纳入路线；这些概念不能相互替代。

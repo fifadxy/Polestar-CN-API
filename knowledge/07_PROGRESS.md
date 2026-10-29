@@ -1,3 +1,5 @@
+v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
+
 ## 2026-10-28 / v0.9.4-beta1
 
 原生充电/气流及独立测试页（17项自动循环）、容量设置、All Good！字号、去底图库与清理极星5，详见[KB36](36_V094_NATIVE_EFFECTS_ASSETS.md)。当前不启用R8，不改API或登录。合并5720c9b最新v0.9.3主线，Debug/Preview各273项通过，Lint无错误；见Psa_v094_Validation。

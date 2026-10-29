@@ -1,3 +1,5 @@
+v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
+
 # 11｜参考 APK 车辆字段字典（33 项）与新工程数据语义
 
 **已独立验证：** `classes.dex` 内 `Lapp/c3garage/companion/PolestarApi$Vehicle;` 的 `field_ids` 表共有 **33 个不同字段**。脚本 `scripts/inspect_vehicle_schema.py`；原始提取 JSON 位于 `evidence/apk-vehicle-schema.json`。

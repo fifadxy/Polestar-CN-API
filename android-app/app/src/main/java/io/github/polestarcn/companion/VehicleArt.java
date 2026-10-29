@@ -100,7 +100,8 @@ public final class VehicleArt {
   }
   public static boolean isTop(String key){return "auto".equals(key)||key.startsWith("top_");}
   public static int dashboard(Context c){
-    if(UiSkin.PS_DEFAULT.equals(UiSkin.get(c)))return R.drawable.vehicle_top;
+    if(UiSkin.PS_DEFAULT.equals(UiSkin.get(c))&&"auto".equals(key(c)))return R.drawable.vehicle_top;
+    if(UiSkin.SIMPLE_2.equals(UiSkin.get(c))&&"auto".equals(key(c)))return R.drawable.official_p2_side_snow;
     String selection=key(c);
     if("auto".equals(selection)){
       if(UiSkin.nioLayout(c))return drawable(AppPreferences.dark(c)?"angled_black":"angled_white",AppPreferences.dark(c),false,true);
@@ -109,7 +110,7 @@ public final class VehicleArt {
     return drawable(selection,AppPreferences.dark(c),UiSkin.PS_DEFAULT.equals(UiSkin.get(c)),UiSkin.nioLayout(c));
   }
   /** Keep the latest VoLike portrait presentation; source pixels and aspect ratio stay intact. */
-  static int portraitRotation(Context c){String skin=UiSkin.get(c),key=key(c);boolean vo=UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin)||UiSkin.polestarVo(c);return vo&&(key.startsWith("top_")||"auto".equals(key))?-90:0;}
+  static int portraitRotation(Context c){String skin=UiSkin.get(c),key=key(c);boolean vo=UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin)||UiSkin.polestarVo(c);return vo&&(key.startsWith("top_")||"auto".equals(key))?(frontAtRight(dashboard(c))?-90:90):0;}
   static boolean frontAtRight(int res){return res==R.drawable.vehicle_top||res==R.drawable.psa_vehicle_angle_black||res==R.drawable.psa_vehicle_angle_blue||res==R.drawable.psa_vehicle_angle_silver||res==R.drawable.psa_vehicle_angle_white;}
   /** Existing original assets contain transparent margins; keep anchors in vehicle space. */
   static void effectBounds(int res,android.graphics.RectF rect){float w=rect.width(),h=rect.height(),l=rect.left,t=rect.top;

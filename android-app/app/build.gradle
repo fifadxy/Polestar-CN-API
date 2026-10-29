@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 95
-        versionName '0.9.4-beta1'
+        versionCode 96
+        versionName '0.9.5-beta1'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -32,8 +32,9 @@ android {
         release {
             debuggable false
             if (persistentKey) signingConfig signingConfigs.persistent
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'download-shrink.pro'
         }
         preview {
             initWith release

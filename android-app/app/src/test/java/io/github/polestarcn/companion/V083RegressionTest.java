@@ -31,7 +31,7 @@ public class V083RegressionTest {
  }
  @Test public void serviceDialogIsReadOnlyAndUsesVehicleValues()throws Exception{invoke("maintenanceDialog");View root=activity.getWindow().getDecorView();assertNotNull(root.findViewWithTag("status_scroll"));assertEquals(0,count(root,EditText.class));assertEquals("14959 km",DisplayMetric.SERVICE_KM_LEFT.value(activity,model.snapshot,true,true));}
  @Test public void restoredPsDefaultIsAnIndependentSkinAndExportsDayNight()throws Exception{
-  assertEquals(6,UiSkin.CHOICES.length);UiSkin.set(activity,UiSkin.PS_DEFAULT);assertEquals("PS Default",UiSkin.label(activity,UiSkin.PS_DEFAULT));AppPreferences.set(activity,"language","zh");assertEquals("PS默认皮肤",UiSkin.label(activity,UiSkin.PS_DEFAULT));
+  assertEquals(7,UiSkin.CHOICES.length);UiSkin.set(activity,UiSkin.PS_DEFAULT);assertEquals("PS Default",UiSkin.label(activity,UiSkin.PS_DEFAULT));AppPreferences.set(activity,"language","zh");assertEquals("PS默认皮肤",UiSkin.label(activity,UiSkin.PS_DEFAULT));
   for(String theme:new String[]{"light","dark"}){AppPreferences.set(activity,"theme",theme);View root=render();assertNull(root.findViewWithTag("volike_header"));assertNotNull(root.findViewWithTag("battery_summary"));assertNotNull(root.findViewWithTag("vehicle_location"));
    File file=new File("build/reports/previews/v083/ps-default-"+theme+".png");file.getParentFile().mkdirs();Bitmap image=Bitmap.createBitmap(720,1560,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(image);canvas.scale(2,2);root.draw(canvas);try(FileOutputStream out=new FileOutputStream(file)){image.compress(Bitmap.CompressFormat.PNG,100,out);}image.recycle();
   }

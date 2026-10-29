@@ -15,7 +15,7 @@ public final class SkinPreviewView extends View {
     super(context);
     this.skin = skin;
     this.car = BitmapFactory.decodeResource(getResources(),
-        VehicleArt.drawable(VehicleArt.key(context),AppPreferences.dark(context),
+        VehicleArt.drawable(UiSkin.SIMPLE_2.equals(skin)&&"auto".equals(VehicleArt.key(context))?"side_official_snow":VehicleArt.key(context),AppPreferences.dark(context),
           UiSkin.PS_DEFAULT.equals(skin),
           UiSkin.NIO_LIKE.equals(skin)||UiSkin.NIO_LIKE_2.equals(skin)));
     setTag("skin_preview");
@@ -47,7 +47,9 @@ public final class SkinPreviewView extends View {
 
     paint.setColor(base); canvas.drawRoundRect(0,0,300,164,17,17,paint);
 
-    if(psDefault){
+    if(UiSkin.SIMPLE_2.equals(skin)){
+      drawText(canvas,"POLESTAR 2",12,12,18,text,true);paint.setColor(card);canvas.drawRoundRect(10,25,290,106,12,12,paint);drawText(canvas,"78%",23,20,50,text,true);drawText(canvas,"312 km",17,204,50,text,false);paint.setColor(PsaDesign.ORANGE);canvas.drawRoundRect(20,56,244,59,2,2,paint);if(car!=null){paint.setAlpha(255);float h=34,w=h*car.getWidth()/car.getHeight();canvas.drawBitmap(car,null,new RectF(150-w/2,64,150+w/2,98),paint);}for(int i=0;i<6;i++){float x=10+(i%2)*143,y=111+(i/2)*16;paint.setColor(card);canvas.drawRoundRect(x,y,x+137,y+13,5,5,paint);paint.setColor(muted);canvas.drawCircle(x+12,y+6,3,paint);}
+    }else if(psDefault){
       drawText(canvas,"Polestar 2",14,12,20,text,true);drawText(canvas,"78%",22,12,47,text,true);drawText(canvas,"312 km",17,192,47,text,false);
       paint.setColor(accent);canvas.drawRect(12,53,220,56,paint);
       if(car!=null){float h=65,w=h*car.getWidth()/(float)car.getHeight();canvas.drawBitmap(car,null,new RectF(150-w/2,61,150+w/2,126),paint);}

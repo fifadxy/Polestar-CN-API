@@ -1635,7 +1635,9 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void directControl(String control) {
-    if (!model.canControl(control) || authPending) return;
+    if(authPending)return;
+    if(model.isCommandPending(control)){confirmRepeat(control);return;}
+    if(!model.canControl(control))return;
     String action = ControlAction.next(control, model.snapshot);
     if (action == null) {
       toast(tr("状态未知或未确认，请刷新车况后再试", "State unknown or unconfirmed. Refresh before controlling"));
@@ -1659,7 +1661,9 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void signalMenu() {
-    if (!model.canControl("signal") || authPending) return;
+    if(authPending)return;
+    if(model.isCommandPending("signal")){confirmRepeat("signal");return;}
+    if(!model.canControl("signal"))return;
     new HapticDialogBuilder(this)
         .setTitle(tr("寻车", "Find car"))
         .setItems(
@@ -1678,71 +1682,103 @@ public final class MainActivity extends FragmentActivity {
         .show();
   }
 
-  private void authenticate(String label, String action) {
+  /** A second tap never silently duplicates a vehicle write. */
+  private void confirmRepeat(String control){
+    String action=model.pendingAction(control);if(action==null)return;
+    if(model.repeatQueued(control)){toast(tr("重复指令已排队，请等待核实","Repeat is already queued"));return;}
+    new HapticDialogBuilder(this).setTitle(tr("指令已经发送","Command already sent"))
+      .setMessage(tr("正在发送或核实 "+action+"。是否再次发送？确认后，在当前指令结束时再发送一次。",
+        "Sending or verifying "+action+". Repeat it? One new write will be queued until the current operation completes."))
+      .setPositiveButton(tr("再次发送","Repeat once"),(d,w)->authenticate(tr("重复指令","Repeat command")+" · "+action,action,true))
+      .setNegativeButton(tr("继续等待","Keep waiting"),null).show();
+  }
+  private void dispatchApproved(String action,CampSession campTarget,String vin,boolean repeat){
+    if(campTarget!=null){if(CampModeManager.current(this,campTarget.id))model.stopCamp();return;}
+    if(model.selected==null||!vin.equals(model.selected.vin))return;
+    if(repeat){if(!model.queueRepeat(action))toast(tr("重复指令已排队或当前指令已结束","Repeat queued or no longer pending"));return;}
+    if("camp-start".equals(action))model.startCamp(campHours,campKeepAir);
+    else if(model.canCommand(action))model.command(action);
+  }
+  private void authenticate(String label,String action){authenticate(label,action,false);}
+  private void authenticate(String label,String action,boolean repeat){
     if(!FirstUseConsent.accepted(this)){FirstUseConsent.show(this,()->{});return;}
-    if(action.equals("climate-start")&&ClimateTarget.enabled(this))label+=tr(" · 请求 "," · request ")+(int)ClimateTarget.request(this)+"°C";
-    final CampSession campTarget = "camp-stop".equals(action) ? CampModeManager.session(this) : null;
-    if (authPending || ("camp-start".equals(action) && (model.busy || model.commandPending))
-        || (!"camp-start".equals(action) && campTarget == null && !model.canCommand(action))
-        || (model.selected == null && campTarget == null)) return;
-    int available =
-        BiometricManager.from(this)
-            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
-    if (available != BiometricManager.BIOMETRIC_SUCCESS) {
-      info(
-          tr("指纹不可用", "Biometrics unavailable"),
-          tr(
-              "请先在手机设置中录入指纹或启用强生物识别。当前操作未发送。",
-              "Enroll a fingerprint or strong biometric in your phone settings. No command was"
-                  + " sent."));
+    if(action.equals("climate-start")&&ClimateTarget.enabled(this))
+      label+=tr(" · 请求 "," · request ")+(int)ClimateTarget.request(this)+"°C";
+    final CampSession campTarget="camp-stop".equals(action)?CampModeManager.session(this):null;
+    if(authPending||("camp-start".equals(action)&&(model.busy||model.commandPending))
+        ||(!repeat&&!"camp-start".equals(action)&&campTarget==null&&!model.canCommand(action))
+        ||(repeat&&!model.isCommandPending(action))
+        ||(model.selected==null&&campTarget==null))return;
+    final String vin=campTarget==null?model.selected.vin:campTarget.vin;
+    String policy=ControlApproval.mode(this,action);
+    if(ControlApproval.DIRECT.equals(policy)||(repeat&&ControlApproval.CONFIRM.equals(policy))){
+      dispatchApproved(action,campTarget,vin,repeat);return;
+    }
+    if(ControlApproval.CONFIRM.equals(policy)){
+      new HapticDialogBuilder(this).setTitle(tr("确认车辆操作","Confirm command"))
+        .setMessage(label+tr(" · 是否立即发送？"," · Send now?"))
+        .setPositiveButton(tr("确认发送","Send"),(d,w)->dispatchApproved(action,campTarget,vin,false))
+        .setNegativeButton(tr("取消","Cancel"),null).show();return;
+    }
+    int available=BiometricManager.from(this).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+    if(available!=BiometricManager.BIOMETRIC_SUCCESS){
+      info(tr("指纹不可用","Biometrics unavailable"),
+        tr("请先录入强生物识别，或在设置内修改该操作的验证方式。当前未发送。",
+           "Enroll strong biometrics or change this action's security policy in Settings. No command sent."));
       return;
     }
-    final String vin = campTarget == null ? model.selected.vin : campTarget.vin;
-    authPending = true;
-    final int generation = ++authGeneration;
-    biometric =
-        new BiometricPrompt(
-            this,
-            command -> runOnUiThread(command),
-            new BiometricPrompt.AuthenticationCallback() {
-              @Override
-              public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                runOnUiThread(
-                    () -> {
-                      if (generation != authGeneration) return;
-                      authGeneration++;
-                      authPending = false;
-                      if (campTarget == null && !"camp-start".equals(action) && !model.canCommand(action)) return;
-                      if (campTarget != null) {
-                        if (CampModeManager.current(MainActivity.this, campTarget.id)) model.stopCamp();
-                      } else if (model.selected != null && vin.equals(model.selected.vin)) {
-                        if ("camp-start".equals(action)) model.startCamp(campHours, campKeepAir);
-                        else model.command(action);
-                      }
-                    });
-              }
-
-              @Override
-              public void onAuthenticationError(int code, CharSequence error) {
-                runOnUiThread(
-                    () -> {
-                      if (generation != authGeneration) return;
-                      authGeneration++;
-                      authPending = false;
-                      if (code != 5 && code != 10 && code != 13) toast(error.toString());
-                    });
-              }
-            });
-    biometric.authenticate(
-        new BiometricPrompt.PromptInfo.Builder()
-            .setTitle(tr("指纹验证", "Biometric verification"))
-            .setSubtitle(label)
-            .setDescription(tr("验证通过后发送车辆控制指令", "Verify to send this vehicle command"))
-            .setNegativeButtonText(tr("取消", "Cancel"))
-            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            .build());
+    authPending=true;final int generation=++authGeneration;
+    biometric=new BiometricPrompt(this,command->runOnUiThread(command),new BiometricPrompt.AuthenticationCallback(){
+      @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){
+        runOnUiThread(()->{
+          if(generation!=authGeneration)return;authGeneration++;authPending=false;
+          if(repeat?!model.isCommandPending(action):campTarget==null&&!"camp-start".equals(action)&&!model.canCommand(action))return;
+          dispatchApproved(action,campTarget,vin,repeat);
+        });
+      }
+      @Override public void onAuthenticationError(int code,CharSequence error){
+        runOnUiThread(()->{if(generation!=authGeneration)return;authGeneration++;authPending=false;
+          if(code!=5&&code!=10&&code!=13)toast(error.toString());});
+      }
+    });
+    biometric.authenticate(new BiometricPrompt.PromptInfo.Builder()
+      .setTitle(tr("指纹验证","Biometric verification"))
+      .setSubtitle(label)
+      .setDescription(tr("验证通过后发送车辆控制指令","Command is sent only after verification"))
+      .setNegativeButtonText(tr("取消","Cancel"))
+      .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG).build());
   }
-
+  private void approvalSettings(){
+    LinearLayout panel=detailPanel();
+    note(panel,tr("说明","Help"),
+      tr("默认各类操作均采用指纹验证。选择直接发送时仍要求已登录；解锁、开窗请谨慎选择。重复指令总会先询问。",
+         "Biometric is the default. Direct still requires a valid session. Be careful with unlocking and windows. Manual repeat always asks first."));
+    String[] names={tr("门锁 / 解锁","Lock / unlock"),tr("驻车空调","Climate"),
+      tr("空气净化","Air purification"),tr("尾箱","Tailgate"),tr("车窗","Windows"),
+      tr("鸣笛 / 闪灯","Honk / flash"),tr("露营托管","Camping")};
+    String[] modes={ControlApproval.BIOMETRIC,ControlApproval.CONFIRM,ControlApproval.DIRECT};
+    String[] labels={tr("生物指纹识别","Biometric"),tr("二次确认窗口","Confirmation"),tr("直接发送","Direct")};
+    for(int i=0;i<ControlApproval.GROUPS.length;i++){
+      final String group=ControlApproval.GROUPS[i];
+      panel.addView(text(names[i],13,ink,true));
+      Spinner spin=new Spinner(this);spin.setTag("auth_mode_"+group);
+      ArrayAdapter<String> adapter=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,labels){
+        @Override public View getView(int pos,View view,ViewGroup parent){
+          View v=super.getView(pos,view,parent);if(v instanceof TextView)((TextView)v).setTextColor(ink);return v;
+        }
+      };
+      spin.setAdapter(adapter);
+      spin.setSelection(Math.max(0,java.util.Arrays.asList(modes).indexOf(ControlApproval.mode(this,group))));
+      spin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+        public void onNothingSelected(AdapterView<?> p){}
+        public void onItemSelected(AdapterView<?> p,View v,int pos,long id){
+          AppPreferences.set(MainActivity.this,ControlApproval.key(group),modes[pos]);
+        }
+      });panel.addView(spin);
+    }
+    new HapticDialogBuilder(this).setTitle(tr("车辆控制验证方式","Vehicle command security"))
+      .setView(panel).setPositiveButton(tr("完成","Done"),null).show();
+  }
   private void detailSection(LinearLayout parent, String title) {
     gap(parent,16); TextView label=text(title,13,ink,false);label.setTag("detail_section");label.setPadding(dp(2),0,0,dp(7));parent.addView(label);
     View rule=new View(this);rule.setBackgroundColor(line);parent.addView(rule,new LinearLayout.LayoutParams(-1,dp(1)));gap(parent,6);

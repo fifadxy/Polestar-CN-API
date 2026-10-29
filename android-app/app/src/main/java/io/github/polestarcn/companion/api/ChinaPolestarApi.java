@@ -49,7 +49,10 @@ public final class ChinaPolestarApi {
   private static final String DISCOVERY = "https://cnepmob.volvocars.com.cn/";
   private static final String ACCEPT_C3 = "application/volvo.cloud.cnepmob.v1+json";
   private static final long DEFAULT_TOKEN_LIFETIME_SECONDS = 14_400L;
-  private static final Object REFRESH_LOCK = new Object();
+  private static final Object REFRESH_LOCK=new Object();
+  // Narrow lock never held during network traffic, so logout cannot hang on an offline server.
+  private static final Object SESSION_STATE_LOCK=new Object();
+  private static long sessionEpoch;
 
   private final Context context;
   private final ClientSignatureProvider signatureProvider;
@@ -117,6 +120,8 @@ public final class ChinaPolestarApi {
   }
 
   public Session login(String phone, String password) throws Exception {
+    final long loginEpoch;
+    synchronized(SESSION_STATE_LOCK){loginEpoch=sessionEpoch;}
     if (phone == null || phone.trim().isEmpty()) throw new IllegalArgumentException("请输入手机号");
     if (password == null || password.isEmpty()) throw new IllegalArgumentException("请输入密码");
 
@@ -182,19 +187,23 @@ public final class ChinaPolestarApi {
     if (s.access.isEmpty()) throw new Exception("登录成功响应中没有 C3 global token");
     s.expiresAt = System.currentTimeMillis() + Math.max(60L, expires) * 1000L;
     s.revision = System.currentTimeMillis();
-    healthCache.clear();targetSocUnavailableUntil.clear();
-    SecureSessionStore.save(context, s);
+    synchronized(SESSION_STATE_LOCK){
+      if(sessionEpoch!=loginEpoch)throw new IllegalStateException("Login cancelled by sign-out");
+      healthCache.clear();targetSocUnavailableUntil.clear();
+      SecureSessionStore.save(context,s);
+    }
     DiagnosticLog.add("China login accepted; session stored securely");
     return s;
   }
 
   public void logout() {
-    // A concurrent token refresh must never recreate a session after explicit logout.
-    synchronized(REFRESH_LOCK){
-      healthCache.clear();targetSocUnavailableUntil.clear();
-      close();SecureSessionStore.clear(context);
-      DiagnosticLog.add("China session cleared");
+    // No wait for an in-flight HTTP refresh. Invalidate its right to save before clearing.
+    synchronized(SESSION_STATE_LOCK){
+      sessionEpoch++;
+      SecureSessionStore.clear(context);
     }
+    healthCache.clear();targetSocUnavailableUntil.clear();close();
+    DiagnosticLog.add("China session cleared");
   }
 
   public Session session() {
@@ -205,6 +214,8 @@ public final class ChinaPolestarApi {
     if (original == null) throw new Exception("尚未登录");
     if (System.currentTimeMillis() + 120_000L < original.expiresAt) return original;
     synchronized (REFRESH_LOCK) {
+      final long refreshEpoch;
+      synchronized(SESSION_STATE_LOCK){refreshEpoch=sessionEpoch;}
       Session current = SecureSessionStore.load(context);
       if (current == null) throw new Exception("尚未登录");
       if (System.currentTimeMillis() + 120_000L < current.expiresAt) return current;
@@ -267,8 +278,11 @@ public final class ChinaPolestarApi {
       current.access = access;
       current.refresh = refresh;
       current.expiresAt = System.currentTimeMillis() + Math.max(60L, expires) * 1000L;
-      current.revision = System.currentTimeMillis();
-      SecureSessionStore.save(context, current);
+      current.revision=System.currentTimeMillis();
+      synchronized(SESSION_STATE_LOCK){
+        if(sessionEpoch!=refreshEpoch)throw new IllegalStateException("Session ended during refresh");
+        SecureSessionStore.save(context,current);
+      }
       DiagnosticLog.add("China access token refreshed");
       return current;
     }

@@ -1,3 +1,5 @@
+当前增量：[v0.9.6-beta2 · 自动测试与车窗羽化](docs/Psa_v096_beta2_Update.md)，版本107。
+
 当前增量：[v0.9.6-beta1 · 设置与交互升级](docs/Psa_v096_beta1_Update.md)，版本106。
 
 当前增量：[v0.9.5-beta10 · 独立吸入场、柔化尾迹与窗口周期](docs/Psa_v095_beta10_Update.md)，版本105。

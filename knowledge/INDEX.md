@@ -87,3 +87,5 @@
 - [beta10 独立吸入场与柔化动效](46_V095_BETA10_PARTICLE_FIELDS.md)
 
 - [v0.9.6 设置、图标与门锁交互](47_V096_SETTINGS_INTERACTION.md)
+
+- [v0.9.6-beta2 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)

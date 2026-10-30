@@ -65,13 +65,13 @@ final class ParkingWebPreview {
         @Override public void onReceivedHttpError(WebView v,WebResourceRequest request,WebResourceResponse error){if(request.isForMainFrame())fail();}
       });
       view.addView(web,new FrameLayout.LayoutParams(-1,-1));
-      web.loadUrl(ParkingMapLinks.webUri(point,AppPreferences.tr(context,"最后停车位置","Last parked location")).buildUpon().appendQueryParameter("zoom",String.valueOf(EffectSettings.number(context,"map_backdrop_zoom",16,10,19))).build().toString());
+      web.loadUrl(ParkingMapLinks.webUri(point,AppPreferences.tr(context,"最后停车位置","Last parked location")).buildUpon().appendQueryParameter("zoom",String.valueOf(EffectSettings.number(context,"map_backdrop_zoom",16,3,20))).build().toString());
       handler.postDelayed(timeout,20_000L);
     }catch(RuntimeException unavailable){fail();}
     FrameLayout.LayoutParams message=new FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP);view.addView(status,message);
     if(!failed)status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));
   }
-  void styleBackdrop(float x,float y){if(closed||web==null||!backgroundMode)return;Context c=view.getContext();String script=resourceScript(c,R.raw.parking_backdrop)+String.format(Locale.US,";PsaBackdrop.style(%s,%.4f,%.4f,%d,%d,%d);",AppPreferences.dark(c)?"true":"false",x,y,EffectSettings.number(c,"map_backdrop_blur",12,0,24),EffectSettings.number(c,"map_backdrop_spread",60,20,100),EffectSettings.number(c,"map_backdrop_zoom",16,10,19));web.evaluateJavascript(script,null);}
+  void styleBackdrop(float x,float y){if(closed||web==null||!backgroundMode)return;Context c=view.getContext();String script=resourceScript(c,R.raw.parking_backdrop)+String.format(Locale.US,";PsaBackdrop.style(%s,%.4f,%.4f,%d,%d,%d);",AppPreferences.dark(c)?"true":"false",x,y,EffectSettings.number(c,"map_backdrop_blur",12,0,80),EffectSettings.number(c,"map_backdrop_spread",60,0,300),EffectSettings.number(c,"map_backdrop_zoom",16,3,20));web.evaluateJavascript(script,null);}
   private void checkMapReady(){if(closed||web==null||!backgroundMode||paused)return;web.evaluateJavascript("(function(){var m=document.querySelector('.amap-container');if(!m)return false;var c=m.querySelector('canvas');return !!((c&&c.width>0&&c.height>0)||m.querySelector('img.amap-tile'));})()",value->{if(closed||web==null)return;if("true".equals(value)){mapReady=true;handler.removeCallbacks(timeout);status.setVisibility(View.GONE);AppPreferences.set(view.getContext(),"map_background_status","ready");if(ready!=null)ready.run();}else if(++mapChecks<40)handler.postDelayed(this::checkMapReady,500);else fail();});}
   void pause(){paused=true;if(web!=null)web.onPause();}
   void resume(){paused=false;if(web!=null){web.onResume();if(backgroundMode&&!mapReady)checkMapReady();}}

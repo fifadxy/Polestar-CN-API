@@ -1,3 +1,7 @@
+## Psa v0.9.6-beta2 · Motion preview and glass edges
+
+Charging-card previews belong below the vehicle viewport, never layered across the car. Auto tests use an explicit project selection and send no vehicle requests. Window coverage defaults to 52%; inward feather defaults to 20% (0–100%) and stays inside the glass mask. Cache the mask rather than blur every frame. Climate and charging default to absorption while preserving explicit saved preferences.
+
 ## Psa v0.9.6 · Confirmed classic icon and status typography
 
 The user-confirmed black/white double-headlight vehicle glyph is an additional choice, not a replacement for other released styles. Master: [Psa_Confirmed_Classic_Icon.svg](assets/Psa_Confirmed_Classic_Icon.svg). Launcher foreground has 22% inset; status glyph uses white alpha on transparent background for system tint. App and notification styles are independent. Earlier A/B/C preview candidates are not approved assets and are not shipped. Condition text customization changes presentation only; warning/unknown decisions remain data-driven.

@@ -1,3 +1,5 @@
+当前增量：[v0.9.6-beta2 · 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)，版本107。
+
 当前增量：[v0.9.6-beta1 · 设置与交互升级](47_V096_SETTINGS_INTERACTION.md)，版本106。
 
 当前增量：[v0.9.5-beta10 · 独立吸入场、柔化尾迹与窗口周期](46_V095_BETA10_PARTICLE_FIELDS.md)，版本105。

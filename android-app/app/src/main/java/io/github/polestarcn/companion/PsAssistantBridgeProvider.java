@@ -54,7 +54,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
 
   @Override public Bundle call(String method, String arg, Bundle extras) {
     enforceCaller();
-    Context context = requireContext();
+    Context context = contextOrThrow();
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
 
@@ -139,14 +139,14 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     }
   }
 
-  private Context requireContext() {
+  private Context contextOrThrow() {
     Context context = getContext();
     if (context == null) throw new IllegalStateException("Bridge provider has no context");
     return context;
   }
 
   private void enforceCaller() {
-    Context context = requireContext();
+    Context context = contextOrThrow();
     int uid = Binder.getCallingUid();
     if (uid == Process.myUid()) return;
 

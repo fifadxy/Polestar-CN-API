@@ -91,3 +91,5 @@
 - [v0.9.6-beta2 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)
 
 - [v0.9.6-beta3 沉浸地图与粒子分层](49_V096_BETA3_IMMERSIVE_MAP_DEPTH.md)
+
+- [v0.9.6-beta4 地图裁切与日夜模式](50_V096_BETA4_MAP_STAGE_THEME.md)

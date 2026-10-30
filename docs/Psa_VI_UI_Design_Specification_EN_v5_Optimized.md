@@ -723,3 +723,7 @@ Display only concise command progress and result. Stop remaining read requests a
 Background-only map treatment is borderless and proportionally covered. Hide share-page controls, retain provider attribution, and move the entire map with its parking marker when adjusting focal position. The default marker is VI orange (#FF6B00); its size, color and screen focus are user-adjustable without changing geographic coordinates. Interactive secondary maps retain their own controls.
 
 Within the selected behind-car particle percentage, assign larger particles behind the car first. Keep the smaller particles above the vehicle to reduce body occlusion. Preserve user-selected depth percentages, particle counts and motion settings; cache depth ranking instead of allocating or sorting every frame.
+
+### v0.9.6-beta4 Map-only background stage
+
+Place the live map inside its own fixed paint-clipped stage. Share-page information cards and controls, including asynchronous additions, must stay outside the background. Keep small provider attribution. Background WebViews use device-width layout without overview scaling. Map day/night preference is independent of the app theme; System follows the OS night configuration. Day/night changes reuse the same map without resetting zoom or querying position.

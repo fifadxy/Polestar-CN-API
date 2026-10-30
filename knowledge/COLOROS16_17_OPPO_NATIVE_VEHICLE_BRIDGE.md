@@ -344,3 +344,15 @@ Public CI builds omit the private account client configuration unless supplied
 through the existing private build input. Persistent update signing still needs
 the existing signing identity; never describe an unsigned/developer build as a
 verified in-place update or a verified vehicle connection.
+
+### Private standalone assembly after CI
+
+`scripts/package_private_client.py` can combine an unchanged CI APK with the
+approved `client-signing.bin` from an earlier standalone PsAssistant. It validates
+the existing asset format/checksum/fingerprint, preserves every other APK entry,
+realigns uncompressed ZIP entries, and signs/verifies with Android's apksigner.
+The client asset and signing key never go to the public repository. Supply the
+signing identity explicitly through existing signing environment variables. A
+new test key does not allow an in-place update over an APK signed by another key;
+use the original key for a seamless update. No account session or token is
+extracted by this packaging workflow.

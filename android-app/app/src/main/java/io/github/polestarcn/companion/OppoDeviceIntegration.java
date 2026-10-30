@@ -28,6 +28,7 @@ public final class OppoDeviceIntegration {
           new ComponentName(context.getPackageName(), PROVIDER_CLASS),
           enabled ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
           PackageManager.DONT_KILL_APP);
+      if (enabled) context.getSharedPreferences("vehicle-card", Context.MODE_PRIVATE).edit().remove("hidden").apply();
       notifyHosts(context);
     } catch (RuntimeException failure) {
       preferences.edit().putBoolean(KEY, previous).commit();

@@ -21,6 +21,7 @@ public final class VehicleCondition {
     }
     return "全部关闭".equals(v.doors)||"全部关闭".equals(v.windows)||"已关闭".equals(v.tailgate)||problem(v,tyres);
   }
+  public static String summary(android.content.Context c,VehicleSnapshot v,boolean tyres){return problem(v,tyres)?ConditionStyle.message(c,true):reported(v,tyres)?ConditionStyle.message(c,false):AppPreferences.tr(c,"未上报","Unavailable");}
   public static String summary(VehicleSnapshot v,boolean english,boolean tyres) {
     return problem(v,tyres)?(english?"Check vehicle":"请检查车辆")
         :reported(v,tyres)?"All Good！":(english?"Unavailable":"未上报");

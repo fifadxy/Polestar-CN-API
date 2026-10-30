@@ -122,7 +122,7 @@ public final class VehicleSimulationActivity extends Activity {
     super.onCreate(b);
     ScrollView scroll=new ScrollView(this);LinearLayout page=new LinearLayout(this);
     page.setOrientation(LinearLayout.VERTICAL);page.setPadding(dp(14),dp(14),dp(14),dp(30));
-    page.setBackgroundColor(PsaDesign.canvas(AppPreferences.dark(this)));scroll.addView(page);setContentView(scroll);
+    page.setBackgroundColor(PsaDesign.canvas(AppPreferences.dark(this)));scroll.addView(page);setContentView(scroll);AppWindow.apply(this,null);
     Button back=new Button(this);back.setText(tr("退出离线测试模式","Exit offline test mode"));back.setOnClickListener(v->finish());page.addView(back);
     TextView title=new TextView(this);title.setText(tr("全功能测试模式 · 不连接车辆","Full scenario simulator · offline"));title.setTextSize(20);
     title.setTextColor(PsaDesign.ink(AppPreferences.dark(this)));page.addView(title);

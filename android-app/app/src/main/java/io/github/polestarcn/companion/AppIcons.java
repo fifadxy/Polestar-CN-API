@@ -8,18 +8,20 @@ import java.util.*;
 
 /** Launcher aliases are cosmetic only. MainActivity is never disabled or killed. */
 public final class AppIcons {
-  public static final String[] STYLES={"outline","red","skid"};
+  public static final String[] STYLES={"outline","red","skid","classic"};
   public static final String[] MODES={"auto","day","night"};
   private AppIcons(){}
   private static String valid(String value,String[] values){return Arrays.asList(values).contains(value)?value:values[0];}
   public static String style(Context c){return valid(AppPreferences.get(c,"app_icon_style","outline"),STYLES);}
   public static String mode(Context c){return valid(AppPreferences.get(c,"app_icon_mode","auto"),MODES);}
-  public static String label(Context c,String style){return style.equals("red")?AppPreferences.tr(c,"红色车辆","Red car"):style.equals("skid")?AppPreferences.tr(c,"防滑图形","Skid symbol"):AppPreferences.tr(c,"车辆轮廓","Car outline");}
+  public static String label(Context c,String style){return style.equals("classic")?AppPreferences.tr(c,"确认稿 · 黑白车辆","Confirmed · classic black/white car"):style.equals("red")?AppPreferences.tr(c,"红色车辆","Red car"):style.equals("skid")?AppPreferences.tr(c,"防滑图形","Skid symbol"):AppPreferences.tr(c,"车辆轮廓","Car outline");}
   static ComponentName component(Context c,String style,String mode){return new ComponentName(c.getPackageName(),"io.github.polestarcn.companion.Launcher"+cap(style)+cap(mode));}
   private static String cap(String s){return Character.toUpperCase(s.charAt(0))+s.substring(1);}
   public static int small(Context c){return small(style(c));}
-  public static int small(String style){return style.equals("red")?R.drawable.ic_status_red:style.equals("skid")?R.drawable.ic_status_skid:R.drawable.ic_status_outline;}
+  public static int notificationSmall(Context c){String style=AppPreferences.get(c,"notification_icon_style","follow");return small(style.equals("follow")?style(c):valid(style,STYLES));}
+  public static int small(String style){return style.equals("classic")?R.drawable.ic_status_classic: style.equals("red")?R.drawable.ic_status_red:style.equals("skid")?R.drawable.ic_status_skid:R.drawable.ic_status_outline;}
   public static int launcher(String style,String mode){
+    if(style.equals("classic"))return mode.equals("day")?R.mipmap.ic_launcher_classic_day:mode.equals("night")?R.mipmap.ic_launcher_classic_night:R.mipmap.ic_launcher_classic_auto;
     if(style.equals("red"))return mode.equals("day")?R.mipmap.ic_launcher_red_day:mode.equals("night")?R.mipmap.ic_launcher_red_night:R.mipmap.ic_launcher_red_auto;
     if(style.equals("skid"))return mode.equals("day")?R.mipmap.ic_launcher_skid_day:mode.equals("night")?R.mipmap.ic_launcher_skid_night:R.mipmap.ic_launcher_skid_auto;
     return mode.equals("day")?R.mipmap.ic_launcher_outline_day:mode.equals("night")?R.mipmap.ic_launcher_outline_night:R.mipmap.ic_launcher_outline_auto;

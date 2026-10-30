@@ -34,7 +34,7 @@ public final class VehicleCoordinator {
   private boolean exclusive;
   private static final class PendingCommand {
     final String action; final ChinaPolestarApi.VehicleInfo vehicle; final String group;
-    final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;CommandReadback readback;
+    final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;volatile boolean cancelled;int percent;long percentAt;CommandReadback readback;
     OperationState state=OperationState.SENDING;
     PendingCommand(String a, ChinaPolestarApi.VehicleInfo v, long issued, Float target) {
       this.action=a;this.vehicle=v;this.group=CommandSlots.group(a);this.issued=issued;this.target=target;
@@ -72,17 +72,14 @@ public final class VehicleCoordinator {
     commandPending=!pendingCommands.isEmpty();
     if(commandPending){PendingCommand recent=null;for(PendingCommand p:pendingCommands.values())recent=p;
       activeAction=recent.action;readbackChecks=recent.checks;
-      readbackPercent=recent.started==0?0:Math.min(98,(int)((android.os.SystemClock.elapsedRealtime()-recent.started)*98/26_000L));
+      readbackPercent=recent.percent;
       operation=recent.state;
     } else {activeAction="";readbackChecks=0;readbackPercent=100;main.removeCallbacks(progressTick);}
   }
   public LocationSnapshot parkedLocation;public String parkingName="";private boolean geocoding;private final ExecutorService placeIO=Executors.newSingleThreadExecutor();
   public void resolveParkingName(LocationSnapshot point,Runnable done){if(geocoding||point==null||selected==null){if(done!=null)done.run();return;}geocoding=true;String vin=selected.vin;int generation=locationGeneration;placeIO.execute(()->{String name=ParkingPlaceNames.resolve(context,point);main.post(()->{geocoding=false;if(generation==locationGeneration&&selected!=null&&vin.equals(selected.vin)&&parkedLocation!=null&&Math.abs(parkedLocation.latitude-point.latitude)<.0001&&Math.abs(parkedLocation.longitude-point.longitude)<.0001){parkingName=name;changed();if(done!=null)done.run();}});});}
 
-  private final Runnable progressTick=new Runnable(){public void run(){if(pendingCommands.isEmpty())return;
-    syncCommandStatus(); progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;
-    main.postDelayed(this,1000);
-  }};
+  private final Runnable progressTick=new Runnable(){public void run(){if(pendingCommands.isEmpty())return;long now=android.os.SystemClock.elapsedRealtime();boolean updated=false;for(PendingCommand p:pendingCommands.values()){long step=(p.group.equals("lock")?15000L:26000L)/98;if(p.started>0&&p.percent<98&&now-p.percentAt>=step){p.percent++;p.percentAt=now;updated=true;}}if(updated){syncCommandStatus();progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;}main.postDelayed(this,100);}};
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
@@ -294,7 +291,7 @@ public final class VehicleCoordinator {
         });
       } catch(Exception e){main.post(()->{
         if(pendingCommands.get(ticket.group)!=ticket)return;
-        if(e instanceof IllegalArgumentException){pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
+        if(e instanceof IllegalArgumentException){ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
           message=tr("指令参数不受支持：","Invalid command: ")+safe(e);changed();return;}
         ticket.state=OperationState.UNCONFIRMED;
         message=tr("确认中","Verifying");
@@ -306,11 +303,11 @@ public final class VehicleCoordinator {
   private void confirmCommand(PendingCommand ticket){
     // There is no telemetry field for horn/flash completion. Reading the vehicle cannot prove it.
     if(momentary(ticket.action)){
-      pendingCommands.remove(ticket.group);syncCommandStatus();
+      ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();
       if(!commandPending)operation=ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED;
       message=ticket.accepted?tr("寻车已发送 · 效果未确认","Find car sent · unverified"):tr("执行结果未确认","Result unconfirmed");changed();dispatchQueuedRepeat(ticket);return;
     }
-    ticket.started=android.os.SystemClock.elapsedRealtime();syncCommandStatus();changed();
+    ticket.started=android.os.SystemClock.elapsedRealtime();ticket.percentAt=ticket.started;syncCommandStatus();changed();
     ticket.readback=new CommandReadback(()->api.readVehicle(ticket.vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
       public void progress(VehicleSnapshot updated,int count){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
@@ -320,7 +317,7 @@ public final class VehicleCoordinator {
       }
       public void finished(VehicleSnapshot updated,boolean reached){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
-        pendingCommands.remove(ticket.group);syncCommandStatus();
+        ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();
         boolean verified=reached&&(ticket.target==null||ClimateTarget.confirmed(updated,ticket.target,ticket.issued));
         OperationState result=momentary(ticket.action)
             ?(ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED)
@@ -330,10 +327,11 @@ public final class VehicleCoordinator {
         if(reached&&"climate-stop".equals(ticket.action))ClimateRuntime.stopped(context);
         message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
             :verified?tr("执行成功","Successful")
-            :tr("执行结果未确认","Result unconfirmed");
+            :tr("指令已发送，请确认执行情况","Command sent. Please confirm execution.");
         changed();dispatchQueuedRepeat(ticket);
       }
     }).require(state->EffectStateController.fresh(state,System.currentTimeMillis())&&(ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)));
+    if("lock".equals(ticket.action)||"unlock".equals(ticket.action))ticket.readback.retryLockOnce(()->{if("unlock".equals(ticket.action))api.unlock(ticket.vehicle.vin);else api.lock(ticket.vehicle.vin);},commandIO,()->!ticket.cancelled&&signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&FirstUseConsent.accepted(context));
     ticket.readback.start(ticket.action);
   }
 
@@ -350,7 +348,7 @@ public final class VehicleCoordinator {
     if(CampModeManager.active(context)||"STOPPING".equals(CampModeManager.phase(context)))CampModeManager.requestStop(context);
     sessionGeneration++;
     signedIn=false;exclusive=false;busy=false;quietRefresh=false;userRefreshing=false;
-    for(PendingCommand pending:pendingCommands.values())if(pending.readback!=null)pending.readback.cancel();pendingCommands.clear();syncCommandStatus();completions.clear();
+    for(PendingCommand pending:pendingCommands.values()){pending.cancelled=true;if(pending.readback!=null)pending.readback.cancel();}pendingCommands.clear();syncCommandStatus();completions.clear();
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
     // Preserve an encrypted pending remote-stop record across local sign-out.

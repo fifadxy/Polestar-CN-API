@@ -16,5 +16,6 @@ public final class UiTypography {
     config.fontScale*=percent(base,key(base))/100f;
     return base.createConfigurationContext(config);
   }
+  public static void applyTree(android.view.View v){if(v==null)return;if(v instanceof android.widget.TextView&&AppPreferences.visible(v.getContext(),"ui_all_bold",false)){android.widget.TextView t=(android.widget.TextView)v;t.setTypeface(t.getTypeface(),android.graphics.Typeface.BOLD);}ConditionStyle.symbol(v);if(v instanceof android.view.ViewGroup)for(int i=0;i<((android.view.ViewGroup)v).getChildCount();i++)applyTree(((android.view.ViewGroup)v).getChildAt(i));}
   public static float widgetScale(Context c){return percent(c,"widget_font_percent")/100f;}
 }

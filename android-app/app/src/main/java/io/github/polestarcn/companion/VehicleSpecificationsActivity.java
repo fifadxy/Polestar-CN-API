@@ -26,7 +26,7 @@ public final class VehicleSpecificationsActivity extends Activity {
     dark=AppPreferences.dark(this);en=AppPreferences.english(this);
     root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
     root.setBackgroundColor(dark?0xFF151617:0xFFF3F3F1);
-    setContentView(root);
+    setContentView(root);AppWindow.apply(this,null);
     LinearLayout bar=new LinearLayout(this);bar.setPadding(dp(12),dp(8),dp(12),dp(8));bar.setGravity(Gravity.CENTER_VERTICAL);
     TextView back=item("‹  "+(en?"Vehicle":"返回"),15,()->finish());bar.addView(back,new LinearLayout.LayoutParams(0,dp(46),1));
     TextView title=item(en?"Polestar 2 Specs":"Polestar 2 车辆规格",18,null);title.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);

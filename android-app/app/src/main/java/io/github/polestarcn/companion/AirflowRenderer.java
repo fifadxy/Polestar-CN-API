@@ -21,7 +21,7 @@ final class AirflowRenderer {
  void draw(Canvas c,RectF b,boolean right,float seconds,float density,EffectSettings p,EffectStateController.Mode mode,int budget,float fade){drawLayer(c,b,right,seconds,density,p,mode,budget,fade,-1);}
  void drawLayer(Canvas c,RectF b,boolean right,float seconds,float density,EffectSettings p,EffectStateController.Mode mode,int budget,float fade,int layer){
   int color=color(mode);paint.setShader(null);paint.setColor(color);if(glow==null||lastColor!=color){lastColor=color;glow=new RadialGradient(0,0,1,new int[]{(color&0xFFFFFF)|0x55000000,color&0xFFFFFF},null,Shader.TileMode.CLAMP);halo.setShader(glow);bead=new RadialGradient(0,0,1,new int[]{color,(color&0xFFFFFF)|0xB0000000,color&0xFFFFFF},new float[]{0,.4f,1},Shader.TileMode.CLAMP);}
-  ParticleField field=mode==EffectStateController.Mode.PURIFICATION?p.cleanField:p.climateField;if(p.airAbsorb&&field.sum()==0)return;
+  ParticleField field=(mode==EffectStateController.Mode.PURIFICATION||mode==EffectStateController.Mode.VENTILATION)?p.cleanField:p.climateField;if(p.airAbsorb&&field.sum()==0)return;
   int requested=p.airSpheres?p.particles:p.lines;if(p.airAbsorb)requested=field.count(requested,budget);int n=Math.min(120,Math.min(requested,budget));
   for(int i=0;i<n;i++){if(layer>=0&&(field.back(i)?0:1)!=layer)continue;
    float t=(seconds*.20f*p.airSpeed*rate[i]+phase[i])%1f;position(b,right,i,t,p,field,head);

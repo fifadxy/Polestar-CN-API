@@ -1,3 +1,7 @@
+## Psa v0.9.6 · Confirmed classic icon and status typography
+
+The user-confirmed black/white double-headlight vehicle glyph is an additional choice, not a replacement for other released styles. Master: [Psa_Confirmed_Classic_Icon.svg](assets/Psa_Confirmed_Classic_Icon.svg). Launcher foreground has 22% inset; status glyph uses white alpha on transparent background for system tint. App and notification styles are independent. Earlier A/B/C preview candidates are not approved assets and are not shipped. Condition text customization changes presentation only; warning/unknown decisions remain data-driven.
+
 ## UI Hotfix addendum · v0.9.5-beta2 (2026-10-29)
 - Settings: keep labels concise; disclose explanations on tap of a 26dp orange circled question mark.
 - Every control tile: icon + action title + live status. Dark mode may use white status text; a single bottom row shows vehicle connection · command feedback. Connection means recently read cloud data.

@@ -113,7 +113,7 @@ public enum DisplayMetric {
     if(check!=Integer.MIN_VALUE)return check==VehicleHealthSnapshot.UNKNOWN?"--":VehicleHealthSnapshot.label(check,english);
     if(this==CHARGE_LIMIT)return ServiceReading.number(s.chargingDetails.targetPercent,includeUnit?unit:"");
     if(this==SERVICE_CYCLE)return ServiceReading.number(ServiceReading.cyclePercent(c,s),includeUnit?unit:"");
-    if (this == VEHICLE_STATUS) return VehicleCondition.summary(s,english,c == null || AppPreferences.visible(c,"show_tire_status",true));
+    if (this == VEHICLE_STATUS) return c==null?VehicleCondition.summary(s,english,true):VehicleCondition.summary(c,s,AppPreferences.visible(c,"show_tire_status",true));
     if (this == TIRE_STATUS) return s.tires.summary(english);
     if(this==SERVICE_HOURS_LEFT)return ServiceReading.number(s.health.serviceHoursLeft,includeUnit?unit:"");
     if(this==SERVICE_DAYS_LEFT||this==SERVICE_KM_LEFT||this==SERVICE_TIME_PERCENT||this==SERVICE_KM_PERCENT) {

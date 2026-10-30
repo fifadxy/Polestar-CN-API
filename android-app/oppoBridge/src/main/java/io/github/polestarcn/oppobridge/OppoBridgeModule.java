@@ -23,8 +23,15 @@ public final class OppoBridgeModule extends XposedModule {
     if (process == null || !(process.equals(pkg) || process.startsWith(pkg + ":"))) return;
     try {
       HostProbe.install(this, pkg, param.getClassLoader());
+      if ("com.heytap.mydevices".equals(pkg)) {
+        if ("com.heytap.mydevices".equals(process)) {
+          MyDevicesVehicleHook.installMain(this, param.getClassLoader());
+        } else if ("com.heytap.mydevices:cards".equals(process)) {
+          MyDevicesVehicleHook.installCardProcess(this, param.getClassLoader());
+        }
+      }
     } catch (Throwable t) {
-      log(Log.ERROR, TAG, "probe_install_failed package=" + pkg, t);
+      log(Log.ERROR, TAG, "bridge_install_failed package=" + pkg + " process=" + process, t);
     }
   }
 

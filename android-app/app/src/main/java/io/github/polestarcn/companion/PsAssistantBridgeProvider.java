@@ -24,7 +24,7 @@ import java.util.Set;
  * existing VehicleCoordinator command/readback path.</p>
  */
 public final class PsAssistantBridgeProvider extends ContentProvider {
-  public static final String AUTHORITY = "io.github.polestarcn.companion.bridge";
+  public static final String AUTHORITY = "io.github.polestarcn.companion.bridge";\n  public static final Uri URI = Uri.parse("content://" + AUTHORITY);
   public static final int PROTOCOL_VERSION = 1;
 
   private static final Set<String> ALLOWED_CALLERS = new HashSet<>(Arrays.asList(

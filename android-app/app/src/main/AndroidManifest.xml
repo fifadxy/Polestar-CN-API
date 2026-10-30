@@ -20,6 +20,11 @@
         android:fullBackupContent="@xml/no_backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false">
+        <provider
+            android:name=".PsAssistantBridgeProvider"
+            android:authorities="io.github.polestarcn.companion.bridge"
+            android:exported="true"
+            android:grantUriPermissions="false" />
         <activity android:name=".VehicleSimulationActivity" android:exported="false"/>
         <activity android:name=".EnergyActivity" android:exported="false"/>
         <activity android:name=".VehicleEffectsActivity" android:exported="false"/>

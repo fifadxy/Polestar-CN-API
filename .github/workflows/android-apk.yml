@@ -6,6 +6,7 @@ on:
       - feature/android-companion-v0.1
       - android-polestar-assistant-main
       - hotfix/android-v095-beta2-20261029
+      - feature/oppo-native-vehicle-bridge-c17-20261030
       - android-polestar-assistant-v093-work
     paths:
       - 'android-app/**'
@@ -44,9 +45,9 @@ jobs:
             test -n "$SDKMANAGER"
             "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
           fi
-      - name: Build standalone debug APK
+      - name: Build standalone debug APK and OPPO bridge
         working-directory: android-app
-        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug
       - name: Configure persistent signing when available
         env:
           PSA_SIGNING_KEYSTORE_BASE64: ${{ secrets.PSA_SIGNING_KEYSTORE_BASE64 }}
@@ -88,7 +89,9 @@ jobs:
       - name: Check output
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
+          test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
           cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.5-beta2-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v0.1.0-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: PsAssistant-v0.9.5-beta2-debug

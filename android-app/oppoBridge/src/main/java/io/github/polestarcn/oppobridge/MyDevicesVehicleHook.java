@@ -1,7 +1,7 @@
 package io.github.polestarcn.oppobridge;
 
 import android.app.Application;
-import android.content.ContentObserver;
+import android.database.ContentObserver;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.HandlerThread;

@@ -19,7 +19,7 @@ public class VehicleCardCacheDisplayTest {
     assertEquals("Polestar 2 · 暂无缓存",VehicleDeviceCardProvider.cardDisplayName(s));
   }
   @Test public void zeroBatteryIsRealAndMissingRangeIsNotZero() {
-    Bundle s=new Bundle();s.putString("name","Polestar 2");s.putBoolean("batteryPercentKnown",true);
+    Bundle s=new Bundle();s.putString("name","Polestar 2");s.putBoolean("batteryPercentKnown",true);s.putInt("batteryPercent",0);
     assertEquals("0% 缓存 · Polestar 2",VehicleDeviceCardProvider.cardDisplayName(s));
   }
   @Test public void summaryUsesCacheSourceTimeAndUnavailableIsExplicit() {

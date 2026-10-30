@@ -146,6 +146,11 @@ public final class VehicleCoordinator {
   private void changed() {
     for (Runnable r : new ArrayList<>(listeners)) r.run();
     ResidentService.update(context);
+    try {
+      context.getContentResolver().notifyChange(PsAssistantBridgeProvider.URI, null);
+    } catch (RuntimeException ignored) {
+      // Optional ColorOS bridge must never affect the main vehicle-control path.
+    }
   }
 
   private void finish() {

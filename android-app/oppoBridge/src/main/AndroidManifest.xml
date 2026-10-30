@@ -12,6 +12,26 @@
         android:label="PsAssistant OPPO Bridge"
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
+        <provider
+            android:name=".VehicleDeviceCardProvider"
+            android:authorities="io.github.polestarcn.oppobridge.devices"
+            android:exported="true"
+            android:grantUriPermissions="false">
+            <intent-filter>
+                <action android:name="oplus.devicecards.action.DEVICE_INFO"/>
+            </intent-filter>
+            <meta-data android:name="oplus.devicecards.provider" android:resource="@xml/device_card"/>
+        </provider>
+        <activity
+            android:name=".VehicleCardDetailActivity"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="com.oplus.mydevices.ACTION_DEVICE_DETAILED_PANEL"/>
+                <action android:name="com.oplus.mydevices.ACTION_DEVICE_DETAILED_PAGE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
         <activity
             android:name=".BridgeDiagnosticsActivity"
             android:exported="true">

@@ -30,7 +30,14 @@ final class BridgeClient {
 
   static Bundle call(Context context, String method, Bundle extras) {
     ContentResolver resolver = context.getContentResolver();
-    Bundle result = resolver.call(URI, method, null, extras);
-    return result == null ? Bundle.EMPTY : result;
+    try {
+      Bundle result = resolver.call(URI, method, null, extras);
+      if (result != null) return result;
+    } catch (RuntimeException providerUnavailable) {
+      // Existing complete PsAssistant installs may predate PsAssistantBridgeProvider.
+      // In that case the LSPosed scope injects RuntimeBridgeClient's receiver into
+      // the already installed PsAssistant process and reuses its live session.
+    }
+    return RuntimeBridgeClient.call(context, method, extras);
   }
 }

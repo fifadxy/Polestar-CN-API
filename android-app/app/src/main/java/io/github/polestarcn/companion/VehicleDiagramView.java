@@ -25,7 +25,7 @@ public final class VehicleDiagramView extends View {
         paint.setColor(Color.rgb(180,180,180)); paint.setStrokeWidth(2);
         canvas.drawLine(cx,sy+8,cx,ey-8,paint);
         paint.setColor(Color.rgb(20,132,87)); paint.setStyle(Paint.Style.FILL);
-        for (float y : new float[]{sy+(ey-sy)*.29f,sy+(ey-sy)*.72f}) {
+        for (int i=0;i<2;i++) { float y=sy+(ey-sy)*(i==0?.29f:.72f);
             canvas.drawCircle(cx-half,y,4,paint); canvas.drawCircle(cx+half,y,4,paint);
         }
     }

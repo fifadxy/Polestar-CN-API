@@ -1,3 +1,13 @@
+当前补充：[beta6 地图复用与能耗修复](42_V095_BETA6_MAP_PERSISTENCE_ENERGY.md)，版本101。
+
+当前补充：[beta5 直接地图背景与排版](41_V095_BETA5_LIVE_MAP_TYPOGRAPHY.md)，版本100。
+
+当前补充：[beta4 图标选择和后方车图布局](40_V095_BETA4_ICONS_LAYOUT.md)，版本99。
+
+当前增量：[v0.9.5-beta3 合并与背景交互](39_V095_BETA3_INTEGRATION.md)，版本98；优先于历史约定。
+
+当前增量以[v0.9.5-hotfix1 · 指令、设置、离线历史与可调动效](38_V095_HOTFIX_AUTH_HELP_EFFECTS.md)为准；versionCode97，详细验证和限制见对应发行验收。以下保留历史记录。
+
 v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
 
 # 12｜Android 分阶段验证总表（参考 APK 与新工程区分）

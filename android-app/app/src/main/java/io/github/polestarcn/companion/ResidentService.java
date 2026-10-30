@@ -58,10 +58,11 @@ public final class ResidentService extends Service {
 
   private static Notification notification(Context c) {
     NotificationManager nm = (NotificationManager) c.getSystemService(NOTIFICATION_SERVICE);
-    // LOW is silent and keeps the status icon; MIN may hide that icon on Android.
+    // Separate channels: importance is immutable after creation. OEM/user settings remain authoritative.
+    boolean showIcon=AppPreferences.visible(c,"notification_status_icon",true);String channel=showIcon?"vehicle_status_icon_v2":"vehicle_status_quiet_v2";
     NotificationChannel ch =
         new NotificationChannel(
-            CHANNEL, tr(c, "车辆状态", "Vehicle status"), NotificationManager.IMPORTANCE_LOW);
+            channel, showIcon?tr(c,"车辆状态 · 状态栏图标","Vehicle status · status icon"):tr(c,"车辆状态 · 静默通知","Vehicle status · silent"), showIcon?NotificationManager.IMPORTANCE_LOW:NotificationManager.IMPORTANCE_MIN);
     ch.setSound(null, null);
     ch.enableVibration(false);
     ch.setShowBadge(false);
@@ -89,8 +90,8 @@ public final class ResidentService extends Service {
             0,
             new Intent(c, MainActivity.class),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-    return new Notification.Builder(c, CHANNEL)
-        .setSmallIcon(AppIcons.small(c))
+    return new Notification.Builder(c, channel)
+        .setSmallIcon(AppIcons.notificationSmall(c))
         .setContentTitle(title)
         .setContentText(detail + " · " + timestamps)
         .setStyle(new Notification.BigTextStyle().bigText(detail + "\n" + timestamps))

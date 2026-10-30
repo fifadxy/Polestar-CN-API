@@ -4,9 +4,11 @@ import android.content.*;import android.database.Cursor;import android.database.
 public final class EnergyLog extends SQLiteOpenHelper {
  public static final ExecutorService WORK=Executors.newSingleThreadExecutor();public static final double KWH_PER_PERCENT=.71;@android.annotation.SuppressLint("StaticFieldLeak") private static EnergyLog instance; // Holds app context, never activity context.
  public static synchronized EnergyLog get(Context c){if(instance==null)instance=new EnergyLog(c.getApplicationContext());return instance;}
- private long lastPrune;private int inserts;private final Context c;private EnergyLog(Context c){super(c,"energy_history.db",null,1);this.c=c;setWriteAheadLoggingEnabled(true);}
+ private long lastPrune;private int inserts;private final android.app.Application c;private EnergyLog(Context c){super(c,"energy_history.db",null,1);this.c=(android.app.Application)c.getApplicationContext();setWriteAheadLoggingEnabled(true);}
  public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE samples(vehicle TEXT NOT NULL,t INTEGER NOT NULL,soc REAL,tm REAL,cons REAL,speed REAL,odo REAL,climate INTEGER,charge INTEGER,ac REAL NOT NULL,drive REAL NOT NULL,acvalid INTEGER NOT NULL,PRIMARY KEY(vehicle,t))");db.execSQL("CREATE INDEX sample_time ON samples(t)");}
  public void onUpgrade(SQLiteDatabase db,int old,int next){throw new IllegalStateException("Unsupported energy schema");}
+ public static boolean validVehicle(String id){return id!=null&&id.matches("[a-fA-F0-9]{8,64}");}
+ public synchronized List<String> vehicles(){List<String> ids=new ArrayList<>();try(Cursor r=getReadableDatabase().rawQuery("SELECT vehicle FROM samples GROUP BY vehicle ORDER BY MAX(t) DESC",null)){while(r.moveToNext()){String id=r.getString(0);if(validVehicle(id))ids.add(id);}}return ids;}
  public static int months(Context c){try{return Math.max(1,Math.min(24,Integer.parseInt(AppPreferences.get(c,"energy_months","24"))));}catch(Exception e){return 24;}}
  public static double capacity(Context c){try{double v=Double.parseDouble(AppPreferences.get(c,"battery_capacity_kwh","71"));return Double.isFinite(v)&&v>=10&&v<=200?v:71;}catch(Exception e){return 71;}}
  public static double perPercent(Context c){return capacity(c)/100.;}

@@ -1,4 +1,20 @@
-v0.9.5-beta2 Hotfix / 97：实现离线托管本地停止、重连车况核实、令牌状态保护与指令二次确认；参见 [KB38](38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md)。真实实车验证须独立于源码 CI。
+当前增量：[v0.9.6-beta2 · 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)，版本107。
+
+当前增量：[v0.9.6-beta1 · 设置与交互升级](47_V096_SETTINGS_INTERACTION.md)，版本106。
+
+当前增量：[v0.9.5-beta10 · 独立吸入场、柔化尾迹与窗口周期](46_V095_BETA10_PARTICLE_FIELDS.md)，版本105。
+
+当前增量：[v0.9.5-beta9 · C排版、字重与分层轨迹动效](45_V095_BETA9_LAYERED_AIRFLOW.md)，版本104。
+
+当前补充：[beta6 地图复用与能耗修复](42_V095_BETA6_MAP_PERSISTENCE_ENERGY.md)，版本101。
+
+当前补充：[beta5 直接地图背景与排版](41_V095_BETA5_LIVE_MAP_TYPOGRAPHY.md)，版本100。
+
+当前补充：[beta4 图标选择和后方车图布局](40_V095_BETA4_ICONS_LAYOUT.md)，版本99。
+
+当前增量：[v0.9.5-beta3 合并与背景交互](39_V095_BETA3_INTEGRATION.md)，版本98；优先于历史约定。
+
+当前增量以[v0.9.5-hotfix1 · 指令、设置、离线历史与可调动效](38_V095_HOTFIX_AUTH_HELP_EFFECTS.md)为准；versionCode97，详细验证和限制见对应发行验收。以下保留历史记录。
 
 v0.9.5 增量以[KB37](37_V095_UI_EFFECTS_MAP.md)为准：渐隐/吸入气流、简洁2、提前完成回读、免Key地名与试验地图背景，保留现用车图。以下为历史记录。
 

@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent">
-    <ImageView android:id="@+id/widget_bg" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:contentDescription="@null" />
-    <LinearLayout android:id="@+id/widget_content" android:orientation="horizontal" android:baselineAligned="false" android:padding="8dp" android:layout_width="match_parent" android:layout_height="match_parent">
-        <include layout="@layout/widget_summary_content" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" />
-        <include layout="@layout/widget_actions_content" android:layout_width="104dp" android:layout_height="48dp" android:layout_gravity="center_vertical" />
-    </LinearLayout>
+  <ImageView android:id="@+id/widget_bg" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:contentDescription="@null" />
+  <LinearLayout android:id="@+id/widget_content" android:orientation="horizontal" android:padding="8dp" android:layout_width="match_parent" android:layout_height="match_parent" android:baselineAligned="false">
+    <include layout="@layout/widget_summary_content" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" />
+    <include layout="@layout/widget_actions_content" android:layout_width="104dp" android:layout_height="48dp" android:layout_gravity="center_vertical" />
+  </LinearLayout>
 </FrameLayout>

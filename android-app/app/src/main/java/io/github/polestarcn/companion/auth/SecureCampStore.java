@@ -30,6 +30,6 @@ public final class SecureCampStore {
   }
   @android.annotation.SuppressLint("ApplySharedPref") // Ensure sensitive camp config is purged synchronously.
   public static void clear(Context c) {
-    c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit();
+    if(!c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit())io.github.polestarcn.companion.DiagnosticLog.add("Camping credentials were not cleared");
   }
 }

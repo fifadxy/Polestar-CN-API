@@ -1,6 +1,22 @@
-**Android 最新开发版本：v0.9.5-beta2 / 97 Hotfix（隔离分支）。** 离线托管退出与网络恢复、指令重复确认、按类别验证、离线能耗、粒子/气流与地图设置。参见 [Hotfix 更新](docs/Psa_v095_beta2_Hotfix.md) / [验收](docs/Psa_v095_beta2_Validation.md) / [KB38](knowledge/38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md)。公共 CI 缺中国区私有客户端配置及稳定签名，Debug 为验证包，不等于完整可登录 Release。
+当前增量：[v0.9.6-beta2 · 自动测试与车窗羽化](docs/Psa_v096_beta2_Update.md)，版本107。
 
-当前版本：**v0.9.5-beta1 / 96**。新增简洁2、渐隐/吸入气流与玻璃内光效、随屏刷新动画、皮肤拖动排序、指令确认后停止回读及地图背景实验。13张车图原文件保留。[本版更新说明](docs/Psa_v095_Update.md) · [验收](docs/Psa_v095_Validation.md)。
+当前增量：[v0.9.6-beta1 · 设置与交互升级](docs/Psa_v096_beta1_Update.md)，版本106。
+
+当前增量：[v0.9.5-beta10 · 独立吸入场、柔化尾迹与窗口周期](docs/Psa_v095_beta10_Update.md)，版本105。
+
+当前增量：[v0.9.5-beta9 · C排版、字重与分层轨迹动效](docs/Psa_v095_beta9_Update.md)，版本104。
+
+当前版本 **v0.9.5-beta6 / 101**：跨页/前后台复用地图，按规则定位；图库黑白文字和默认SOC粗体；修复能耗页两处已复现闪退。[更新](docs/Psa_v095_beta6_Update.md)。
+
+当前版本 **v0.9.5-beta5 / 100**：硬件WebView直接地图背景、尾门加粗、All Good大字单/双行。[更新与验证边界](docs/Psa_v095_beta5_Update.md)。
+
+当前版本 **v0.9.5-beta4 / 99**：新尾门图标默认、三款可选；确认的净化颗粒图案；All Good后方车图等比缩小并下移。[更新](docs/Psa_v095_beta4_Update.md)。
+
+当前版本：**v0.9.5-beta3 / 98**。合并两版hotfix与露营恢复，新增地图加载/缓存、本机日夜图片裁切、All Good后方模式、1.5秒按压反馈和确认的尾箱图标。[更新说明](docs/Psa_v095_beta3_Update.md)。以下保留历史版本记录。
+
+当前版本：**v0.9.5-hotfix1 / 97**。首次有效回读即结束、重复指令先确认、逐操作验证方式、离线能耗历史、收起设置说明、全皮肤图标/电量条开关、一行连接状态及可调曲线/窗口光效。[更新说明](docs/Psa_v095_Hotfix1_Update.md) · [验收](docs/Psa_v095_Hotfix1_Validation.md)。
+
+历史当前版本：**v0.9.5-beta1 / 96**。新增简洁2、渐隐/吸入气流与玻璃内光效、随屏刷新动画、皮肤拖动排序、指令确认后停止回读及地图背景实验。13张车图原文件保留。[本版更新说明](docs/Psa_v095_Update.md) · [验收](docs/Psa_v095_Validation.md)。
 
 历史当前版本：**v0.9.4-beta1 / 95**。设置新增全部动效离线测试（18项循环）、可调原生粒子/气流；电池容量默认71kWh可填，放大All Good！，清理车型及透明资源。详见[更新与设计规范](docs/Psa_v094_Effects_And_Assets.md)。本增量优先于下方历史说明。
 

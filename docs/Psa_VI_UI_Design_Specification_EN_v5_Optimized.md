@@ -1,3 +1,11 @@
+## Psa v0.9.6-beta2 · Motion preview and glass edges
+
+Charging-card previews belong below the vehicle viewport, never layered across the car. Auto tests use an explicit project selection and send no vehicle requests. Window coverage defaults to 52%; inward feather defaults to 20% (0–100%) and stays inside the glass mask. Cache the mask rather than blur every frame. Climate and charging default to absorption while preserving explicit saved preferences.
+
+## Psa v0.9.6 · Confirmed classic icon and status typography
+
+The user-confirmed black/white double-headlight vehicle glyph is an additional choice, not a replacement for other released styles. Master: [Psa_Confirmed_Classic_Icon.svg](assets/Psa_Confirmed_Classic_Icon.svg). Launcher foreground has 22% inset; status glyph uses white alpha on transparent background for system tint. App and notification styles are independent. Earlier A/B/C preview candidates are not approved assets and are not shipped. Condition text customization changes presentation only; warning/unknown decisions remain data-driven.
+
 ## UI Hotfix addendum · v0.9.5-beta2 (2026-10-29)
 - Settings: keep labels concise; disclose explanations on tap of a 26dp orange circled question mark.
 - Every control tile: icon + action title + live status. Dark mode may use white status text; a single bottom row shows vehicle connection · command feedback. Connection means recently read cloud data.
@@ -709,3 +717,21 @@ Airflow has a crisp leading tip and continuously fading tail; both through-car a
 Use a 230ms directional page slide and a 220ms translucent gradient dialog entrance. Android 12+ system blur is optional; older systems use a visual fallback. Experimental parked-map backdrops default off and use a single temporary snapshot with monochrome day/night grading and radial blur. Remote provider DOM compatibility requires device validation.
 
 Display only concise command progress and result. Stop remaining read requests after three consecutive validated vehicle states; do not repeat vehicle writes. Parking labels show a resolved place name, fall back to reported coordinates, or state that parking data has not updated.
+
+## v0.9.6-beta3 Map backdrop and particle depth
+
+Background-only map treatment is borderless and proportionally covered. Hide share-page controls, retain provider attribution, and move the entire map with its parking marker when adjusting focal position. The default marker is VI orange (#FF6B00); its size, color and screen focus are user-adjustable without changing geographic coordinates. Interactive secondary maps retain their own controls.
+
+Within the selected behind-car particle percentage, assign larger particles behind the car first. Keep the smaller particles above the vehicle to reduce body occlusion. Preserve user-selected depth percentages, particle counts and motion settings; cache depth ranking instead of allocating or sorting every frame.
+
+### v0.9.6-beta4 Map-only background stage
+
+Place the live map inside its own fixed paint-clipped stage. Share-page information cards and controls, including asynchronous additions, must stay outside the background. Keep small provider attribution. Background WebViews use device-width layout without overview scaling. Map day/night preference is independent of the app theme; System follows the OS night configuration. Day/night changes reuse the same map without resetting zoom or querying position.
+
+### v0.9.6-beta5 Map framing and credit
+
+Background maps use a compact text credit with original copyright content instead of a graphical logo block. Keep transparent backing and readable muted text in both themes. Crop focus is independently configurable on each axis, defaults to 50%, and shifts the full map together with its parking marker; never detach geographic labels or the pin from their roads. Clamp framing to avoid blank map edges.
+
+### v0.9.6-beta6 Map source display scope
+
+Per the latest confirmed layout, background maps show no provider logo, source text or copyright overlay. Display the provider's original attribution in the secondary location map only. Apply this rule exclusively through the background script, preserving the interactive location preview and existing crop/theme controls.

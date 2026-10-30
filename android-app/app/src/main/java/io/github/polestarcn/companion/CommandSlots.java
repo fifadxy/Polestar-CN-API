@@ -1,6 +1,6 @@
 package io.github.polestarcn.companion;
 
-/** Independently guarded vehicle-control families. Never retry a write while its group is outstanding. */
+/** Independently guarded vehicle-control families. Only the explicit lock policy may resend its outstanding original action once. */
 public final class CommandSlots {
   private CommandSlots() {}
   public static String group(String action) {

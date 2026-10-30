@@ -34,7 +34,7 @@ public final class VehicleCoordinator {
   private boolean exclusive;
   private static final class PendingCommand {
     final String action; final ChinaPolestarApi.VehicleInfo vehicle; final String group;
-    final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;
+    final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;volatile boolean cancelled;int percent;long percentAt;CommandReadback readback;
     OperationState state=OperationState.SENDING;
     PendingCommand(String a, ChinaPolestarApi.VehicleInfo v, long issued, Float target) {
       this.action=a;this.vehicle=v;this.group=CommandSlots.group(a);this.issued=issued;this.target=target;
@@ -61,6 +61,9 @@ public final class VehicleCoordinator {
     changed();
     return true;
   }
+  public boolean canDispatch(String action,boolean repeat){String pending=pendingAction(action);return signedIn&&selected!=null&&!exclusive&&(pending==null||repeat&&pending.equals(action)&&!repeatQueued(action));}
+  public void command(String action,boolean repeat){if(repeat){queueRepeat(action);return;}command(action);}
+  private void dispatchQueuedRepeat(PendingCommand ticket){if(ticket.repeatQueued&&signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin))main.post(()->{if(signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&!isCommandPending(ticket.action))command(ticket.action);});}
   public OperationState controlOperation(String control) {
     PendingCommand ticket=pendingCommands.get(CommandSlots.group(control));
     return ticket==null?operation:ticket.state;
@@ -69,17 +72,14 @@ public final class VehicleCoordinator {
     commandPending=!pendingCommands.isEmpty();
     if(commandPending){PendingCommand recent=null;for(PendingCommand p:pendingCommands.values())recent=p;
       activeAction=recent.action;readbackChecks=recent.checks;
-      readbackPercent=recent.started==0?0:Math.min(98,(int)((android.os.SystemClock.elapsedRealtime()-recent.started)*98/26_000L));
+      readbackPercent=recent.percent;
       operation=recent.state;
     } else {activeAction="";readbackChecks=0;readbackPercent=100;main.removeCallbacks(progressTick);}
   }
   public LocationSnapshot parkedLocation;public String parkingName="";private boolean geocoding;private final ExecutorService placeIO=Executors.newSingleThreadExecutor();
   public void resolveParkingName(LocationSnapshot point,Runnable done){if(geocoding||point==null||selected==null){if(done!=null)done.run();return;}geocoding=true;String vin=selected.vin;int generation=locationGeneration;placeIO.execute(()->{String name=ParkingPlaceNames.resolve(context,point);main.post(()->{geocoding=false;if(generation==locationGeneration&&selected!=null&&vin.equals(selected.vin)&&parkedLocation!=null&&Math.abs(parkedLocation.latitude-point.latitude)<.0001&&Math.abs(parkedLocation.longitude-point.longitude)<.0001){parkingName=name;changed();if(done!=null)done.run();}});});}
 
-  private final Runnable progressTick=new Runnable(){public void run(){if(pendingCommands.isEmpty())return;
-    syncCommandStatus(); progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;
-    main.postDelayed(this,1000);
-  }};
+  private final Runnable progressTick=new Runnable(){public void run(){if(pendingCommands.isEmpty())return;long now=android.os.SystemClock.elapsedRealtime();boolean updated=false;for(PendingCommand p:pendingCommands.values()){long step=(p.group.equals("lock")?15000L:26000L)/98;if(p.started>0&&p.percent<98&&now-p.percentAt>=step){p.percent++;p.percentAt=now;updated=true;}}if(updated){syncCommandStatus();progressOnly=true;for(Runnable r:new ArrayList<>(listeners))r.run();progressOnly=false;}main.postDelayed(this,100);}};
 
   private long vehiclesDiscoveredAt;
   private boolean signedIn;
@@ -88,6 +88,7 @@ public final class VehicleCoordinator {
   public boolean locationBusy;
   private int locationGeneration;
   private long parkingFetchedAt;
+  public long parkingRefreshDelay(){int minutes=RefreshPolicy.map(context);if(minutes==0)return -1;long interval=minutes*60000L;return parkingFetchedAt==0?interval:Math.max(1000,interval-(android.os.SystemClock.elapsedRealtime()-parkingFetchedAt));}
   private final List<java.util.function.BiConsumer<LocationSnapshot,String>> locationCompletions=new ArrayList<>();
   public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete){readLastParkedLocation(true,complete);}
   public void readLastParkedLocation(boolean force,java.util.function.BiConsumer<LocationSnapshot,String> complete) {
@@ -295,7 +296,7 @@ public final class VehicleCoordinator {
         });
       } catch(Exception e){main.post(()->{
         if(pendingCommands.get(ticket.group)!=ticket)return;
-        if(e instanceof IllegalArgumentException){pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
+        if(e instanceof IllegalArgumentException){ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
           message=tr("指令参数不受支持：","Invalid command: ")+safe(e);changed();return;}
         ticket.state=OperationState.UNCONFIRMED;
         message=tr("确认中","Verifying");
@@ -305,8 +306,14 @@ public final class VehicleCoordinator {
   }
 
   private void confirmCommand(PendingCommand ticket){
-    ticket.started=android.os.SystemClock.elapsedRealtime();syncCommandStatus();changed();
-    new CommandReadback(()->api.readVehicle(ticket.vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
+    // There is no telemetry field for horn/flash completion. Reading the vehicle cannot prove it.
+    if(momentary(ticket.action)){
+      ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();
+      if(!commandPending)operation=ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED;
+      message=ticket.accepted?tr("寻车已发送 · 效果未确认","Find car sent · unverified"):tr("执行结果未确认","Result unconfirmed");changed();dispatchQueuedRepeat(ticket);return;
+    }
+    ticket.started=android.os.SystemClock.elapsedRealtime();ticket.percentAt=ticket.started;syncCommandStatus();changed();
+    ticket.readback=new CommandReadback(()->api.readVehicle(ticket.vehicle),io,(delay,task)->main.postDelayed(task,delay),new CommandReadback.Listener(){
       public void progress(VehicleSnapshot updated,int count){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
         ticket.checks=count;syncCommandStatus();
@@ -315,8 +322,7 @@ public final class VehicleCoordinator {
       }
       public void finished(VehicleSnapshot updated,boolean reached){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
-        pendingCommands.remove(ticket.group);syncCommandStatus();
-        boolean manualRepeat=ticket.repeatQueued;
+        ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();
         boolean verified=reached&&(ticket.target==null||ClimateTarget.confirmed(updated,ticket.target,ticket.issued));
         OperationState result=momentary(ticket.action)
             ?(ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED)
@@ -326,12 +332,12 @@ public final class VehicleCoordinator {
         if(reached&&"climate-stop".equals(ticket.action))ClimateRuntime.stopped(context);
         message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
             :verified?tr("执行成功","Successful")
-            :tr("执行结果未确认","Result unconfirmed");
-        changed();
-        if(manualRepeat && signedIn && selected!=null && ticket.vehicle.vin.equals(selected.vin))
-          main.post(()->{if(signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&!isCommandPending(ticket.action))command(ticket.action);});
+            :tr("指令已发送，请确认执行情况","Command sent. Please confirm execution.");
+        changed();dispatchQueuedRepeat(ticket);
       }
-    }).require(state->ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)).start(ticket.action);
+    }).require(state->EffectStateController.fresh(state,System.currentTimeMillis())&&(ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)));
+    if("lock".equals(ticket.action)||"unlock".equals(ticket.action))ticket.readback.retryLockOnce(()->{if("unlock".equals(ticket.action))api.unlock(ticket.vehicle.vin);else api.lock(ticket.vehicle.vin);},commandIO,()->!ticket.cancelled&&signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&FirstUseConsent.accepted(context));
+    ticket.readback.start(ticket.action);
   }
 
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
@@ -347,7 +353,7 @@ public final class VehicleCoordinator {
     if(CampModeManager.active(context)||"STOPPING".equals(CampModeManager.phase(context)))CampModeManager.requestStop(context);
     sessionGeneration++;
     signedIn=false;exclusive=false;busy=false;quietRefresh=false;userRefreshing=false;
-    pendingCommands.clear();syncCommandStatus();completions.clear();
+    for(PendingCommand pending:pendingCommands.values()){pending.cancelled=true;if(pending.readback!=null)pending.readback.cancel();}pendingCommands.clear();syncCommandStatus();completions.clear();
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
     // Preserve an encrypted pending remote-stop record across local sign-out.
@@ -459,28 +465,16 @@ public final class VehicleCoordinator {
           }
         }
         public boolean confirm(CampSession s, String action) throws Exception {
-          int consecutive=0;
-          long previous=0;
-          for (long at:CommandReadback.CHECKPOINT_MS) {
-            if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            Thread.sleep(at-previous);previous=at;
-            if (cancelled.get() || !CampModeManager.current(context, s.id)) return false;
-            boolean reached=false;
-            try {
-              if(action.equals("climate-start")&&s.verifyClimateTarget){
-                read[0]=api.readVehicle(vehicle);
-                reached=ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]);
-              } else reached=api.commandReached(s.vin, action);
-            } catch(Exception unavailable) { DiagnosticLog.add("Camping readback unavailable; waiting for next slot"); }
-            consecutive=reached?consecutive+1:0;
-            if(consecutive>=3)break; // Immediately confirm; do not wait for later checkpoints.
+          boolean reached=CampReadback.verify(()->{
+            read[0]=api.readVehicle(vehicle);
+            return EffectStateController.fresh(read[0],System.currentTimeMillis())&&ControlAction.reached(action,read[0])
+                &&(!action.equals("climate-start")||!s.verifyClimateTarget||ClimateTarget.confirmed(read[0],s.targetTemperatureC,climateIssuedAt[0]));
+          },()->cancelled.get()||!CampModeManager.current(context,s.id),Thread::sleep);
+          if(reached){
+            if("climate-start".equals(action))ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());
+            if("climate-stop".equals(action))ClimateRuntime.stopped(context);
           }
-          if(consecutive>=3) {
-            if("climate-start".equals(action)) ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());
-            if("climate-stop".equals(action)) ClimateRuntime.stopped(context);
-            return true;
-          }
-          return false;
+          return reached;
         }
       };
       CampEngine.Control control = new CampEngine.Control() {
@@ -492,9 +486,7 @@ public final class VehicleCoordinator {
         public void report(String result) { CampModeManager.report(context, camping.id, result); }
       };
       new CampEngine(backend, control).check(camping, "STOPPING".equals(phase), System.currentTimeMillis(), CampModeManager.stopReason(context));
-      if (wrote[0] && !cancelled.get() && CampModeManager.current(context, camping.id)) {
-        try { read[0] = api.readVehicle(vehicle); } catch (Exception ignored) {}
-      }
+
       main.post(() -> {
         if (read[0] != null && selected != null && camping.vin.equals(selected.vin)) {
           snapshot = read[0]; VehicleSnapshotStore.saveChina(context, snapshot);EnergyLog.record(context,identity(camping.vin),snapshot); WidgetRenderer.refreshAll(context);

@@ -39,10 +39,13 @@ public final class HorizontalSwipeRefreshLayout extends SwipeRefreshLayout {
     return super.onInterceptTouchEvent(event);
   }
 
+  @Override public boolean performClick(){return super.performClick();}
   @Override
   public boolean onTouchEvent(MotionEvent event) {
+    boolean tap=event.getActionMasked()==MotionEvent.ACTION_UP&&Math.abs(event.getX()-downX)<=touchSlop&&Math.abs(event.getY()-downY)<=touchSlop;
     track(event);
     if (horizontalGesture) return false;
+    if(tap&&hasOnClickListeners())performClick();
     return super.onTouchEvent(event);
   }
 

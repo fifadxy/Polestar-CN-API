@@ -8,7 +8,7 @@ import android.view.Gravity;
 import android.widget.TextView;
 
 /** Native glyph/text layout: no custom text painting or single-line scrolling on device canvases. */
-class CenteredStatusButton extends TextView {
+class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
  private String title="";private boolean composing,slot;private String feedback="";private Drawable glyph;private Integer bar;
  private final Paint track=new Paint(Paint.ANTI_ALIAS_FLAG);
  CenteredStatusButton(Context c){super(c);setIncludeFontPadding(false);}
@@ -22,7 +22,7 @@ class CenteredStatusButton extends TextView {
   float d=getResources().getDisplayMetrics().density;boolean icon=glyph!=null;
   setSingleLine(false);setHorizontallyScrolling(false);setGravity(slot?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);setEllipsize(TextUtils.TruncateAt.END);
   boolean second=!title.isEmpty()&&(!feedback.isEmpty()||slot);setMaxLines(second?2:1);setPadding(Math.round(4*d),Math.round(2*d),Math.round(4*d),Math.round((slot?6:bar!=null?6:2)*d));
-  setTypeface(PsaDesign.regular());setAutoSizeTextTypeWithDefaults(AUTO_SIZE_TEXT_TYPE_NONE);
+  setTypeface(PsaDesign.regular());androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(this,androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE);
   SpannableStringBuilder value=new SpannableStringBuilder(title);if(AppPreferences.visible(getContext(),"ui_button_bold",true))value.setSpan(new StyleSpan(Typeface.BOLD),0,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
   if(second||title.isEmpty()&&!feedback.isEmpty()){if(second)value.append('\n');int start=value.length();value.append(feedback.isEmpty()?"\u00a0":feedback);value.setSpan(new ForegroundColorSpan(AppPreferences.dark(getContext())?Color.WHITE:Color.rgb(115,115,115)),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);value.setSpan(new RelativeSizeSpan(Math.min(.85f,ButtonFeedback.sp(getContext())/11f)),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);if(AppPreferences.visible(getContext(),"feedback_bold",false))value.setSpan(new StyleSpan(Typeface.BOLD),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
   if(icon){glyph.setTint(getCurrentTextColor());int px=Math.round((slot?(getResources().getConfiguration().screenHeightDp<=360?12:18):16)*d);glyph.setBounds(0,0,px,px);}

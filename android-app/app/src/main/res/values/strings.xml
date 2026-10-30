@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">PsAssistant</string>
+    <string name="app_name">PsAssistant</string>
     <string name="widget_standard_name" translatable="false">PsAssistant · 4×2</string>
     <string name="widget_compact_name" translatable="false">PsAssistant · 2×2</string>
     <string name="widget_wide_name" translatable="false">PsAssistant · 4×1</string>

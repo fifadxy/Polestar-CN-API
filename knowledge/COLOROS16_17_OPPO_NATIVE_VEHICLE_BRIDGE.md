@@ -368,3 +368,7 @@ extracted by this packaging workflow.
 - Primary reference: https://developer.android.com/reference/android/service/quicksettings/TileService
 - Next research: ControlsProviderService for a native system controls surface; live notifications for charging/climate, then version-gated Xiaobu command routing. None are marked implemented.
 - Physical OPPO native-card discovery, host callbacks, framework API 102 loading and actual vehicle commands still require device testing.
+
+## Base correction for v0.9.7-beta1
+
+Merged android-polestar-assistant-main commit 5d9a8b3 (v0.9.6-beta6, versionCode 111) into the bridge branch. The deliverable versionCode is 112, retaining beta6 UI, map, energy, icons, authorization and regression tests. Previous OPPO builds based on v0.9.5-beta2 must not be described as the latest main app.

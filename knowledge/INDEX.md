@@ -1,4 +1,13 @@
-| [38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md](38_V095_BETA2_HOTFIX_CAMP_RECOVERY.md) | v0.9.5-beta2 离线托管、安全会话、UI及动画/地图 Hotfix | 源码实施 / 真车待验 |
+当前补充：[beta6 地图复用与能耗修复](42_V095_BETA6_MAP_PERSISTENCE_ENERGY.md)，版本101。
+
+当前补充：[beta5 直接地图背景与排版](41_V095_BETA5_LIVE_MAP_TYPOGRAPHY.md)，版本100。
+
+当前补充：[beta4 图标选择和后方车图布局](40_V095_BETA4_ICONS_LAYOUT.md)，版本99。
+
+当前增量：[v0.9.5-beta3 合并与背景交互](39_V095_BETA3_INTEGRATION.md)，版本98；优先于历史约定。
+
+当前版本：[v0.9.5-hotfix1 · 指令、设置、离线历史与可调动效](38_V095_HOTFIX_AUTH_HELP_EFFECTS.md) · versionCode97。本增量优先于历史回读次数、验证方式、图标和说明展示约定。
+
 [当前v0.9.5 · 简洁2、气流、指令回读与地图背景](37_V095_UI_EFFECTS_MAP.md) · versionCode96。本页优先于历史动效/回读/R8约定。
 
 [当前v0.9.4 · 原生动效、离线测试、容量和透明资源](36_V094_NATIVE_EFFECTS_ASSETS.md) · versionCode95。此页优先于历史图库和字体约定。
@@ -68,3 +77,23 @@
 **当前状态**：Android v0.8.7-beta1 延续真实 China 登录、车况/远控、停车位置和 Widget 能力，并在 CI 中持续做手机多皮肤/大字号布局回归；尚未完成本轮账号、车辆和独立 Wear OS 端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
 
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。
+
+- [beta7 外观与地图复用](43_V095_BETA7_APPEARANCE.md)
+
+- [beta8 独立动效开关](44_V095_BETA8_EFFECT_SWITCHES.md)
+
+- [beta9 C排版与分层轨迹动效](45_V095_BETA9_LAYERED_AIRFLOW.md)
+
+- [beta10 独立吸入场与柔化动效](46_V095_BETA10_PARTICLE_FIELDS.md)
+
+- [v0.9.6 设置、图标与门锁交互](47_V096_SETTINGS_INTERACTION.md)
+
+- [v0.9.6-beta2 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)
+
+- [v0.9.6-beta3 沉浸地图与粒子分层](49_V096_BETA3_IMMERSIVE_MAP_DEPTH.md)
+
+- [v0.9.6-beta4 地图裁切与日夜模式](50_V096_BETA4_MAP_STAGE_THEME.md)
+
+- [v0.9.6-beta5 地图裁切焦点与来源文字](51_V096_BETA5_MAP_CROP_CREDIT.md)
+
+- [v0.9.6-beta6 地图来源显示范围](52_V096_BETA6_MAP_CREDIT_SCOPE.md)

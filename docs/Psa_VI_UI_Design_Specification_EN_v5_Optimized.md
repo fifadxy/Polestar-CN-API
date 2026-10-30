@@ -727,3 +727,7 @@ Within the selected behind-car particle percentage, assign larger particles behi
 ### v0.9.6-beta4 Map-only background stage
 
 Place the live map inside its own fixed paint-clipped stage. Share-page information cards and controls, including asynchronous additions, must stay outside the background. Keep small provider attribution. Background WebViews use device-width layout without overview scaling. Map day/night preference is independent of the app theme; System follows the OS night configuration. Day/night changes reuse the same map without resetting zoom or querying position.
+
+### v0.9.6-beta5 Map framing and credit
+
+Background maps use a compact text credit with original copyright content instead of a graphical logo block. Keep transparent backing and readable muted text in both themes. Crop focus is independently configurable on each axis, defaults to 50%, and shifts the full map together with its parking marker; never detach geographic labels or the pin from their roads. Clamp framing to avoid blank map edges.

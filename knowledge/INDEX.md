@@ -93,3 +93,5 @@
 - [v0.9.6-beta3 沉浸地图与粒子分层](49_V096_BETA3_IMMERSIVE_MAP_DEPTH.md)
 
 - [v0.9.6-beta4 地图裁切与日夜模式](50_V096_BETA4_MAP_STAGE_THEME.md)
+
+- [v0.9.6-beta5 地图裁切焦点与来源文字](51_V096_BETA5_MAP_CROP_CREDIT.md)

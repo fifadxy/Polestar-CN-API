@@ -11,9 +11,9 @@ with sync_playwright() as p:
  page.evaluate('PsaBackdrop.style(false,.5,.42,12,60,16,100,"#FF6B00")')
  page.wait_for_timeout(1200)
  def check(x,y):
-  state=page.evaluate('''()=>{const root=document.querySelector('.amap-container'),pin=root.querySelector('.amap-marker span'),r=root.getBoundingClientRect(),p=pin.getBoundingClientRect();return {parent:root.parentNode.id,cover:r.left<=0&&r.top<=0&&r.right>=innerWidth&&r.bottom>=innerHeight,x:p.left+p.width/2,y:p.bottom,hidden:[...document.querySelectorAll('.new-provider-info,.amap-controls,.common_bottom,.late-info')].every(n=>n.getBoundingClientRect().width===0),attribution:document.querySelector('.amap-copyright').getBoundingClientRect().height>0,filters:getComputedStyle(document.querySelector('.amap-layer')).filter}}''')
+  state=page.evaluate('''()=>{const root=document.querySelector('.amap-container'),pin=root.querySelector('.amap-marker span'),r=root.getBoundingClientRect(),p=pin.getBoundingClientRect();return {parent:root.parentNode.id,cover:r.left<=0&&r.top<=0&&r.right>=innerWidth&&r.bottom>=innerHeight,x:p.left+p.width/2,y:p.bottom,hidden:[...document.querySelectorAll('.new-provider-info,.amap-controls,.common_bottom,.late-info')].every(n=>n.getBoundingClientRect().width===0),attribution:document.querySelector('.amap-copyright').getBoundingClientRect().height>0,logoHidden:document.querySelector('.amap-logo').getBoundingClientRect().width===0,filters:getComputedStyle(document.querySelector('.amap-layer')).filter}}''')
   assert state['parent']=='psa-map-stage',state
-  assert state['cover'] and state['hidden'] and state['attribution'],state
+  assert state['cover'] and state['hidden'] and state['attribution'] and state['logoHidden'],state
   assert abs(state['x']-400*x)<1 and abs(state['y']-800*y)<1,state
   return state
  check(.5,.42)
@@ -22,6 +22,9 @@ with sync_playwright() as p:
  check(.5,.42)
  for x,y in [(0,0),(1,1),(.75,.25),(.5,.42)]:
   page.evaluate('([x,y])=>PsaBackdrop.style(true,x,y,12,60,16,150,"#FF6B00")',[x,y]);page.wait_for_timeout(1100);assert 'invert' in check(x,y)['filters']
+ page.evaluate('PsaBackdrop.style(false,.5,.42,12,60,16,100,"#FF6B00",100,0)');page.wait_for_timeout(1100);check(.25,.67)
+ page.evaluate('PsaBackdrop.style(false,.5,.42,12,60,16,100,"#FF6B00",0,100)');page.wait_for_timeout(1100);check(.75,.17)
+ page.evaluate('PsaBackdrop.style(false,.5,.42,12,60,16,100,"#FF6B00",50,50)');page.wait_for_timeout(1100);check(.5,.42)
  # The stage owns the same live map. Unknown late controls cannot escape into the background.
  page.evaluate('window.originalMap=document.querySelector(".amap-container")')
  page.evaluate('PsaBackdrop.style(false,.5,.42,12,60,16,100,"#FF6B00")')

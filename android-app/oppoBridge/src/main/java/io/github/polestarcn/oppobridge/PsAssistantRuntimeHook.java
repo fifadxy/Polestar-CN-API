@@ -75,7 +75,7 @@ final class PsAssistantRuntimeHook {
       BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
           if (!RuntimeBridgeClient.ACTION.equals(intent.getAction())) return;
-          ResultReceiver reply = intent.getParcelableExtra("reply");
+          ResultReceiver reply = (ResultReceiver) intent.getParcelableExtra("reply");
           if (!authorizedSender(this, app)) {
             if (reply != null) {
               Bundle denied = new Bundle();

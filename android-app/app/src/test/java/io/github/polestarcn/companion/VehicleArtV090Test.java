@@ -10,8 +10,8 @@ public class VehicleArtV090Test {
  @Test public void categoryThenColorDoesNotLoseOriginalImageRatio(){
    Context c=RuntimeEnvironment.getApplication();
    assertEquals(5,VehicleArt.TYPES.length);
-   assertEquals(5,VehicleArt.variants("overhead").length);
-   assertEquals(5,VehicleArt.variants("three_quarter").length);
+   assertArrayEquals(new String[]{"top_original","top_dark","top_white"},VehicleArt.variants("overhead"));
+   assertArrayEquals(new String[]{"angled_original","angled_black","angled_white"},VehicleArt.variants("three_quarter"));
    assertEquals(2,VehicleArt.variants("side").length);
    for(String type:VehicleArt.TYPES)for(String variant:VehicleArt.variants(type)){
      assertEquals(type,VehicleArt.type(variant));

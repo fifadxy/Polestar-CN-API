@@ -2164,6 +2164,7 @@ public final class MainActivity extends FragmentActivity {
         } catch(RuntimeException failure) { card.setChecked(OppoDeviceIntegration.enabled(this));toast(tr("切换失败，请查看诊断","Could not change setting; check diagnostics")); }
       });p.addView(card);
       p.addView(text(tr("开启后向设备空间提供当前车辆的电量、状态与控制入口。主 APK 已内置模块；如系统不自动发现，请在兼容 API 102 的框架中启用 PsAssistant，并勾选我的设备。关闭后停止卡片输出和操作。","Shares the selected vehicle with device space. The module is included. If not discovered, enable PsAssistant in an API 102 framework and scope My Devices. Turning this off stops card data and actions."),12,muted,false));
+      setting(p,tr("负一屏／桌面组件 · 添加与诊断","Shelf / home widgets · setup and diagnostics"),()->startActivity(new Intent(this,OppoWidgetSetupActivity.class)));
       setting(p,tr("连接诊断与车辆卡片面板","Connection diagnostics and vehicle card panel"),()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
     });
     disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,p->{residentSettings(p);setting(p,tr("App / Widget 刷新规则","App / Widget refresh rules"),this::refreshRulesDialog);});

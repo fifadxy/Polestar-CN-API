@@ -393,3 +393,11 @@ Unknown host methods now fail explicitly. Queue acceptance returns vehicleConfir
 - Existing foreground default is 5 minutes; Widget/background default 30 minutes when enabled. Android batching changes actual execution. Display ticks/notification redraws are local, not vehicle API reads. No new wake lock or always-on polling is added.
 - GetLatest cloud state calls cannot be assumed to wake the car, nor assumed wake-free, without target-backend/vehicle evidence. No 12V voltage or sleeping-current measurement is available. The policy reduces requests; it is not a guarantee against 12V discharge. Do not apply Polestar 1 TJ35542 wake/charging figures to Polestar 2.
 - Primary reference for the role of the Polestar 2 12V battery: https://www.polestar.com/uk/manual/polestar-2/2021/article/308b0a98bfc63e62c0a8015172fd2960/ . Android task batching reference: https://developer.android.com/develop/background-work/background-tasks/optimize-battery .
+
+## v0.9.7-beta4 Shelf setup correction
+
+MyDevices integration is not evidence of AssistScreen native vehicle support. Add an in-app local setup page with standard Android provider inventory, bound-instance counts, launcher/Shelf/MyDevices versions, an OPPO standard picker shortcut and the official launcher pin request. Pin acceptance is only a request and does not select Shelf placement; bound instance count is not proof of Shelf placement. Native My Vehicle brand-list registration remains unverified. No additional cloud polling is introduced.
+
+Primary observed picker reference: https://github.com/Nielk74/oppo-widget-launcher — explicit com.android.launcher/com.android.launcher.Launcher, extra state=ToggleBar_widget, no action/category. Project verification is on PMA120/ColorOS16.1; do not generalize it to every China firmware.
+
+Usage: Settings → OPPO device space and module → Shelf/home widget setup. Open the standard widget list and locate PsAssistant. If Shelf provides third-party widgets, add there manually; otherwise use the home-screen widget or existing Quick Settings tile. Copy the setup diagnosis to distinguish an unregistered provider from a host catalog limitation. LSP module is only needed for MyDevices hooks, not ordinary Android widgets.

@@ -17,6 +17,8 @@ import android.widget.TextView;
 /** Local widget discovery/setup only; no vehicle network requests or automatic polling. */
 public final class OppoWidgetSetupActivity extends Activity {
   private TextView report;
+  private boolean exporting;
+  private static final int EXPORT_HOSTS=7305;
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
     LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
@@ -38,8 +40,30 @@ public final class OppoWidgetSetupActivity extends Activity {
       String value=diagnostics();report.setText(value);
       ((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("OPPO widget setup",value));
     });
+    button(column,android.view.View.generateViewId(),"导出负一屏适配文件（系统 APK）",()->{
+      if(exporting)return;
+      try{startActivityForResult(hostExportIntent(),EXPORT_HOSTS);}
+      catch(RuntimeException unavailable){report.setText("系统保存文件入口不可用："+unavailable.getClass().getSimpleName());}
+    });
+    TextView exportHelp=new TextView(this);exportHelp.setText("导出负一屏、设备空间的程序安装文件与版本信息，用于分析卡片模板；不包含账号、Token、车辆缓存或操作日志。请在系统文件选择器中选择保存位置。");column.addView(exportHelp);
     report=new TextView(this);report.setTextIsSelectable(true);column.addView(report);
     ScrollView scroll=new ScrollView(this);scroll.addView(column);setContentView(scroll);report.setText(diagnostics());
+  }
+  static Intent hostExportIntent() {
+    return new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+        .setType("application/zip").putExtra(Intent.EXTRA_TITLE,"PsAssistant-OPPO-hosts.zip");
+  }
+  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
+    super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode!=EXPORT_HOSTS||resultCode!=RESULT_OK||data==null||data.getData()==null||exporting)return;
+    android.net.Uri destination=data.getData();exporting=true;report.setText("正在导出系统 APK，请稍候…");
+    new Thread(()->{
+      String message;
+      try{OppoHostApkExport.write(getApplicationContext(),destination);message="系统适配包已保存。请将 PsAssistant-OPPO-hosts.zip 发回用于分析。";}
+      catch(Exception failure){message="导出未完成："+failure.getClass().getSimpleName()+"。请删除不完整 ZIP；若系统禁止读取 APK，可用 APK 提取工具导出负一屏与设备空间。";}
+      final String value=message;
+      runOnUiThread(()->{exporting=false;if(!isFinishing()&&!isDestroyed())report.setText(value);});
+    },"oppo-host-export").start();
   }
   static Intent standardPickerIntent() {
     return new Intent().setComponent(new ComponentName("com.android.launcher","com.android.launcher.Launcher")).putExtra("state","ToggleBar_widget");

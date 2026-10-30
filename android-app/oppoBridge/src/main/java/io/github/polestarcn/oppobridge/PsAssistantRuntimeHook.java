@@ -163,6 +163,7 @@ final class PsAssistantRuntimeHook {
   }
 
   private static boolean authorizedSender(BroadcastReceiver receiver, Context app) {
+    if (Build.VERSION.SDK_INT < 34) return false;
     try {
       int uid = receiver.getSentFromUid();
       String[] packages = app.getPackageManager().getPackagesForUid(uid);

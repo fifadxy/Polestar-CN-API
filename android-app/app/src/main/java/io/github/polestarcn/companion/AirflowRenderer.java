@@ -4,6 +4,7 @@ import android.graphics.*;import java.util.Random;
 final class AirflowRenderer {
  private final Paint paint=new Paint(3),halo=new Paint(3);private final Matrix matrix=new Matrix();
  private final float[] phase=new float[120],lane=new float[120],rate=new float[120],head=new float[2],tail=new float[2],previous=new float[2];
+ private final ParticleDepth depth=new ParticleDepth(lane);
  private RadialGradient glow,bead;private int lastColor;
  AirflowRenderer(){paint.setStrokeCap(Paint.Cap.ROUND);Random r=new Random(930);for(int i=0;i<120;i++){phase[i]=r.nextFloat();lane[i]=r.nextFloat();rate[i]=.8f+.4f*r.nextFloat();}}
  static int color(EffectStateController.Mode m){return m==EffectStateController.Mode.COOLING?0xFF46B0FA:m==EffectStateController.Mode.HEATING?PsaDesign.ORANGE:m==EffectStateController.Mode.NEUTRAL?0xFF9EAFB6:0xFF42D39A;}
@@ -23,7 +24,7 @@ final class AirflowRenderer {
   int color=color(mode);paint.setShader(null);paint.setColor(color);if(glow==null||lastColor!=color){lastColor=color;glow=new RadialGradient(0,0,1,new int[]{(color&0xFFFFFF)|0x55000000,color&0xFFFFFF},null,Shader.TileMode.CLAMP);halo.setShader(glow);bead=new RadialGradient(0,0,1,new int[]{color,(color&0xFFFFFF)|0xB0000000,color&0xFFFFFF},new float[]{0,.4f,1},Shader.TileMode.CLAMP);}
   ParticleField field=(mode==EffectStateController.Mode.PURIFICATION||mode==EffectStateController.Mode.VENTILATION)?p.cleanField:p.climateField;if(p.airAbsorb&&field.sum()==0)return;
   int requested=p.airSpheres?p.particles:p.lines;if(p.airAbsorb)requested=field.count(requested,budget);int n=Math.min(120,Math.min(requested,budget));
-  for(int i=0;i<n;i++){if(layer>=0&&(field.back(i)?0:1)!=layer)continue;
+  for(int i=0;i<n;i++){if(layer>=0&&(depth.behind(i,n,field.behind)?0:1)!=layer)continue;
    float t=(seconds*.20f*p.airSpeed*rate[i]+phase[i])%1f;position(b,right,i,t,p,field,head);
    float edge=Math.min(1,t*8)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1),scale=p.particleSizePercent/100f;
    int alpha=(int)(Math.min(255,p.strength*2.2f)*edge*fade*(layer==0?.7f:1));

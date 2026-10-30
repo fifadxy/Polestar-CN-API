@@ -89,3 +89,5 @@
 - [v0.9.6 设置、图标与门锁交互](47_V096_SETTINGS_INTERACTION.md)
 
 - [v0.9.6-beta2 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)
+
+- [v0.9.6-beta3 沉浸地图与粒子分层](49_V096_BETA3_IMMERSIVE_MAP_DEPTH.md)

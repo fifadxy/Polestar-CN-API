@@ -717,3 +717,9 @@ Airflow has a crisp leading tip and continuously fading tail; both through-car a
 Use a 230ms directional page slide and a 220ms translucent gradient dialog entrance. Android 12+ system blur is optional; older systems use a visual fallback. Experimental parked-map backdrops default off and use a single temporary snapshot with monochrome day/night grading and radial blur. Remote provider DOM compatibility requires device validation.
 
 Display only concise command progress and result. Stop remaining read requests after three consecutive validated vehicle states; do not repeat vehicle writes. Parking labels show a resolved place name, fall back to reported coordinates, or state that parking data has not updated.
+
+## v0.9.6-beta3 Map backdrop and particle depth
+
+Background-only map treatment is borderless and proportionally covered. Hide share-page controls, retain provider attribution, and move the entire map with its parking marker when adjusting focal position. The default marker is VI orange (#FF6B00); its size, color and screen focus are user-adjustable without changing geographic coordinates. Interactive secondary maps retain their own controls.
+
+Within the selected behind-car particle percentage, assign larger particles behind the car first. Keep the smaller particles above the vehicle to reduce body occlusion. Preserve user-selected depth percentages, particle counts and motion settings; cache depth ranking instead of allocating or sorting every frame.

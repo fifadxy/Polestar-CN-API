@@ -1,5 +1,7 @@
 package io.github.polestarcn.oppobridge;
 
+import android.app.BroadcastOptions;
+import android.os.Build;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -34,7 +36,18 @@ final class RuntimeBridgeClient {
         .putExtra("payload", payload == null ? Bundle.EMPTY : payload)
         .putExtra("reply", reply);
     try {
-      context.sendBroadcast(intent);
+      if (Build.VERSION.SDK_INT < 34) {
+        Bundle unsupported = new Bundle();
+        unsupported.putBoolean("available", false);
+        unsupported.putBoolean("accepted", false);
+        unsupported.putString("reason", "runtime-bridge-requires-api-34");
+        return unsupported;
+      }
+      // The injected receiver authenticates getSentFromUid(). Identity sharing is
+      // opt-in on API 34+, otherwise legitimate calls are rejected as anonymous.
+      Bundle options = BroadcastOptions.makeBasic()
+          .setShareIdentityEnabled(true).toBundle();
+      context.sendBroadcast(intent, null, options);
       if (!done.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
         Bundle unavailable = new Bundle();
         unavailable.putBoolean("available", false);

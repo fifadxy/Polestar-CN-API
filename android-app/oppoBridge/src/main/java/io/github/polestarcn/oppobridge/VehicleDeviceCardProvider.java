@@ -169,10 +169,9 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
       }
       long now = Math.max(0L, state.getLong("capturedAt", 0L));
       JSONArray shortcuts = shortcuts(state);
-      String name = state.getString("name", "Polestar");
       return new JSONObject()
           .put("mDeviceId", id)
-          .put("mDeviceName", name == null || name.isEmpty() ? "Polestar" : name)
+          .put("mDeviceName", cardDisplayName(state))
           .put("mMacAddress", pseudoMac)
           .put("modelId", "POLESTAR")
           .put("mDeviceType", "CAR")
@@ -199,6 +198,24 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     } catch (Exception e) {
       throw new IllegalStateException("Vehicle card serialization failed", e);
     }
+  }
+
+  // The observed CAR host renders the name but ignores shortcuts/battery fields.
+  // Keep the stable device ID independent of this cached-state display name.
+  static String cardDisplayName(Bundle state) {
+    String name = state.getString("name", "Polestar");
+    if (name == null || name.trim().isEmpty()) name = "Polestar";
+    StringBuilder data = new StringBuilder();
+    int soc = state.getInt("batteryPercent", -1);
+    if (state.getBoolean("batteryPercentKnown") && soc >= 0 && soc <= 100)
+      data.append(soc).append('%');
+    int range = state.getInt("rangeKm", -1);
+    if (state.getBoolean("rangeKmKnown") && range >= 0) {
+      if (data.length() > 0) data.append(" · ");
+      data.append(range).append("km");
+    }
+    // State comes first because this OEM template can truncate the name.
+    return data.length() == 0 ? name + " · 暂无缓存" : data + " 缓存 · " + name;
   }
 
   static boolean isCharging(String value) {

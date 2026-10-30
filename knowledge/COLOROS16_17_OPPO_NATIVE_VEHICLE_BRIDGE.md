@@ -401,3 +401,12 @@ MyDevices integration is not evidence of AssistScreen native vehicle support. Ad
 Primary observed picker reference: https://github.com/Nielk74/oppo-widget-launcher — explicit com.android.launcher/com.android.launcher.Launcher, extra state=ToggleBar_widget, no action/category. Project verification is on PMA120/ColorOS16.1; do not generalize it to every China firmware.
 
 Usage: Settings → OPPO device space and module → Shelf/home widget setup. Open the standard widget list and locate PsAssistant. If Shelf provides third-party widgets, add there manually; otherwise use the home-screen widget or existing Quick Settings tile. Copy the setup diagnosis to distinguish an unregistered provider from a host catalog limitation. LSP module is only needed for MyDevices hooks, not ordinary Android widgets.
+
+
+## v0.9.7-beta5: target evidence and bounded improvement
+
+User target: launcher 16.6.17, AssistScreen 17.14.60, MyDevices 17.4.15. Screenshots prove a selectable device card is placed on Shelf and opens our detail activity. They do NOT prove native My Vehicle protocol support or command execution. User confirms the CAR card omits supplied shortcuts and vehicle state. Existing schema already sends battery fields and four shortcuts; these are ignored by this rendered template. No unsupported cardStyle/enum guesses or host-wide hooks are introduced.
+
+Use the rendered mDeviceName as a compatibility fallback: known valid battery/range first, explicitly marked cached, then original vehicle name. Stable deviceId remains based on original identity, not changing state. Rendering/truncation still requires target validation. Missing values never become zero. Full cache source timestamp appears on the redesigned high-contrast, two-column detail page. A lifecycle-scoped content observer updates cached state without a polling timer or cloud read; it is removed on stop. Queue acceptance remains distinct from vehicle completion. Unlock and tailgate operations require explicit confirmation.
+
+This release improves cached visibility and detail usability. It does not solve first-level native control: the target AssistScreen APK/protocol is still required to implement a verified richer template. Standard Android widgets remain the existing direct-control option on supported widget hosts. Update APK, reopen Shelf; if the host retains the old name, remove and re-add only this device card. No vehicle refresh is needed for card re-add.

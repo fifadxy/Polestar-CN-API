@@ -9,7 +9,10 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 public final class VehicleCardDetailActivity extends Activity {
-  private TextView state;
+  private TextView state, feedback;
+  private final java.util.concurrent.ExecutorService worker = java.util.concurrent.Executors.newSingleThreadExecutor();
+  private final java.util.List<Button> buttons = new java.util.ArrayList<>();
+  private boolean busy;
   private LinearLayout root;
 
   @Override protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +33,7 @@ public final class VehicleCardDetailActivity extends Activity {
     state.setTextSize(15);
     root.addView(state);
 
+    feedback = new TextView(this);feedback.setTextIsSelectable(true);root.addView(feedback);
     addButton("刷新车辆", null);
     addButton("上锁", "lock");
     addButton("解锁", "unlock");
@@ -49,7 +53,13 @@ public final class VehicleCardDetailActivity extends Activity {
     Button b = new Button(this);
     b.setText(label);
     b.setAllCaps(false);
+    buttons.add(b);
     b.setOnClickListener(v -> {
+      if (busy) return;
+      busy=true;for(Button button:buttons) button.setEnabled(false);
+      feedback.setText("正在提交请求…");
+      worker.execute(() -> {
+      String message;
       try {
         Bundle result;
         if ("__restore_card".equals(action)) {
@@ -61,20 +71,34 @@ public final class VehicleCardDetailActivity extends Activity {
         } else {
           result = BridgeClient.command(this, action);
         }
-        state.setText("请求结果: " + result + "\n\n" + state.getText());
+        message = "__restore_card".equals(action) ? "设备卡已恢复" : result.getBoolean("accepted",false) ? "请求已受理，等待车辆回读确认" : "请求未受理: " + result.getString("reason","unknown");
       } catch (Throwable t) {
-        state.setText("请求失败: " + t + "\n\n" + state.getText());
+        message = "请求失败: " + t.getClass().getSimpleName();
       }
-      root.postDelayed(this::refresh, 900);
+      final String resultMessage=message;
+      runOnUiThread(() -> {if(isFinishing()||isDestroyed())return;
+        feedback.setText(resultMessage);busy=false;for(Button button:buttons)button.setEnabled(true);
+        root.postDelayed(this::refresh,900);
+      });
+      });
     });
     root.addView(b);
   }
 
   private void refresh() {
+    if(isFinishing()||isDestroyed())return;
+    worker.execute(this::readSnapshot);
+  }
+
+  private void showState(String text) {
+    runOnUiThread(() -> {if(!isFinishing()&&!isDestroyed())state.setText(text);});
+  }
+
+  private void readSnapshot() {
     try {
       Bundle s = BridgeClient.snapshot(this);
       if (!s.getBoolean("available", false)) {
-        state.setText("\nPsAssistant 未提供可用车辆。请先登录并选中车辆。\n");
+        showState("车辆不可用: "+s.getString("reason","请先登录并选中车辆"));
         return;
       }
       StringBuilder out = new StringBuilder("\n");
@@ -87,9 +111,13 @@ public final class VehicleCardDetailActivity extends Activity {
       out.append("空调: ").append(s.getString("climate", "--")).append('\n');
       out.append("净化: ").append(s.getString("air", "--")).append('\n');
       out.append("充电: ").append(s.getString("charging", "--")).append('\n');
-      state.setText(out.toString());
+      showState(out.toString());
     } catch (Throwable t) {
-      state.setText("\nBridge 读取失败: " + t + "\n");
+      showState("Bridge 读取失败: " + t.getClass().getSimpleName());
     }
+  }
+  @Override protected void onDestroy() {
+    worker.shutdownNow();
+    super.onDestroy();
   }
 }

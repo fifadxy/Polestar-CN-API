@@ -356,3 +356,15 @@ signing identity explicitly through existing signing environment variables. A
 new test key does not allow an in-place update over an APK signed by another key;
 use the original key for a seamless update. No account session or token is
 extracted by this packaging workflow.
+
+## v0.9.7-beta1 / bridge v0.4.0 coordination review
+
+- Move all direct-panel Binder/provider calls and runtime fallback waits off the UI thread.
+- Serialize panel operations and disable buttons while submitting, preventing rapid duplicate submissions.
+- Keep request feedback separate from snapshots. Accepted means queued, never vehicle-confirmed success.
+- Stop queued work when the panel is destroyed; delayed callbacks check activity lifetime.
+- Add a standard Quick Settings tile to both APKs: 极星车控. This opens the control panel after system unlock and does not issue commands. It does not depend on MyDevices registration or Xposed. The existing opt-in gate still applies.
+- Android 14+ uses the PendingIntent TileService launch API; earlier supported versions use the Intent API.
+- Primary reference: https://developer.android.com/reference/android/service/quicksettings/TileService
+- Next research: ControlsProviderService for a native system controls surface; live notifications for charging/climate, then version-gated Xiaobu command routing. None are marked implemented.
+- Physical OPPO native-card discovery, host callbacks, framework API 102 loading and actual vehicle commands still require device testing.

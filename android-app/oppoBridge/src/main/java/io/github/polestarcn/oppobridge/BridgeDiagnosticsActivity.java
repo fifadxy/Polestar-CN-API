@@ -42,7 +42,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.3.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.4.0\n\n");
       try {
         Bundle caps = BridgeClient.capabilities(this);
         int protocol = caps.getInt("protocolVersion", -1);

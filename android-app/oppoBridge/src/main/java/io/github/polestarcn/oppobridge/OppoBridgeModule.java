@@ -22,6 +22,12 @@ public final class OppoBridgeModule extends XposedModule {
     String process = processName;
     if (process == null || !(process.equals(pkg) || process.startsWith(pkg + ":"))) return;
     try {
+      if (RuntimeBridgeClient.PSASSISTANT.equals(pkg)) {
+        if (RuntimeBridgeClient.PSASSISTANT.equals(process)) {
+          PsAssistantRuntimeHook.install(this, param.getClassLoader());
+        }
+        return;
+      }
       HostProbe.install(this, pkg, param.getClassLoader());
       if ("com.heytap.mydevices".equals(pkg)) {
         if ("com.heytap.mydevices".equals(process)) {

@@ -731,3 +731,7 @@ Place the live map inside its own fixed paint-clipped stage. Share-page informat
 ### v0.9.6-beta5 Map framing and credit
 
 Background maps use a compact text credit with original copyright content instead of a graphical logo block. Keep transparent backing and readable muted text in both themes. Crop focus is independently configurable on each axis, defaults to 50%, and shifts the full map together with its parking marker; never detach geographic labels or the pin from their roads. Clamp framing to avoid blank map edges.
+
+### v0.9.6-beta6 Map source display scope
+
+Per the latest confirmed layout, background maps show no provider logo, source text or copyright overlay. Display the provider's original attribution in the secondary location map only. Apply this rule exclusively through the background script, preserving the interactive location preview and existing crop/theme controls.

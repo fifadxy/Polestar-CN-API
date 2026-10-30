@@ -95,3 +95,5 @@
 - [v0.9.6-beta4 地图裁切与日夜模式](50_V096_BETA4_MAP_STAGE_THEME.md)
 
 - [v0.9.6-beta5 地图裁切焦点与来源文字](51_V096_BETA5_MAP_CROP_CREDIT.md)
+
+- [v0.9.6-beta6 地图来源显示范围](52_V096_BETA6_MAP_CREDIT_SCOPE.md)

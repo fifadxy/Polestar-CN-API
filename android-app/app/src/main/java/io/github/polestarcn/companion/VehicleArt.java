@@ -8,8 +8,8 @@ public final class VehicleArt {
   public static final String[] MODELS={POLESTAR_2};
   public static final String[] TYPES={"auto","overhead","three_quarter","front","side"};
   public static final String[] KEYS={
-      "auto","top_white","top_dark","top_silver","top_blue","top_original",
-      "angled_original","angled_black","angled_blue","angled_silver","angled_white",
+      "auto","top_white","top_dark","top_original",
+      "angled_original","angled_black","angled_white",
       "front_silver","side_official_snow","side_official_space"
   };
 
@@ -42,8 +42,8 @@ public final class VehicleArt {
   public static String[] variants(String group){return variants(group,POLESTAR_2);}
   public static String[] variants(String group,String model){
     switch(group){
-      case "overhead":return new String[]{"top_original","top_dark","top_white","top_silver","top_blue"};
-      case "three_quarter":return new String[]{"angled_original","angled_black","angled_white","angled_silver","angled_blue"};
+      case "overhead":return new String[]{"top_original","top_dark","top_white"};
+      case "three_quarter":return new String[]{"angled_original","angled_black","angled_white"};
       case "front":return new String[]{"front_silver"};
       case "side":return new String[]{"side_official_snow","side_official_space"};
       default:return new String[]{"auto"};
@@ -51,24 +51,30 @@ public final class VehicleArt {
   }
   public static String key(Context c){
     String value=AppPreferences.get(c,selectionKey(AppPreferences.dark(c)),"auto");
+    String normalized=normalizeKey(value,AppPreferences.dark(c));
+    if(!normalized.equals(value)) {
+      AppPreferences.set(c,selectionKey(AppPreferences.dark(c)),normalized);
+      value=normalized;
+    }
     if(value.equals("side_dark_left")||value.equals("side_dark_right"))return "side_official_space";
     if(value.equals("side_white_basic")||value.equals("side_white_perf")||value.equals("side_white_low"))return "side_official_snow";
     if("auto".equals(value))return value;
     for(String key:KEYS)if(key.equals(value))return value;
     return "auto";
   }
+  static String normalizeKey(String key,boolean dark) {
+    if("top_silver".equals(key)||"top_blue".equals(key)) return dark?"top_dark":"top_white";
+    if("angled_silver".equals(key)||"angled_blue".equals(key)) return dark?"angled_black":"angled_white";
+    return key==null?"auto":key;
+  }
   public static String label(Context c,String key){
     switch(key){
       case "top_original":return AppPreferences.tr(c,"原版高清白车顶视","Original HD white overhead");
       case "top_white":return AppPreferences.tr(c,"白色顶视","Snow overhead");
       case "top_dark":return AppPreferences.tr(c,"黑色顶视","Space overhead");
-      case "top_silver":return AppPreferences.tr(c,"银色顶视","Silver overhead");
-      case "top_blue":return AppPreferences.tr(c,"蓝灰顶视","Blue-grey overhead");
       case "angled_original":return AppPreferences.tr(c,"原版黑车 45°","Original dark three-quarter");
       case "angled_black":return AppPreferences.tr(c,"黑色 45°","Black three-quarter");
       case "angled_white":return AppPreferences.tr(c,"白色 45°","White three-quarter");
-      case "angled_silver":return AppPreferences.tr(c,"银色 45°","Silver three-quarter");
-      case "angled_blue":return AppPreferences.tr(c,"蓝灰 45°","Blue-grey three-quarter");
       case "front_silver":return AppPreferences.tr(c,"黑色正面","Black front");
       case "side_dark_left":case "side_dark_right":return AppPreferences.tr(c,"极星官网 · 深空黑","Official Polestar · space");
       case "side_white_basic":case "side_white_low":case "side_white_perf":case "side_official_snow":return AppPreferences.tr(c,"极星官网 · 雪白","Official Polestar · snow");
@@ -77,17 +83,14 @@ public final class VehicleArt {
     }
   }
   public static int drawable(String key,boolean dark,boolean psDefault,boolean nio){
+    key=normalizeKey(key,dark);
     switch(key){
       case "top_original":return R.drawable.vehicle_top;
       case "top_white":return R.drawable.psa_vehicle_top_white;
       case "top_dark":return R.drawable.psa_vehicle_top_dark;
-      case "top_silver":return R.drawable.psa_vehicle_top_silver;
-      case "top_blue":return R.drawable.psa_vehicle_top_blue;
       case "angled_original":return R.drawable.vehicle_hero;
       case "angled_black":return R.drawable.psa_vehicle_angle_black;
       case "angled_white":return R.drawable.psa_vehicle_angle_white;
-      case "angled_silver":return R.drawable.psa_vehicle_angle_silver;
-      case "angled_blue":return R.drawable.psa_vehicle_angle_blue;
       case "front_silver":return R.drawable.psa_vehicle_front_silver;
       case "side_dark_left":case "side_dark_right":return R.drawable.official_p2_side_space;
 
@@ -111,7 +114,7 @@ public final class VehicleArt {
   }
   /** Keep the latest VoLike portrait presentation; source pixels and aspect ratio stay intact. */
   static int portraitRotation(Context c){String skin=UiSkin.get(c),key=key(c);boolean vo=UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin)||UiSkin.polestarVo(c);return vo&&(key.startsWith("top_")||"auto".equals(key))?(frontAtRight(dashboard(c))?-90:90):0;}
-  static boolean frontAtRight(int res){return res==R.drawable.vehicle_top||res==R.drawable.psa_vehicle_angle_black||res==R.drawable.psa_vehicle_angle_blue||res==R.drawable.psa_vehicle_angle_silver||res==R.drawable.psa_vehicle_angle_white;}
+  static boolean frontAtRight(int res){return res==R.drawable.vehicle_top||res==R.drawable.psa_vehicle_angle_black||res==R.drawable.psa_vehicle_angle_white;}
   /** Existing original assets contain transparent margins; keep anchors in vehicle space. */
   static void effectBounds(int res,android.graphics.RectF rect){float w=rect.width(),h=rect.height(),l=rect.left,t=rect.top;
     if(res==R.drawable.vehicle_top)rect.set(l+w*.14f,t+h*.22f,l+w*.86f,t+h*.80f);

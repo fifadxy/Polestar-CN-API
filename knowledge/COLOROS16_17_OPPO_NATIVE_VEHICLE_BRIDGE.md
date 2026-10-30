@@ -372,3 +372,7 @@ extracted by this packaging workflow.
 ## Base correction for v0.9.7-beta1
 
 Merged android-polestar-assistant-main commit 5d9a8b3 (v0.9.6-beta6, versionCode 111) into the bridge branch. The deliverable versionCode is 112, retaining beta6 UI, map, energy, icons, authorization and regression tests. Previous OPPO builds based on v0.9.5-beta2 must not be described as the latest main app.
+
+## v0.9.7-beta2: limited gallery trim for a sub-10-MB integrated APK
+
+Retain beta6 main features, black/white default assets, front/side views and the embedded API-102 module v0.4.0. Delete only optional blue/silver overhead and three-quarter WebP files (four files, 3,472,434 bytes in the previous signed APK). Remove their menu entries and rendering references. Legacy saved selections migrate to black/white within the same view family according to the active day/night theme. Direct drawable lookup also normalizes old keys. Existing assets are not resized or recompressed. The CI checks the integrated debug APK against 10,000,000 bytes; private final signing must be checked again before delivery.

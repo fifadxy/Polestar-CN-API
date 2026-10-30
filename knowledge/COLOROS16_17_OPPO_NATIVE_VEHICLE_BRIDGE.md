@@ -412,3 +412,28 @@ Use the rendered mDeviceName as a compatibility fallback: known valid battery/ra
 This release improves cached visibility and detail usability. It does not solve first-level native control: the target AssistScreen APK/protocol is still required to implement a verified richer template. Standard Android widgets remain the existing direct-control option on supported widget hosts. Update APK, reopen Shelf; if the host retains the old name, remove and re-add only this device card. No vehicle refresh is needed for card re-add.
 
 Setup now offers an explicit user-initiated SAF export of the installed AssistScreen and MyDevices base/split APK files, versions and SHA256 manifest. It never reads private app directories, account/session storage, logs or vehicle cache; it uses no root, no cloud requests, no storage permission. ZIP streams on a worker thread with compression level zero for already-compressed APKs. Export may fail if OEM source paths cannot be read; do not claim success on partial output. The user chooses the destination and manually shares the archive.
+
+## Direct-control code research — 2026-10-30
+
+### New primary-source leads and evidence limits
+
+- Hush `DeviceCard.kt`: https://github.com/dmitthedazed/hush/blob/main/app/src/main/java/com/occaecat/hush/DeviceCard.kt (blob cd464dcc7051fb6f79ff898da4763b159ee12808). Documents MyDevices 17.4.10 and `remotecards/utils/CardsUtils.b`: `componentType=2` routes a shortcut through ContentResolver.call using `componentExtra.authority`, `method`, and `extra`; type 1 is described as requiring a signature-only permission. This is a headset implementation, not proof of CAR/Shelf rendering on 17.4.15/17.14.60.
+- Hush `xposed/HushModule.kt`: https://github.com/dmitthedazed/hush/blob/main/app/src/main/java/com/occaecat/hush/xposed/HushModule.kt . `QuickAppCardAction` uses a controller registry keyed by package and device type. Its fallback controller returns an empty Map and opens a panel on the one-argument callback. Our `MyDevicesVehicleHook.installCardProcess` currently has this same limited routing shape. The Map semantics are unverified; do not fill arbitrary action names and expect buttons to appear.
+- CarPlusUnlocker `HOOKS.md`: https://github.com/hao1196561270/CarPlusUnlocker/blob/main/HOOKS.md (blob 3bcde896dcba2796a03b9eedcbb952b94599fa65). Hooks `com.oplus.ocar.carcontrol.response.CertifiedApps.getList` and injects media app entries. The `carcontrol` package substring here is not evidence of lock/climate/tailgate control or Shelf vehicle registration.
+
+### What our existing code already implements
+
+`VehicleDeviceCardProvider.shortcuts` emits the same provider shortcut shape, using method `ps_vehicle_command` and extras `lock`, `unlock`, `climate-start`, `climate-stop`, `air-start`, `air-stop`, `trunk-open`, `trunk-close`. In the integrated APK authority is `io.github.polestarcn.companion.devices`; standalone authority is `io.github.polestarcn.oppobridge.devices`. `call` forwards accepted commands to BridgeClient and the main app coordinator, without requiring openPanel. This is a candidate direct-control transport already implemented; it does not prove any native button is rendered or invokes it.
+
+Screenshot evidence shows missing controls and battery/range fields. It does not distinguish JSON deserialization drops, conversion drops, template gating, shortcut filtering or another hosting path. Earlier wording that the CAR template "ignores" fields describes the observed result, not a proven internal cause. Likewise, the current empty controller Map is a lead to inspect, not a confirmed cause of missing buttons.
+
+### Required trace on the exact OEM APKs
+
+1. Follow the `device_info_table_new` row into DeviceModel, then conversion to DeviceInfo; establish whether shortcuts and battery survive conversion for CAR.
+2. Follow the actual Shelf card template selection, including size, device type, cardStyle, package and capability gates. Find views or declarative slots for data and actions. Do not guess new cardStyle numbers or spoof HEADSET as the production solution.
+3. Trace `QuickAppCardAction` registry controllers, the Map-returning interface method and all call sites; identify whether it describes supported actions, permissions, links or something else before implementing it.
+4. Trace `componentType=2` at the target build's equivalent of CardsUtils.b through to provider call. An individual button must dispatch its explicit action without forwarding to the generic detail callback. Keep click handlers separate from card-background/detail click.
+5. If the stock CAR template has no action slots, prototype an LSPosed layout extension scoped exclusively to our package/device ID. First verify the actual render technology and process; a View hook will not automatically work for quick-app, web or RemoteViews surfaces. Reuse the authenticated main bridge for all execution and cached state for all rendering.
+6. Validate one explicit lock action, request feedback, bounded readback, unchanged generic device cards, no cloud calls on card show, and behavior after host restart/OTA. Export exact AssistScreen 17.14.60 and MyDevices 17.4.15 using beta5's user-chosen system APK export; no accounts, tokens, logs or private app directories are included.
+
+Research status: a concrete provider transport and a specific controller-registry lead exist. A verified native Shelf vehicle action template, exact action-map semantics and on-phone direct control remain unresolved. No new production hook or feature-complete APK is claimed by this research note.

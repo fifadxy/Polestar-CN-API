@@ -9,6 +9,8 @@ public final class VehicleControlTileService extends TileService {
   @Override public void onStartListening() {
     Tile tile=getQsTile();if(tile!=null){tile.setLabel("极星车控");tile.setState(Tile.STATE_INACTIVE);tile.updateTile();}
   }
+  // Intent overload is required below API 34; the newer overload is gated below.
+  @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
   @Override public void onClick() {
     unlockAndRun(() -> {
       Intent intent=new Intent(this,VehicleCardDetailActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

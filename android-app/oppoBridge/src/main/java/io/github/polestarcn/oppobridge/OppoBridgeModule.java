@@ -6,10 +6,12 @@ import io.github.libxposed.api.XposedModuleInterface;
 
 public final class OppoBridgeModule extends XposedModule {
   private static final String TAG = "PsOppoBridge";
+  private volatile String processName = "unknown";
 
   @Override public void onModuleLoaded(XposedModuleInterface.ModuleLoadedParam param) {
+    processName = param.getProcessName();
     log(Log.INFO, TAG,
-        "module_loaded process=" + param.getProcessName()
+        "module_loaded process=" + processName
             + " systemServer=" + param.isSystemServer()
             + " api=" + getApiVersion()
             + " framework=" + getFrameworkName() + "/" + getFrameworkVersion());
@@ -17,7 +19,7 @@ public final class OppoBridgeModule extends XposedModule {
 
   @Override public void onPackageReady(XposedModuleInterface.PackageReadyParam param) {
     String pkg = param.getPackageName();
-    String process = param.getProcessName();
+    String process = processName;
     if (process == null || !(process.equals(pkg) || process.startsWith(pkg + ":"))) return;
     try {
       HostProbe.install(this, pkg, param.getClassLoader());

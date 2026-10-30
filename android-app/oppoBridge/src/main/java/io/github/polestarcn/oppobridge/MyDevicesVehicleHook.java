@@ -42,12 +42,19 @@ final class MyDevicesVehicleHook {
     Method packageOf = deviceApp.getMethod("getPackageName");
 
     Method cache = uniqueCache(manager);
-    after(module, cache, "mydevices_cache", (args, result) -> {
+    Method supportList = HostMethodResolver.supportList(manager);
+    Method register = HostMethodResolver.register(agent);
+    Method unregister = HostMethodResolver.unregister(agent);
+    Class<?> observerType = register.getParameterTypes()[1];
+    Method removed = uniqueObserverRemoved(observerType);
+    List<Method> oneString = observerOneString(observerType);
+    Method added = namedOrFirst(oneString, "onDeviceAdd", 0);
+    Method updated = namedOrFirst(oneString, "onDeviceUpdated", 1);
+
+    ResultTransform include = (args, result) -> {
       if (!(result instanceof List<?>)) return result;
       List<?> original = (List<?>) result;
-      Application application = currentApplication();
-      boolean enabled = application != null && application.getPackageManager()
-          .resolveContentProvider(VehicleDeviceCardProvider.AUTHORITY, 0) != null;
+      boolean enabled = providerEnabled();
       if (!enabled) {
         List<Object> filtered = result instanceof CopyOnWriteArrayList<?> ? new CopyOnWriteArrayList<>() : new ArrayList<>();
         for (Object item : original) {
@@ -73,7 +80,9 @@ final class MyDevicesVehicleHook {
       copy.addAll((List<?>) result);
       copy.add(ours);
       return copy;
-    });
+    };
+    after(module, cache, "mydevices_cache", include);
+    if(supportList!=null&&!supportList.equals(cache))after(module,supportList,"mydevices_supported_apps",include);
 
     int supportHooks = 0;
     for (Method method : manager.getDeclaredMethods()) {
@@ -82,16 +91,9 @@ final class MyDevicesVehicleHook {
       if (p.length != 1 || p[0] != String.class) continue;
       supportHooks++;
       after(module, method, "mydevices_support_" + method.getName(), (args, result) ->
-          PACKAGE.equals(args.get(0)) ? Boolean.TRUE : result);
+          PACKAGE.equals(args.get(0)) ? Boolean.valueOf(providerEnabled()) : result);
     }
 
-    Method register = uniqueRegister(agent);
-    Method unregister = uniqueUnregister(agent);
-    Class<?> observerType = register.getParameterTypes()[1];
-    Method removed = uniqueObserverRemoved(observerType);
-    List<Method> oneString = observerOneString(observerType);
-    Method added = namedOrFirst(oneString, "onDeviceAdd", 0);
-    Method updated = namedOrFirst(oneString, "onDeviceUpdated", 1);
 
     after(module, register, "mydevices_observer_register", (args, result) -> {
       if (PACKAGE.equals(args.get(0)) && observerType.isInstance(args.get(1))) {
@@ -189,46 +191,21 @@ final class MyDevicesVehicleHook {
     return found;
   }
 
-  private static Method uniqueRegister(Class<?> agent) {
-    Method named = null, shape = null;
-    for (Method method : agent.getDeclaredMethods()) {
-      Class<?>[] p = method.getParameterTypes();
-      if (Modifier.isStatic(method.getModifiers()) || method.getReturnType() != void.class) continue;
-      if (p.length != 2 || p[0] != String.class || !p[1].isInterface()) continue;
-      if ("addDeviceObserver".equals(method.getName())) named = method;
-      if (shape != null && named == null) throw new IllegalStateException("MyDevices register ambiguous");
-      shape = method;
-    }
-    Method result = named != null ? named : shape;
-    if (result == null) throw new IllegalStateException("MyDevices register missing");
-    return result;
-  }
-
-  private static Method uniqueUnregister(Class<?> agent) {
-    Method named = null, shape = null;
-    for (Method method : agent.getDeclaredMethods()) {
-      Class<?>[] p = method.getParameterTypes();
-      if (Modifier.isStatic(method.getModifiers()) || Modifier.isFinal(method.getModifiers())
-          || method.getReturnType() != void.class || p.length != 1 || p[0] != String.class) continue;
-      if ("removeDeviceObserver".equals(method.getName())) named = method;
-      if (shape != null && named == null) throw new IllegalStateException("MyDevices unregister ambiguous");
-      shape = method;
-    }
-    Method result = named != null ? named : shape;
-    if (result == null) throw new IllegalStateException("MyDevices unregister missing");
-    return result;
-  }
-
   private static Method uniqueObserverRemoved(Class<?> observer) {
-    Method named = null, shape = null;
-    for (Method m : observer.getMethods()) {
-      if ("onDeviceRemoved".equals(m.getName())) named = m;
-      Class<?>[] p = m.getParameterTypes();
-      if (p.length == 3 && p[0] == String.class && p[2] == String.class) shape = m;
+    try {
+      Method named=observer.getMethod("onDeviceRemoved",String.class,boolean.class,String.class);
+      if(named.getReturnType()==void.class&&!Modifier.isStatic(named.getModifiers()))return named;
+    } catch(NoSuchMethodException ignored) {}
+    Method found=null;
+    for(Method m:observer.getMethods()) {
+      Class<?>[] p=m.getParameterTypes();
+      if(!Modifier.isStatic(m.getModifiers())&&m.getReturnType()==void.class&&p.length==3&&p[0]==String.class&&p[1]==boolean.class&&p[2]==String.class) {
+        if(found!=null)throw new IllegalStateException("Observer remove callback ambiguous");
+        found=m;
+      }
     }
-    Method result = named != null ? named : shape;
-    if (result == null) throw new IllegalStateException("Observer remove callback missing");
-    return result;
+    if(found==null)throw new IllegalStateException("Observer remove callback missing");
+    return found;
   }
 
   private static List<Method> observerOneString(Class<?> observer) {
@@ -244,7 +221,8 @@ final class MyDevicesVehicleHook {
 
   private static Method namedOrFirst(List<Method> methods, String name, int fallback) {
     for (Method m : methods) if (name.equals(m.getName())) return m;
-    return methods.get(Math.min(fallback, methods.size() - 1));
+    if(methods.size()!=2)throw new IllegalStateException("Observer add/update ambiguous");
+    return methods.get(fallback);
   }
 
   private interface ResultTransform {
@@ -267,6 +245,11 @@ final class MyDevicesVehicleHook {
         });
   }
 
+  private static boolean providerEnabled() {
+    Application app=currentApplication();
+    return app!=null&&app.getPackageManager().resolveContentProvider(VehicleDeviceCardProvider.AUTHORITY,0)!=null;
+  }
+
   private static Application currentApplication() {
     try {
       return (Application) Class.forName("android.app.ActivityThread")
@@ -277,6 +260,7 @@ final class MyDevicesVehicleHook {
   }
 
   private static final class CardBridge {
+    private static volatile long generation;
     private static HandlerThread thread;
     private static ContentObserver observer;
     private static String lastId;
@@ -285,6 +269,7 @@ final class MyDevicesVehicleHook {
     static synchronized void attach(Object target, Method removed, Method added,
         Method updated, OppoBridgeModule module) {
       detach();
+      final long session=generation;
       Application app = currentApplication();
       if (app == null) {
         module.warn("mydevices_card_bridge no_application");
@@ -293,7 +278,10 @@ final class MyDevicesVehicleHook {
       HandlerThread t = new HandlerThread("psassistant-vehicle-card");
       t.start();
       Handler handler = new Handler(t.getLooper());
-      Runnable refresh = () -> {
+      Runnable refresh = new Runnable() {
+        private int failures;
+        @Override public void run() {
+        if(session!=generation)return;
         try {
           String id = null;
           long revision = Long.MIN_VALUE;
@@ -305,32 +293,43 @@ final class MyDevicesVehicleHook {
               revision = new JSONObject(c.getString(1)).optLong("revision", Long.MIN_VALUE);
             }
           }
+          if(session!=generation)return;
           String before = lastId;
           if (id == null && before != null) {
             removed.invoke(target, before, false, PACKAGE);
           } else if (id != null && !id.equals(before)) {
             if (before != null) removed.invoke(target, before, false, PACKAGE);
             added.invoke(target, id);
+            HostReporter.report(HOST, HOST, "card-added", true, "");
           } else if (id != null && revision != lastRevision) {
             updated.invoke(target, id);
           }
+          if(session!=generation)return;
+          failures=0;
           lastId = id;
           lastRevision = revision;
         } catch (Throwable e) {
+          if(session!=generation)return;
+          if(lastId!=null)try {removed.invoke(target,lastId,false,PACKAGE);}catch(Throwable ignored){}
+          lastId=null;lastRevision=Long.MIN_VALUE;
           module.warn("mydevices_card_refresh_failed " + e);
+          if(providerEnabled()&&++failures<=3)handler.postDelayed(this,failures*1000L);
+        }
         }
       };
       ContentObserver o = new ContentObserver(handler) {
         @Override public void onChange(boolean selfChange) { refresh.run(); }
       };
-      app.getContentResolver().registerContentObserver(VehicleDeviceCardProvider.URI, false, o);
       thread = t;
       observer = o;
+      try {app.getContentResolver().registerContentObserver(VehicleDeviceCardProvider.URI, false, o);}
+      catch(RuntimeException failure) {detach();throw failure;}
       handler.post(refresh);
       module.info("mydevices_card_observer attached=true");
     }
 
     static synchronized void detach() {
+      generation++;
       Application app = currentApplication();
       if (observer != null && app != null) {
         try { app.getContentResolver().unregisterContentObserver(observer); } catch (Throwable ignored) {}

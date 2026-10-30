@@ -126,6 +126,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         Bundle response = BridgeClient.command(context(), action);
         ok = response.getBoolean("accepted", false);
         result.putAll(response);
+        result.putBoolean("vehicleConfirmed",false);
       } else if (METHOD_REFRESH.equals(method)) {
         Bundle response = BridgeClient.refresh(context());
         ok = response.getBoolean("accepted", false);
@@ -137,9 +138,14 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
       } else if ("connect".equals(method) || "card_show".equals(method)) {
         context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
             .edit().remove("hidden").apply();
-        try { BridgeClient.refresh(context()); } catch (RuntimeException ignored) {}
+        context().getContentResolver().notifyChange(URI,null);
+        result.putString("reason","cached-card-only");
       } else if ("disconnect".equals(method) || "card_hide".equals(method)) {
-        // Vehicle cloud connectivity is managed by PsAssistant; no local disconnect is needed.
+        result.putString("reason","host-event-acknowledged");
+      } else {
+        ok=false;
+        result.putBoolean("accepted",false);
+        result.putString("reason","unsupported-host-method");
       }
     } catch (Throwable failure) {
       ok = false;
@@ -157,8 +163,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
       JSONArray batteries = new JSONArray();
       JSONArray levels = new JSONArray();
       if (soc >= 0 && soc <= 100) {
-        boolean charging = !"未充电".equals(state.getString("charging", ""))
-            && !"Not charging".equalsIgnoreCase(state.getString("charging", ""));
+        boolean charging = isCharging(state.getString("charging", ""));
         batteries.put(new JSONObject().put("batteryType", "SINGLE").put("value", soc).put("charge", charging));
         levels.put(soc);
       }
@@ -194,6 +199,11 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     } catch (Exception e) {
       throw new IllegalStateException("Vehicle card serialization failed", e);
     }
+  }
+
+  static boolean isCharging(String value) {
+    return "充电中".equals(value)||"正在充电".equals(value)||"智能充电".equals(value)
+        ||"Charging".equalsIgnoreCase(value)||"CHARGING_IN_PROGRESS".equalsIgnoreCase(value);
   }
 
   private static JSONArray shortcuts(Bundle state) throws Exception {

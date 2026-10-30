@@ -32,11 +32,14 @@ public final class OppoBridgeModule extends XposedModule {
       if ("com.heytap.mydevices".equals(pkg)) {
         if ("com.heytap.mydevices".equals(process)) {
           MyDevicesVehicleHook.installMain(this, param.getClassLoader());
+          HostReporter.report(pkg,process,"hooks-installed",true,"");
         } else if ("com.heytap.mydevices:cards".equals(process)) {
           MyDevicesVehicleHook.installCardProcess(this, param.getClassLoader());
+          HostReporter.report(pkg,process,"hooks-installed",true,"");
         }
       }
     } catch (Throwable t) {
+      HostReporter.report(pkg,process,"install-failed",false,t.getClass().getSimpleName());
       log(Log.ERROR, TAG, "bridge_install_failed package=" + pkg + " process=" + process, t);
     }
   }

@@ -42,8 +42,16 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.4.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.5.0\n\n");
       try {
+        Bundle host=BridgeClient.call(this,"host-status",null);
+        for(String prefix:new String[]{"main_","cards_"}) {
+          long seen=host.getLong(prefix+"seenAt",0);
+          out.append(prefix.equals("main_")?"设备空间主进程: ":"设备卡进程: ");
+          if(seen==0)out.append("未收到 Hook 回报；不代表主程序接口失效\n");
+          else out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase","")).append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ").append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(host.getString(prefix+"moduleVersion","")).append('\n');
+        }
+        out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
         Bundle caps = BridgeClient.capabilities(this);
         int protocol = caps.getInt("protocolVersion", -1);
         boolean ready = protocol == 1 && caps.getBoolean("state", false);

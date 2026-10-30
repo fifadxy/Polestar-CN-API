@@ -197,7 +197,7 @@ public final class VehicleCoordinator {
 
   public boolean userRefreshing;
   public boolean quietRefresh;
-  public void refreshQuiet(){if(busy||commandPending)return;quietRefresh=true;refresh(null);}
+  public void refreshQuiet(){if(!VehiclePowerPolicy.automaticReads(context)||busy||commandPending)return;quietRefresh=true;refresh(null);}
   public void refresh(Runnable done) {
     if(!FirstUseConsent.accepted(context)){if(done!=null)done.run();return;}
     if (done != null) completions.add(done);

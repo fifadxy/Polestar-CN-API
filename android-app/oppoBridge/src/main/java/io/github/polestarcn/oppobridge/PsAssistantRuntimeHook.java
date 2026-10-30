@@ -28,6 +28,7 @@ final class PsAssistantRuntimeHook {
       "air-start", "air-stop", "windows-open", "windows-close", "honk", "flash", "honk-flash"
   ));
   private static boolean registered;
+  private static long lastRefresh=-1;
 
   private PsAssistantRuntimeHook() {}
 
@@ -69,7 +70,7 @@ final class PsAssistantRuntimeHook {
       Method hasSession = coordinatorType.getMethod("hasSession");
       Method canCommand = coordinatorType.getMethod("canCommand", String.class);
       Method command = coordinatorType.getMethod("command", String.class);
-      Method refreshQuiet = coordinatorType.getMethod("refreshQuiet");
+      Method refreshQuiet = coordinatorType.getMethod("refresh", Runnable.class);
       Field snapshot = coordinatorType.getField("snapshot");
 
       BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -122,9 +123,13 @@ final class PsAssistantRuntimeHook {
                 out.putBoolean("accepted", false);
                 out.putString("reason", "not-signed-in");
               } else {
-                refreshQuiet.invoke(coordinator);
-                out.putBoolean("accepted", true);
-                out.putString("reason", "queued");
+                long now=android.os.SystemClock.elapsedRealtime();
+                if(lastRefresh>=0&&now>=lastRefresh&&now-lastRefresh<60000L) {
+                  out.putBoolean("accepted",false);out.putString("reason","refresh-cooldown");out.putLong("retryAfterMillis",60000L-(now-lastRefresh));
+                } else {
+                  lastRefresh=now;refreshQuiet.invoke(coordinator,(Object)null);
+                  out.putBoolean("accepted",true);out.putString("reason","queued");
+                }
               }
             } else if ("command".equals(method)) {
               String action = payload == null ? null : payload.getString("action");

@@ -376,3 +376,20 @@ Merged android-polestar-assistant-main commit 5d9a8b3 (v0.9.6-beta6, versionCode
 ## v0.9.7-beta2: limited gallery trim for a sub-10-MB integrated APK
 
 Retain beta6 main features, black/white default assets, front/side views and the embedded API-102 module v0.4.0. Delete only optional blue/silver overhead and three-quarter WebP files (four files, 3,472,434 bytes in the previous signed APK). Remove their menu entries and rendering references. Legacy saved selections migrate to black/white within the same view family according to the active day/night theme. Direct drawable lookup also normalizes old keys. Existing assets are not resized or recompressed. The CI checks the integrated debug APK against 10,000,000 bytes; private final signing must be checked again before delivery.
+
+## v0.9.7-beta3 / bridge v0.5.0 native registration review
+
+Primary comparison: MiaM1ku/Miband-OPlusBridge MyDevicesHook.java (stable-name resolution and supported-app list). Add hooks for getSupportDeviceApplications as well as the cached table. Resolve all observer methods before mutating host state; stable method names take priority over ambiguous structural candidates. Membership gates track provider enablement. Observer sessions use generation checks, bounded read retries and cleanup on registration failure. Provider-access failures remove the previous card rather than leaving stale state.
+
+Add authenticated MyDevices host reports, independent of the integration switch, and read-only diagnostics showing last observed main/cards installation or card-added phase with module/host versions. These are historical observations, not proof of current module enablement, native rendering or vehicle success. No credential or VIN is recorded. Only the actual MyDevices UID can submit IPC reports.
+
+Unknown host methods now fail explicitly. Queue acceptance returns vehicleConfirmed=false. Unknown/idle/planned/completed charge states are not displayed as charging. Native CAR schema and shortcut callbacks remain target-phone dependent. Keep the signed integrated APK below 10,000,000 bytes and retain the trimmed gallery.
+
+### Phone and parked-vehicle power audit
+
+- Card query, host diagnostics, card-show/connect, rendering and bounded local observer retries read only cached state; card-show/connect no longer start cloud vehicle refreshes.
+- Explicit OPPO refresh is rate-limited to one admission per 60 seconds; ordinary command readback is separate.
+- Optional long-parking saver (default OFF to preserve explicit existing refresh preferences) stops foreground automatic reads, Widget/background jobs, map timers and opening-location probes. It does not stop manual refresh, requested-command verification or active camping supervision. Existing intervals are preserved when disabled again.
+- Existing foreground default is 5 minutes; Widget/background default 30 minutes when enabled. Android batching changes actual execution. Display ticks/notification redraws are local, not vehicle API reads. No new wake lock or always-on polling is added.
+- GetLatest cloud state calls cannot be assumed to wake the car, nor assumed wake-free, without target-backend/vehicle evidence. No 12V voltage or sleeping-current measurement is available. The policy reduces requests; it is not a guarantee against 12V discharge. Do not apply Polestar 1 TJ35542 wake/charging figures to Polestar 2.
+- Primary reference for the role of the Polestar 2 12V battery: https://www.polestar.com/uk/manual/polestar-2/2021/article/308b0a98bfc63e62c0a8015172fd2960/ . Android task batching reference: https://developer.android.com/develop/background-work/background-tasks/optimize-battery .

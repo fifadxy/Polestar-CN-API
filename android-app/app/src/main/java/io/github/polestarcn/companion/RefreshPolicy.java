@@ -12,9 +12,10 @@ public final class RefreshPolicy {
     for(int option:allowed)if(value==option)return value;
     return fallback;
   }
-  public static int foreground(Context c){return minutes(c,"foreground_refresh_minutes",5,0,1,2,5,10,15);}
-  public static int map(Context c){return minutes(c,"map_refresh_minutes",15,0,5,15,30,60);}
+  public static int foreground(Context c){return VehiclePowerPolicy.automaticReads(c)?minutes(c,"foreground_refresh_minutes",5,0,1,2,5,10,15):0;}
+  public static int map(Context c){return VehiclePowerPolicy.automaticReads(c)?minutes(c,"map_refresh_minutes",15,0,5,15,30,60):0;}
   public static int background(Context c,boolean resident,boolean widgets){
+    if(!VehiclePowerPolicy.automaticReads(c))return 0;
     int a=(resident||AppPreferences.visible(c,"app_background_enabled",false))?minutes(c,"app_background_minutes",30,0,15,30,60,120):0;
     int b=widgets?minutes(c,"widget_refresh_minutes",30,0,15,30,60,120):0;
     return a==0?b:b==0?a:Math.min(a,b);

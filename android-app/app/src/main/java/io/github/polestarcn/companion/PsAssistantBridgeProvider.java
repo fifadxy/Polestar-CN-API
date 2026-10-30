@@ -47,6 +47,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
   ));
 
   private Handler main;
+  private final BridgeRefreshThrottle refreshThrottle=new BridgeRefreshThrottle();
 
   @Override public boolean onCreate() {
     main = new Handler(Looper.getMainLooper());
@@ -58,6 +59,13 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     Context context = contextOrThrow();
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
+    if("host-report".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean host=false;if(callers!=null)for(String pkg:callers)if("com.heytap.mydevices".equals(pkg))host=true;
+      if(!host)throw new SecurityException("Only MyDevices can report host installation");
+      return OppoHostDiagnostics.record(context,extras);
+    }
+    if("host-status".equals(method))return OppoHostDiagnostics.status(context);
     out.putBoolean("cardEnabled", OppoDeviceIntegration.enabled(context));
     if (!OppoDeviceIntegration.enabled(context)) {
       out.putBoolean("available", false);
@@ -88,7 +96,14 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
         out.putString("reason", "not-signed-in");
         return out;
       }
-      main.post(coordinator::refreshQuiet);
+      if(coordinator.busy||coordinator.commandPending) {
+        out.putBoolean("accepted",false);out.putString("reason","vehicle-busy");return out;
+      }
+      long now=android.os.SystemClock.elapsedRealtime();
+      if(!refreshThrottle.admit(now)) {
+        out.putBoolean("accepted",false);out.putString("reason","refresh-cooldown");out.putLong("retryAfterMillis",refreshThrottle.retryAfter(now));return out;
+      }
+      main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())coordinator.refresh(null);});
       out.putBoolean("accepted", true);
       out.putString("reason", "queued");
       return out;

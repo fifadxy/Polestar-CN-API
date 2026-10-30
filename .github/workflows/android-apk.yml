@@ -91,7 +91,7 @@ jobs:
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
           test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
           cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.5-beta2-debug.apk
-          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v0.1.0-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v0.2.0-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: PsAssistant-v0.9.5-beta2-debug
@@ -99,8 +99,8 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-OPPO-Bridge-v0.1.0-debug
-          path: PsAssistant-OPPO-Bridge-v0.1.0-debug.apk
+          name: PsAssistant-OPPO-Bridge-v0.2.0-debug
+          path: PsAssistant-OPPO-Bridge-v0.2.0-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''

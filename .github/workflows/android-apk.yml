@@ -98,6 +98,11 @@ jobs:
           path: PsAssistant-v0.9.5-beta2-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-OPPO-Bridge-v0.1.0-debug
+          path: PsAssistant-OPPO-Bridge-v0.1.0-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
           name: PsAssistant-v0.9.5-beta2-release

@@ -89,6 +89,26 @@ final class PsAssistantRuntimeHook {
           Bundle payload = intent.getBundleExtra("payload");
           Bundle out = new Bundle();
           out.putInt("protocolVersion", 1);
+          // Older installed clients have no setting; newer clients own the opt-in.
+          try {
+            Class<?> gate = loader.loadClass("io.github.polestarcn.companion.OppoDeviceIntegration");
+            boolean enabled = Boolean.TRUE.equals(gate.getMethod("enabled", Context.class).invoke(null, app));
+            out.putBoolean("cardEnabled", enabled);
+            if (!enabled) {
+              out.putBoolean("available", false);
+              out.putBoolean("accepted", false);
+              out.putString("reason", "integration-disabled");
+              if (reply != null) reply.send(200, out);
+              return;
+            }
+          } catch (ClassNotFoundException legacyClient) {
+            out.putBoolean("cardEnabled", true);
+          } catch (Throwable gateFailure) {
+            out.putBoolean("accepted", false);
+            out.putString("reason", "integration-gate-unavailable");
+            if (reply != null) reply.send(200, out);
+            return;
+          }
           try {
             Object coordinator = get.invoke(null, app);
             if ("capabilities".equals(method)) {

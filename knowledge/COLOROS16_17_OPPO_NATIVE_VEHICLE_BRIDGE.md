@@ -274,3 +274,73 @@ The most defensible integration order is:
 7. digital key as a separate future project
 
 This order follows the strongest public ColorOS 16/17 evidence and keeps the existing Polestar credential and remote-control security boundary intact.
+
+## 2026-10-30 integrated APK: v0.9.6-beta1 / bridge v0.3.0
+
+The main APK now packages Device Card Provider, diagnostics, the control detail
+panel, and the modern libxposed module entry together. A second module APK is
+optional and remains available for older installed PsAssistant clients.
+
+### User switch and lifecycle
+
+Settings → OPPO device space and module → Enable OPPO vehicle device card.
+Default: OFF. The Provider component is disabled in the manifest. Enabling saves
+the preference, enables the Provider without killing the main app, and notifies
+observers. Disabling closes the data/command gate before disabling the component;
+already-bound Provider objects also return no card and reject calls. Runtime
+fallback consults the same switch whenever the installed client has this gate.
+Legacy clients without the switch retain their previous standalone behavior.
+
+Native Provider mode does not itself require Xposed, but OEM allow-lists may
+prevent automatic discovery. For MyDevices registration assistance, enable the
+main PsAssistant APK as a module in an API-102-compatible framework and scope
+`com.heytap.mydevices`. Restart the host or phone after first setup. A normal app
+setting cannot silently turn on an LSPosed module or grant its scope.
+
+Do not enable the old standalone bridge and integrated module simultaneously;
+this can create two provider entries. The standalone package remains for old
+clients; new integrated installs use only the main APK module.
+
+### Protocol and source arrangement
+
+- Discovery action: `oplus.devicecards.action.DEVICE_INFO`.
+- Integrated authority: `io.github.polestarcn.companion.devices`.
+- Query path: `device_info_table_new`; columns: device_id, device_mac,
+  device_data, authority.
+- Main bridge state/control authority remains
+  `io.github.polestarcn.companion.bridge`.
+- Device card data excludes demo snapshots, credentials, tokens and raw VIN.
+- Serialization preserves the source timestamp; querying a card no longer
+  changes the revision or presents stale data as newly captured data.
+- The main Gradle task generates its bridge Java sources from `oppoBridge` and
+  substitutes only application/provider/resource identities. The Java package
+  and Xposed entry class remain `io.github.polestarcn.oppobridge`. There is one
+  maintained bridge implementation, not two manually copied codebases.
+- Keep rules retain the module and reflection-based bridge classes in release.
+
+### Research evidence and limits
+
+Primary implementation reference:
+https://github.com/MiaM1ku/Miband-OPlusBridge
+
+This project supplies a wearable-device integration pattern, not proof that
+ColorOS accepts a `CAR` enum or renders all vehicle shortcut fields. Our vehicle
+schema and callback details remain experimental until tested on the target
+MyDevices version. Success means separately verifying provider discovery,
+DeviceModel parsing, native card rendering, command acceptance, and vehicle-state
+readback. Compilation alone proves none of these on a physical phone.
+
+Xiaobu, Shelf, Pantanal/Seedling, Car+ and Watch still have probe/research entries;
+they are not advertised as working vehicle integrations. Digital-key enrollment
+is separate from this remote-control bridge.
+
+### Build and checks
+
+CI builds the integrated v0.9.6-beta1 main APK and separate bridge v0.3.0 APK,
+runs unit tests and lint, and verifies packaged Xposed metadata. Tests cover
+default-off command rejection, persisted opt-in/component enablement, closing an
+already-bound provider after disable, and stable source-based card revisions.
+Public CI builds omit the private account client configuration unless supplied
+through the existing private build input. Persistent update signing still needs
+the existing signing identity; never describe an unsigned/developer build as a
+verified in-place update or a verified vehicle connection.

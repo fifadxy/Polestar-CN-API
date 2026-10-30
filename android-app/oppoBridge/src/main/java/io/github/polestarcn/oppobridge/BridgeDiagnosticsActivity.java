@@ -42,11 +42,12 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.2.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.3.0\n\n");
       try {
         Bundle caps = BridgeClient.capabilities(this);
         int protocol = caps.getInt("protocolVersion", -1);
         boolean ready = protocol == 1 && caps.getBoolean("state", false);
+        out.append("卡片开关: ").append(caps.getBoolean("cardEnabled", true) ? "开启" : "关闭，请在主程序设置启用").append('\n');
         out.append("桥接连接: ").append(ready ? "可用" : "不可用").append('\n');
         out.append("协议: ").append(protocol).append('\n');
         if (!ready) out.append("原因: ").append(caps.getString("reason", "invalid-capabilities")).append('\n');

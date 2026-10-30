@@ -45,6 +45,16 @@ final class MyDevicesVehicleHook {
     after(module, cache, "mydevices_cache", (args, result) -> {
       if (!(result instanceof List<?>)) return result;
       List<?> original = (List<?>) result;
+      Application application = currentApplication();
+      boolean enabled = application != null && application.getPackageManager()
+          .resolveContentProvider(VehicleDeviceCardProvider.AUTHORITY, 0) != null;
+      if (!enabled) {
+        List<Object> filtered = result instanceof CopyOnWriteArrayList<?> ? new CopyOnWriteArrayList<>() : new ArrayList<>();
+        for (Object item : original) {
+          if (!deviceApp.isInstance(item) || !PACKAGE.equals(String.valueOf(packageOf.invoke(item)))) filtered.add(item);
+        }
+        return filtered;
+      }
       boolean present = false;
       for (Object item : original) {
         if (deviceApp.isInstance(item) && PACKAGE.equals(String.valueOf(packageOf.invoke(item)))) {

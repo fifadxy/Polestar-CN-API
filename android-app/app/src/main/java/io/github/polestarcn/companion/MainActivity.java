@@ -2261,6 +2261,20 @@ public final class MainActivity extends FragmentActivity {
       widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);note(p,tr("磨砂玻璃说明","Frosted glass"),tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."));
     });
     disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});
+    disclosure(root,"settings_oppo",tr("OPPO 设备空间与模块","OPPO device space and module"),false,p->{
+      Switch card=new Switch(this);card.setTag("oppo_device_card_enabled");
+      card.setText(tr("启用 OPPO 设备空间车辆卡片","Enable OPPO vehicle device card"));
+      card.setTextColor(ink);card.setMinHeight(dp(52));
+      card.setChecked(OppoDeviceIntegration.enabled(this));
+      card.setOnCheckedChangeListener((view,on)->{
+        Haptics.tap(this);
+        try { OppoDeviceIntegration.setEnabled(this,on);
+          toast(on?tr("已启用，请重新打开我的设备；首次接入可能需要重启手机","Enabled. Reopen My Devices; first setup may need a reboot."):tr("已关闭车辆卡片与卡片操作","Vehicle card and card actions disabled"));
+        } catch(RuntimeException failure) { card.setChecked(OppoDeviceIntegration.enabled(this));toast(tr("切换失败，请查看诊断","Could not change setting; check diagnostics")); }
+      });p.addView(card);
+      p.addView(text(tr("开启后向设备空间提供当前车辆的电量、状态与控制入口。主 APK 已内置模块；如系统不自动发现，请在兼容 API 102 的框架中启用 PsAssistant，并勾选我的设备。关闭后停止卡片输出和操作。","Shares the selected vehicle with device space. The module is included. If not discovered, enable PsAssistant in an API 102 framework and scope My Devices. Turning this off stops card data and actions."),12,muted,false));
+      setting(p,tr("连接诊断与车辆卡片面板","Connection diagnostics and vehicle card panel"),()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
+    });
     disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,p->{residentSettings(p);setting(p,tr("App / Widget 刷新规则","App / Widget refresh rules"),this::refreshRulesDialog);});
     disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);note(p,tr("手表预览说明","Watch preview"),tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."));});
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{

@@ -58,6 +58,13 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     Context context = contextOrThrow();
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
+    out.putBoolean("cardEnabled", OppoDeviceIntegration.enabled(context));
+    if (!OppoDeviceIntegration.enabled(context)) {
+      out.putBoolean("available", false);
+      out.putBoolean("accepted", false);
+      out.putString("reason", "integration-disabled");
+      return out;
+    }
 
     if ("capabilities".equals(method)) {
       out.putStringArray("commands", ALLOWED_COMMANDS.toArray(new String[0]));

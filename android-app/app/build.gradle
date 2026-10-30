@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 97
-        versionName '0.9.5-beta2'
+        versionCode 98
+        versionName '0.9.6-beta1'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -54,6 +54,7 @@ android {
 dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'
+    compileOnly 'io.github.libxposed:api:102.0.0'
     implementation 'androidx.biometric:biometric:1.1.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     implementation 'io.grpc:grpc-okhttp:1.68.2'
@@ -161,3 +162,30 @@ tasks.matching { it.name in ["assembleRelease", "assemblePreview"] }.configureEa
             throw new GradleException("Complete PsAssistant release also requires the original persistent signing identity")
     }
 }
+
+// One maintained bridge source, two packaging modes. The integrated APK owns its
+// provider identity; no second bridge APK is needed for this variant.
+def integratedBridge = layout.buildDirectory.dir("generated/integratedOppoBridge")
+android.sourceSets.main.java.srcDir(integratedBridge.map { it.dir("java") })
+android.sourceSets.main.res.srcDir("../oppoBridge/src/main/res")
+android.sourceSets.main.resources.srcDir("../oppoBridge/src/main/resources")
+tasks.register("prepareIntegratedOppoBridge") {
+    inputs.dir("../oppoBridge/src/main/java")
+    outputs.dir(integratedBridge)
+    doLast {
+        def source = file("../oppoBridge/src/main/java")
+        def target = integratedBridge.get().dir("java").asFile
+        delete(target)
+        source.eachFileRecurse { input ->
+            if (input.isFile() && input.name.endsWith(".java")) {
+                def output = new File(target, source.toPath().relativize(input.toPath()).toString())
+                output.parentFile.mkdirs()
+                output.setText(input.getText("UTF-8")
+                    .replace('"io.github.polestarcn.oppobridge"', '"io.github.polestarcn.companion"')
+                    .replace('io.github.polestarcn.oppobridge.devices', 'io.github.polestarcn.companion.devices')
+                    .replace('android.resource://io.github.polestarcn.oppobridge/', 'android.resource://io.github.polestarcn.companion/'), "UTF-8")
+            }
+        }
+    }
+}
+tasks.named("preBuild").configure { dependsOn("prepareIntegratedOppoBridge") }

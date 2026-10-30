@@ -79,6 +79,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     } catch (RuntimeException unavailable) {
       return cursor;
     }
+    if (!state.getBoolean("cardEnabled", true)) return cursor;
     if (!state.getBoolean("available", false) || state.getBoolean("demo", false)) return cursor;
     if (context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
         .getBoolean("hidden", false)) return cursor;
@@ -106,6 +107,15 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
 
   @Override public Bundle call(String method, String arg, Bundle extras) {
     requireHost();
+    if (!BridgeClient.capabilities(context()).getBoolean("cardEnabled", true)) {
+      Bundle disabled = new Bundle();
+      disabled.putBoolean("result", false);
+      disabled.putBoolean("accepted", false);
+      disabled.putString("reason", "integration-disabled");
+      android.os.IBinder callback = extras == null ? null : extras.getBinder("callBinder");
+      if (callback != null) reply(callback, false);
+      return disabled;
+    }
     Log.i(TAG, "call " + method);
     android.os.IBinder callback = extras == null ? null : extras.getBinder("callBinder");
     boolean ok = true;
@@ -152,7 +162,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         batteries.put(new JSONObject().put("batteryType", "SINGLE").put("value", soc).put("charge", charging));
         levels.put(soc);
       }
-      long now = Math.max(state.getLong("capturedAt", 0L), System.currentTimeMillis());
+      long now = Math.max(0L, state.getLong("capturedAt", 0L));
       JSONArray shortcuts = shortcuts(state);
       String name = state.getString("name", "Polestar");
       return new JSONObject()
@@ -175,7 +185,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
           .put("isActive", true)
           .put("cardStyle", 1)
           .put("timestamp", now)
-          .put("versionCode", 1L)
+          .put("versionCode", 2L)
           .put("feature", 0)
           .put("linkageVersion", 0)
           .put("autoSwitch", false)

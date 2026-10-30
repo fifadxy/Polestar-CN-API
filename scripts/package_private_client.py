@@ -45,7 +45,8 @@ def aligned_write(output, info, data):
         name_bytes = entry.filename.encode('ascii' if entry.filename.isascii() else 'utf-8')
         pad = (-(output.fp.tell() + 30 + len(name_bytes))) % 4
         if pad:
-            entry.extra = struct.pack('<HH', 0xd935, pad) + b'\0' * pad
+            padding = (-(output.fp.tell() + 30 + len(name_bytes) + 6)) % 4
+            entry.extra = struct.pack('<HHH', 0xd935, 2 + padding, 4) + b'\0' * padding
     output.writestr(entry, data)
 
 def main():

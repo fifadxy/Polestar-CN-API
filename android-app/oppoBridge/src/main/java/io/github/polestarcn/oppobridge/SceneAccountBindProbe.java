@@ -88,8 +88,6 @@ final class SceneAccountBindProbe {
   static void reportCatalog(Application app, String catalog) {
     try {
       Bundle in = new Bundle();
-      in.putBoolean("ready", true);
-      in.putString("reason", "provider-catalog");
       in.putString("providerCatalog", catalog == null ? "" : catalog);
       in.putString("hostVersion", TARGET_VERSION);
       in.putString("moduleVersion", "0.9.0");

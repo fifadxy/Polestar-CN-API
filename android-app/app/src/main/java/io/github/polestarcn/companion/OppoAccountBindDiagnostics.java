@@ -20,6 +20,9 @@ final class OppoAccountBindDiagnostics {
     e.putString("hostVersion", bounded(in.getString("hostVersion", ""), 80));
     e.putString("moduleVersion", bounded(in.getString("moduleVersion", ""), 40));
     e.putString("boundCodes", bounded(in.getString("boundCodes", ""), 1600));
+    e.putString("providerOwner", bounded(in.getString("providerOwner", ""), 120));
+    e.putString("providerPermission", bounded(in.getString("providerPermission", ""), 180));
+    e.putBoolean("providerExported", in.getBoolean("providerExported", false));
     String catalog = bounded(in.getString("providerCatalog", ""), 3200);
     if (!catalog.isEmpty()) e.putString("providerCatalog", catalog);
     e.apply();
@@ -32,8 +35,9 @@ final class OppoAccountBindDiagnostics {
     out.putLong("seenAt", p.getLong("seenAt", 0L));
     out.putBoolean("ready", p.getBoolean("ready", false));
     out.putInt("bindCount", p.getInt("bindCount", 0));
-    for (String key : new String[]{"reason","hostVersion","moduleVersion","boundCodes","providerCatalog"})
+    for (String key : new String[]{"reason","hostVersion","moduleVersion","boundCodes","providerCatalog","providerOwner","providerPermission"})
       out.putString(key, p.getString(key, ""));
+    out.putBoolean("providerExported",p.getBoolean("providerExported",false));
     return out;
   }
 

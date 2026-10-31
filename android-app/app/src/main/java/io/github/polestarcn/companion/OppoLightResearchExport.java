@@ -23,7 +23,7 @@ final class OppoLightResearchExport {
     @Override public void write(byte[] b,int off,int len)throws IOException{reserve(len);out.write(b,off,len);}
   }
   static OppoHostApkExport.Result write(Context context,OutputStream output,OppoHostApkExport.Progress progress)throws Exception {
-    JSONObject report=new JSONObject().put("schemaVersion",3).put("mode","light")
+    JSONObject report=new JSONObject().put("schemaVersion",4).put("mode","light")
         .put("archiveLimitBytes",MAX_BYTES).put("fullApksIncluded",false)
         .put("generatedAt",System.currentTimeMillis()).put("environment",OppoHostApkExport.environment(context))
         .put("module",OppoHostApkExport.module(context))
@@ -47,11 +47,12 @@ final class OppoLightResearchExport {
         item.put("status","metadata-only").put("versionName",info.versionName)
             .put("versionCode",android.os.Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode);
         JSONArray all=OppoHostApkExport.components(info),selected=new JSONArray();
-        for(int pass=0;pass<2;pass++)for(int i=0;i<all.length()&&selected.length()<128;i++) {
-          JSONObject c=all.getJSONObject(i);String name=c.optString("name","").toLowerCase(Locale.ROOT);
-          boolean relevant=name.matches(".*(vehicle|carcontrol|mydevices|card|agent|bridge|wear|watch|remote|speech|bluetooth).*");
-          if(relevant==(pass==0))selected.put(c);
+        // Keep specific vehicle routes ahead of generic card/speech classes.
+        for(int priority=0;priority<3;priority++)for(int i=0;i<all.length()&&selected.length()<128;i++) {
+          JSONObject c=all.getJSONObject(i);
+          if(componentPriority(c.optString("name",""))==priority)selected.put(c);
         }
+        item.put("componentSelectionPolicy","vehicle-first-v1");
         item.put("componentCount",all.length()).put("components",selected).put("componentsTruncated",selected.length()<all.length());
         JSONArray permissions=new JSONArray();if(info.requestedPermissions!=null)
           for(int i=0;i<Math.min(128,info.requestedPermissions.length);i++)permissions.put(info.requestedPermissions[i]);
@@ -76,6 +77,12 @@ final class OppoLightResearchExport {
           "无法从手机读取手表 RTOS 固件；手表需另行运行只读 ADB 采集脚本。\\n").replace("\\n","\n").getBytes(StandardCharsets.UTF_8));
     }
     return new OppoHostApkExport.Result(0,criticalComplete);
+  }
+  static int componentPriority(String value) {
+    String name=value.toLowerCase(Locale.ROOT);
+    if(name.matches(".*(vehicle|carcontrol|searchcar|\\.car\\.|carsetting|devicecard|remotecards|quickapp|appagent|deviceapp|feiniu).*") )return 0;
+    if(name.matches(".*(mydevices|card|agent|bridge|wear|watch|remote|speech|bluetooth).*") )return 1;
+    return 2;
   }
   private static void staticAssets(ZipOutputStream output,String source,String pkg,JSONArray report)throws Exception {
     ZipFile apk;

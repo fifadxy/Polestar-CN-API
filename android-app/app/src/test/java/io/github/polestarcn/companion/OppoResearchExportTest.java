@@ -117,6 +117,12 @@ public class OppoResearchExportTest {
     Map<String,byte[]> files=entries(out.toByteArray());assertFalse(files.containsKey("com.coloros.assistantscreen/AndroidManifest.xml"));
     assertTrue(new String(files.get("report.json"),"UTF-8").contains("size-limit"));
   }
+  @Test public void vehicleRoutesPrecedeGenericCardComponents() {
+    assertEquals(0,OppoLightResearchExport.componentPriority("com.oplus.assistantscreen.card.car.SearchCarProvider"));
+    assertEquals(0,OppoLightResearchExport.componentPriority("com.oplus.mydevices.remotecards.provider.DeviceLiteCardProvider"));
+    assertEquals(1,OppoLightResearchExport.componentPriority("com.oplus.assistantscreen.card.weather.WeatherProvider"));
+    assertEquals(2,OppoLightResearchExport.componentPriority("com.example.SettingsActivity"));
+  }
   @Test public void compressedOutputHasAnEnforcedUploadLimit() throws Exception {
     ByteArrayOutputStream bytes=new ByteArrayOutputStream();OppoLightResearchExport.CappedOutput out=new OppoLightResearchExport.CappedOutput(bytes);
     out.write(new byte[OppoLightResearchExport.MAX_BYTES]);

@@ -7,6 +7,18 @@ def inspect(path):
     out={'scope':'string leads only; not proof of method behavior','packages':[]}
     with zipfile.ZipFile(path) as bundle:
         report=json.loads(bundle.read('report.json'))
+        out['mode']=report.get('mode','full')
+        out['moduleEvidence']='historical-only' if report.get('module',{}).get('historicalOnly') else 'not-validated'
+        out['watchEnduranceSupport']='unproven'
+        out['staticAssets']=[]
+        for asset in report.get('staticAssets',[]):
+            checked=dict(asset)
+            if asset.get('status')=='copied':
+                raw=bundle.read(asset['entry'])
+                if hashlib.sha256(raw).hexdigest()!=asset.get('sha256'):
+                    raise ValueError('Static asset hash mismatch: '+asset['entry'])
+                checked['sha256Verified']=True
+            out['staticAssets'].append(checked)
         for package in report.get('packages',[]):
             item={'package':package.get('packageName'),'version':package.get('versionName'),'files':[]}
             for entry in package.get('files',[]):
@@ -22,7 +34,13 @@ def inspect(path):
                             if any(token in value for token in (b'QuickAppCardAction',b'CardsUtils',b'onShortcutClick',b'handleBindDeviceEvent',b'handleJumpDeviceDetailEvent')):
                                 found.add(value.decode('ascii'))
                 item['files'].append({'entry':entry['entry'],'sha256Verified':True,'routingLeads':sorted(found)})
-            if item['files']:out['packages'].append(item)
+            item['status']=package.get('status')
+            item['componentCount']=package.get('componentCount',0)
+            item['capturedComponentCount']=len(package.get('components',[]))
+            item['componentsTruncated']=package.get('componentsTruncated',False)
+            item['vehicleAndDeviceLeads']=[c for c in package.get('components',[])
+                if re.search(r'vehicle|carcontrol|searchcar|\.car\.|carsetting|devicecard|remotecards|quickapp|appagent|deviceapp|feiniu',c.get('name',''),re.I)]
+            out['packages'].append(item)
     return out
 
 if __name__=='__main__':

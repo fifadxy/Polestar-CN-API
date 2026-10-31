@@ -193,6 +193,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
           .put("feature", 0)
           .put("linkageVersion", 0)
           .put("autoSwitch", false)
+          .put("data", carStatusData(state))
           .put("shortcuts", shortcuts)
           .put("revision", now);
     } catch (Exception e) {
@@ -200,7 +201,8 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     }
   }
 
-  // The observed CAR host renders the name but ignores shortcuts/battery fields.
+  // Retain the cached summary for compact templates; native CAR templates also
+  // read CarStatusInfo from the JSON string in DeviceModel.data (17.4.15).
   // Keep the stable device ID independent of this cached-state display name.
   static String cardDisplayName(Bundle state) {
     String name = state.getString("name", "Polestar");
@@ -221,6 +223,29 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   static boolean isCharging(String value) {
     return "充电中".equals(value)||"正在充电".equals(value)||"智能充电".equals(value)
         ||"Charging".equalsIgnoreCase(value)||"CHARGING_IN_PROGRESS".equalsIgnoreCase(value);
+  }
+
+  static String carStatusData(Bundle state) throws Exception {
+    int range = state.getInt("rangeKm", -1);
+    // The OEM renderer displays this integer directly. Never turn an unknown
+    // range into 0 km or -1 km; keep the existing cached-name fallback instead.
+    if (!state.getBoolean("rangeKmKnown") || range < 0) return "";
+    StringBuilder summary = new StringBuilder("缓存");
+    int soc = state.getInt("batteryPercent", -1);
+    if (state.getBoolean("batteryPercentKnown") && soc >= 0 && soc <= 100)
+      summary.append(" · ").append(soc).append('%');
+    for (String key : new String[]{"lock", "climate"}) {
+      String value = state.getString(key, "");
+      if (value != null && !value.trim().isEmpty())
+        summary.append(" · ").append("climate".equals(key) ? "空调" : "").append(value);
+    }
+    return new JSONObject()
+        .put("batteryEnduranceMileage", range)
+        .put("oilEnduranceMileage", -1)
+        .put("totalEnduranceMileage", range)
+        .put("isRefreshing", false)
+        .put("msg", new JSONObject().put("code", 0).put("text", summary.toString()))
+        .toString();
   }
 
   private static JSONArray shortcuts(Bundle state) throws Exception {
@@ -255,7 +280,9 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         .put("links", "")
         .put("componentType", 2)
         .put("componentExtra", extra.toString())
-        .put("style", 0)
+        // ShortcutMenuKt preserves style; Shortcut.isSupportShowOnHomeCards()
+        // accepts bit 8. A CAR shortcut with style=0 is filtered on 17.4.15.
+        .put("style", 8)
         .put("state", 0));
   }
 

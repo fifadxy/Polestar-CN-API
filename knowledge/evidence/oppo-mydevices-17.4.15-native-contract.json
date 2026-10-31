@@ -1,0 +1,38 @@
+{
+  "package": "com.heytap.mydevices",
+  "version": "17.4.15",
+  "apkSha256": "4b777b6c2b9c05535e8750a49068ce41d6bdffd6d03083796722eadfc2beffba",
+  "methodEvidence": [
+    {
+      "path": "com/oplus/mydevices/domain/entities/compat/ShortcutMenuKt.java",
+      "decompiledSha256": "a8d073cbe72416332e7c361654b3a5007e08731e45d95156b83601612890c152"
+    },
+    {
+      "path": "com/oplus/mydevices/domain/entities/cards/Shortcut.java",
+      "decompiledSha256": "55466fa009fc2a87767d6cd79cd21b2be2f5de26bcfe11f57ce43cd5af50f6c3"
+    },
+    {
+      "path": "aa/AbstractC1308fi.java",
+      "decompiledSha256": "916b75dcc34b61a9563b33ab4d9a5b99d3740a69cc736e32b010c931fe2e080c"
+    },
+    {
+      "path": "com/oplus/cardparser/local/LocalPackerParser.java",
+      "decompiledSha256": "4ba50a9516f91cc97c7d9fb8dd4c39c35f5ee0af548ed94700d21c19c5aa77bf"
+    },
+    {
+      "path": "com/oplus/mydevices/remotecards/utils/CardsUtils.java",
+      "decompiledSha256": "105f9ef616e08404f9282b0bffb7f6261d6c9784444e55af3f31329c887c8a08"
+    },
+    {
+      "path": "aa/C2841ya.java",
+      "decompiledSha256": "d3a5d4e9ef1e677ec46b4337ee1b17b83135034eeb234f4012350e6f3116e1cf"
+    }
+  ],
+  "scope": "Static decompilation of user-supplied APK, not runtime proof",
+  "findings": {
+    "homeShortcutGate": "isShowOnHomeCards OR (style & 8) == 8; compat CAR conversion sets isShowOnHomeCards false and preserves style",
+    "carStatusSource": "DeviceInfo.statusData.data JSON string -> CarStatusInfo, CAR only",
+    "carProviderDispatch": "componentType 2 + componentExtra authority/method/extra -> ContentResolver.call",
+    "watchEnduranceSupport": "unproven"
+  }
+}

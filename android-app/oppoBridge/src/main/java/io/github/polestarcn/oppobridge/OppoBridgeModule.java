@@ -32,6 +32,8 @@ public final class OppoBridgeModule extends XposedModule {
       if ("com.heytap.mydevices".equals(pkg)) {
         if ("com.heytap.mydevices".equals(process)) {
           MyDevicesVehicleHook.installMain(this, param.getClassLoader());
+          try { NativeHomeCardHook.install(this, param.getClassLoader()); }
+          catch (Throwable unavailable) { warn("native_home_card unavailable="+unavailable.getClass().getSimpleName()); }
           HostReporter.report(pkg,process,"hooks-installed",true,"");
         } else if ("com.heytap.mydevices:cards".equals(process)) {
           MyDevicesVehicleHook.installCardProcess(this, param.getClassLoader());

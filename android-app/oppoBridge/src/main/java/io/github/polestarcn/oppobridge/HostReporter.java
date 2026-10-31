@@ -17,7 +17,7 @@ final class HostReporter {
         return;
       }
       Bundle in=new Bundle();in.putString("process",process);in.putString("phase",phase);
-      in.putBoolean("ready",ready);in.putString("reason",reason);in.putString("moduleVersion","0.7.0");
+      in.putBoolean("ready",ready);in.putString("reason",reason);in.putString("moduleVersion","0.8.0");
       in.putString("hostVersion",app.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName);
       // No legacy runtime fallback: reporting must never block OEM startup on an old client.
       app.getContentResolver().call(BridgeClient.URI,"host-report",null,in);

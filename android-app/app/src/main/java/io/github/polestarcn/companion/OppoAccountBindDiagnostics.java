@@ -14,17 +14,19 @@ final class OppoAccountBindDiagnostics {
     if (in == null) throw new IllegalArgumentException("Missing account-bind report");
     SharedPreferences.Editor e = context.getSharedPreferences(PREF, 0).edit();
     e.putLong("seenAt", System.currentTimeMillis());
-    e.putBoolean("ready", in.getBoolean("ready", false));
-    e.putInt("bindCount", Math.max(0, in.getInt("bindCount", 0)));
-    e.putString("reason", bounded(in.getString("reason", ""), 160));
-    e.putString("hostVersion", bounded(in.getString("hostVersion", ""), 80));
-    e.putString("moduleVersion", bounded(in.getString("moduleVersion", ""), 40));
-    e.putString("boundCodes", bounded(in.getString("boundCodes", ""), 1600));
-    e.putString("providerOwner", bounded(in.getString("providerOwner", ""), 120));
-    e.putString("providerPermission", bounded(in.getString("providerPermission", ""), 180));
-    e.putBoolean("providerExported", in.getBoolean("providerExported", false));
-    String catalog = bounded(in.getString("providerCatalog", ""), 3200);
-    if (!catalog.isEmpty()) e.putString("providerCatalog", catalog);
+    if(in.containsKey("ready"))e.putBoolean("ready", in.getBoolean("ready", false));
+    if(in.containsKey("bindCount"))e.putInt("bindCount", Math.max(0, in.getInt("bindCount", 0)));
+    if(in.containsKey("reason"))e.putString("reason", bounded(in.getString("reason", ""), 160));
+    if(in.containsKey("hostVersion"))e.putString("hostVersion", bounded(in.getString("hostVersion", ""), 80));
+    if(in.containsKey("moduleVersion"))e.putString("moduleVersion", bounded(in.getString("moduleVersion", ""), 40));
+    if(in.containsKey("boundCodes"))e.putString("boundCodes", bounded(in.getString("boundCodes", ""), 1600));
+    if(in.containsKey("providerOwner"))e.putString("providerOwner", bounded(in.getString("providerOwner", ""), 120));
+    if(in.containsKey("providerPermission"))e.putString("providerPermission", bounded(in.getString("providerPermission", ""), 180));
+    if(in.containsKey("providerExported"))e.putBoolean("providerExported", in.getBoolean("providerExported", false));
+    if(in.containsKey("providerCatalog")) {
+      String catalog = bounded(in.getString("providerCatalog", ""), 3200);
+      e.putString("providerCatalog", catalog);
+    }
     e.apply();
     return status(context);
   }

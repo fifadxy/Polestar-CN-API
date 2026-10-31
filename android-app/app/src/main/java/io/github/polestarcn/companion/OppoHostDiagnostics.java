@@ -11,7 +11,9 @@ final class OppoHostDiagnostics {
     String prefix="com.heytap.mydevices".equals(process)?"main_":"com.heytap.mydevices:cards".equals(process)?"cards_":null;
     if(prefix==null)throw new IllegalArgumentException("Unsupported host process");
     String phase=in.getString("phase","");
-    if(!phase.equals("hooks-installed")&&!phase.equals("card-added")&&!phase.equals("install-failed"))throw new IllegalArgumentException("Unsupported host phase");
+    if(!phase.equals("hooks-installed")&&!phase.equals("card-added")&&!phase.equals("install-failed")
+        &&!phase.equals("quickapp-gates")&&!phase.equals("quickapp-converted"))
+      throw new IllegalArgumentException("Unsupported host phase");
     SharedPreferences.Editor e=c.getSharedPreferences(PREF,0).edit();
     e.putString(prefix+"phase",phase).putBoolean(prefix+"ready",in.getBoolean("ready",false)).putLong(prefix+"seenAt",System.currentTimeMillis());
     for(String key:new String[]{"hostVersion","moduleVersion","reason"}) {

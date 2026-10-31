@@ -4,6 +4,8 @@ import android.app.Application;
 import android.net.Uri;
 import android.os.Bundle;
 import android.content.pm.ProviderInfo;
+import android.content.pm.ResolveInfo;
+import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ final class SceneAccountBindProbe {
     try {
       String version = app.getPackageManager().getPackageInfo(HOST, 0).versionName;
       if (!TARGET_VERSION.equals(version)) {
-        report(app, false, "host-version-mismatch:" + version, 0, "", "", "", false);
+        report(app, false, "host-version-mismatch:" + version, 0, "", "", "", false, "", "");
         return;
       }
       ProviderInfo owner=app.getPackageManager().resolveContentProvider(
@@ -53,11 +55,15 @@ final class SceneAccountBindProbe {
           owner.readPermission!=null?owner.readPermission:owner.writePermission,128);
       boolean ownerExported=owner!=null&&owner.exported;
 
+      String bindActivity=resolveActivity(app,"oplus.intent.action.sceneservice.ACCOUNT_BIND");
+      String dialogActivity=resolveActivity(app,
+          "oplus.intent.action.sceneservice.REQUEST_SHOW_ACCOUNT_BINGDING_DIALOG");
+
       Bundle extras = new Bundle();
       extras.putBoolean("useDB", true);
       Bundle result = app.getContentResolver().call(URI, METHOD, null, extras);
       if (result == null) {
-        report(app, false, "null-result", 0, "", "", "", false);
+        report(app, false, "null-result", 0, "", "", "", false, "", "");
         module.warn("scene_account_bind_probe null_result");
         return;
       }
@@ -73,14 +79,15 @@ final class SceneAccountBindProbe {
         }
       }
       String codes = String.join("|", safe);
-      report(app, true, "ok", count, codes, ownerPackage, ownerPermission, ownerExported);
+      report(app, true, "ok", count, codes, ownerPackage, ownerPermission, ownerExported,
+          bindActivity, dialogActivity);
       module.info("scene_account_bind_probe ready=true count=" + count
           + " safeCodes=" + safe.size());
     } catch (SecurityException denied) {
-      report(app, false, "permission-denied", 0, "", "", "", false);
+      report(app, false, "permission-denied", 0, "", "", "", false, "", "");
       module.warn("scene_account_bind_probe permission_denied");
     } catch (Throwable failure) {
-      report(app, false, failure.getClass().getSimpleName(), 0, "", "", "", false);
+      report(app, false, failure.getClass().getSimpleName(), 0, "", "", "", false, "", "");
       module.warn("scene_account_bind_probe failed=" + failure.getClass().getSimpleName());
     }
   }
@@ -96,7 +103,8 @@ final class SceneAccountBindProbe {
   }
 
   private static void report(Application app, boolean ready, String reason, int count, String codes,
-      String ownerPackage, String ownerPermission, boolean ownerExported) {
+      String ownerPackage, String ownerPermission, boolean ownerExported,
+      String bindActivity, String dialogActivity) {
     try {
       Bundle in = new Bundle();
       in.putBoolean("ready", ready);
@@ -106,10 +114,24 @@ final class SceneAccountBindProbe {
       in.putString("providerOwner", ownerPackage);
       in.putString("providerPermission", ownerPermission);
       in.putBoolean("providerExported", ownerExported);
+      in.putString("bindActivity", bindActivity);
+      in.putString("dialogActivity", dialogActivity);
       in.putString("hostVersion", TARGET_VERSION);
       in.putString("moduleVersion", "0.9.0");
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}
+  }
+
+  private static String resolveActivity(Application app,String action) {
+    try {
+      ResolveInfo info=app.getPackageManager().resolveActivity(new Intent(action),0);
+      if(info==null||info.activityInfo==null)return "";
+      String pkg=safeMeta(info.activityInfo.packageName,96);
+      String name=safeMeta(info.activityInfo.name,160);
+      return pkg+"/"+name;
+    } catch(Throwable ignored) {
+      return "";
+    }
   }
 
   private static String safeMeta(String value,int max) {

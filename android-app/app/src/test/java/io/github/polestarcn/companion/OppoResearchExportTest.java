@@ -92,4 +92,35 @@ public class OppoResearchExportTest {
     Uri uri=androidx.core.content.FileProvider.getUriForFile(context,context.getPackageName()+".oppoexports",inside);
     assertEquals("content",uri.getScheme());
   }
+  @Test public void lightCaptureSkipsLargeDexAndApksAndIncludesBoundedManifest() throws Exception {
+    PackageInfo info=install("com.coloros.assistantscreen",true);install("com.heytap.mydevices",false);
+    try(ZipOutputStream apk=new ZipOutputStream(new FileOutputStream(info.applicationInfo.sourceDir))) {
+      apk.putNextEntry(new ZipEntry("AndroidManifest.xml"));apk.write(new byte[]{8,9});apk.closeEntry();
+      apk.putNextEntry(new ZipEntry("classes.dex"));apk.write(new byte[2_100_000]);apk.closeEntry();
+    }
+    ByteArrayOutputStream out=new ByteArrayOutputStream();
+    OppoLightResearchExport.write(context,out,message->{});
+    assertTrue(out.size()<2_000_000);
+    Map<String,byte[]> files=entries(out.toByteArray());
+    assertArrayEquals(new byte[]{8,9},files.get("com.coloros.assistantscreen/AndroidManifest.xml"));
+    for(String name:files.keySet()){assertFalse(name.endsWith(".apk"));assertFalse(name.endsWith(".dex"));}
+    JSONObject report=new JSONObject(new String(files.get("report.json"),"UTF-8"));
+    assertEquals("light",report.getString("mode"));assertFalse(report.getBoolean("fullApksIncluded"));
+    assertTrue(report.has("watchData"));assertEquals(2_000_000,report.getInt("archiveLimitBytes"));
+  }
+  @Test public void oversizedStaticAssetIsSkippedAndRecorded() throws Exception {
+    PackageInfo info=install("com.coloros.assistantscreen",true);
+    try(ZipOutputStream apk=new ZipOutputStream(new FileOutputStream(info.applicationInfo.sourceDir))) {
+      apk.putNextEntry(new ZipEntry("AndroidManifest.xml"));apk.write(new byte[131073]);apk.closeEntry();
+    }
+    ByteArrayOutputStream out=new ByteArrayOutputStream();OppoLightResearchExport.write(context,out,message->{});
+    Map<String,byte[]> files=entries(out.toByteArray());assertFalse(files.containsKey("com.coloros.assistantscreen/AndroidManifest.xml"));
+    assertTrue(new String(files.get("report.json"),"UTF-8").contains("size-limit"));
+  }
+  @Test public void compressedOutputHasAnEnforcedUploadLimit() throws Exception {
+    ByteArrayOutputStream bytes=new ByteArrayOutputStream();OppoLightResearchExport.CappedOutput out=new OppoLightResearchExport.CappedOutput(bytes);
+    out.write(new byte[OppoLightResearchExport.MAX_BYTES]);
+    try{out.write(1);fail("Must reject byte above budget");}catch(IOException expected){}
+    assertEquals(OppoLightResearchExport.MAX_BYTES,bytes.size());
+  }
 }

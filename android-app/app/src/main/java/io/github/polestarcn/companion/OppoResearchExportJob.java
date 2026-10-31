@@ -34,12 +34,12 @@ final class OppoResearchExportJob {
         temporary=new File(directory,"research.zip.part");
         OppoHostApkExport.Result result;
         try(OutputStream output=new FileOutputStream(temporary)) {
-          result=OppoHostApkExport.write(app,output,message->publish(new State(true,message,null)));
+          result=OppoLightResearchExport.write(app,output,message->publish(new State(true,message,null)));
         }
-        File file=new File(directory,"PsAssistant-OPPO-research.zip");
+        File file=new File(directory,"PsAssistant-OPPO-light.zip");
         Files.move(temporary.toPath(),file.toPath(),StandardCopyOption.REPLACE_EXISTING);
-        publish(new State(false,(result.complete?"资料包已生成":"资料包已生成，但系统 APK 有缺失；详情已写入报告")+
-            "；成功提取 "+result.apkFiles+" 个 APK，可分享分析。",file));
+        publish(new State(false,(result.complete?"轻量资料包已生成":"轻量资料包已生成，部分组件不可见；详情已标注")+
+            "；"+file.length()+" 字节（上限 2 MB），可分享分析。",file));
       } catch(Exception failure) {
         if(temporary!=null)temporary.delete();
         publish(new State(false,"生成失败："+failure.getClass().getSimpleName()+"。请确认剩余存储空间后重试。",null));

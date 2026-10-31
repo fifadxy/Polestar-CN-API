@@ -43,7 +43,7 @@ public final class OppoWidgetSetupActivity extends Activity {
       String value=diagnostics();report.setText(value);
       ((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("OPPO widget setup",value));
     });
-    generateButton=button(column,android.view.View.generateViewId(),"一键生成并分享适配资料包",()->{
+    generateButton=button(column,android.view.View.generateViewId(),"一键导出轻量资料（≤2 MB）",()->{
       autoShare=true;
       if(!OppoResearchExportJob.start(this))autoShare=false;
     });
@@ -52,13 +52,13 @@ public final class OppoWidgetSetupActivity extends Activity {
       try{startActivityForResult(hostExportIntent(),EXPORT_HOSTS);}
       catch(RuntimeException unavailable){report.setText("系统保存入口不可用："+unavailable.getClass().getSimpleName());}
     });
-    TextView exportHelp=new TextView(this);exportHelp.setText("收集负一屏、设备空间的安装文件，以及桌面／系统服务版本、公开组件信息和模块加载历史。不需要 Root 授权，不包含账号、Token、车辆缓存或系统日志。分享给谁由你选择。");column.addView(exportHelp);
+    TextView exportHelp=new TextView(this);exportHelp.setText("默认导出小于 2 MB 的轻量资料：版本、组件、模块历史与少量静态配置，不打包完整 APK。增加健康、小布、车联版本定位。手机不能读取手表内部资料；不收集账号、Token、车辆缓存或系统日志。");column.addView(exportHelp);
     report=new TextView(this);report.setTextIsSelectable(true);column.addView(report);
     ScrollView scroll=new ScrollView(this);scroll.addView(column);setContentView(scroll);report.setText(diagnostics());
   }
   static Intent hostExportIntent() {
     return new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-        .setType("application/zip").putExtra(Intent.EXTRA_TITLE,"PsAssistant-OPPO-research.zip");
+        .setType("application/zip").putExtra(Intent.EXTRA_TITLE,"PsAssistant-OPPO-light.zip");
   }
   @Override protected void onStart() {super.onStart();OppoResearchExportJob.observe(exportListener);}
   @Override protected void onStop() {OppoResearchExportJob.remove(exportListener);super.onStop();}

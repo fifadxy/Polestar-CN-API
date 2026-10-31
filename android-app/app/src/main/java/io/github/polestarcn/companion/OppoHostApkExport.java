@@ -74,7 +74,7 @@ final class OppoHostApkExport {
     }
     return new Result(copied,complete);
   }
-  private static JSONObject environment(Context c) throws JSONException {
+  static JSONObject environment(Context c) throws JSONException {
     DisplayMetrics m=c.getResources().getDisplayMetrics();
     return new JSONObject().put("appVersion",BuildConfig.VERSION_NAME).put("appVersionCode",BuildConfig.VERSION_CODE)
         .put("manufacturer",Build.MANUFACTURER).put("model",Build.MODEL).put("device",Build.DEVICE)
@@ -84,7 +84,7 @@ final class OppoHostApkExport {
         .put("widthPixels",m.widthPixels).put("heightPixels",m.heightPixels).put("densityDpi",m.densityDpi)
         .put("fontScale",c.getResources().getConfiguration().fontScale).put("uiMode",c.getResources().getConfiguration().uiMode);
   }
-  private static JSONObject module(Context c) throws JSONException {
+  static JSONObject module(Context c) throws JSONException {
     JSONObject out=new JSONObject().put("integrationEnabled",OppoDeviceIntegration.enabled(c)).put("historicalOnly",true);
     Bundle state=OppoHostDiagnostics.status(c);
     for(String prefix:new String[]{"main_","cards_"}) {
@@ -93,7 +93,7 @@ final class OppoHostApkExport {
     }
     return out;
   }
-  private static JSONArray components(PackageInfo info) throws JSONException {
+  static JSONArray components(PackageInfo info) throws JSONException {
     JSONArray out=new JSONArray();
     for(ComponentInfo[] group:new ComponentInfo[][]{info.activities,info.receivers,info.services,info.providers}) {
       if(group==null)continue;

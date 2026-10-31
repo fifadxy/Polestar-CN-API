@@ -80,6 +80,9 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoAccountBindDiagnostics.record(context,extras);
     }
     if("account-bind-status".equals(method))return OppoAccountBindDiagnostics.status(context);
+    if("discovery-baseline-save".equals(method))return OppoDiscoveryBaseline.save(context);
+    if("discovery-baseline-diff".equals(method))return OppoDiscoveryBaseline.diff(context);
+    if("discovery-baseline-clear".equals(method))return OppoDiscoveryBaseline.clear(context);
     out.putBoolean("cardEnabled", OppoDeviceIntegration.enabled(context));
     if (!OppoDeviceIntegration.enabled(context)) {
       out.putBoolean("available", false);

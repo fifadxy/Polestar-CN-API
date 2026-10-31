@@ -192,9 +192,11 @@ P0 runtime:
 - QuickApp probe report confirming the expected filter on device
 
 P1 Shelf:
-- capture Shelf "My Vehicle" add/bind flow
-- correlate AssistantScreen with Pantanal ShelfProvider / ServiceStoreProvider / card service calls
-- identify service ID / provider identity / authorization owner
+- beta10 / Bridge 0.9.0 adds a read-only probe inside AssistantScreen 17.14.60
+- query the OEM-authorized `content://com.oplus.pantanal.ums.card.support.shelf/shelf_services` path from the Shelf host identity
+- retain only bounded service metadata: serviceId, package/component/name candidates, column names and row count
+- do not read account state, tokens or card body data and do not create/update/delete services
+- correlate the candidate service with CardConfiguration / CardService / authorization owner
 - only then decide between a normal provider, a Pantanal adapter, or a narrow LSPosed registration shim
 
 P2:

@@ -66,6 +66,13 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoHostDiagnostics.record(context,extras);
     }
     if("host-status".equals(method))return OppoHostDiagnostics.status(context);
+    if("shelf-report".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean shelf=false;if(callers!=null)for(String pkg:callers)if("com.coloros.assistantscreen".equals(pkg))shelf=true;
+      if(!shelf)throw new SecurityException("Only AssistantScreen can report Shelf metadata");
+      return OppoShelfDiagnostics.record(context,extras);
+    }
+    if("shelf-status".equals(method))return OppoShelfDiagnostics.status(context);
     out.putBoolean("cardEnabled", OppoDeviceIntegration.enabled(context));
     if (!OppoDeviceIntegration.enabled(context)) {
       out.putBoolean("available", false);

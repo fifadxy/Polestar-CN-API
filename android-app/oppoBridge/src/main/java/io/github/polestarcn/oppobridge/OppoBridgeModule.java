@@ -33,6 +33,10 @@ public final class OppoBridgeModule extends XposedModule {
           && "com.coloros.assistantscreen".equals(process)) {
         try { ShelfPantanalProbe.install(this); }
         catch (Throwable unavailable) { warn("shelf_pantanal_probe unavailable="+unavailable.getClass().getSimpleName()); }
+        try { SceneAccountBindProbe.install(this); }
+        catch (Throwable unavailable) { warn("scene_account_bind_probe unavailable="+unavailable.getClass().getSimpleName()); }
+        try { AccountProviderCatalogProbe.install(this, param.getClassLoader()); }
+        catch (Throwable unavailable) { warn("account_provider_catalog_probe unavailable="+unavailable.getClass().getSimpleName()); }
       }
       if ("com.heytap.mydevices".equals(pkg)) {
         if ("com.heytap.mydevices".equals(process)) {

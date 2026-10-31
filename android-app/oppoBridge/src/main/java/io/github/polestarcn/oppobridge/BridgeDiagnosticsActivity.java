@@ -29,6 +29,14 @@ public final class BridgeDiagnosticsActivity extends Activity {
     refresh.setText("重新检测桥接");
     refresh.setOnClickListener(v -> diagnose());
     column.addView(refresh);
+    Button baseline = new Button(this);
+    baseline.setText("记录当前 Shelf / 账号基线");
+    baseline.setOnClickListener(v -> runDiscoveryAction("discovery-baseline-save"));
+    column.addView(baseline);
+    Button compare = new Button(this);
+    compare.setText("比较“我的车辆”变化");
+    compare.setOnClickListener(v -> runDiscoveryAction("discovery-baseline-diff"));
+    column.addView(compare);
     status = new TextView(this);
     status.setTextSize(15);
     status.setTextIsSelectable(true);
@@ -123,6 +131,47 @@ public final class BridgeDiagnosticsActivity extends Activity {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });
     });
+  }
+
+  private void runDiscoveryAction(String method) {
+    status.setText("正在比较 OPPO 服务元数据…");
+    worker.execute(() -> {
+      StringBuilder out=new StringBuilder();
+      try {
+        Bundle result=BridgeClient.call(this,method,null);
+        long saved=result.getLong("savedAt",0L);
+        if(saved==0L) {
+          out.append("尚未记录基线。先打开一次负一屏后点击“记录当前 Shelf / 账号基线”。");
+        } else if("discovery-baseline-save".equals(method)) {
+          out.append("基线已记录: ").append(new java.util.Date(saved))
+              .append("\n接下来进入负一屏“我的车辆”的添加/绑定流程，再回来点“比较变化”。");
+        } else {
+          out.append("基线: ").append(new java.util.Date(saved)).append('\n');
+          appendDelta(out,"Shelf serviceId",
+              result.getString("servicesAdded",""),result.getString("servicesRemoved",""));
+          appendDelta(out,"已绑定 provider code",
+              result.getString("boundCodesAdded",""),result.getString("boundCodesRemoved",""));
+          appendDelta(out,"Provider 目录 code",
+              result.getString("providerCatalogAdded",""),result.getString("providerCatalogRemoved",""));
+          out.append("\n只比较服务/provider 标识，不比较账号、Token、URL 或卡片正文。");
+        }
+      } catch(Throwable failure) {
+        out.append("比较失败: ").append(failure.getClass().getSimpleName())
+            .append(": ").append(failure.getMessage());
+      }
+      runOnUiThread(() -> {
+        if(!isFinishing()&&!isDestroyed())status.setText(out.toString());
+      });
+    });
+  }
+
+  private static void appendDelta(StringBuilder out,String title,String added,String removed) {
+    out.append(title).append(": ");
+    boolean changed=false;
+    if(added!=null&&!added.isEmpty()) {out.append("+[").append(added).append("] ");changed=true;}
+    if(removed!=null&&!removed.isEmpty()) {out.append("-[").append(removed).append("]");changed=true;}
+    if(!changed)out.append("无变化");
+    out.append('\n');
   }
 
   @Override protected void onDestroy() {

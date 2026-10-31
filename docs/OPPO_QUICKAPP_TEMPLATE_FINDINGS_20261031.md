@@ -39,3 +39,42 @@ beta8 已补全原生首页展示条件、车辆 data JSON、控制器三参数�
   }
 ]
 ```
+
+
+## 继续反编译：双重过滤链
+
+MyDevices 17.4.15 不是只在 RPK 里过滤 shortcut。
+
+`QuickCardDeviceDataConverter.q(...)` 在生成 `QuickCardDeviceData` 前已经把 TSL + DeviceModel shortcuts 合并、去重，并使用 `QuickCardDeviceDataConverter.r()` 返回的集合过滤。该集合来自 `assets/support/card_short_cut.json`，精确版本中不包含任何 `ps_*`。
+
+因此实际链路是：
+
+```
+DeviceModel shortcuts / TSL
+        ↓
+QuickCardDeviceDataConverter
+        ↓ card_short_cut.json
+第一层过滤
+        ↓
+QuickCardDeviceData
+        ↓
+SingleDeviceCard2x2 / 4x2
+        ↓ eventSummary
+第二层过滤
+        ↓
+具体设备组件
+```
+
+当前 2x2/4x2 `eventSummary` 也不包含 `ps_*`。所以只修 style=8、只注入 controller 或只放宽 converter 都不足以显示自定义快捷键。
+
+4x2 的 CAR 组件确实包含 `kongtiao / chesuo / shanguang / mingdi` 四类视觉语义，点击统一发送 `deviceId + item.id + Number(!item.state)`。但这四个 ID 同样不在当前 `eventSummary` 和 converter 白名单里。现阶段只把它视为 OEM CAR 模板资源证据，不猜测其云端车企协议。
+
+beta10 / Bridge 0.9.0 新增只读 `QuickAppContractProbe`：在精确 17.4.15 上报告 converter 是否放行 PsAssistant ID 以及我们的 CAR 行转换后剩余 ID；不修改白名单、不改 RPK。
+
+## Controller 进一步确认
+
+`QuickAppCardAction` 的控制器注册表以 `packageName + deviceType` 选择控制器；三参数 `void(device, shortcutId, value)` 是点击，单参数 `void(device)` 是详情。
+
+精确版本中 `com.heytap.opluscarlink` 对应控制器的点击方法为空实现；一个 `com.heytap.mydevices` wildcard 控制器的点击方法同样为空。因此 CarLink/Car+ 不能作为已验证的远程车控后端。
+
+MyDevices 首页直接控车继续优先使用 exact-build `NativeHomeCardHook`，它只替换 PsAssistant CAR 行的内容并绕开 QuickApp 两层过滤，其他设备保持 OEM。

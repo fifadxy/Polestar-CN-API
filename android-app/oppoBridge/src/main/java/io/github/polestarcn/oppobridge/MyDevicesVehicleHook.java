@@ -128,9 +128,32 @@ final class MyDevicesVehicleHook {
     for (Method m : registry.getDeclaredMethods()) if (isLookup(m)) lookups.add(m);
     if (lookups.isEmpty()) throw new NoSuchMethodException("QuickApp lookup missing");
     Class<?> controllerType = lookups.get(0).getReturnType();
+    Method click = HostMethodResolver.cardClick(controllerType);
 
     Object controller = Proxy.newProxyInstance(loader, new Class<?>[]{controllerType}, (proxy, method, args) -> {
-      if (method.getReturnType() == Map.class) return Collections.emptyMap();
+      if ("equals".equals(method.getName()) && method.getParameterCount() == 1) return proxy == args[0];
+      if ("hashCode".equals(method.getName()) && method.getParameterCount() == 0) return System.identityHashCode(proxy);
+      // Exact 17.4.15 factory contract: Map<packageName, List<deviceType>>.
+      if (method.getReturnType() == Map.class) return Collections.singletonMap(PACKAGE, Collections.singletonList("CAR"));
+      if (method.equals(click)) {
+        String command = CardShortcutCommand.fromId(args == null ? null : (String) args[1]);
+        if (command == null || args[0] == null || args[2] == null) {
+          module.warn("mydevices_shortcut_rejected unsupported-id-or-missing-value");
+          return null;
+        }
+        Application app = currentApplication();
+        if (app == null) { module.warn("mydevices_shortcut_rejected no-application"); return null; }
+        // Commands use the existing session, integration and busy gates. Do not
+        // infer a vehicle operation from an arbitrary Boolean/TSL property.
+        try {
+          android.os.Bundle response = BridgeClient.command(app, command);
+          module.info("mydevices_shortcut accepted=" + response.getBoolean("accepted", false)
+              + " reason=" + response.getString("reason", "") + " vehicleConfirmed=false");
+        } catch (RuntimeException failure) {
+          module.warn("mydevices_shortcut_rejected bridge-unavailable");
+        }
+        return null;
+      }
       if (method.getParameterCount() == 1) {
         openPanel(args == null ? null : args[0], module);
         return null;

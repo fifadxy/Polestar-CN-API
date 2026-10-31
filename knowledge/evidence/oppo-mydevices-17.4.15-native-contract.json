@@ -26,6 +26,18 @@
     {
       "path": "aa/C2841ya.java",
       "decompiledSha256": "d3a5d4e9ef1e677ec46b4337ee1b17b83135034eeb234f4012350e6f3116e1cf"
+    },
+    {
+      "path": "aa/C0792Yh.java",
+      "decompiledSha256": "4837c6689641c7f735ff6a42d7cc1508a526134bd94e40469ce1ddb2f9528c64"
+    },
+    {
+      "path": "aa/InterfaceC0677Tw.java",
+      "decompiledSha256": "2925a54094cf4ca49343ba779b0066f9f3ab8dc42a770872b01ecfea5b330283"
+    },
+    {
+      "path": "com/oplus/mydevices/quickapp/action/QuickAppCardAction.java",
+      "decompiledSha256": "722510f6a5585e2b8969c61cb8c23f8509660c02c9f55ce3767aa47d8ec87c7b"
     }
   ],
   "scope": "Static decompilation of user-supplied APK, not runtime proof",
@@ -33,6 +45,7 @@
     "homeShortcutGate": "isShowOnHomeCards OR (style & 8) == 8; compat CAR conversion sets isShowOnHomeCards false and preserves style",
     "carStatusSource": "DeviceInfo.statusData.data JSON string -> CarStatusInfo, CAR only",
     "carProviderDispatch": "componentType 2 + componentExtra authority/method/extra -> ContentResolver.call",
-    "watchEnduranceSupport": "unproven"
+    "watchEnduranceSupport": "unproven",
+    "quickAppController": "Map<packageName,List<deviceType>>; void(device,String,Object)=click; void(device)=details; only own exact ps_* command IDs are forwarded"
   }
 }

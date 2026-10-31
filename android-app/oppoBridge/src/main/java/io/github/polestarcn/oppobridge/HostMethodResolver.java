@@ -4,6 +4,18 @@ import java.lang.reflect.Modifier;
 import java.util.List;
 /** Resolve stable names first; ambiguous obfuscated shapes are never guessed. */
 final class HostMethodResolver {
+  static Method cardClick(Class<?> type) {
+    Method found=null;
+    for(Method method:type.getDeclaredMethods()) {
+      Class<?>[] p=method.getParameterTypes();
+      if(Modifier.isStatic(method.getModifiers())||method.getReturnType()!=void.class
+          ||p.length!=3||!p[0].isInterface()||p[1]!=String.class||p[2]!=Object.class)continue;
+      if(found!=null)throw new IllegalStateException("Card click callback ambiguous");
+      found=method;
+    }
+    if(found==null)throw new IllegalStateException("Card click callback missing");
+    return found;
+  }
   static Method register(Class<?> type) { return resolve(type,"addDeviceObserver",true); }
   static Method unregister(Class<?> type) { return resolve(type,"removeDeviceObserver",false); }
   private static Method resolve(Class<?> type,String name,boolean add) {

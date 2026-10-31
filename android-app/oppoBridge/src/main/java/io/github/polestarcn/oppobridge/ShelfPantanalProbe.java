@@ -26,6 +26,7 @@ final class ShelfPantanalProbe {
   private static final String TARGET_VERSION = "17.14.60";
   private static final int MAX_ROWS = 512;
   private static final int MAX_CANDIDATES = 12;
+  private static final int MAX_SERVICE_INDEX = 80;
 
   private ShelfPantanalProbe() {}
 
@@ -43,17 +44,18 @@ final class ShelfPantanalProbe {
     try {
       String version = app.getPackageManager().getPackageInfo(HOST, 0).versionName;
       if (!TARGET_VERSION.equals(version)) {
-        report(app, false, "host-version-mismatch:" + version, 0, "", "");
+        report(app, false, "host-version-mismatch:" + version, 0, "", "", "");
         module.info("shelf_pantanal_probe skipped hostVersion=" + version);
         return;
       }
 
       int rows = 0;
       List<String> candidates = new ArrayList<>();
+      List<String> services = new ArrayList<>();
       String columns;
       try (Cursor cursor = app.getContentResolver().query(SERVICES, null, null, null, null)) {
         if (cursor == null) {
-          report(app, false, "null-cursor", 0, "", "");
+          report(app, false, "null-cursor", 0, "", "", "");
           module.warn("shelf_pantanal_probe null_cursor");
           return;
         }
@@ -61,6 +63,9 @@ final class ShelfPantanalProbe {
         while (rows < MAX_ROWS && cursor.moveToNext()) {
           rows++;
           String service = first(cursor, "serviceId", "service_id", "serviceid");
+          String score = first(cursor, "score");
+          if (!service.isEmpty() && services.size() < MAX_SERVICE_INDEX)
+            services.add(safe(service) + "@" + safe(score));
           String pkg = first(cursor, "packageName", "package_name", "bizPkgName",
               "biz_pkg_name", "host_package_name", "hostPackageName");
           String component = first(cursor, "componentName", "component_name",
@@ -76,15 +81,17 @@ final class ShelfPantanalProbe {
         }
       }
       String candidateText = String.join(" | ", candidates);
-      report(app, true, "ok", rows, columns, candidateText);
+      String serviceIndex = String.join("|", services);
+      report(app, true, "ok", rows, columns, candidateText, serviceIndex);
       module.info("shelf_pantanal_probe ready=true rows=" + rows
-          + " candidates=" + candidates.size() + " columns=" + columns);
+          + " services=" + services.size() + " candidates=" + candidates.size()
+          + " columns=" + columns);
       if (!candidateText.isEmpty()) module.info("shelf_pantanal_candidates " + candidateText);
     } catch (SecurityException denied) {
-      report(app, false, "permission-denied", 0, "", "");
+      report(app, false, "permission-denied", 0, "", "", "");
       module.warn("shelf_pantanal_probe permission_denied");
     } catch (Throwable failure) {
-      report(app, false, failure.getClass().getSimpleName(), 0, "", "");
+      report(app, false, failure.getClass().getSimpleName(), 0, "", "", "");
       module.warn("shelf_pantanal_probe failed=" + failure.getClass().getSimpleName());
     }
   }
@@ -114,7 +121,7 @@ final class ShelfPantanalProbe {
   }
 
   private static void report(Application app, boolean ready, String reason, int rows,
-      String columns, String candidates) {
+      String columns, String candidates, String services) {
     try {
       Bundle in = new Bundle();
       in.putBoolean("ready", ready);
@@ -122,6 +129,7 @@ final class ShelfPantanalProbe {
       in.putInt("rowCount", rows);
       in.putString("columns", columns);
       in.putString("candidates", candidates);
+      in.putString("services", services);
       in.putString("hostVersion", TARGET_VERSION);
       in.putString("moduleVersion", "0.9.0");
       BridgeClient.call(app, "shelf-report", in);

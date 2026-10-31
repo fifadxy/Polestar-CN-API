@@ -3,6 +3,7 @@ package io.github.polestarcn.oppobridge;
 import android.app.Application;
 import android.net.Uri;
 import android.os.Bundle;
+import android.content.pm.ProviderInfo;
 import android.os.Handler;
 import android.os.Looper;
 import java.util.ArrayList;
@@ -42,14 +43,21 @@ final class SceneAccountBindProbe {
     try {
       String version = app.getPackageManager().getPackageInfo(HOST, 0).versionName;
       if (!TARGET_VERSION.equals(version)) {
-        report(app, false, "host-version-mismatch:" + version, 0, "");
+        report(app, false, "host-version-mismatch:" + version, 0, "", "", "", false);
         return;
       }
+      ProviderInfo owner=app.getPackageManager().resolveContentProvider(
+          "com.oplus.sceneservice.AccountSDKInitProvider",0);
+      String ownerPackage=owner==null?"":safeMeta(owner.packageName,96);
+      String ownerPermission=owner==null?"":safeMeta(
+          owner.readPermission!=null?owner.readPermission:owner.writePermission,128);
+      boolean ownerExported=owner!=null&&owner.exported;
+
       Bundle extras = new Bundle();
       extras.putBoolean("useDB", true);
       Bundle result = app.getContentResolver().call(URI, METHOD, null, extras);
       if (result == null) {
-        report(app, false, "null-result", 0, "");
+        report(app, false, "null-result", 0, "", "", "", false);
         module.warn("scene_account_bind_probe null_result");
         return;
       }
@@ -65,14 +73,14 @@ final class SceneAccountBindProbe {
         }
       }
       String codes = String.join("|", safe);
-      report(app, true, "ok", count, codes);
+      report(app, true, "ok", count, codes, ownerPackage, ownerPermission, ownerExported);
       module.info("scene_account_bind_probe ready=true count=" + count
           + " safeCodes=" + safe.size());
     } catch (SecurityException denied) {
-      report(app, false, "permission-denied", 0, "");
+      report(app, false, "permission-denied", 0, "", "", "", false);
       module.warn("scene_account_bind_probe permission_denied");
     } catch (Throwable failure) {
-      report(app, false, failure.getClass().getSimpleName(), 0, "");
+      report(app, false, failure.getClass().getSimpleName(), 0, "", "", "", false);
       module.warn("scene_account_bind_probe failed=" + failure.getClass().getSimpleName());
     }
   }
@@ -89,17 +97,27 @@ final class SceneAccountBindProbe {
     } catch (Throwable ignored) {}
   }
 
-  private static void report(Application app, boolean ready, String reason, int count, String codes) {
+  private static void report(Application app, boolean ready, String reason, int count, String codes,
+      String ownerPackage, String ownerPermission, boolean ownerExported) {
     try {
       Bundle in = new Bundle();
       in.putBoolean("ready", ready);
       in.putString("reason", reason);
       in.putInt("bindCount", count);
       in.putString("boundCodes", codes);
+      in.putString("providerOwner", ownerPackage);
+      in.putString("providerPermission", ownerPermission);
+      in.putBoolean("providerExported", ownerExported);
       in.putString("hostVersion", TARGET_VERSION);
       in.putString("moduleVersion", "0.9.0");
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}
+  }
+
+  private static String safeMeta(String value,int max) {
+    if(value==null)return "";
+    String clean=value.replace('\n',' ').replace('\r',' ').trim();
+    return clean.substring(0,Math.min(clean.length(),max));
   }
 
   private static Application currentApplication() {

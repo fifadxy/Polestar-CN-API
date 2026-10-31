@@ -46,6 +46,15 @@
     "carStatusSource": "DeviceInfo.statusData.data JSON string -> CarStatusInfo, CAR only",
     "carProviderDispatch": "componentType 2 + componentExtra authority/method/extra -> ContentResolver.call",
     "watchEnduranceSupport": "unproven",
-    "quickAppController": "Map<packageName,List<deviceType>>; void(device,String,Object)=click; void(device)=details; only own exact ps_* command IDs are forwarded"
+    "quickAppController": "Map<packageName,List<deviceType>>; void(device,String,Object)=click; void(device)=details; only own exact ps_* command IDs are forwarded",
+    "quickAppConverterGate": "QuickCardDeviceDataConverter.q filters merged TSL + standard shortcuts through assets/support/card_short_cut.json; exact 17.4.15 contains no ps_* IDs",
+    "quickAppRpkGate": "SingleDeviceCard2x2/4x2 filter converted shortcuts again through config.eventSummary; exact bundled RPK contains no ps_* IDs",
+    "carTemplateBoundary": "4x2 has CAR component and kongtiao/chesuo/shanguang/mingdi icon semantics, but those IDs are absent from both exact-build allow-lists; visual resources do not prove a third-party car-control contract",
+    "carLinkController": "com.heytap.opluscarlink controller advertises wildcard device types but its 3-argument click method is a no-op in 17.4.15"
+  },
+  "quickCardRpkSha256": "b0f2cf9ac46b3dfe29a0923b2ac7e04cf9d002a343e8939ec641029b3e95a870",
+  "quickCardIndexSha256": {
+    "SingleDeviceCard2x2": "f63dfc8554ef4465800dae5264ceab0b7c873d924cd37436867b9db854ec5483",
+    "SingleDeviceCard4x2": "69bdfacad2cd7ad7a65da678b9435eaa54fa7011debb7381164e1d699cfb86e2"
   }
 }

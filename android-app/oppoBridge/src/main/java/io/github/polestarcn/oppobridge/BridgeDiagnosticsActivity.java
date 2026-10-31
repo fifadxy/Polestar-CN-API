@@ -52,6 +52,23 @@ public final class BridgeDiagnosticsActivity extends Activity {
           else out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase","")).append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ").append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(host.getString(prefix+"moduleVersion","")).append('\n');
         }
         out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
+        Bundle shelf=BridgeClient.call(this,"shelf-status",null);
+        long shelfSeen=shelf.getLong("seenAt",0);
+        out.append("负一屏→Pantanal Shelf 探针: ");
+        if(shelfSeen==0) out.append("尚无回报；打开/重启负一屏后再检测\n");
+        else {
+          out.append(shelf.getBoolean("ready",false)?"可读取":"未就绪")
+              .append(" · ").append(new java.util.Date(shelfSeen))
+              .append(" · rows=").append(shelf.getInt("rowCount",0))
+              .append(" · ").append(shelf.getString("reason","")).append('\n');
+          String candidates=shelf.getString("candidates","");
+          if(candidates!=null&&!candidates.isEmpty())
+            out.append("车辆候选服务: ").append(candidates).append('\n');
+          String columns=shelf.getString("columns","");
+          if(columns!=null&&!columns.isEmpty())
+            out.append("Shelf 元数据列: ").append(columns).append('\n');
+        }
+        out.append("该探针只读 serviceId/包名/组件/名称元数据，不读取账号、Token 或卡片正文。\n\n");
         Bundle caps = BridgeClient.capabilities(this);
         int protocol = caps.getInt("protocolVersion", -1);
         boolean ready = protocol == 1 && caps.getBoolean("state", false);

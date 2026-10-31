@@ -16,6 +16,6 @@ public class OppoWidgetSetupTest {
    org.junit.Assert.assertEquals(android.content.Intent.ACTION_CREATE_DOCUMENT,intent.getAction());
    org.junit.Assert.assertEquals("application/zip",intent.getType());
    org.junit.Assert.assertTrue(intent.hasCategory(android.content.Intent.CATEGORY_OPENABLE));
-   org.junit.Assert.assertEquals("PsAssistant-OPPO-hosts.zip",intent.getStringExtra(android.content.Intent.EXTRA_TITLE));
+   org.junit.Assert.assertEquals("PsAssistant-OPPO-research.zip",intent.getStringExtra(android.content.Intent.EXTRA_TITLE));
  }
 }

@@ -17,10 +17,13 @@ import android.widget.TextView;
 /** Local widget discovery/setup only; no vehicle network requests or automatic polling. */
 public final class OppoWidgetSetupActivity extends Activity {
   private TextView report;
-  private boolean exporting;
+  private Button generateButton,shareButton,saveButton;
+  private boolean autoShare;
+  private final OppoResearchExportJob.Listener exportListener=this::showExportState;
   private static final int EXPORT_HOSTS=7305;
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
+    autoShare=state!=null&&state.getBoolean("autoShare");
     LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
     int p=(int)(16*getResources().getDisplayMetrics().density);column.setPadding(p,p,p,p);
     TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO 组件添加\n\n设备空间车辆卡片、负一屏原生“我的车辆”、Android Widget 是不同入口。先确认标准列表能找到 PsAssistant。桌面添加请求不会指定负一屏位置。\n\n1. 打开标准组件列表，找到 PsAssistant，选择所需尺寸。\n2. 若负一屏提供第三方组件入口，在负一屏＋／编辑中选择；入口是否存在由当前固件决定。\n3. 仅有“我的车辆”品牌名单时，不代表支持第三方 Widget；该私有链路尚未验证。\n\n标准入口采用已公开验证的 ColorOS 启动参数，固件更新可能改变行为。");column.addView(help);
@@ -40,35 +43,68 @@ public final class OppoWidgetSetupActivity extends Activity {
       String value=diagnostics();report.setText(value);
       ((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("OPPO widget setup",value));
     });
-    button(column,android.view.View.generateViewId(),"导出负一屏适配文件（系统 APK）",()->{
-      if(exporting)return;
-      try{startActivityForResult(hostExportIntent(),EXPORT_HOSTS);}
-      catch(RuntimeException unavailable){report.setText("系统保存文件入口不可用："+unavailable.getClass().getSimpleName());}
+    generateButton=button(column,android.view.View.generateViewId(),"一键生成并分享适配资料包",()->{
+      autoShare=true;
+      if(!OppoResearchExportJob.start(this))autoShare=false;
     });
-    TextView exportHelp=new TextView(this);exportHelp.setText("导出负一屏、设备空间的程序安装文件与版本信息，用于分析卡片模板；不包含账号、Token、车辆缓存或操作日志。请在系统文件选择器中选择保存位置。");column.addView(exportHelp);
+    shareButton=button(column,android.view.View.generateViewId(),"分享已生成的资料包",this::shareExport);
+    saveButton=button(column,android.view.View.generateViewId(),"另存资料包 ZIP",()->{
+      try{startActivityForResult(hostExportIntent(),EXPORT_HOSTS);}
+      catch(RuntimeException unavailable){report.setText("系统保存入口不可用："+unavailable.getClass().getSimpleName());}
+    });
+    TextView exportHelp=new TextView(this);exportHelp.setText("收集负一屏、设备空间的安装文件，以及桌面／系统服务版本、公开组件信息和模块加载历史。不需要 Root 授权，不包含账号、Token、车辆缓存或系统日志。分享给谁由你选择。");column.addView(exportHelp);
     report=new TextView(this);report.setTextIsSelectable(true);column.addView(report);
     ScrollView scroll=new ScrollView(this);scroll.addView(column);setContentView(scroll);report.setText(diagnostics());
   }
   static Intent hostExportIntent() {
     return new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-        .setType("application/zip").putExtra(Intent.EXTRA_TITLE,"PsAssistant-OPPO-hosts.zip");
+        .setType("application/zip").putExtra(Intent.EXTRA_TITLE,"PsAssistant-OPPO-research.zip");
+  }
+  @Override protected void onStart() {super.onStart();OppoResearchExportJob.observe(exportListener);}
+  @Override protected void onStop() {OppoResearchExportJob.remove(exportListener);super.onStop();}
+  @Override protected void onSaveInstanceState(Bundle out) {out.putBoolean("autoShare",autoShare);super.onSaveInstanceState(out);}
+  private void showExportState(OppoResearchExportJob.State state) {
+    if(isFinishing()||isDestroyed())return;
+    generateButton.setEnabled(!state.running);
+    boolean ready=!state.running&&state.file!=null&&state.file.isFile();
+    shareButton.setEnabled(ready);saveButton.setEnabled(ready);report.setText(diagnostics()+"\n"+state.message);
+    if(!state.running&&autoShare){autoShare=false;if(ready)shareExport();}
+  }
+  static Intent shareIntent(android.net.Uri uri) {
+    Intent intent=new Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM,uri)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    intent.setClipData(ClipData.newRawUri("OPPO research archive",uri));return intent;
+  }
+  private void shareExport() {
+    OppoResearchExportJob.State state=OppoResearchExportJob.current();
+    if(state.running||state.file==null||!state.file.isFile())return;
+    try {
+      android.net.Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".oppoexports",state.file);
+      startActivity(Intent.createChooser(shareIntent(uri),"分享 OPPO 适配资料包"));
+    } catch(RuntimeException failure) {report.setText("分享入口不可用，请点击另存资料包 ZIP。");}
   }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
     super.onActivityResult(requestCode,resultCode,data);
-    if(requestCode!=EXPORT_HOSTS||resultCode!=RESULT_OK||data==null||data.getData()==null||exporting)return;
-    android.net.Uri destination=data.getData();exporting=true;report.setText("正在导出系统 APK，请稍候…");
+    if(requestCode!=EXPORT_HOSTS||resultCode!=RESULT_OK||data==null||data.getData()==null)return;
+    OppoResearchExportJob.State state=OppoResearchExportJob.current();
+    if(state.running||state.file==null)return;
+    java.io.File file=state.file;android.net.Uri destination=data.getData();
+    android.content.Context app=getApplicationContext();report.setText("正在保存资料包…");
     new Thread(()->{
       String message;
-      try{OppoHostApkExport.write(getApplicationContext(),destination);message="系统适配包已保存。请将 PsAssistant-OPPO-hosts.zip 发回用于分析。";}
-      catch(Exception failure){message="导出未完成："+failure.getClass().getSimpleName()+"。请删除不完整 ZIP；若系统禁止读取 APK，可用 APK 提取工具导出负一屏与设备空间。";}
-      final String value=message;
-      runOnUiThread(()->{exporting=false;if(!isFinishing()&&!isDestroyed())report.setText(value);});
-    },"oppo-host-export").start();
+      try(java.io.InputStream input=new java.io.FileInputStream(file);
+          java.io.OutputStream output=app.getContentResolver().openOutputStream(destination,"wt")) {
+        if(output==null)throw new java.io.IOException("No output stream");
+        byte[] bytes=new byte[32768];int count;while((count=input.read(bytes))!=-1)output.write(bytes,0,count);
+        message="资料包已保存，可作为附件发回分析。";
+      } catch(Exception failure) {message="保存未完成："+failure.getClass().getSimpleName()+"。请删除不完整文件，可重试或直接分享。";}
+      final String value=message;runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())report.setText(value);});
+    },"oppo-research-save").start();
   }
   static Intent standardPickerIntent() {
     return new Intent().setComponent(new ComponentName("com.android.launcher","com.android.launcher.Launcher")).putExtra("state","ToggleBar_widget");
   }
-  private void button(LinearLayout parent,int id,String title,Runnable action){Button b=new Button(this);b.setId(id);b.setText(title);b.setOnClickListener(v->action.run());parent.addView(b);}
+  private Button button(LinearLayout parent,int id,String title,Runnable action){Button b=new Button(this);b.setId(id);b.setText(title);b.setOnClickListener(v->action.run());parent.addView(b);return b;}
   private String diagnostics(){
     StringBuilder out=new StringBuilder("PsAssistant "+BuildConfig.VERSION_NAME+" / "+BuildConfig.VERSION_CODE+"\n");
     for(String pkg:new String[]{"com.android.launcher","com.coloros.assistantscreen","com.heytap.mydevices"}){

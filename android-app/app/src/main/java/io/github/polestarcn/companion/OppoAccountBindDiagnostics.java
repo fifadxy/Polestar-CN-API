@@ -23,6 +23,8 @@ final class OppoAccountBindDiagnostics {
     if(in.containsKey("providerOwner"))e.putString("providerOwner", bounded(in.getString("providerOwner", ""), 120));
     if(in.containsKey("providerPermission"))e.putString("providerPermission", bounded(in.getString("providerPermission", ""), 180));
     if(in.containsKey("providerExported"))e.putBoolean("providerExported", in.getBoolean("providerExported", false));
+    if(in.containsKey("bindActivity"))e.putString("bindActivity", bounded(in.getString("bindActivity", ""), 280));
+    if(in.containsKey("dialogActivity"))e.putString("dialogActivity", bounded(in.getString("dialogActivity", ""), 280));
     if(in.containsKey("providerCatalog")) {
       String catalog = bounded(in.getString("providerCatalog", ""), 3200);
       e.putString("providerCatalog", catalog);
@@ -37,7 +39,7 @@ final class OppoAccountBindDiagnostics {
     out.putLong("seenAt", p.getLong("seenAt", 0L));
     out.putBoolean("ready", p.getBoolean("ready", false));
     out.putInt("bindCount", p.getInt("bindCount", 0));
-    for (String key : new String[]{"reason","hostVersion","moduleVersion","boundCodes","providerCatalog","providerOwner","providerPermission"})
+    for (String key : new String[]{"reason","hostVersion","moduleVersion","boundCodes","providerCatalog","providerOwner","providerPermission","bindActivity","dialogActivity"})
       out.putString(key, p.getString(key, ""));
     out.putBoolean("providerExported",p.getBoolean("providerExported",false));
     return out;

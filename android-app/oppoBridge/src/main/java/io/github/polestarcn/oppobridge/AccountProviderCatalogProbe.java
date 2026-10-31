@@ -38,7 +38,10 @@ final class AccountProviderCatalogProbe {
             Object continuation = chain.getThisObject();
             Field outer = uniqueFieldBySuffix(continuation.getClass(), "this$0", null);
             Object viewModel = outer.get(continuation);
-            Field catalogField = uniqueArrayListField(viewModel.getClass());
+            Field catalogField = viewModel.getClass().getDeclaredField("o");
+            if (!ArrayList.class.isAssignableFrom(catalogField.getType()))
+              throw new IllegalStateException("Provider catalog field o changed type");
+            catalogField.setAccessible(true);
             Object value = catalogField.get(viewModel);
             if (value instanceof List<?>) report(module, (List<?>) value);
           } catch (Throwable failure) {
@@ -65,18 +68,6 @@ final class AccountProviderCatalogProbe {
     String catalog = String.join("|", out);
     SceneAccountBindProbe.reportCatalog(app, catalog);
     module.info("account_provider_catalog observed=" + out.size());
-  }
-
-  private static Field uniqueArrayListField(Class<?> type) {
-    Field found = null;
-    for (Field f : type.getDeclaredFields()) {
-      if (!ArrayList.class.isAssignableFrom(f.getType())) continue;
-      if (found != null) throw new IllegalStateException("Provider catalog field ambiguous");
-      found = f;
-    }
-    if (found == null) throw new IllegalStateException("Provider catalog field missing");
-    found.setAccessible(true);
-    return found;
   }
 
   private static Field uniqueFieldBySuffix(Class<?> type, String name, Class<?> expected) {

@@ -21,6 +21,7 @@ final class OppoShelfDiagnostics {
     e.putString("moduleVersion", bounded(in.getString("moduleVersion", ""), 40));
     e.putString("columns", bounded(in.getString("columns", ""), 1200));
     e.putString("candidates", bounded(in.getString("candidates", ""), 2400));
+    e.putString("services", bounded(in.getString("services", ""), 4200));
     e.apply();
     return status(context);
   }
@@ -31,7 +32,7 @@ final class OppoShelfDiagnostics {
     out.putLong("seenAt", p.getLong("seenAt", 0L));
     out.putBoolean("ready", p.getBoolean("ready", false));
     out.putInt("rowCount", p.getInt("rowCount", 0));
-    for (String key : new String[]{"reason", "hostVersion", "moduleVersion", "columns", "candidates"})
+    for (String key : new String[]{"reason", "hostVersion", "moduleVersion", "columns", "candidates", "services"})
       out.putString(key, p.getString(key, ""));
     return out;
   }

@@ -18,6 +18,14 @@ final class AccountProviderCatalogProbe {
   private AccountProviderCatalogProbe() {}
 
   static void install(OppoBridgeModule module, ClassLoader loader) throws Exception {
+    Application app=currentApplication();
+    if(app!=null) {
+      String version=app.getPackageManager().getPackageInfo("com.coloros.assistantscreen",0).versionName;
+      if(!"17.14.60".equals(version)) {
+        module.info("account_provider_catalog_probe skipped hostVersion="+version);
+        return;
+      }
+    }
     Class<?> coroutine = loader.loadClass(COROUTINE);
     Method invokeSuspend = coroutine.getDeclaredMethod("invokeSuspend", Object.class);
     invokeSuspend.setAccessible(true);

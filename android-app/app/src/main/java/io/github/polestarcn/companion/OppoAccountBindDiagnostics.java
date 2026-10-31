@@ -1,0 +1,44 @@
+package io.github.polestarcn.companion;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+
+/** Privacy-bounded observations of the OEM SceneService account-binding layer. */
+final class OppoAccountBindDiagnostics {
+  private static final String PREF = "oppo-account-bind-diagnostics";
+
+  private OppoAccountBindDiagnostics() {}
+
+  static Bundle record(Context context, Bundle in) {
+    if (in == null) throw new IllegalArgumentException("Missing account-bind report");
+    SharedPreferences.Editor e = context.getSharedPreferences(PREF, 0).edit();
+    e.putLong("seenAt", System.currentTimeMillis());
+    e.putBoolean("ready", in.getBoolean("ready", false));
+    e.putInt("bindCount", Math.max(0, in.getInt("bindCount", 0)));
+    e.putString("reason", bounded(in.getString("reason", ""), 160));
+    e.putString("hostVersion", bounded(in.getString("hostVersion", ""), 80));
+    e.putString("moduleVersion", bounded(in.getString("moduleVersion", ""), 40));
+    e.putString("boundCodes", bounded(in.getString("boundCodes", ""), 1600));
+    String catalog = bounded(in.getString("providerCatalog", ""), 3200);
+    if (!catalog.isEmpty()) e.putString("providerCatalog", catalog);
+    e.apply();
+    return status(context);
+  }
+
+  static Bundle status(Context context) {
+    SharedPreferences p = context.getSharedPreferences(PREF, 0);
+    Bundle out = new Bundle();
+    out.putLong("seenAt", p.getLong("seenAt", 0L));
+    out.putBoolean("ready", p.getBoolean("ready", false));
+    out.putInt("bindCount", p.getInt("bindCount", 0));
+    for (String key : new String[]{"reason","hostVersion","moduleVersion","boundCodes","providerCatalog"})
+      out.putString(key, p.getString(key, ""));
+    return out;
+  }
+
+  private static String bounded(String value, int limit) {
+    if (value == null) return "";
+    return value.substring(0, Math.min(value.length(), limit));
+  }
+}

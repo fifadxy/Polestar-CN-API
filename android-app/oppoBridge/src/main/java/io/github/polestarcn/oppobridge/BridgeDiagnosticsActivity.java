@@ -95,6 +95,12 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("AccountSDK Provider owner: ").append(owner)
                 .append(" · exported=").append(account.getBoolean("providerExported",false))
                 .append(" · permission=").append(account.getString("providerPermission","")).append('\n');
+          String bindActivity=account.getString("bindActivity","");
+          if(bindActivity!=null&&!bindActivity.isEmpty())
+            out.append("ACCOUNT_BIND target: ").append(bindActivity).append('\n');
+          String dialogActivity=account.getString("dialogActivity","");
+          if(dialogActivity!=null&&!dialogActivity.isEmpty())
+            out.append("BINDING_DIALOG target: ").append(dialogActivity).append('\n');
           String codes=account.getString("boundCodes","");
           if(codes!=null&&!codes.isEmpty())
             out.append("已绑定 provider code: ").append(codes).append('\n');

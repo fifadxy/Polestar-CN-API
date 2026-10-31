@@ -29,6 +29,11 @@ public final class OppoBridgeModule extends XposedModule {
         return;
       }
       HostProbe.install(this, pkg, param.getClassLoader());
+      if ("com.coloros.assistantscreen".equals(pkg)
+          && "com.coloros.assistantscreen".equals(process)) {
+        try { ShelfPantanalProbe.install(this); }
+        catch (Throwable unavailable) { warn("shelf_pantanal_probe unavailable="+unavailable.getClass().getSimpleName()); }
+      }
       if ("com.heytap.mydevices".equals(pkg)) {
         if ("com.heytap.mydevices".equals(process)) {
           MyDevicesVehicleHook.installMain(this, param.getClassLoader());

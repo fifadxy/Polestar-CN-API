@@ -72,6 +72,25 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("Shelf 元数据列: ").append(columns).append('\n');
         }
         out.append("该探针只读 serviceId/包名/组件/名称元数据，不读取账号、Token 或卡片正文。\n\n");
+
+        Bundle account=BridgeClient.call(this,"account-bind-status",null);
+        long accountSeen=account.getLong("seenAt",0);
+        out.append("负一屏→SceneService 账号绑定探针: ");
+        if(accountSeen==0) out.append("尚无回报；进入负一屏/小布相关服务设置后再检测\n");
+        else {
+          out.append(account.getBoolean("ready",false)?"可读取":"未就绪")
+              .append(" · ").append(new java.util.Date(accountSeen))
+              .append(" · bindCount=").append(account.getInt("bindCount",0))
+              .append(" · ").append(account.getString("reason","")).append('\n');
+          String codes=account.getString("boundCodes","");
+          if(codes!=null&&!codes.isEmpty())
+            out.append("已绑定 provider code: ").append(codes).append('\n');
+          String catalog=account.getString("providerCatalog","");
+          if(catalog!=null&&!catalog.isEmpty())
+            out.append("Provider 目录(code=名称): ").append(catalog).append('\n');
+        }
+        out.append("账号绑定探针只保存短 provider code 和品牌显示名，不保存账号、Token、URL 或任意原始 payload。\n\n");
+
         Bundle caps = BridgeClient.capabilities(this);
         int protocol = caps.getInt("protocolVersion", -1);
         boolean ready = protocol == 1 && caps.getBoolean("state", false);
@@ -94,7 +113,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
         out.append("检测失败: ").append(failure.getClass().getSimpleName()).append(": ").append(failure.getMessage()).append('\n');
       }
       out.append("\n安装路径\n新版 PsAssistant: 使用内置桥接接口。\n旧版 PsAssistant: 启用 API 102 模块，勾选 PsAssistant 与我的设备，重启目标应用。运行时桥接要求 Android 14 或更高版本。\n");
-      out.append("\n已实现: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改白名单；0.9.0 会报告 converter/RPK 双重过滤状态。\n待真机验证: 原生首页控件实际渲染及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景，不等同于“我的车辆”车企远控；Pantanal/动态服务仍在研究。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
+      out.append("\n已实现: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改白名单；0.9.0 会报告 converter/RPK 双重过滤状态。\n待真机验证: 原生首页控件实际渲染及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景；0.9.0 现已增加 Pantanal serviceId 与 SceneService provider/绑定状态只读探针。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });

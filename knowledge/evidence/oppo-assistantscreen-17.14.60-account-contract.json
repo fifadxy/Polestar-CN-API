@@ -1,0 +1,41 @@
+{
+  "package": "com.coloros.assistantscreen",
+  "version": "17.14.60",
+  "apkSha256": "b3601272e85c69b898e607e7db90415ab28b4e5d8321844dc0674b254a1bb33e",
+  "dexSha256": {
+    "classes": "5db12ce237bd56d91a7c91949aef76331ecd23b279fd3e3b9a5f006952f45862",
+    "classes4": "8e4a26c71e6101dad4613ac1027cad93b16204bae740508e0f42268a4b847417"
+  },
+  "scope": "Static analysis of user-supplied AssistantScreen APK plus bounded runtime probes; not proof of vehicle-provider registration",
+  "findings": {
+    "shelfProviderUri": "content://com.oplus.pantanal.ums.card.support.shelf/shelf_services",
+    "shelfProviderColumns": [
+      "serviceId",
+      "score"
+    ],
+    "accountProviderUri": "content://com.oplus.sceneservice.AccountSDKInitProvider",
+    "accountBindReadMethod": "method_get_account_bind_list",
+    "accountBindReadInput": "Bundle useDB=true",
+    "accountBindReadOutput": [
+      "accountBindCount",
+      "accountBindList"
+    ],
+    "accountBindAction": "oplus.intent.action.sceneservice.ACCOUNT_BIND",
+    "accountBindDialogAction": "oplus.intent.action.sceneservice.REQUEST_SHOW_ACCOUNT_BINGDING_DIALOG",
+    "providerCatalogSource": "ServiceProviderEntity -> ProviderInfo",
+    "providerCatalogMapping": {
+      "spCode": "ServiceProviderEntity.getSpCode()",
+      "name": "ServiceProviderEntity.getBrandName()",
+      "iconUrl": "ServiceProviderEntity.getBrandIcon()"
+    },
+    "providerCatalogIntentExtra": "providerInfo",
+    "providerCatalogField": "AdviceSettingCompatViewModel field o",
+    "cloudCardAccountFields": [
+      "instantAccountBindUrl",
+      "instantProviderId",
+      "instantProviderName",
+      "serviceId"
+    ],
+    "carSettingBoundary": "com.oplus.assistantscreen.card.car.setting.CarSettingActivity exposes Bluetooth/scene settings and is not evidence of OEM remote vehicle binding"
+  }
+}

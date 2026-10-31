@@ -197,7 +197,107 @@ Therefore beta10's Shelf probe now records a bounded `serviceId@score` index for
 
 The next runtime comparison is: capture the service index before opening/adding "My Vehicle", then repeat during/after the flow. Candidate service IDs can then be resolved through the separate CardConfiguration/CardService clients instead of guessing from labels.
 
-## 9. Next implementation gates
+
+## 9. SceneService account-binding layer confirmed
+
+AssistantScreen 17.14.60 does not implement every third-party account OAuth flow itself. The exact account-binding path delegates to SceneService AccountSDK.
+
+Confirmed provider URI:
+
+```
+content://com.oplus.sceneservice.AccountSDKInitProvider
+```
+
+Confirmed read method and input:
+
+```
+method_get_account_bind_list
+Bundle: useDB=true
+```
+
+Confirmed result keys:
+
+- `accountBindCount`
+- `accountBindList`
+
+The same contract is used by AssistantScreen lifecycle/advice code. Existing checks for codes such as `HANGLV` and `ZSGT` prove the returned list contains short service-provider codes in at least non-vehicle domains. These travel codes are examples of the generic account framework and are **not** vehicle-provider evidence.
+
+SceneService launch actions observed in the exact AssistantScreen build:
+
+- `oplus.intent.action.sceneservice.REQUEST_SHOW_ACCOUNT_BINGDING_DIALOG`
+- `oplus.intent.action.sceneservice.ACCOUNT_BIND`
+
+The first action keeps the OEM spelling `BINGDING`.
+
+### Provider catalog
+
+The exact coroutine
+`AdviceSettingCompatViewModel$queryProviderInfoListFromDB$1`
+loads `ServiceProviderEntity` rows and converts them into `ProviderInfo`.
+
+Confirmed mappings:
+
+- `ServiceProviderEntity.getSpCode()` -> `ProviderInfo.spCode`
+- `ServiceProviderEntity.getBrandName()` -> `ProviderInfo.name`
+- `ServiceProviderEntity.getBrandIcon()` -> `ProviderInfo.iconUrl`
+
+The resulting provider list is passed to SceneService with Intent extra `providerInfo`.
+
+This gives a much stronger candidate architecture for OEM "My Vehicle" binding:
+
+```
+Pantanal serviceId / CloudCardConfig
+        |
+        +-- instantProviderId / instantProviderName / instantAccountBindUrl
+        |
+AssistantScreen provider catalog
+        |
+SceneService AccountSDK
+        |
+provider code + account bind state
+```
+
+This relationship still needs runtime correlation on the target phone. Do not inject a provider into SceneService's database until the exact ownership/write contract is proven.
+
+### beta10 read-only probes
+
+Bridge 0.9.0 now adds two exact-build AssistantScreen 17.14.60 probes:
+
+1. `SceneAccountBindProbe`
+   - calls the same read-only SceneService account-bind provider used by the OEM
+   - retains only `accountBindCount` and short code-shaped provider tokens
+   - does not persist account identifiers, credentials, URLs or arbitrary payload
+
+2. `AccountProviderCatalogProbe`
+   - observes the OEM provider catalog after the exact ViewModel coroutine fills field `o`
+   - records only `spCode=name`
+   - ignores brand icon URLs and all account data
+   - exact-version gated and fail-closed
+
+### New solution direction
+
+If a vehicle provider appears as a generic `spCode` + Pantanal service mapping, the preferred future integration becomes:
+
+```
+PsAssistant vehicle backend
+  -> narrow Polestar provider registration
+  -> OEM provider catalog / account-bind presentation
+  -> Pantanal/Shelf card service mapping
+```
+
+rather than impersonating an existing supported car brand.
+
+The first acceptance gate is read-only correlation:
+
+- record Shelf `serviceId@score`
+- record provider catalog
+- enter/add "My Vehicle"
+- compare any provider/binding changes
+- identify the exact service/provider pair
+
+Only after that should a registration shim be designed.
+
+## 10. Next implementation gates
 
 P0 completed statically:
 - CardsUtils provider transport

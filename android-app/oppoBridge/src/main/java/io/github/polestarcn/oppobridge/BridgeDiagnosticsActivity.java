@@ -42,7 +42,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.8.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.9.0\n\n");
       try {
         Bundle host=BridgeClient.call(this,"host-status",null);
         for(String prefix:new String[]{"main_","cards_"}) {
@@ -74,7 +74,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
         out.append("检测失败: ").append(failure.getClass().getSimpleName()).append(": ").append(failure.getMessage()).append('\n');
       }
       out.append("\n安装路径\n新版 PsAssistant: 使用内置桥接接口。\n旧版 PsAssistant: 启用 API 102 模块，勾选 PsAssistant 与我的设备，重启目标应用。运行时桥接要求 Android 14 或更高版本。\n");
-      out.append("\n已实现: 桥接、直接车控面板、MyDevices 注入代码。\n待真机验证: 原生卡片发现及车控结果。\n小布、负一屏、流体云、Car+ 目前仅探测，未实现功能接入。\n\n文字可长按选择复制。");
+      out.append("\n已实现: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改白名单；0.9.0 会报告 converter/RPK 双重过滤状态。\n待真机验证: 原生首页控件实际渲染及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景，不等同于“我的车辆”车企远控；Pantanal/动态服务仍在研究。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });

@@ -61,6 +61,9 @@ public final class BridgeDiagnosticsActivity extends Activity {
               .append(" · ").append(new java.util.Date(shelfSeen))
               .append(" · rows=").append(shelf.getInt("rowCount",0))
               .append(" · ").append(shelf.getString("reason","")).append('\n');
+          String services=shelf.getString("services","");
+          if(services!=null&&!services.isEmpty())
+            out.append("Shelf serviceId@score: ").append(services).append('\n');
           String candidates=shelf.getString("candidates","");
           if(candidates!=null&&!candidates.isEmpty())
             out.append("车辆候选服务: ").append(candidates).append('\n');

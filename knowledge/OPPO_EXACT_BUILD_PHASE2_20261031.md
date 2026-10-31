@@ -175,6 +175,28 @@ Working hypothesis: the user-visible Shelf "My Vehicle" remote-control service m
 
 This is not yet runtime proof. The next capture should trace Shelf add/bind/control with Pantanal provider calls and service IDs instead of searching map VehicleInfo classes.
 
+
+### Exact ShelfProvider client contract in AssistantScreen 17.14.60
+
+Static bytecode now identifies `com.pantanal.server.content.decision.cardsupport.shelf.b` as the OEM Shelf decision DAO.
+
+It queries:
+
+```
+content://com.oplus.pantanal.ums.card.support.shelf/shelf_services
+```
+
+with null projection / selection / sort. The cursor parser requires exactly:
+
+- `serviceId` as String
+- `score` as float
+
+and builds a `ServiceInfo`. The same code logs the resulting serviceId and score together with default/derived ServiceInfo fields.
+
+Therefore beta10's Shelf probe now records a bounded `serviceId@score` index for all rows in addition to optional package/name-like columns. This is stronger and more OTA-tolerant than assuming package/component columns exist in ShelfProvider.
+
+The next runtime comparison is: capture the service index before opening/adding "My Vehicle", then repeat during/after the flow. Candidate service IDs can then be resolved through the separate CardConfiguration/CardService clients instead of guessing from labels.
+
 ## 9. Next implementation gates
 
 P0 completed statically:

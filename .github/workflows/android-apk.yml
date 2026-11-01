@@ -25,11 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Package clean Android source snapshot
-        run: git archive --format=zip --output=PsAssistant-beta17-android-source.zip HEAD android-app
+        run: git archive --format=zip --output=PsAssistant-beta18-android-source.zip HEAD android-app
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-beta17-android-source
-          path: PsAssistant-beta17-android-source.zip
+          name: PsAssistant-beta18-android-source
+          path: PsAssistant-beta18-android-source.zip
           if-no-files-found: error
       - uses: actions/setup-java@v4
         with:
@@ -97,14 +97,14 @@ jobs:
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
           test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta17-standalone-debug.apk
-          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v1.4.0-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta18-standalone-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v1.5.0-debug.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" android-apksigner.jar
       - name: Verify integrated module packaging
         run: |
           python3 - <<'PYCODE'
           import zipfile, pathlib, hashlib
-          p=pathlib.Path('PsAssistant-v0.9.7-beta17-standalone-debug.apk')
+          p=pathlib.Path('PsAssistant-v0.9.7-beta18-standalone-debug.apk')
           with zipfile.ZipFile(p) as z:
               assert z.testzip() is None
               assert z.read('META-INF/xposed/java_init.list').decode().strip() == 'io.github.polestarcn.oppobridge.OppoBridgeModule'
@@ -121,30 +121,30 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.9.7-beta17-standalone-debug
-          path: PsAssistant-v0.9.7-beta17-standalone-debug.apk
+          name: PsAssistant-v0.9.7-beta18-standalone-debug
+          path: PsAssistant-v0.9.7-beta18-standalone-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-OPPO-Bridge-v1.4.0-debug
-          path: PsAssistant-OPPO-Bridge-v1.4.0-debug.apk
+          name: PsAssistant-OPPO-Bridge-v1.5.0-debug
+          path: PsAssistant-OPPO-Bridge-v1.5.0-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
-          name: PsAssistant-v0.9.7-beta17-standalone-release
+          name: PsAssistant-v0.9.7-beta18-standalone-release
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
-          name: PsAssistant-v0.9.7-beta17-standalone-preview
+          name: PsAssistant-v0.9.7-beta18-standalone-preview
           path: android-app/app/build/outputs/apk/preview/app-preview.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-v0.9.7-beta17-standalone-checks
+          name: PsAssistant-v0.9.7-beta18-standalone-checks
           path: |
             android-app/app/build/reports/previews/
             android-app/app/build/test-results/testDebugUnitTest/

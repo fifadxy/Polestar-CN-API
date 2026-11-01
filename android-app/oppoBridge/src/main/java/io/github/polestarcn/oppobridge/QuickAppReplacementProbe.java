@@ -80,7 +80,7 @@ final class QuickAppReplacementProbe {
     in.putString("replacedWidgetCode",bounded(replaced,500));
     in.putString("cardPath",path);
     in.putString("reason","read-only exact MyDevices 17.4.15 routing observation");
-    in.putString("moduleVersion","1.2.0");
+    in.putString("moduleVersion","1.3.0");
     try {in.putString("hostVersion",app.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName);}
     catch(Throwable ignored){in.putString("hostVersion","");}
 

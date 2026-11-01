@@ -15,11 +15,13 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=28) @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 public class NativeVehicleHomeViewTest {
   private List<View> children(View v){List<View> out=new ArrayList<>();out.add(v);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)out.addAll(children(((ViewGroup)v).getChildAt(i)));return out;}
-  @Test public void ownCardIdentityRequiresPackageTypeAndId(){
+  @Test public void psAssistantDeviceIdSurvivesMyDevicesPackageAndTypeNormalization(){
     assertTrue(NativeVehicleHomeView.isOurCard("io.github.polestarcn.companion","CAR","psassistant_abc"));
-    assertFalse(NativeVehicleHomeView.isOurCard("com.other.car","CAR","psassistant_abc"));
-    assertFalse(NativeVehicleHomeView.isOurCard("io.github.polestarcn.companion","WATCH","psassistant_abc"));
-    assertFalse(NativeVehicleHomeView.isOurCard("io.github.polestarcn.companion","CAR",null));
+    assertTrue(NativeVehicleHomeView.isOurCard("com.heytap.mydevices","UNKNOWN","psassistant_abc"));
+    assertTrue(NativeVehicleHomeView.isOurCard("","3","psassistant_abc"));
+    assertFalse(NativeVehicleHomeView.isOurCard("com.other.car","CAR","other_vehicle"));
+    assertFalse(NativeVehicleHomeView.isOurCard("io.github.polestarcn.companion","WATCH","other_vehicle"));
+    assertTrue(NativeVehicleHomeView.isOurCard("io.github.polestarcn.companion","CAR",null));
   }
   @Test public void nativeHomeShowsRealCacheAndAllFourDirectControls(){
     NativeVehicleHomeView view=new NativeVehicleHomeView(RuntimeEnvironment.getApplication());

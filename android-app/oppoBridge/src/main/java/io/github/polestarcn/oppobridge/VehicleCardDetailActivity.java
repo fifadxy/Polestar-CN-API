@@ -46,6 +46,9 @@ public final class VehicleCardDetailActivity extends Activity {
     addRow("开启空调","climate-start","关闭空调","climate-stop");
     addRow("开启净化","air-start","关闭净化","air-stop");
     addRow("开启尾门","trunk-open","关闭尾门","trunk-close");
+    addRow("打开车窗","windows-open","关闭车窗","windows-close");
+    addRow("鸣笛","honk","闪灯","flash");
+    addButton(root,"鸣笛 + 闪灯寻车","honk-flash",false);
     addButton(root,"手动刷新车辆",null,false);
     addButton(root,"恢复设备卡","__restore_card",false);
     setContentView(scroll);
@@ -67,7 +70,7 @@ public final class VehicleCardDetailActivity extends Activity {
     params.setMargins(dp(2),dp(5),dp(2),dp(5));parent.addView(b,params);buttons.add(b);
     b.setOnClickListener(v->{
       if(busy)return;
-      if("unlock".equals(action)||"trunk-open".equals(action)||"trunk-close".equals(action)) {
+      if("unlock".equals(action)||"trunk-open".equals(action)||"trunk-close".equals(action)||"windows-open".equals(action)) {
         new AlertDialog.Builder(this).setTitle(label).setMessage("确认车辆周围安全后执行。请求受理不代表车辆已完成操作。")
             .setNegativeButton("取消",null).setPositiveButton("确认",(dialog,which)->submit(action)).show();
       } else submit(action);
@@ -76,6 +79,7 @@ public final class VehicleCardDetailActivity extends Activity {
   private void submit(String action) {
     if(busy||isFinishing()||isDestroyed())return;
     busy=true;for(Button b:buttons)b.setEnabled(false);feedback.setText("正在提交请求…");
+    final long before=readCapturedAt();
     worker.execute(()->{
       String message;
       try {
@@ -84,7 +88,15 @@ public final class VehicleCardDetailActivity extends Activity {
           getContentResolver().notifyChange(VehicleDeviceCardProvider.URI,null);message="设备卡已恢复";
         } else {
           Bundle result=action==null?BridgeClient.refresh(this):BridgeClient.command(this,action);
-          message=result.getBoolean("accepted",false)?"请求已受理，等待车辆回读；请核对缓存时间和状态":"请求未受理："+result.getString("reason","unknown");
+          if(!result.getBoolean("accepted",false)) {
+            message="请求未受理："+result.getString("reason","unknown");
+          } else if(action==null) {
+            message="刷新请求已受理，等待新车况";
+          } else if(!VehicleCommandConfirmation.supports(action)) {
+            message="请求已受理；鸣笛/闪灯没有可读回状态，请现场确认";
+          } else {
+            message=awaitConfirmation(action,before);
+          }
         }
       } catch(RuntimeException failure) {message="请求失败："+failure.getClass().getSimpleName();}
       final String resultMessage=message;
@@ -92,6 +104,26 @@ public final class VehicleCardDetailActivity extends Activity {
         feedback.setText(resultMessage);busy=false;for(Button b:buttons)b.setEnabled(true);refresh();
       });
     });
+  }
+
+  private long readCapturedAt() {
+    try {return BridgeClient.snapshot(this).getLong("capturedAt",0L);}
+    catch(RuntimeException ignored) {return 0L;}
+  }
+
+  private String awaitConfirmation(String action,long before) {
+    long deadline=android.os.SystemClock.elapsedRealtime()+32000L;
+    while(!isFinishing()&&!isDestroyed()&&android.os.SystemClock.elapsedRealtime()<deadline) {
+      try {Thread.sleep(1400L);} catch(InterruptedException interrupted) {
+        Thread.currentThread().interrupt();return "等待车辆回读已中断";
+      }
+      try {
+        Bundle latest=BridgeClient.snapshot(this);
+        if(latest.getLong("capturedAt",0L)>before&&VehicleCommandConfirmation.matches(latest,action))
+          return VehicleCommandConfirmation.successText(action);
+      } catch(RuntimeException ignored) {}
+    }
+    return "车辆未在 32 秒内确认，请稍后刷新核对";
   }
   private void refresh() {
     if(isFinishing()||isDestroyed()||worker.isShutdown())return;

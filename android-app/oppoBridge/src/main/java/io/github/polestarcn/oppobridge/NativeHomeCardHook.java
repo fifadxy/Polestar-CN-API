@@ -19,7 +19,12 @@ final class NativeHomeCardHook {
     module.hook(bind).setId("psassistant_native_home_card").setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain->{
       Object row=chain.getArgs().get(0);
       if(row!=null)try {
-        if(NativeVehicleHomeView.isOurCard((String)pkg.invoke(row),(String)type.invoke(row),(String)id.invoke(row))) {
+        String rowPkg=String.valueOf(pkg.invoke(row));
+        String rowType=String.valueOf(type.invoke(row));
+        String rowId=String.valueOf(id.invoke(row));
+        if(rowId.startsWith("psassistant_"))
+          module.info("native_home_card candidate pkg="+rowPkg+" type="+rowType+" id="+rowId);
+        if(NativeVehicleHomeView.isOurCard(rowPkg,rowType,rowId)) {
           View view=(View)chain.getThisObject();
           // Fail closed on OTA changes; no generic name/parameter guessing.
           String version=view.getContext().getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName;
@@ -27,7 +32,7 @@ final class NativeHomeCardHook {
             NativeVehicleHomeView nativeView=new NativeVehicleHomeView(view.getContext());
             nativeView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(-1,-2));
             content.invoke(view,nativeView);
-            boundId.set(view,(String)id.invoke(row));
+            boundId.set(view,rowId);
             engineContent.setBoolean(view,true);
             module.info("native_home_card rendered=true");
             return null;

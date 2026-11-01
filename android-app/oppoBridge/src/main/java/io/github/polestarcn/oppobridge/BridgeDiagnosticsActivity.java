@@ -2,7 +2,9 @@ package io.github.polestarcn.oppobridge;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import androidx.core.content.FileProvider;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -37,6 +39,10 @@ public final class BridgeDiagnosticsActivity extends Activity {
     compare.setText("比较“我的车辆”变化");
     compare.setOnClickListener(v -> runDiscoveryAction("discovery-baseline-diff"));
     column.addView(compare);
+    Button export = new Button(this);
+    export.setText("一键导出 OPPO 轻量研究包（<10MB）");
+    export.setOnClickListener(v -> exportResearchBundle());
+    column.addView(export);
     status = new TextView(this);
     status.setTextSize(15);
     status.setTextIsSelectable(true);
@@ -50,7 +56,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 0.9.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.0.0\n\n");
       try {
         Bundle host=BridgeClient.call(this,"host-status",null);
         for(String prefix:new String[]{"main_","cards_"}) {
@@ -136,6 +142,31 @@ public final class BridgeDiagnosticsActivity extends Activity {
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });
+    });
+  }
+
+  private void exportResearchBundle() {
+    status.setText("正在生成轻量研究包…不会导出账号、Token、VIN 或原始账户数据。");
+    worker.execute(() -> {
+      try {
+        java.io.File file=OppoResearchExport.create(this);
+        Uri uri=FileProvider.getUriForFile(this,getPackageName()+".oppoexports",file);
+        Intent share=new Intent(Intent.ACTION_SEND);
+        share.setType("application/zip");
+        share.putExtra(Intent.EXTRA_STREAM,uri);
+        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        runOnUiThread(() -> {
+          if(isFinishing()||isDestroyed())return;
+          status.setText("研究包已生成：" + file.getName() + "\n大小 "
+              + (file.length()/1024) + " KB\n可直接分享给 ChatGPT 分析。");
+          startActivity(Intent.createChooser(share,"分享 OPPO 轻量研究包"));
+        });
+      } catch(Throwable failure) {
+        runOnUiThread(() -> {
+          if(!isFinishing()&&!isDestroyed())
+            status.setText("研究包生成失败："+failure.getClass().getSimpleName()+": "+failure.getMessage());
+        });
+      }
     });
   }
 

@@ -66,6 +66,13 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoHostDiagnostics.record(context,extras);
     }
     if("host-status".equals(method))return OppoHostDiagnostics.status(context);
+    if("assistant-host-report".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean assistant=false;if(callers!=null)for(String pkg:callers)if("com.coloros.assistantscreen".equals(pkg))assistant=true;
+      if(!assistant)throw new SecurityException("Only AssistantScreen can report hook generation");
+      return OppoAssistantHostDiagnostics.record(context,extras);
+    }
+    if("assistant-host-status".equals(method))return OppoAssistantHostDiagnostics.status(context);
     if("shelf-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean shelf=false;if(callers!=null)for(String pkg:callers)if("com.coloros.assistantscreen".equals(pkg))shelf=true;

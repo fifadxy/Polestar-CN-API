@@ -132,6 +132,23 @@ Therefore there is no contradiction between the actual package being `com.coloro
 
 Bridge 1.1.0 now queries both package identities and the account-provider authority explicitly.
 
+## SearchCarProvider is not the remote vehicle-control provider
+
+Exact AssistantScreen 17.14.60 DEX inspection shows `SearchCarProvider` is centered on:
+
+- parking / parked-car state
+- nearby parking
+- map navigation back to the car
+- `search_car_view.json`
+- `search_car_personal_security_view.json`
+- navigation intents for AMap / Baidu parking
+
+Its runtime strings include `search_car_click_nearby_parking`, `search_car_click_navigation_button` and map navigation errors.
+
+This matches the parking/location card visible in the user's Shelf screenshot. It must not be used as evidence that the remote lock/climate "My Vehicle" provider has been found.
+
+Likewise, `service_provider_list` is currently treated as an observed SceneService/account provider catalog only. It may include travel/service account providers. Do not inject a Polestar row until a runtime baseline/diff taken specifically across the "My Vehicle" add/bind flow proves that this catalog participates in that flow.
+
 ## Pantanal direction
 
 The installed Pantanal package is 17.22.6. Public/system component evidence continues to show:

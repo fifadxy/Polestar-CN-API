@@ -31,6 +31,7 @@ public final class OppoBridgeModule extends XposedModule {
       HostProbe.install(this, pkg, param.getClassLoader());
       if ("com.coloros.assistantscreen".equals(pkg)
           && "com.coloros.assistantscreen".equals(process)) {
+        AssistantScreenHostReporter.report(this,"hooks-entered",true,"");
         try { ShelfPantanalProbe.install(this); }
         catch (Throwable unavailable) { warn("shelf_pantanal_probe unavailable="+unavailable.getClass().getSimpleName()); }
         try { SceneAccountBindProbe.install(this); }

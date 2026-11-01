@@ -24,6 +24,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Package clean Android source snapshot
+        run: git archive --format=zip --output=PsAssistant-beta14-android-source.zip HEAD android-app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-beta14-android-source
+          path: PsAssistant-beta14-android-source.zip
+          if-no-files-found: error
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

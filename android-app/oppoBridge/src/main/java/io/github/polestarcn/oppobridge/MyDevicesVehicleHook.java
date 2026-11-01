@@ -136,18 +136,31 @@ final class MyDevicesVehicleHook {
       // Exact 17.4.15 factory contract: Map<packageName, List<deviceType>>.
       if (method.getReturnType() == Map.class) return Collections.singletonMap(PACKAGE, Collections.singletonList("CAR"));
       if (method.equals(click)) {
-        String command = CardShortcutCommand.fromId(args == null ? null : (String) args[1]);
-        if (command == null || args[0] == null || args[2] == null) {
-          module.warn("mydevices_shortcut_rejected unsupported-id-or-missing-value");
+        if (args == null || args.size() < 3 || args.get(0) == null || args.get(1) == null || args.get(2) == null) {
+          module.warn("mydevices_shortcut_rejected missing-args");
           return null;
         }
         Application app = currentApplication();
         if (app == null) { module.warn("mydevices_shortcut_rejected no-application"); return null; }
-        // Commands use the existing session, integration and busy gates. Do not
-        // infer a vehicle operation from an arbitrary Boolean/TSL property.
+        String shortcutId = String.valueOf(args.get(1));
+        String command;
+        try {
+          android.os.Bundle snapshot = CardShortcutCommand.isOemCarId(shortcutId)
+              ? BridgeClient.snapshot(app) : null;
+          command = CardShortcutCommand.fromId(shortcutId, snapshot);
+        } catch (RuntimeException unavailable) {
+          command = null;
+        }
+        if (command == null) {
+          module.warn("mydevices_shortcut_rejected unsupported-or-unknown-state id=" + shortcutId);
+          return null;
+        }
+        // Commands use the existing session, integration and busy gates. The OEM QuickApp
+        // valueInt/valueBoolean is deliberately not trusted for lock/climate semantics.
         try {
           android.os.Bundle response = BridgeClient.command(app, command);
-          module.info("mydevices_shortcut accepted=" + response.getBoolean("accepted", false)
+          module.info("mydevices_shortcut id=" + shortcutId + " command=" + command
+              + " accepted=" + response.getBoolean("accepted", false)
               + " reason=" + response.getString("reason", "") + " vehicleConfirmed=false");
         } catch (RuntimeException failure) {
           module.warn("mydevices_shortcut_rejected bridge-unavailable");

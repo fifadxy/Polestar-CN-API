@@ -43,6 +43,10 @@ public final class BridgeDiagnosticsActivity extends Activity {
     export.setText("一键导出 OPPO 轻量研究包（<10MB）");
     export.setOnClickListener(v -> exportResearchBundle());
     column.addView(export);
+    Button reload = new Button(this);
+    reload.setText("Root 重载 OPPO Hook 目标进程");
+    reload.setOnClickListener(v -> confirmReloadHosts());
+    column.addView(reload);
     status = new TextView(this);
     status.setTextSize(15);
     status.setTextIsSelectable(true);
@@ -162,6 +166,35 @@ public final class BridgeDiagnosticsActivity extends Activity {
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });
+    });
+  }
+
+  private void confirmReloadHosts() {
+    new android.app.AlertDialog.Builder(this)
+        .setTitle("重新加载 OPPO Hook")
+        .setMessage("将使用 root 强制停止“设备空间”和“负一屏”进程，使 LSPosed/Vector 在下次启动时加载当前 Bridge。不会修改系统 APK 或车辆数据。")
+        .setNegativeButton("取消",null)
+        .setPositiveButton("重载",(dialog,which)->reloadHosts())
+        .show();
+  }
+
+  private void reloadHosts() {
+    status.setText("正在请求 root 重载设备空间和负一屏…");
+    worker.execute(() -> {
+      String message;
+      try {
+        Process process=new ProcessBuilder("su","-c",
+            "am force-stop com.heytap.mydevices; am force-stop com.coloros.assistantscreen").start();
+        boolean done=process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS);
+        int exit=done?process.exitValue():-1;
+        if(!done)process.destroyForcibly();
+        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.1.0。";
+        else message="root 重载未成功（exit="+exit+"）。请在 LSPosed/Vector 确认作用域后手动强停“设备空间”和“负一屏”。";
+      } catch(Throwable failure) {
+        message="root 重载不可用："+failure.getClass().getSimpleName()+"。请手动强停目标应用。";
+      }
+      final String result=message;
+      runOnUiThread(() -> { if(!isFinishing()&&!isDestroyed())status.setText(result); });
     });
   }
 

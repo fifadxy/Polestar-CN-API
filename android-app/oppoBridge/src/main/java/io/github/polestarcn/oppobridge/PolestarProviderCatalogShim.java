@@ -1,6 +1,8 @@
 package io.github.polestarcn.oppobridge;
 
 import android.app.Application;
+import android.os.Handler;
+import android.os.Looper;
 import io.github.libxposed.api.XposedInterface;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -41,31 +43,46 @@ final class PolestarProviderCatalogShim {
             Object vm=outer.get(continuation);
             Field catalog=vm.getClass().getDeclaredField("o");
             catalog.setAccessible(true);
-            Object value=catalog.get(vm);
-            if(!(value instanceof List<?>))return result;
-            @SuppressWarnings("unchecked") List<Object> list=(List<Object>)value;
-            if(hasCode(list,"POLESTAR"))return result;
-            if(list.isEmpty()) {
-              module.info("polestar_provider_catalog source_empty=true; synthetic provider deferred");
-              return result;
-            }
-            Object sample=firstSample(list);
-            if(sample==null) {
-              module.warn("polestar_provider_catalog sample_missing=true");
-              return result;
-            }
-            Object injected=copyProvider(sample);
-            if(injected==null) {
-              module.warn("polestar_provider_catalog construct_failed class="+sample.getClass().getName());
-              return result;
-            }
-            list.add(injected);
-            module.info("polestar_provider_catalog injected=true size="+list.size());
+            tryInject(module,vm,catalog,0);
           } catch(Throwable failure) {
             module.warn("polestar_provider_catalog fallback="+failure.getClass().getSimpleName());
           }
           return result;
         });
+  }
+
+
+  private static void tryInject(OppoBridgeModule module,Object viewModel,Field catalog,int attempt) {
+    try {
+      Object value=catalog.get(viewModel);
+      if(!(value instanceof List<?>))return;
+      @SuppressWarnings("unchecked") List<Object> list=(List<Object>)value;
+      if(hasCode(list,"POLESTAR"))return;
+      if(list.isEmpty()) {
+        if(attempt<8) {
+          int next=attempt+1;
+          new Handler(Looper.getMainLooper()).postDelayed(
+              ()->tryInject(module,viewModel,catalog,next),350L+attempt*150L);
+        } else {
+          module.info("polestar_provider_catalog source_empty=true retries_exhausted");
+        }
+        return;
+      }
+      Object sample=firstSample(list);
+      if(sample==null) {
+        module.warn("polestar_provider_catalog sample_missing=true");
+        return;
+      }
+      Object injected=copyProvider(sample);
+      if(injected==null) {
+        module.warn("polestar_provider_catalog construct_failed class="+sample.getClass().getName());
+        return;
+      }
+      list.add(injected);
+      module.info("polestar_provider_catalog injected=true size="+list.size()+" attempt="+attempt);
+    } catch(Throwable failure) {
+      module.warn("polestar_provider_catalog retry_fallback="+failure.getClass().getSimpleName());
+    }
   }
 
   private static boolean hasCode(List<?> list,String code) {

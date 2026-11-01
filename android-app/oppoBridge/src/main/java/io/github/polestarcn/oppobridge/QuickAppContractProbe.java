@@ -25,6 +25,9 @@ final class QuickAppContractProbe {
       "ps_lock", "ps_unlock", "ps_climate-start", "ps_climate-stop",
       "ps_trunk-open", "ps_trunk-close", "ps_air-start", "ps_air-stop"
   ));
+  private static final Set<String> OEM_CAR_IDS = new LinkedHashSet<>(Arrays.asList(
+      "kongtiao", "chesuo", "shanguang", "mingdi"
+  ));
   private static final AtomicBoolean whitelistReported = new AtomicBoolean();
   private static final AtomicBoolean conversionReported = new AtomicBoolean();
 
@@ -54,10 +57,14 @@ final class QuickAppContractProbe {
             Set<?> set = (Set<?>) result;
             List<String> missing = new ArrayList<>();
             for (String id : OWN_IDS) if (!set.contains(id)) missing.add(id);
+            List<String> missingOem = new ArrayList<>();
+            for (String id : OEM_CAR_IDS) if (!set.contains(id)) missingOem.add(id);
             String reason = "converterWhitelistOwn=" + (missing.isEmpty() ? "all" : "blocked")
                 + " missing=" + missing.size()
+                + " converterWhitelistOemCar=" + (missingOem.isEmpty() ? "all" : "blocked")
+                + " oemMissing=" + missingOem.size()
                 + " size=" + set.size()
-                + " rpkEventSummaryOwn=blocked nativeHomeFallback=true";
+                + " rpkEventSummaryOwn=blocked rpkEventSummaryOemCar=blocked nativeHomeFallback=true";
             module.info("quickapp_gate " + reason);
             HostReporter.report("com.heytap.mydevices", "com.heytap.mydevices:cards",
                 "quickapp-gates", true, reason);

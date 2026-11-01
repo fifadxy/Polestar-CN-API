@@ -40,6 +40,18 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
+        <activity android:name="io.github.polestarcn.oppobridge.PolestarOfficialBindActivity"
+            android:exported="false" android:excludeFromRecents="true"/>
+        <activity android:name="io.github.polestarcn.oppobridge.VehicleShortcutActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="psassistant-companion" android:host="command"/>
+            </intent-filter>
+        </activity>
         <activity android:name="io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity" android:exported="false"/>
         <provider
             android:name=".PsAssistantBridgeProvider"

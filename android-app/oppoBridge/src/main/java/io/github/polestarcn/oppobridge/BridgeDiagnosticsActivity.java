@@ -90,6 +90,26 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("  ⚠ 负一屏 Hook 回报过期/版本不一致，请重启负一屏进程。\n");
         }
         out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
+
+        Bundle quick=BridgeClient.call(this,"quickapp-runtime-status",null);
+        long quickSeen=quick.getLong("seenAt",0L);
+        out.append("MyDevices QuickApp 路由: ");
+        if(quickSeen==0L) out.append("尚无 widget 路由回报；打开一次 4×2/2×2 设备卡后再检测\n");
+        else {
+          out.append(new java.util.Date(quickSeen)).append(" · ")
+              .append(quick.getString("method","")).append(" · ")
+              .append(quick.getString("cardPath","")).append('\n');
+          String replaced=quick.getString("replacedWidgetCode","");
+          String oldCode=quick.getString("oldWidgetCode","");
+          out.append("  replacedWidgetCode=").append(replaced==null||replaced.isEmpty()?"<空>":replaced).append('\n');
+          out.append("  oldWidgetCode=").append(oldCode==null||oldCode.isEmpty()?"<空>":oldCode).append('\n');
+          out.append("  4×2 CAR registry=").append(quick.getBoolean("single4x2CarRegistry",false))
+              .append(" · eventSummary允许CAR=").append(quick.getBoolean("single4x2EventSummaryCar",false)).append('\n');
+          out.append("  2×2 CAR registry=").append(quick.getBoolean("single2x2CarRegistry",false))
+              .append(" · eventSummary允许CAR=").append(quick.getBoolean("single2x2EventSummaryCar",false)).append('\n');
+        }
+        out.append("该探针只观察 widget 路由，不修改 RPK、绑定关系或 OEM Provider 返回值。\n\n");
+
         Bundle shelf=BridgeClient.call(this,"shelf-status",null);
         long shelfSeen=shelf.getLong("seenAt",0);
         out.append("负一屏→Pantanal Shelf 探针: ");

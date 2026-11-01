@@ -27,6 +27,13 @@ final class ShelfPantanalProbe {
   private static final int MAX_ROWS = 512;
   private static final int MAX_CANDIDATES = 12;
   private static final int MAX_SERVICE_INDEX = 80;
+  private static final java.util.Set<String> KNOWN_MYDEVICES_SERVICE_IDS =
+      new java.util.HashSet<>(java.util.Arrays.asList(
+          "536878112", "536878134", // DeviceCardWidgetProvider selected device, 1x/2x
+          "536878706", "536878705", // Lite/QuickApp selected device
+          "536878133", "536878131", // Device overview native cards
+          "536878962"               // Device overview QuickApp
+      ));
 
   private ShelfPantanalProbe() {}
 
@@ -74,8 +81,10 @@ final class ShelfPantanalProbe {
               "groupTitle", "group_title");
           String joined = (service + " " + pkg + " " + component + " " + name)
               .toLowerCase(Locale.ROOT);
-          if (looksVehicleRelated(joined, name) && candidates.size() < MAX_CANDIDATES) {
-            candidates.add("id=" + safe(service) + " pkg=" + safe(pkg)
+          boolean knownDeviceSpace = KNOWN_MYDEVICES_SERVICE_IDS.contains(service);
+          if ((knownDeviceSpace || looksVehicleRelated(joined, name)) && candidates.size() < MAX_CANDIDATES) {
+            candidates.add("kind=" + (knownDeviceSpace ? "device-space" : "vehicle-candidate")
+                + " id=" + safe(service) + " pkg=" + safe(pkg)
                 + " component=" + safe(component) + " name=" + safe(name));
           }
         }

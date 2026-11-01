@@ -149,6 +149,27 @@ This matches the parking/location card visible in the user's Shelf screenshot. I
 
 Likewise, `service_provider_list` is currently treated as an observed SceneService/account provider catalog only. It may include travel/service account providers. Do not inject a Polestar row until a runtime baseline/diff taken specifically across the "My Vehicle" add/bind flow proves that this catalog participates in that flow.
 
+## Exact preinstalled Device Space Shelf service IDs
+
+AssistantScreen 17.14.60 ships `assets/preset/card_config_local_config.json`.
+The exact target build maps Device Space cards as follows:
+
+```
+536878112  DeviceCardWidgetProvider       selected device / size 1
+536878134  DeviceCardWidgetProvider       selected device / size 2
+536878706  DeviceLite/QuickApp providers  selected device / small/Shelf
+536878705  DeviceLite/QuickApp providers  selected device / lock-screen sizes
+536878133  DeviceCardWidgetProvider       device overview / size 1
+536878131  DeviceCardWidgetProvider       device overview / size 2
+536878962  DeviceQuickAppCardProvider     device overview QuickApp
+```
+
+This is important because the Polestar row visible in Shelf can now be distinguished from the separate OEM "My Vehicle" account-binding flow.
+
+Bridge 1.2.0 classifies these service IDs as `kind=device-space` in the Pantanal Shelf probe. They are not treated as proof that the official vehicle-brand service has been identified.
+
+The lightweight export now also includes the bounded AssistantScreen preset/service catalog JSON files, so future iterations do not need the 69 MB AssistantScreen APK just to recover these service IDs.
+
 ## Pantanal direction
 
 The installed Pantanal package is 17.22.6. Public/system component evidence continues to show:

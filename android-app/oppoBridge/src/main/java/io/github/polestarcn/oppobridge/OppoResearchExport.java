@@ -133,11 +133,16 @@ final class OppoResearchExport {
         }
         List<String> interesting = new ArrayList<>();
         if (info.activities != null) for (android.content.pm.ActivityInfo item : info.activities)
-          addInteresting(interesting, item.name);
+          addInteresting(interesting, item.name + " exported=" + item.exported
+              + " permission=" + String.valueOf(item.permission));
         if (info.providers != null) for (android.content.pm.ProviderInfo item : info.providers)
-          addInteresting(interesting, item.name + " authority=" + item.authority);
+          addInteresting(interesting, item.name + " authority=" + item.authority
+              + " exported=" + item.exported
+              + " readPermission=" + String.valueOf(item.readPermission)
+              + " writePermission=" + String.valueOf(item.writePermission));
         if (info.services != null) for (android.content.pm.ServiceInfo item : info.services)
-          addInteresting(interesting, item.name);
+          addInteresting(interesting, item.name + " exported=" + item.exported
+              + " permission=" + String.valueOf(item.permission));
         for (String item : interesting) out.append("component=").append(item).append('\n');
       } catch (Throwable missing) {
         out.append("missing=true\n");

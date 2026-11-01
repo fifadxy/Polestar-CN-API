@@ -40,6 +40,7 @@ final class OppoResearchExport {
       "com.nearme.instant.platform",
       "com.heytap.speechassist",
       "com.oplus.ocar",
+      "com.coloros.sceneservice",
       "com.oplus.sceneservice"
   };
 
@@ -64,6 +65,7 @@ final class OppoResearchExport {
       putText(zip, rawBudget, "bridge-status.txt", bridgeSummary(context));
       putText(zip, rawBudget, "packages.txt", packageSummary(context));
       extractMyDevicesAssets(context, zip, rawBudget);
+      putText(zip, rawBudget, "scene-provider.txt", sceneProviderSummary(context));
     }
     if (out.length() > MAX_OUTPUT_BYTES) {
       out.delete();
@@ -88,7 +90,7 @@ final class OppoResearchExport {
 
   private static String bridgeSummary(Context context) {
     StringBuilder out = new StringBuilder();
-    for (String method : new String[]{"capabilities","snapshot","host-status","shelf-status","account-bind-status","discovery-baseline-diff"}) {
+    for (String method : new String[]{"capabilities","snapshot","host-status","assistant-host-status","shelf-status","account-bind-status","discovery-baseline-diff"}) {
       out.append("[").append(method).append("]\n");
       try { appendBundle(out, BridgeClient.call(context, method, null)); }
       catch (Throwable failure) { out.append("error=").append(failure.getClass().getSimpleName()).append('\n'); }
@@ -157,9 +159,17 @@ final class OppoResearchExport {
   private static void extractMyDevicesAssets(Context context, ZipOutputStream out, long[] rawBudget) {
     try {
       ApplicationInfo app = context.getPackageManager().getApplicationInfo("com.heytap.mydevices", 0);
+      StringBuilder analysis=new StringBuilder();
       try (ZipFile apk = new ZipFile(app.sourceDir)) {
-        copyEntry(apk, "assets/support/card_short_cut.json", out, rawBudget,
-            "mydevices/card_short_cut.json", MAX_TEXT_ENTRY);
+        ZipEntry shortcutEntry=apk.getEntry("assets/support/card_short_cut.json");
+        if(shortcutEntry!=null) {
+          byte[] shortcutBytes;
+          try(InputStream in=apk.getInputStream(shortcutEntry)) { shortcutBytes=readBounded(in,MAX_TEXT_ENTRY); }
+          putBytes(out,rawBudget,"mydevices/card_short_cut.json",shortcutBytes);
+          String shortcutText=new String(shortcutBytes,java.nio.charset.StandardCharsets.UTF_8);
+          analysis.append("javaShortcutWhitelistHasCarEvents=")
+              .append(hasAny(shortcutText,"kongtiao","chesuo","shanguang","mingdi")).append('\n');
+        }
         ZipEntry rpk = apk.getEntry("assets/com.heytap.mydevices.quickapp.kdRpk.rpk");
         if (rpk != null && rpk.getSize() > 0 && rpk.getSize() < 8_000_000L) {
           try (ZipInputStream nested = new ZipInputStream(new BufferedInputStream(apk.getInputStream(rpk)))) {
@@ -173,9 +183,22 @@ final class OppoResearchExport {
               if (!target) continue;
               byte[] data = readBounded(nested, MAX_TEXT_ENTRY);
               putBytes(out, rawBudget, "mydevices/rpk/" + sanitizePath(name), data);
+              String text=new String(data,java.nio.charset.StandardCharsets.UTF_8);
+              if(name.endsWith("SingleDeviceCard2x2/index.js")) {
+                analysis.append("rpk2x2DefinesCarIcons=")
+                    .append(hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi")).append('\n');
+                analysis.append("rpk2x2EventSummaryHasCarEvents=")
+                    .append(eventSummaryHasCar(text)).append('\n');
+              } else if(name.endsWith("SingleDeviceCard4x2/index.js")) {
+                analysis.append("rpk4x2DefinesCarIcons=")
+                    .append(hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi")).append('\n');
+                analysis.append("rpk4x2EventSummaryHasCarEvents=")
+                    .append(eventSummaryHasCar(text)).append('\n');
+              }
             }
           }
         }
+        if(analysis.length()>0)putText(out,rawBudget,"mydevices-analysis.txt",analysis.toString());
       }
     } catch (Throwable ignored) {
       // Export remains useful even if OEM APK layout changes.

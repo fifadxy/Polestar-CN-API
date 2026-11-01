@@ -49,17 +49,32 @@ final class PolestarBindIntentShim {
     boolean bindAction="oplus.intent.action.sceneservice.ACCOUNT_BIND".equals(action)
         ||"oplus.intent.action.sceneservice.REQUEST_SHOW_ACCOUNT_BINGDING_DIALOG".equals(action);
     if(!bindAction)return false;
-    Object provider=null;
-    try {
-      android.os.Bundle extras=intent.getExtras();
-      if(extras!=null)provider=extras.get("providerInfo");
-    } catch(Throwable ignored) {}
-    if(provider==null)return false;
-    try {
-      Object code=provider.getClass().getMethod("getSpCode").invoke(provider);
-      return "POLESTAR".equalsIgnoreCase(String.valueOf(code));
-    } catch(Throwable ignored) {
-      return String.valueOf(provider).toUpperCase(java.util.Locale.ROOT).contains("POLESTAR");
+    android.os.Bundle extras=null;
+    try { extras=intent.getExtras(); } catch(Throwable ignored) {}
+    if(extras==null)return false;
+
+    for(String key:new String[]{"spCode","providerCode","serviceProviderCode","brandCode"}) {
+      Object value=extras.get(key);
+      if("POLESTAR".equalsIgnoreCase(String.valueOf(value)))return true;
     }
+
+    Object provider=extras.get("providerInfo");
+    if(provider!=null) {
+      try {
+        Object code=provider.getClass().getMethod("getSpCode").invoke(provider);
+        if("POLESTAR".equalsIgnoreCase(String.valueOf(code)))return true;
+      } catch(Throwable ignored) {
+        if(String.valueOf(provider).toUpperCase(java.util.Locale.ROOT).contains("POLESTAR"))return true;
+      }
+    }
+
+    for(String key:extras.keySet()) {
+      String lower=key==null?"":key.toLowerCase(java.util.Locale.ROOT);
+      if(!(lower.contains("provider")||lower.contains("brand")||lower.contains("sp")))continue;
+      Object value=extras.get(key);
+      String text=String.valueOf(value);
+      if(text.length()<=160&&text.toUpperCase(java.util.Locale.ROOT).contains("POLESTAR"))return true;
+    }
+    return false;
   }
 }

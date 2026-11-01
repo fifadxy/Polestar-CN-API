@@ -38,6 +38,12 @@ public final class OppoBridgeModule extends XposedModule {
         catch (Throwable unavailable) { warn("scene_account_bind_probe unavailable="+unavailable.getClass().getSimpleName()); }
         try { AccountProviderCatalogProbe.install(this, param.getClassLoader()); }
         catch (Throwable unavailable) { warn("account_provider_catalog_probe unavailable="+unavailable.getClass().getSimpleName()); }
+        try { PolestarProviderCatalogShim.install(this, param.getClassLoader()); }
+        catch (Throwable unavailable) { warn("polestar_provider_catalog unavailable="+unavailable.getClass().getSimpleName()); }
+        try { SceneAccountBindResultShim.install(this); }
+        catch (Throwable unavailable) { warn("scene_account_bind_result unavailable="+unavailable.getClass().getSimpleName()); }
+        try { PolestarBindIntentShim.install(this); }
+        catch (Throwable unavailable) { warn("polestar_bind_redirect unavailable="+unavailable.getClass().getSimpleName()); }
       }
       if ("com.heytap.mydevices".equals(pkg)) {
         try { QuickAppProviderProbe.install(this, param.getClassLoader()); }

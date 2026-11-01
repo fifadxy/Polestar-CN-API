@@ -67,8 +67,12 @@ final class QuickAppProviderProbe {
                 String shortcutId = extras.getString("shortcutId", "");
                 String valueType = extras.containsKey("valueBoolean") ? "bool"
                     : extras.containsKey("valueInt") ? "int" : "none";
+                String value = extras.containsKey("valueBoolean")
+                    ? String.valueOf(extras.getBoolean("valueBoolean"))
+                    : extras.containsKey("valueInt")
+                        ? String.valueOf(extras.getInt("valueInt")) : "";
                 String reason = "oemClickSeen=true shortcutId=" + bounded(shortcutId)
-                    + " valueType=" + valueType;
+                    + " valueType=" + valueType + " value=" + bounded(value);
                 module.info("quickapp_provider " + reason);
                 HostReporter.report("com.heytap.mydevices",
                     processName(),

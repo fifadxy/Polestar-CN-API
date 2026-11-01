@@ -59,6 +59,8 @@ public final class OppoBridgeModule extends XposedModule {
           catch (Throwable unavailable) { warn("quickapp_contract_probe unavailable="+unavailable.getClass().getSimpleName()); }
           try { QuickAppReplacementProbe.install(this, param.getClassLoader()); }
           catch (Throwable unavailable) { warn("quickapp_replacement_probe unavailable="+unavailable.getClass().getSimpleName()); }
+          try { QuickAppCarDataShim.install(this, param.getClassLoader()); }
+          catch (Throwable unavailable) { warn("quickapp_oem_car_data unavailable="+unavailable.getClass().getSimpleName()); }
           HostReporter.report(pkg,process,"hooks-installed",true,"");
         }
       }

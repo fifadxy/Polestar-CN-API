@@ -67,6 +67,8 @@ final class OppoResearchExport {
       extractMyDevicesAssets(context, zip, rawBudget);
       extractAssistantScreenAssets(context, zip, rawBudget);
       putText(zip, rawBudget, "scene-provider.txt", sceneProviderSummary(context));
+      String hookLog = rootHookLog();
+      if (!hookLog.isEmpty()) putText(zip, rawBudget, "root-hook-log.txt", hookLog);
     }
     if (out.length() > MAX_OUTPUT_BYTES) {
       out.delete();
@@ -160,6 +162,45 @@ final class OppoResearchExport {
         || lower.contains("scene") || lower.contains("account") || lower.contains("pantanal")
         || lower.contains("card") || lower.contains("quickapp") || lower.contains("device"))
       out.add(value.replace('\n',' ').replace('\r',' '));
+  }
+
+  private static String rootHookLog() {
+    Process process = null;
+    try {
+      process = new ProcessBuilder("su", "-c", "logcat -d -v threadtime -t 2500")
+          .redirectErrorStream(true).start();
+      StringBuilder out = new StringBuilder();
+      try (java.io.BufferedReader reader = new java.io.BufferedReader(
+          new java.io.InputStreamReader(process.getInputStream(),
+              java.nio.charset.StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = reader.readLine()) != null && out.length() < 320_000) {
+          String lower = line.toLowerCase(Locale.ROOT);
+          boolean relevant = lower.contains("psoppobridge")
+              || lower.contains("psvehiclecard")
+              || lower.contains("mydevices_vehicle")
+              || lower.contains("quickapp_")
+              || lower.contains("shelf_pantanal")
+              || lower.contains("scene_account")
+              || lower.contains("assistant_host_report")
+              || lower.contains("native_home_card");
+          if (!relevant) continue;
+          if (lower.contains("authorization") || lower.contains("access_token")
+              || lower.contains("refresh_token") || lower.contains("password")
+              || lower.contains("cookie") || lower.contains("vin=")
+              || lower.contains("vin:")) continue;
+          out.append(line.replace('\r', ' ')).append('\n');
+        }
+      }
+      boolean done = process.waitFor(6, java.util.concurrent.TimeUnit.SECONDS);
+      if (!done) process.destroyForcibly();
+      if (out.length() == 0) return "";
+      return "# Root-filtered OPPO Bridge logcat; sensitive credential patterns are excluded.\n"
+          + out;
+    } catch (Throwable unavailable) {
+      if (process != null) process.destroyForcibly();
+      return "";
+    }
   }
 
   private static String sceneProviderSummary(Context context) {

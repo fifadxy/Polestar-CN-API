@@ -51,6 +51,8 @@ public final class OppoBridgeModule extends XposedModule {
           MyDevicesVehicleHook.installCardProcess(this, param.getClassLoader());
           try { QuickAppContractProbe.install(this, param.getClassLoader()); }
           catch (Throwable unavailable) { warn("quickapp_contract_probe unavailable="+unavailable.getClass().getSimpleName()); }
+          try { QuickAppReplacementProbe.install(this, param.getClassLoader()); }
+          catch (Throwable unavailable) { warn("quickapp_replacement_probe unavailable="+unavailable.getClass().getSimpleName()); }
           HostReporter.report(pkg,process,"hooks-installed",true,"");
         }
       }

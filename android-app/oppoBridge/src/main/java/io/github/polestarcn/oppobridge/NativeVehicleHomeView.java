@@ -105,14 +105,39 @@ final class NativeVehicleHomeView extends LinearLayout {
   private void dispatch(String action){
     if(!active||busy||worker==null)return;
     busy=true;bindSnapshot(snapshot);feedback.setText("正在提交…");final int session=generation;
+    final long before=snapshot.getLong("capturedAt",0L);
     worker.execute(()->{
       String message;
+      Bundle latest=null;
       try{
         Bundle r=action==null?BridgeClient.refresh(getContext()):BridgeClient.command(getContext(),action);
-        message=r.getBoolean("accepted")?"请求已受理，等待车况回读":"未受理："+r.getString("reason","unknown");
+        if(!r.getBoolean("accepted")) {
+          message="未受理："+r.getString("reason","unknown");
+        } else if(action==null) {
+          message="刷新请求已受理，等待新车况";
+        } else if(!VehicleCommandConfirmation.supports(action)) {
+          message="请求已受理；该指令无可读回状态，请现场确认";
+        } else {
+          message="请求已受理，等待实车回读…";
+          long deadline=android.os.SystemClock.elapsedRealtime()+32000L;
+          while(active&&session==generation&&android.os.SystemClock.elapsedRealtime()<deadline) {
+            try {Thread.sleep(1400L);} catch(InterruptedException interrupted) {Thread.currentThread().interrupt();break;}
+            try {
+              Bundle candidate=BridgeClient.snapshot(getContext());
+              long captured=candidate.getLong("capturedAt",0L);
+              if(captured>before&&VehicleCommandConfirmation.matches(candidate,action)) {
+                latest=candidate;
+                message=VehicleCommandConfirmation.successText(action);
+                break;
+              }
+            } catch(RuntimeException ignored) {}
+          }
+          if(latest==null&&message.startsWith("请求已受理"))message="车辆未在 32 秒内确认，请稍后刷新核对";
+        }
       }catch(RuntimeException e){message="桥接暂不可用，请检查 PsAssistant";}
       final String result=message;
-      post(()->{if(!active||session!=generation)return;busy=false;bindSnapshot(snapshot);feedback.setText(result);readCache();});
+      final Bundle confirmed=latest;
+      post(()->{if(!active||session!=generation)return;busy=false;if(confirmed!=null)bindSnapshot(confirmed);else bindSnapshot(snapshot);feedback.setText(result);readCache();});
     });
   }
 }

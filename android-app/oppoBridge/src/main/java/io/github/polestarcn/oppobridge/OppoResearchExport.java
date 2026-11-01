@@ -65,6 +65,7 @@ final class OppoResearchExport {
       putText(zip, rawBudget, "bridge-status.txt", bridgeSummary(context));
       putText(zip, rawBudget, "packages.txt", packageSummary(context));
       extractMyDevicesAssets(context, zip, rawBudget);
+      putText(zip, rawBudget, "oem-car-capability.txt", oemCarCapabilitySummary(context));
       extractAssistantScreenAssets(context, zip, rawBudget);
       putText(zip, rawBudget, "scene-provider.txt", sceneProviderSummary(context));
       String hookLog = rootHookLog();
@@ -93,7 +94,7 @@ final class OppoResearchExport {
 
   private static String bridgeSummary(Context context) {
     StringBuilder out = new StringBuilder();
-    for (String method : new String[]{"capabilities","snapshot","host-status","quickapp-runtime-status","assistant-host-status","shelf-status","account-bind-status","oppo-official-bind-status","discovery-baseline-diff"}) {
+    for (String method : new String[]{"capabilities","snapshot","host-status","quickapp-runtime-status","oppo-oem-car-status","assistant-host-status","shelf-status","account-bind-status","oppo-official-bind-status","discovery-baseline-diff"}) {
       out.append("[").append(method).append("]\n");
       try { appendBundle(out, BridgeClient.call(context, method, null)); }
       catch (Throwable failure) { out.append("error=").append(failure.getClass().getSimpleName()).append('\n'); }
@@ -201,6 +202,20 @@ final class OppoResearchExport {
       if (process != null) process.destroyForcibly();
       return "";
     }
+  }
+
+  private static String oemCarCapabilitySummary(Context context) {
+    QuickAppCarCapability.Result c=QuickAppCarCapability.detect(context);
+    StringBuilder out=new StringBuilder();
+    out.append("hostVersion=").append(c.hostVersion).append('\n');
+    out.append("rpkPresent=").append(c.rpkPresent).append('\n');
+    out.append("carRegistry=").append(c.carRegistry).append('\n');
+    out.append("smartHomeDefaultCar=").append(c.smartHomeDefaultCar).append('\n');
+    out.append("eventSummaryCar=").append(c.eventSummaryCar).append('\n');
+    out.append("routeSafe=").append(c.routeSafe()).append('\n');
+    out.append("mode=").append(c.mode()).append('\n');
+    out.append("reason=").append(c.reason).append('\n');
+    return out.toString();
   }
 
   private static String sceneProviderSummary(Context context) {

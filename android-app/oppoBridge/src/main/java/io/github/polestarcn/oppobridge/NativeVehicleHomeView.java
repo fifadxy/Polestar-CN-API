@@ -65,8 +65,12 @@ final class NativeVehicleHomeView extends LinearLayout {
     }catch(RuntimeException failure){feedback.setText("无法打开完整控制面板");}
   }
   static boolean isOurCard(String pkg,String type,String id) {
+    // The provider-generated psassistant_* id is unique to this bridge and survives MyDevices
+    // package/type normalization. Treat it as the primary identity so a transformed CAR type
+    // cannot silently fall back to the generic "View device" card.
+    if(id!=null&&id.startsWith("psassistant_"))return true;
     return ("io.github.polestarcn.oppobridge".equals(pkg)||"io.github.polestarcn.companion".equals(pkg))
-        &&"CAR".equals(type)&&id!=null&&id.startsWith("psassistant_");
+        &&type!=null&&"CAR".equalsIgnoreCase(type);
   }
   private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
   @Override protected void onAttachedToWindow(){

@@ -79,8 +79,8 @@ public final class VehicleCardDetailActivity extends Activity {
   private void submit(String action) {
     if(busy||isFinishing()||isDestroyed())return;
     busy=true;for(Button b:buttons)b.setEnabled(false);feedback.setText("正在提交请求…");
-    final long before=readCapturedAt();
     worker.execute(()->{
+      final long before=readCapturedAt();
       String message;
       try {
         if("__restore_card".equals(action)) {

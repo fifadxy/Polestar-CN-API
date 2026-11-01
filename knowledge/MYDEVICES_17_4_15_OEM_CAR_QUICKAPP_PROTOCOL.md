@@ -86,7 +86,7 @@ The 2x2 RPK defines the CAR icons but its top-level `eventSummary` removes all f
 
 The 4x2 RPK also filters `deviceData.shortcuts` through `eventSummary`.
 
-### 2x2 registry
+### 2x2 versus 4x2 registry
 
 The exact 2x2 `deviceCardRegistry.js` only registers:
 
@@ -95,9 +95,27 @@ The exact 2x2 `deviceCardRegistry.js` only registers:
 - pencil
 - headset
 
-There is no active `CAR` registry slot in this build.
+There is no active `CAR` registry slot in the 2x2 template.
 
-Therefore merely changing shortcut IDs or widening the Java whitelist cannot fully enable the OEM CAR UI.
+The exact 4x2 `deviceCardRegistry.js`, however, **does register CAR**:
+
+```js
+{
+  slot: 'car',
+  match(d) {
+    return d.type === 'CAR';
+  }
+}
+```
+
+and the 4x2 bundle imports a dedicated `components/car/index.ux`. Its click handler calls the same OEM `com.oplus.mydevices.clickEvent` contract with `kongtiao / chesuo / shanguang / mingdi`.
+
+Therefore the 4x2 native CAR template already exists and is selectable on this build. The remaining blocker for its controls is primarily the top-level `eventSummary` filter, which removes those four CAR shortcut IDs before the car component receives `deviceInfo.shortcuts`.
+
+Practical consequence:
+
+- 2x2: requires both a CAR registry/template solution and shortcut-gate solution; keep NativeHomeCard fallback.
+- 4x2: CAR registry/template already exists; focus research on `eventSummary` / widget replacement routing instead of rebuilding the whole card.
 
 ## CAR coordination state
 
@@ -191,6 +209,26 @@ componentExtra
 ```
 
 Therefore Bridge 1.2.0 continues to use PsAssistant's authoritative vehicle snapshot and command/readback path for lock, windows and climate. The OEM TSL property names are treated as a compatibility contract for future native-template integration, not as permission to guess write values.
+
+## Exact widget replacement observation target
+
+DEX reference analysis of MyDevices 17.4.15 confirms these provider methods consume `replacedWidgetCode`:
+
+```
+DeviceQuickAppCardWidgetProvider.handleGetCardData(String, Bundle)
+DeviceQuickAppCardWidgetProvider.handleCardShow(String, Bundle)
+```
+
+The 4x2 RPK itself also reads:
+
+```
+oldWidgetCode
+replacedWidgetCode
+```
+
+and sends the selected code back through its ContentResolver calls.
+
+Bridge 1.2.x therefore adds a read-only `QuickAppReplacementProbe` in `com.heytap.mydevices:cards`. The next runtime capture should establish whether an active 4x2 card receives a replacement code and which concrete widget path is selected before any in-memory RPK replacement is attempted.
 
 ## Current integration strategy
 

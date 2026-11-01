@@ -60,7 +60,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.1.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.2.0\n\n");
       try {
         Bundle host=BridgeClient.call(this,"host-status",null);
         long now=System.currentTimeMillis();
@@ -73,8 +73,8 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase",""))
                 .append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ")
                 .append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(module).append('\n');
-            if(now-seen>10*60*1000L||!"1.1.0".equals(module))
-              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.1.0，请重启设备空间后再判断新代码是否生效。\n");
+            if(now-seen>10*60*1000L||!"1.2.0".equals(module))
+              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.2.0，请重启设备空间后再判断新代码是否生效。\n");
           }
         }
         Bundle assistantHost=BridgeClient.call(this,"assistant-host-status",null);
@@ -86,7 +86,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
           out.append(new java.util.Date(assistantSeen)).append(" · ")
               .append(assistantHost.getString("phase","")).append(" · AssistantScreen ")
               .append(assistantHost.getString("hostVersion","")).append(" · 模块 ").append(assistantModule).append('\n');
-          if(now-assistantSeen>10*60*1000L||!"1.1.0".equals(assistantModule))
+          if(now-assistantSeen>10*60*1000L||!"1.2.0".equals(assistantModule))
             out.append("  ⚠ 负一屏 Hook 回报过期/版本不一致，请重启负一屏进程。\n");
         }
         out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
@@ -188,7 +188,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
         boolean done=process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS);
         int exit=done?process.exitValue():-1;
         if(!done)process.destroyForcibly();
-        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.1.0。";
+        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.2.0。";
         else message="root 重载未成功（exit="+exit+"）。请在 LSPosed/Vector 确认作用域后手动强停“设备空间”和“负一屏”。";
       } catch(Throwable failure) {
         message="root 重载不可用："+failure.getClass().getSimpleName()+"。请手动强停目标应用。";

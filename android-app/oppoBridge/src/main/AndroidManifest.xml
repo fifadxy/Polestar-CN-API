@@ -46,6 +46,15 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".PolestarOfficialBindActivity"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="io.github.polestarcn.oppobridge.ACTION_OFFICIAL_BIND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".BridgeDiagnosticsActivity"
             android:exported="true">
             <intent-filter>

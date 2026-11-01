@@ -161,6 +161,41 @@ final class OppoResearchExport {
       out.add(value.replace('\n',' ').replace('\r',' '));
   }
 
+  private static String sceneProviderSummary(Context context) {
+    StringBuilder out=new StringBuilder();
+    out.append("accountAuthority=com.oplus.sceneservice.AccountSDKInitProvider\n");
+    try {
+      android.content.pm.ProviderInfo owner=context.getPackageManager().resolveContentProvider(
+          "com.oplus.sceneservice.AccountSDKInitProvider",0);
+      if(owner==null) out.append("owner=unresolved\n");
+      else {
+        out.append("ownerPackage=").append(owner.packageName).append('\n');
+        out.append("providerClass=").append(owner.name).append('\n');
+        out.append("exported=").append(owner.exported).append('\n');
+        out.append("readPermission=").append(String.valueOf(owner.readPermission)).append('\n');
+        out.append("writePermission=").append(String.valueOf(owner.writePermission)).append('\n');
+      }
+    } catch(Throwable failure) {
+      out.append("resolveError=").append(failure.getClass().getSimpleName()).append('\n');
+    }
+    return out.toString();
+  }
+
+  private static boolean hasAny(String text,String... values) {
+    if(text==null)return false;
+    for(String value:values)if(text.contains(value))return true;
+    return false;
+  }
+
+  private static boolean eventSummaryHasCar(String text) {
+    if(text==null)return false;
+    int start=text.indexOf("eventSummary");
+    if(start<0)return false;
+    int end=Math.min(text.length(),start+5000);
+    String window=text.substring(start,end);
+    return hasAny(window,"kongtiao","chesuo","shanguang","mingdi");
+  }
+
   private static void extractMyDevicesAssets(Context context, ZipOutputStream out, long[] rawBudget) {
     try {
       ApplicationInfo app = context.getPackageManager().getApplicationInfo("com.heytap.mydevices", 0);

@@ -57,7 +57,7 @@ final class QuickAppProviderProbe {
                   + " coordinated=" + coordinated;
               module.info("quickapp_provider " + reason);
               HostReporter.report("com.heytap.mydevices",
-                  android.app.Application.getProcessName(),
+                  processName(),
                   "quickapp-provider", true, reason);
             } else if ("com.oplus.mydevices.clickEvent".equals(method)
                 && extras != null) {
@@ -82,6 +82,16 @@ final class QuickAppProviderProbe {
         });
 
     module.info("quickapp_provider_probe ready=true method=" + call.getName());
+  }
+
+  private static String processName() {
+    try {
+      Object value=Class.forName("android.app.ActivityThread")
+          .getMethod("currentProcessName").invoke(null);
+      return value == null ? "com.heytap.mydevices" : String.valueOf(value);
+    } catch (Throwable ignored) {
+      return "com.heytap.mydevices";
+    }
   }
 
   private static String bounded(String value) {

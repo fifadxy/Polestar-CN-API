@@ -71,7 +71,7 @@ final class QuickAppProviderProbe {
                     + " valueType=" + valueType;
                 module.info("quickapp_provider " + reason);
                 HostReporter.report("com.heytap.mydevices",
-                    android.app.Application.getProcessName(),
+                    processName(),
                     "quickapp-provider", true, reason);
               }
             }

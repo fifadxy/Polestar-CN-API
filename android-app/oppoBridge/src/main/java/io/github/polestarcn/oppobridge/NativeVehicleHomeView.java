@@ -21,7 +21,7 @@ final class NativeVehicleHomeView extends LinearLayout {
   private final TextView summary, feedback;
   private final Button[] controls=new Button[4];
   private final String[] actions=new String[4];
-  private final Button refresh;
+  private final Button refresh,more;
   private final AtomicBoolean reading=new AtomicBoolean();
   private ExecutorService worker;
   private boolean active,busy,dirty;
@@ -46,8 +46,23 @@ final class NativeVehicleHomeView extends LinearLayout {
         b.setOnClickListener(v->submit(actions[index],b.getText().toString()));
       }
     }
-    refresh=new Button(context,null,0);refresh.setText("刷新车况");refresh.setTextSize(12);refresh.setMinHeight(dp(28));refresh.setMinimumHeight(dp(28));refresh.setPadding(0,0,0,0);refresh.setBackgroundColor(Color.TRANSPARENT);refresh.setTextColor(ink);refresh.setIncludeFontPadding(false);refresh.setAllCaps(false);refresh.setOnClickListener(v->submit(null,"刷新车况"));addView(refresh);
+    LinearLayout footer=new LinearLayout(context);addView(footer,new LayoutParams(-1,-2));
+    refresh=new Button(context,null,0);refresh.setText("刷新");styleFooterButton(refresh,ink);refresh.setOnClickListener(v->submit(null,"刷新车况"));
+    more=new Button(context,null,0);more.setText("更多控制");styleFooterButton(more,ink);more.setOnClickListener(v->openDetails());
+    footer.addView(refresh,new LayoutParams(0,-2,1));footer.addView(more,new LayoutParams(0,-2,1));
     feedback=new TextView(context,null,0);feedback.setMinimumHeight(0);feedback.setMinHeight(0);feedback.setPadding(0,0,0,0);feedback.setIncludeFontPadding(false);feedback.setTextSize(10);feedback.setTextColor(ink);addView(feedback);bindSnapshot(new Bundle());
+  }
+  private void styleFooterButton(Button button,int ink){
+    button.setTextSize(12);button.setMinHeight(dp(28));button.setMinimumHeight(dp(28));
+    button.setPadding(0,0,0,0);button.setBackgroundColor(Color.TRANSPARENT);
+    button.setTextColor(ink);button.setIncludeFontPadding(false);button.setAllCaps(false);
+  }
+  private void openDetails(){
+    try{
+      android.content.Intent intent=new android.content.Intent(getContext(),VehicleCardDetailActivity.class)
+          .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+      getContext().startActivity(intent);
+    }catch(RuntimeException failure){feedback.setText("无法打开完整控制面板");}
   }
   static boolean isOurCard(String pkg,String type,String id) {
     return ("io.github.polestarcn.oppobridge".equals(pkg)||"io.github.polestarcn.companion".equals(pkg))
@@ -92,6 +107,7 @@ final class NativeVehicleHomeView extends LinearLayout {
     boolean enabled=data.getBoolean("available")&&!data.getBoolean("demo")&&data.getBoolean("cardEnabled",true);
     for(Button b:controls)b.setEnabled(enabled&&!busy);
     refresh.setEnabled(data.getBoolean("cardEnabled",true)&&!busy);
+    more.setEnabled(data.getBoolean("cardEnabled",true)&&!busy);
     if(enabled&&feedback.getText().toString().startsWith("请在 PsAssistant"))feedback.setText("");
     if(!enabled)feedback.setText("请在 PsAssistant 登录并刷新车况，或检查集成开关");
   }

@@ -1005,7 +1005,10 @@ public final class AppRegressionTest {
   @Test public void standaloneSignerNeverRequiresAnInstalledReference() throws Exception {
     io.github.polestarcn.companion.auth.ClientSignatureProvider provider=new io.github.polestarcn.companion.auth.ClientSignatureProvider(activity);
     if(provider.isReady())assertEquals(32,provider.resolve().length());
-    else try{provider.resolve();fail("missing build configuration must be explicit");}catch(IllegalStateException expected){assertTrue(expected.getMessage().contains("verification build"));}
+    else try{provider.resolve();fail("missing build configuration must be explicit");}catch(IllegalStateException expected){
+      assertTrue(expected.getMessage().contains("独立登录配置"));
+      assertTrue(expected.getMessage().contains("公开 CI 验证包"));
+    }
   }
 
   @Test

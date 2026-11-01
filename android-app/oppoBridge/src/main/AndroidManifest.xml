@@ -55,6 +55,18 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".VehicleShortcutActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="psassistant-oppo-bridge" android:host="command"/>
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".BridgeDiagnosticsActivity"
             android:exported="true">
             <intent-filter>

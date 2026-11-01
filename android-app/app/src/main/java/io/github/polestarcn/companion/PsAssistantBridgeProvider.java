@@ -66,6 +66,13 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoHostDiagnostics.record(context,extras);
     }
     if("host-status".equals(method))return OppoHostDiagnostics.status(context);
+    if("quickapp-runtime-report".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean host=false;if(callers!=null)for(String pkg:callers)if("com.heytap.mydevices".equals(pkg))host=true;
+      if(!host)throw new SecurityException("Only MyDevices can report QuickApp runtime metadata");
+      return OppoQuickAppRuntimeDiagnostics.record(context,extras);
+    }
+    if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
     if("assistant-host-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean assistant=false;if(callers!=null)for(String pkg:callers)if("com.coloros.assistantscreen".equals(pkg))assistant=true;

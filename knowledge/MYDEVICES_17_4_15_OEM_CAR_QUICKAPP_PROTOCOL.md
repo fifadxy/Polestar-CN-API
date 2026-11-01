@@ -124,6 +124,74 @@ COORDINATED / COORDINATED
 
 This is limited to the synthetic MyDevices presentation model; it does not change Polestar connectivity/session semantics.
 
+## Exact CAR TSL contract from MyDevices DEX
+
+Exact DEX instruction-reference analysis of MyDevices 17.4.15 identifies the obfuscated converter `aa.ya`. Its own log tag is `CarTslConverter`.
+
+The nested mapper `aa.ya$a.a(String)` maps ColorOS instruction types to vehicle TSL property IDs:
+
+```
+InstructionType.CAR_DOOR
+  -> lockStatus_23296_5
+
+InstructionType.ALL_WINDOW
+  -> windowOnOff_23296_4
+
+InstructionType.AC_TEMP
+  -> power_1536_1
+
+InstructionType.CAR_HORN_AND_FLASH
+  -> findCar_23296_7
+```
+
+Both the `-0` and `-1` variants of the instruction ID resolve to the same property key. This proves the property identity but does not by itself prove the numeric polarity, so the bridge must not infer that 0 always means off/locked or that 1 always means on/unlocked.
+
+The main `aa.ya.b(DeviceModel)` converter parses `DeviceModel.data` into `CarStatusInfo` and publishes:
+
+```
+totalEnduranceMileage
+  -> remainingRange_23296_1
+
+batteryEnduranceMileage
+  -> elecRemainingRange_23296_3
+
+oilEnduranceMileage
+  -> oilRemainingRange_23296_2
+
+BatteryInfo.charge
+  -> batteryCharging_1280_2
+
+BatteryInfo.value
+  -> batteryLevel_1280_1
+```
+
+The exact `CarStatusInfo` model is:
+
+```
+batteryEnduranceMileage : int
+oilEnduranceMileage     : int
+totalEnduranceMileage   : int
+companyImg              : String
+isRefreshing            : boolean
+state                   : CarState
+msg                     : CarMessage
+```
+
+`CarState` is a UI/action state object rather than the physical lock/window state itself:
+
+```
+description
+buttonName
+extra
+disable
+needLoading
+buttonAction
+buttonComponent
+componentExtra
+```
+
+Therefore Bridge 1.2.0 continues to use PsAssistant's authoritative vehicle snapshot and command/readback path for lock, windows and climate. The OEM TSL property names are treated as a compatibility contract for future native-template integration, not as permission to guess write values.
+
 ## Current integration strategy
 
 Stable path:

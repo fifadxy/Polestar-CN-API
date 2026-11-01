@@ -93,7 +93,7 @@ final class OppoResearchExport {
 
   private static String bridgeSummary(Context context) {
     StringBuilder out = new StringBuilder();
-    for (String method : new String[]{"capabilities","snapshot","host-status","assistant-host-status","shelf-status","account-bind-status","discovery-baseline-diff"}) {
+    for (String method : new String[]{"capabilities","snapshot","host-status","quickapp-runtime-status","assistant-host-status","shelf-status","account-bind-status","discovery-baseline-diff"}) {
       out.append("[").append(method).append("]\n");
       try { appendBundle(out, BridgeClient.call(context, method, null)); }
       catch (Throwable failure) { out.append("error=").append(failure.getClass().getSimpleName()).append('\n'); }

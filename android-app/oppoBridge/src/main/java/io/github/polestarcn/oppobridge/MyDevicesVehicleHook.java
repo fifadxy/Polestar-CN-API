@@ -136,13 +136,13 @@ final class MyDevicesVehicleHook {
       // Exact 17.4.15 factory contract: Map<packageName, List<deviceType>>.
       if (method.getReturnType() == Map.class) return Collections.singletonMap(PACKAGE, Collections.singletonList("CAR"));
       if (method.equals(click)) {
-        if (args == null || args.size() < 3 || args.get(0) == null || args.get(1) == null || args.get(2) == null) {
+        if (args == null || args.length < 3 || args[0] == null || args[1] == null || args[2] == null) {
           module.warn("mydevices_shortcut_rejected missing-args");
           return null;
         }
         Application app = currentApplication();
         if (app == null) { module.warn("mydevices_shortcut_rejected no-application"); return null; }
-        String shortcutId = String.valueOf(args.get(1));
+        String shortcutId = String.valueOf(args[1]);
         String command;
         try {
           android.os.Bundle snapshot = CardShortcutCommand.isOemCarId(shortcutId)

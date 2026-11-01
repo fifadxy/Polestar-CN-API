@@ -7,6 +7,8 @@
         <package android:name="com.oplus.pantanal.ums"/>
         <package android:name="com.heytap.speechassist"/>
         <package android:name="com.oplus.ocar"/>
+        <package android:name="com.oplus.sceneservice"/>
+        <package android:name="com.nearme.instant.platform"/>
     </queries>
     <application
         android:label="PsAssistant OPPO Bridge"

@@ -10,12 +10,13 @@ final class OppoQuickAppRuntimeDiagnostics {
   private static final String[] STRINGS={
       "hostVersion","moduleVersion","phase","method","widgetCode","oldWidgetCode",
       "replacedWidgetCode","cardPath","reason","resultKeys","selectedIdClass","selectedType",
-      "selectedPackage","selectedShortcutIds","deviceListParse"
+      "selectedPackage","selectedShortcutIds","deviceListParse","oemShimMode"
   };
   private static final String[] BOOLEANS={
       "single4x2CarRegistry","single2x2CarRegistry","single4x2EventSummaryCar",
       "single2x2EventSummaryCar","deviceListPresent","selectedIsOurCard","selectedHasData",
-      "isAuth","isBind","hasDevice"
+      "isAuth","isBind","hasDevice","oemShimApplied","oemCarRegistry",
+      "oemSmartHomeDefaultCar","oemEventSummaryCar"
   };
   private static final String[] INTS={
       "deviceCount","selectedDeviceIndex","selectedShortcutCount"

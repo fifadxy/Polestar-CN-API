@@ -36,6 +36,11 @@ public final class ClientSignatureProvider {
     return source;
   }
 
+  public String diagnostic() {
+    if (isReady()) return "READY:" + source().name();
+    return "MISSING: complete standalone client configuration is not bundled";
+  }
+
   public String resolve() throws Exception {
     String v = cached;
     if (v != null) return v;
@@ -81,8 +86,8 @@ public final class ClientSignatureProvider {
 
       source = Source.MISSING;
       throw new IllegalStateException(
-          "This verification build has no China account client configuration. "
-              + "Use the complete PsAssistant build with its original signing identity.");
+          "当前安装包缺少中国区独立登录配置。请安装 PsAssistant Standalone 完整版；"
+              + "公开 CI 验证包不能独立登录。");
     }
   }
 

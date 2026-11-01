@@ -12,7 +12,8 @@ final class OppoHostDiagnostics {
     if(prefix==null)throw new IllegalArgumentException("Unsupported host process");
     String phase=in.getString("phase","");
     if(!phase.equals("hooks-installed")&&!phase.equals("card-added")&&!phase.equals("install-failed")
-        &&!phase.equals("quickapp-gates")&&!phase.equals("quickapp-converted"))
+        &&!phase.equals("quickapp-gates")&&!phase.equals("quickapp-converted")
+        &&!phase.equals("quickapp-provider"))
       throw new IllegalArgumentException("Unsupported host phase");
     SharedPreferences.Editor e=c.getSharedPreferences(PREF,0).edit();
     e.putString(prefix+"phase",phase).putBoolean(prefix+"ready",in.getBoolean("ready",false)).putLong(prefix+"seenAt",System.currentTimeMillis());

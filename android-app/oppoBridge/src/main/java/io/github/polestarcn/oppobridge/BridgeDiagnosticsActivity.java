@@ -56,14 +56,34 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.0.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.1.0\n\n");
       try {
         Bundle host=BridgeClient.call(this,"host-status",null);
+        long now=System.currentTimeMillis();
         for(String prefix:new String[]{"main_","cards_"}) {
           long seen=host.getLong(prefix+"seenAt",0);
+          String module=host.getString(prefix+"moduleVersion","");
           out.append(prefix.equals("main_")?"设备空间主进程: ":"设备卡进程: ");
-          if(seen==0)out.append("未收到 Hook 回报；不代表主程序接口失效\n");
-          else out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase","")).append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ").append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(host.getString(prefix+"moduleVersion","")).append('\n');
+          if(seen==0)out.append("未收到 Hook 回报；请确认 LSPosed/Vector 作用域并重启目标进程\n");
+          else {
+            out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase",""))
+                .append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ")
+                .append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(module).append('\n');
+            if(now-seen>10*60*1000L||!"1.1.0".equals(module))
+              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.1.0，请重启设备空间后再判断新代码是否生效。\n");
+          }
+        }
+        Bundle assistantHost=BridgeClient.call(this,"assistant-host-status",null);
+        long assistantSeen=assistantHost.getLong("seenAt",0L);
+        String assistantModule=assistantHost.getString("moduleVersion","");
+        out.append("负一屏 Hook 进程: ");
+        if(assistantSeen==0L) out.append("未收到当前代 Hook 回报；Shelf/SceneService 探针不会运行\n");
+        else {
+          out.append(new java.util.Date(assistantSeen)).append(" · ")
+              .append(assistantHost.getString("phase","")).append(" · AssistantScreen ")
+              .append(assistantHost.getString("hostVersion","")).append(" · 模块 ").append(assistantModule).append('\n');
+          if(now-assistantSeen>10*60*1000L||!"1.1.0".equals(assistantModule))
+            out.append("  ⚠ 负一屏 Hook 回报过期/版本不一致，请重启负一屏进程。\n");
         }
         out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
         Bundle shelf=BridgeClient.call(this,"shelf-status",null);

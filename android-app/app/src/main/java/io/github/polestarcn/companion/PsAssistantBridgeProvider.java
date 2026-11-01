@@ -73,6 +73,16 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoQuickAppRuntimeDiagnostics.record(context,extras);
     }
     if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
+    if("oppo-oem-car-status".equals(method))return OppoOemCarExperimentState.status(context);
+    if("oppo-oem-car-set".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean bridge=false;if(callers!=null)for(String pkg:callers)
+        if("io.github.polestarcn.oppobridge".equals(pkg))bridge=true;
+      if(!bridge&&Binder.getCallingUid()!=Process.myUid())
+        throw new SecurityException("Only PsAssistant OPPO Bridge can change OEM CAR experiment state");
+      boolean enabled=extras!=null&&extras.getBoolean("enabled",false);
+      return OppoOemCarExperimentState.set(context,enabled);
+    }
     if("assistant-host-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean assistant=false;if(callers!=null)for(String pkg:callers)if("com.coloros.assistantscreen".equals(pkg))assistant=true;

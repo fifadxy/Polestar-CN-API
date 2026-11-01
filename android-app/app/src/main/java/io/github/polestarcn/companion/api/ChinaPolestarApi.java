@@ -124,6 +124,9 @@ public final class ChinaPolestarApi {
     synchronized(SESSION_STATE_LOCK){loginEpoch=sessionEpoch;}
     if (phone == null || phone.trim().isEmpty()) throw new IllegalArgumentException("请输入手机号");
     if (password == null || password.isEmpty()) throw new IllegalArgumentException("请输入密码");
+    if (!signatureProvider.isReady())
+      throw new IllegalStateException(
+          "当前安装包不是完整独立登录版：缺少中国区客户端配置，登录请求未发送");
 
     JSONObject body = new JSONObject();
     body.put("clientId", "polestar-app-android");
@@ -735,7 +738,23 @@ public final class ChinaPolestarApi {
             + "ms bytes="
             + bytes.length);
     String text = new String(bytes, StandardCharsets.UTF_8);
-    if (status < 200 || status >= 300) throw new Exception("HTTP " + status);
+    if (status < 200 || status >= 300) {
+      String server = "";
+      try {
+        Object parsedError = text.isEmpty() ? null : new JSONTokener(text).nextValue();
+        if (parsedError instanceof JSONObject) {
+          JSONObject error = (JSONObject) parsedError;
+          server = first(error.optString("msg"), error.optString("message"), error.optString("error_description"));
+          JSONObject data = error.optJSONObject("data");
+          if (server.isEmpty() && data != null)
+            server = first(data.optString("msg"), data.optString("message"), data.optString("error"));
+        }
+      } catch (Exception ignored) {}
+      if (server.length() > 120) server = server.substring(0, 120);
+      server = server.replaceAll("(?<![0-9])1[3-9][0-9]{9}(?![0-9])", "[phone]")
+          .replaceAll("(?i)Bearer\\s+[^\\s]+", "[redacted]");
+      throw new Exception("HTTP " + status + (server.isEmpty() ? "" : " · " + server));
+    }
     if (text.isEmpty()) return new JSONObject();
     Object parsed = new JSONTokener(text).nextValue();
     if (parsed instanceof JSONObject) return parsed;

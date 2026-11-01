@@ -197,6 +197,30 @@ final class OppoResearchExport {
     return hasAny(window,"kongtiao","chesuo","shanguang","mingdi");
   }
 
+  private static void extractAssistantScreenAssets(
+      Context context, ZipOutputStream out, long[] rawBudget) {
+    try {
+      ApplicationInfo app = context.getPackageManager()
+          .getApplicationInfo("com.coloros.assistantscreen", 0);
+      try (ZipFile apk = new ZipFile(app.sourceDir)) {
+        String[] entries = {
+            "assets/preset/card_config_local_config.json",
+            "assets/local_export_oppo_service_info_list_json.json",
+            "assets/local_export_oneplus_service_info_list_json.json",
+            "assets/local_guaranteed_service_info_list_json.json",
+            "assets/serverconfig/preset/card_cloud_config.json"
+        };
+        for (String entry : entries) {
+          String leaf = entry.substring(entry.lastIndexOf('/') + 1);
+          copyEntry(apk, entry, out, rawBudget,
+              "assistantscreen/" + leaf, MAX_TEXT_ENTRY);
+        }
+      }
+    } catch (Throwable ignored) {
+      // Exact assets differ by firmware; package metadata and runtime probes remain useful.
+    }
+  }
+
   private static void extractMyDevicesAssets(Context context, ZipOutputStream out, long[] rawBudget) {
     try {
       ApplicationInfo app = context.getPackageManager().getApplicationInfo("com.heytap.mydevices", 0);

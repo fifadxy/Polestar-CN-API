@@ -97,6 +97,17 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     if("discovery-baseline-save".equals(method))return OppoDiscoveryBaseline.save(context);
     if("discovery-baseline-diff".equals(method))return OppoDiscoveryBaseline.diff(context);
     if("discovery-baseline-clear".equals(method))return OppoDiscoveryBaseline.clear(context);
+    if("oppo-official-bind-status".equals(method))
+      return OppoOfficialVehicleBindState.status(context,VehicleCoordinator.get(context));
+    if("oppo-official-bind-set".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean bridge=false;if(callers!=null)for(String pkg:callers)
+        if("io.github.polestarcn.oppobridge".equals(pkg))bridge=true;
+      if(!bridge&&Binder.getCallingUid()!=Process.myUid())
+        throw new SecurityException("Only PsAssistant OPPO Bridge can change official bind state");
+      boolean enabled=extras!=null&&extras.getBoolean("enabled",false);
+      return OppoOfficialVehicleBindState.set(context,VehicleCoordinator.get(context),enabled);
+    }
     out.putBoolean("cardEnabled", OppoDeviceIntegration.enabled(context));
     if (!OppoDeviceIntegration.enabled(context)) {
       out.putBoolean("available", false);

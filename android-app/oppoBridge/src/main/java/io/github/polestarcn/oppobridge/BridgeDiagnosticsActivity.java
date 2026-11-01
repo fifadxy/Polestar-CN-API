@@ -31,6 +31,14 @@ public final class BridgeDiagnosticsActivity extends Activity {
     official.setText("打开 Polestar“我的车辆”实验绑定");
     official.setOnClickListener(v -> startActivity(new Intent(this, PolestarOfficialBindActivity.class)));
     column.addView(official);
+    Button oemEnable = new Button(this);
+    oemEnable.setText("启用 OEM 4×2 CAR 实验路由");
+    oemEnable.setOnClickListener(v -> setOemCarExperiment(true));
+    column.addView(oemEnable);
+    Button oemDisable = new Button(this);
+    oemDisable.setText("关闭 OEM 4×2 CAR 实验路由");
+    oemDisable.setOnClickListener(v -> setOemCarExperiment(false));
+    column.addView(oemDisable);
     Button refresh = new Button(this);
     refresh.setText("重新检测桥接");
     refresh.setOnClickListener(v -> diagnose());
@@ -64,7 +72,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.3.1\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.4.0\n\n");
       try {
         Bundle host=BridgeClient.call(this,"host-status",null);
         long now=System.currentTimeMillis();
@@ -77,8 +85,8 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase",""))
                 .append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ")
                 .append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(module).append('\n');
-            if(now-seen>10*60*1000L||!"1.3.1".equals(module))
-              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.3.1，请重启设备空间后再判断新代码是否生效。\n");
+            if(now-seen>10*60*1000L||!"1.4.0".equals(module))
+              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.4.0，请重启设备空间后再判断新代码是否生效。\n");
           }
         }
         Bundle assistantHost=BridgeClient.call(this,"assistant-host-status",null);
@@ -90,7 +98,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
           out.append(new java.util.Date(assistantSeen)).append(" · ")
               .append(assistantHost.getString("phase","")).append(" · AssistantScreen ")
               .append(assistantHost.getString("hostVersion","")).append(" · 模块 ").append(assistantModule).append('\n');
-          if(now-assistantSeen>10*60*1000L||!"1.3.1".equals(assistantModule))
+          if(now-assistantSeen>10*60*1000L||!"1.4.0".equals(assistantModule))
             out.append("  ⚠ 负一屏 Hook 回报过期/版本不一致，请重启负一屏进程。\n");
         }
         out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
@@ -112,7 +120,22 @@ public final class BridgeDiagnosticsActivity extends Activity {
           out.append("  2×2 CAR registry=").append(quick.getBoolean("single2x2CarRegistry",false))
               .append(" · eventSummary允许CAR=").append(quick.getBoolean("single2x2EventSummaryCar",false)).append('\n');
         }
-        out.append("该探针只观察 widget 路由，不修改 RPK、绑定关系或 OEM Provider 返回值。\n\n");
+        Bundle oemState=BridgeClient.call(this,"oppo-oem-car-status",null);
+        QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(this);
+        out.append("OEM 4×2 CAR 实验: ")
+            .append(oemState.getBoolean("enabled",false)?"已启用":"未启用")
+            .append(" · RPK路由安全=").append(capability.routeSafe())
+            .append(" · 模式=").append(capability.mode()).append('\n');
+        out.append("  registry=").append(capability.carRegistry)
+            .append(" · smartHomeDefault=").append(capability.smartHomeDefaultCar)
+            .append(" · eventSummary=").append(capability.eventSummaryCar)
+            .append(" · ").append(capability.reason).append('\n');
+        if(quick.getBoolean("oemShimApplied",false))
+          out.append("  上次 QuickApp 运行时已应用 OEM CAR shim · ")
+              .append(quick.getString("oemShimMode","")).append('\n');
+        else if(quickSeen>0)
+          out.append("  上次 QuickApp 运行时未应用 shim；NativeHomeCard 继续作为兜底。\n");
+        out.append("该实验只修改 PsAssistant 自己的最终 deviceList；不会修改 MyDevices APK/RPK 文件。\n\n");
 
         Bundle shelf=BridgeClient.call(this,"shelf-status",null);
         long shelfSeen=shelf.getLong("seenAt",0);
@@ -191,9 +214,36 @@ public final class BridgeDiagnosticsActivity extends Activity {
         out.append("检测失败: ").append(failure.getClass().getSimpleName()).append(": ").append(failure.getMessage()).append('\n');
       }
       out.append("\n安装路径\n新版 PsAssistant: 使用内置桥接接口。\n旧版 PsAssistant: 启用 API 102 模块，勾选 PsAssistant 与我的设备，重启目标应用。运行时桥接要求 Android 14 或更高版本。\n");
-      out.append("\n已实现: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改系统 RPK；1.3.1 会报告 converter/RPK 双重过滤与 OEM QuickApp Provider 实际调用状态。\n待真机验证: CAR=COORDINATED 后原生首页控件实际渲染、OEM QuickApp CAR 路由及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景；0.9.0 现已增加 Pantanal serviceId 与 SceneService provider/绑定状态只读探针。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
+      out.append("\n已实现: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改系统 RPK；1.4.0 会自动检测并报告 converter/RPK 双重过滤与 OEM QuickApp Provider 实际调用状态。\n待真机验证: CAR=COORDINATED 后原生首页控件实际渲染、OEM QuickApp CAR 路由及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景；0.9.0 现已增加 Pantanal serviceId 与 SceneService provider/绑定状态只读探针。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
+      });
+    });
+  }
+
+  private void setOemCarExperiment(boolean enabled) {
+    status.setText(enabled?"正在启用 OEM CAR 实验路由…":"正在关闭 OEM CAR 实验路由…");
+    worker.execute(() -> {
+      String message;
+      try {
+        Bundle in=new Bundle();
+        in.putBoolean("enabled",enabled);
+        Bundle result=BridgeClient.call(this,"oppo-oem-car-set",in);
+        QuickAppCarCapability.clearForReload();
+        QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(this);
+        message=(result.getBoolean("accepted",false)?"设置成功":"设置失败")
+            +" · routeSafe="+capability.routeSafe()
+            +" · mode="+capability.mode()
+            +"\n建议随后执行“Root 重载 OPPO Hook 目标进程”，再打开一次 4×2 设备卡。";
+      } catch(Throwable failure) {
+        message="设置失败："+failure.getClass().getSimpleName()+": "+failure.getMessage();
+      }
+      final String result=message;
+      runOnUiThread(() -> {
+        if(!isFinishing()&&!isDestroyed()) {
+          status.setText(result);
+          status.postDelayed(this::diagnose,1200L);
+        }
       });
     });
   }
@@ -217,7 +267,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
         boolean done=process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS);
         int exit=done?process.exitValue():-1;
         if(!done)process.destroyForcibly();
-        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.3.1。";
+        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.4.0。";
         else message="root 重载未成功（exit="+exit+"）。请在 LSPosed/Vector 确认作用域后手动强停“设备空间”和“负一屏”。";
       } catch(Throwable failure) {
         message="root 重载不可用："+failure.getClass().getSimpleName()+"。请手动强停目标应用。";

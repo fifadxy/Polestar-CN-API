@@ -40,6 +40,8 @@ public final class OppoBridgeModule extends XposedModule {
         catch (Throwable unavailable) { warn("account_provider_catalog_probe unavailable="+unavailable.getClass().getSimpleName()); }
       }
       if ("com.heytap.mydevices".equals(pkg)) {
+        try { QuickAppProviderProbe.install(this, param.getClassLoader()); }
+        catch (Throwable unavailable) { warn("quickapp_provider_probe unavailable="+unavailable.getClass().getSimpleName()); }
         if ("com.heytap.mydevices".equals(process)) {
           MyDevicesVehicleHook.installMain(this, param.getClassLoader());
           try { NativeHomeCardHook.install(this, param.getClassLoader()); }

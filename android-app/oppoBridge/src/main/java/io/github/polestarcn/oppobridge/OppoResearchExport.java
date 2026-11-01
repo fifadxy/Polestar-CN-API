@@ -65,6 +65,7 @@ final class OppoResearchExport {
       putText(zip, rawBudget, "bridge-status.txt", bridgeSummary(context));
       putText(zip, rawBudget, "packages.txt", packageSummary(context));
       extractMyDevicesAssets(context, zip, rawBudget);
+      extractAssistantScreenAssets(context, zip, rawBudget);
       putText(zip, rawBudget, "scene-provider.txt", sceneProviderSummary(context));
     }
     if (out.length() > MAX_OUTPUT_BYTES) {

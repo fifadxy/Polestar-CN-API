@@ -93,7 +93,7 @@ final class OppoResearchExport {
 
   private static String bridgeSummary(Context context) {
     StringBuilder out = new StringBuilder();
-    for (String method : new String[]{"capabilities","snapshot","host-status","quickapp-runtime-status","assistant-host-status","shelf-status","account-bind-status","discovery-baseline-diff"}) {
+    for (String method : new String[]{"capabilities","snapshot","host-status","quickapp-runtime-status","assistant-host-status","shelf-status","account-bind-status","oppo-official-bind-status","discovery-baseline-diff"}) {
       out.append("[").append(method).append("]\n");
       try { appendBundle(out, BridgeClient.call(context, method, null)); }
       catch (Throwable failure) { out.append("error=").append(failure.getClass().getSimpleName()).append('\n'); }
@@ -278,18 +278,36 @@ final class OppoResearchExport {
         }
         ZipEntry rpk = apk.getEntry("assets/com.heytap.mydevices.quickapp.kdRpk.rpk");
         if (rpk != null && rpk.getSize() > 0 && rpk.getSize() < 8_000_000L) {
+          StringBuilder entryIndex=new StringBuilder();
+          StringBuilder keywordSnippets=new StringBuilder();
+          int entryCount=0,jsScanned=0,keywordFiles=0;
           try (ZipInputStream nested = new ZipInputStream(new BufferedInputStream(apk.getInputStream(rpk)))) {
             ZipEntry entry;
             while ((entry = nested.getNextEntry()) != null) {
               String name = entry.getName();
               if (name == null) continue;
+              entryCount++;
+              if(entryIndex.length()<80_000)entryIndex.append(name.replace('\r',' ').replace('\n',' ')).append('\n');
               boolean target = name.endsWith("cards/SingleDeviceCard2x2/index.js")
                   || name.endsWith("cards/SingleDeviceCard4x2/index.js")
                   || name.endsWith("manifest.json") || name.endsWith("app.json");
-              if (!target) continue;
-              byte[] data = readBounded(nested, MAX_TEXT_ENTRY);
-              putBytes(out, rawBudget, "mydevices/rpk/" + sanitizePath(name), data);
+              boolean js=name.endsWith(".js");
+              if (!target&&!js) continue;
+              byte[] data = readBounded(nested, target?MAX_TEXT_ENTRY:240_000);
+              if(target)putBytes(out, rawBudget, "mydevices/rpk/" + sanitizePath(name), data);
               String text=new String(data,java.nio.charset.StandardCharsets.UTF_8);
+              if(js) {
+                jsScanned++;
+                boolean hit=hasAny(text,"smartHomeDefault","eventSummary","carEventIconName",
+                    "deviceCardRegistry","kongtiao","chesuo","shanguang","mingdi");
+                if(hit) {
+                  keywordFiles++;
+                  appendKeywordWindows(keywordSnippets,name,text);
+                  analysis.append("rpkKeywordEntry=").append(name.replace('\n',' ').replace('\r',' ')).append('\n');
+                  if(text.contains("smartHomeDefault"))analysis.append("smartHomeDefaultNearbyCar=")
+                      .append(keywordWindowHasCar(text,"smartHomeDefault")).append('\n');
+                }
+              }
               if(name.endsWith("SingleDeviceCard2x2/index.js")) {
                 analysis.append("rpk2x2DefinesCarIcons=")
                     .append(hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi")).append('\n');
@@ -303,11 +321,41 @@ final class OppoResearchExport {
               }
             }
           }
+          analysis.append("rpkEntryCount=").append(entryCount).append('\n');
+          analysis.append("rpkJsScanned=").append(jsScanned).append('\n');
+          analysis.append("rpkKeywordFiles=").append(keywordFiles).append('\n');
+          if(entryIndex.length()>0)putText(out,rawBudget,"mydevices/rpk-entry-index.txt",entryIndex.toString());
+          if(keywordSnippets.length()>0)
+            putText(out,rawBudget,"mydevices/rpk-keyword-snippets.txt",keywordSnippets.toString());
         }
         if(analysis.length()>0)putText(out,rawBudget,"mydevices-analysis.txt",analysis.toString());
       }
     } catch (Throwable ignored) {
       // Export remains useful even if OEM APK layout changes.
+    }
+  }
+
+  private static boolean keywordWindowHasCar(String text,String keyword) {
+    if(text==null)return false;
+    int at=text.indexOf(keyword);
+    if(at<0)return false;
+    int from=Math.max(0,at-1200),to=Math.min(text.length(),at+8000);
+    String window=text.substring(from,to);
+    return hasAny(window,"\"CAR\"","'CAR'","CAR:","CAR=", "kongtiao","chesuo","shanguang","mingdi");
+  }
+
+  private static void appendKeywordWindows(StringBuilder out,String name,String text) {
+    if(out.length()>140_000||text==null)return;
+    String[] keys={"smartHomeDefault","eventSummary","carEventIconName","deviceCardRegistry",
+        "kongtiao","chesuo","shanguang","mingdi"};
+    out.append("\n### ").append(name.replace('\n',' ').replace('\r',' ')).append('\n');
+    for(String key:keys) {
+      int at=text.indexOf(key);
+      if(at<0)continue;
+      int from=Math.max(0,at-420),to=Math.min(text.length(),at+900);
+      out.append("\n[").append(key).append("]\n")
+          .append(text.substring(from,to).replace('\r',' ')).append('\n');
+      if(out.length()>140_000)break;
     }
   }
 

@@ -45,8 +45,15 @@ final class PolestarProviderCatalogShim {
             if(!(value instanceof List<?>))return result;
             @SuppressWarnings("unchecked") List<Object> list=(List<Object>)value;
             if(hasCode(list,"POLESTAR"))return result;
+            if(list.isEmpty()) {
+              module.info("polestar_provider_catalog source_empty=true; synthetic provider deferred");
+              return result;
+            }
             Object sample=firstSample(list);
-            if(sample==null)return result;
+            if(sample==null) {
+              module.warn("polestar_provider_catalog sample_missing=true");
+              return result;
+            }
             Object injected=copyProvider(sample);
             if(injected==null) {
               module.warn("polestar_provider_catalog construct_failed class="+sample.getClass().getName());

@@ -131,7 +131,7 @@ final class ShelfPantanalProbe {
       in.putString("candidates", candidates);
       in.putString("services", services);
       in.putString("hostVersion", TARGET_VERSION);
-      in.putString("moduleVersion", "1.1.0");
+      in.putString("moduleVersion", "1.2.0");
       BridgeClient.call(app, "shelf-report", in);
     } catch (Throwable ignored) {
       // Diagnostic reporting must not affect AssistantScreen.

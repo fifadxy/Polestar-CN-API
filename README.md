@@ -1,4 +1,4 @@
-当前分支 **v0.9.7-beta27 /141 · Bridge1.13.0 /25**：[设备卡及车辆目录Provider修复](knowledge/OPPO_PROVIDER_BETA27_20261102.md)。增加本机修复按钮、查询原因和统一控车验证；官方身份及真机验收仍独立核对。以下为历史记录。
+当前分支 **v0.9.7-beta27 /141 · Bridge1.13.0 /25**：[设备卡及车辆目录Provider修复](knowledge/OPPO_PROVIDER_BETA27_20261102.md)。增加本机修复按钮、查询原因和统一控车验证；官方身份及真机验收仍独立核对。以下为历史记录。 [FULL交付验证与使用方法](docs/PSASSISTANT_BETA27_FULL_VERIFICATION_20261102.md)：9.57MB，固定签名，最终CI通过。
 
 当前分支 **v0.9.7-beta26 /140 · Bridge1.12.0 /24**：[CarLink SDK、Root定向诊断与协议纠错](knowledge/OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。正式SDK鉴权和车型后台配置仍需本应用身份，不能把编译/本地绑定当作实机打通。 [FULL交付验证与使用方法](docs/PSASSISTANT_BETA26_FULL_VERIFICATION_20261102.md)：9.56MB，固定签名，真实SDK构建已通过。以下为历史记录。
 

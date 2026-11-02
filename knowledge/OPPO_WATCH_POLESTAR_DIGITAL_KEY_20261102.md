@@ -166,3 +166,22 @@ OPPO 中国区官方已经支持部分品牌无感车钥匙、NFC 车钥匙和�
 - 或独立 Polestar PAK endpoint 实验。
 
 不再以伪造“已绑定”为里程碑。
+
+
+## beta22.1：CarLink 宿主只读 LSPosed 探针
+
+为确认 ColorOS 真机上官方 CarLink 是否可被模块观察，增加：
+- Xposed scope: `com.heytap.opluscarlink`
+- `CarLinkHostReporter`：只记录宿主版本、进程、模块版本与加载状态；
+- `OppoCarLinkHostDiagnostics`：PsAssistant 本地保存最后一次只读报告；
+- Bridge 诊断页显示 CarLink 宿主是否实际加载模块。
+
+该探针**不 Hook/篡改** `isBluetoothKeyExist`、绑定结果、验证结果或密钥状态。只有确认具体手机固件的 CarLink 宿主版本后，才允许进一步做版本门禁的 UI/路由兼容。
+
+当前 AssistantScreen 17.14.60 已存在一条安全的品牌入口兼容链：
+- `PolestarProviderCatalogShim` 仅在内存 Provider 列表增加一个品牌入口；
+- `PolestarBindIntentShim` 只把该入口导向 PsAssistant 本地绑定/诊断页面；
+- 不写 SceneService 数据库；
+- 不宣称车辆或蓝牙钥匙已经绑定。
+
+因此“让系统出现极星选项”与“让车辆接受数字钥匙”已经明确分离。

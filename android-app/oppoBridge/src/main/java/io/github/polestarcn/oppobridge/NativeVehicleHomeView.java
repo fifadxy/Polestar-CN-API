@@ -107,7 +107,7 @@ final class NativeVehicleHomeView extends LinearLayout {
     boolean air=stateIs(airValue,"开启","运行中","ON","ACTIVE","RUNNING");
     boolean trunk=stateIs(tailgate,"已打开","未关严","OPEN","AJAR");
     boolean[] known={
-      stateIs(lock,"已上锁","已锁","LOCKED","已解锁","未上锁","UNLOCKED"),
+      stateIs(lock,"已上锁","已锁","LOCKED","未锁","已解锁","未上锁","UNLOCKED"),
       stateIs(climateValue,"开启","运行中","ON","ACTIVE","RUNNING","关闭","未运行","OFF","INACTIVE","STOPPED"),
       stateIs(airValue,"开启","运行中","ON","ACTIVE","RUNNING","关闭","未运行","OFF","INACTIVE","STOPPED"),
       stateIs(tailgate,"已打开","未关严","OPEN","AJAR","已关闭","关闭","CLOSED")

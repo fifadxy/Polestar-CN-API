@@ -56,6 +56,12 @@ public class NativeVehicleHomeViewTest {
     assertEquals(4,disabled);assertTrue(refreshEnabled);
   }
 
+  @Test public void mainAppUnlockedValueKeepsLockControlAvailable(){
+    NativeVehicleHomeView view=new NativeVehicleHomeView(RuntimeEnvironment.getApplication());
+    Bundle b=new Bundle();b.putBoolean("available",true);b.putLong("capturedAt",System.currentTimeMillis());b.putString("lock","未锁");view.bindSnapshot(b);
+    boolean found=false;for(View child:children(view))if(child instanceof Button&&"上锁".equals(((Button)child).getText().toString())){found=true;assertTrue(child.isEnabled());}
+    assertTrue(found);
+  }
   @Test public void missingValuesNeverBecomeZero(){
     NativeVehicleHomeView view=new NativeVehicleHomeView(RuntimeEnvironment.getApplication());StringBuilder text=new StringBuilder();for(View v:children(view))if(v instanceof TextView)text.append(((TextView)v).getText());assertFalse(text.toString().contains("0%"));assertFalse(text.toString().contains("0 km"));assertTrue(text.toString().contains("时间未知"));
   }

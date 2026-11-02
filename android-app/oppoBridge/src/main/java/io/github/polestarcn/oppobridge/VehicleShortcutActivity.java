@@ -79,7 +79,7 @@ public final class VehicleShortcutActivity extends Activity {
     if("lock-toggle".equals(requested)) {
       String value=upper(state.getString("lock"));
       if(any(value,"已上锁","已锁","LOCKED"))return "unlock";
-      if(any(value,"已解锁","未上锁","UNLOCKED"))return "lock";
+      if(any(value,"未锁","已解锁","未上锁","UNLOCKED"))return "lock";
       return null;
     }
     if("climate-toggle".equals(requested)) {

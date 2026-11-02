@@ -20,6 +20,7 @@ public final class VehicleShortcutActivityTest {
   }
 
   @Test public void lockToggleUsesRealCachedState() {
+    assertEquals("lock",VehicleShortcutActivity.resolveToggle("lock-toggle",state("lock","未锁")));
     assertEquals("unlock",VehicleShortcutActivity.resolveToggle(
         "lock-toggle",state("lock","已上锁")));
     assertEquals("lock",VehicleShortcutActivity.resolveToggle(

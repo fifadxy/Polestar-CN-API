@@ -56,4 +56,12 @@ public class Beta25ControlStateTest {
     UiDisplayMode.setMinimal(c,false);
     assertEquals("关闭",ButtonFeedback.value(c,"air",off,""));
   }
+  @Test public void minimalUtilityShowsOnlyActiveFeedbackAndCentersItsGlyph(){
+    UiDisplayMode.setMinimal(c,true);UtilityButton button=new UtilityButton(c);
+    button.setText("露营");button.setUtilityIcon(R.drawable.ic_camp);button.feedback("");
+    assertEquals("",button.getText().toString());assertEquals(android.view.Gravity.CENTER,button.getGravity());
+    button.feedback("10m");assertEquals("10m",button.getText().toString());
+    UiDisplayMode.setMinimal(c,false);button.feedback("");assertTrue(button.getText().toString().contains("露营"));
+  }
+
 }

@@ -28,7 +28,7 @@ public class NativeVehicleHomeViewTest {
     Bundle b=new Bundle();b.putBoolean("available",true);b.putBoolean("batteryPercentKnown",true);b.putInt("batteryPercent",64);b.putBoolean("rangeKmKnown",true);b.putInt("rangeKm",270);b.putString("lock","已上锁");b.putString("climate","开启");b.putLong("capturedAt",123456789L);view.bindSnapshot(b);
     List<String> labels=new ArrayList<>();StringBuilder text=new StringBuilder();
     for(View v:children(view)){if(v instanceof Button){labels.add(((Button)v).getText().toString());assertTrue(v.isEnabled());}if(v instanceof TextView)text.append(((TextView)v).getText());}
-    assertEquals(6,labels.size());assertTrue(labels.contains("解锁"));assertTrue(labels.contains("关闭空调"));assertTrue(labels.contains("空气净化"));assertTrue(labels.contains("开启尾门"));assertTrue(labels.contains("刷新"));assertTrue(labels.contains("更多控制"));assertTrue(text.toString().contains("64%"));assertTrue(text.toString().contains("270 km"));assertTrue(text.toString().contains("缓存"));
+    assertEquals(6,labels.size());assertTrue(labels.contains("解锁"));assertTrue(labels.contains("关闭空调"));assertTrue(labels.contains("净化"));assertTrue(labels.contains("开启尾门"));assertTrue(labels.contains("刷新"));assertTrue(labels.contains("更多控制"));assertTrue(text.toString().contains("64%"));assertTrue(text.toString().contains("270 km"));assertTrue(text.toString().contains("缓存"));
     b.putBoolean("demo",true);view.bindSnapshot(b);
     for(View v:children(view))if(v instanceof Button){String label=((Button)v).getText().toString();if(!label.equals("刷新")&&!label.equals("更多控制"))assertFalse(v.isEnabled());}
   }

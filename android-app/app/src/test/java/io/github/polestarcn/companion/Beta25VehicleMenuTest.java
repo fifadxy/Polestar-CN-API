@@ -67,6 +67,18 @@ public class Beta25VehicleMenuTest {
       if(UiSkin.PS_DEFAULT.equals(skin)||UiSkin.SIMPLE.equals(skin)||UiSkin.SIMPLE_2.equals(skin))export(root,skin);
     }
   }
+
+  @Test public void smallAndLandscapeMinimalTilesKeepActiveContentInsideTheirBounds()throws Exception{
+    UiDisplayMode.setMinimal(a,true);snapshot(true);
+    for(String skin:UiSkin.CHOICES)for(int[] size:new int[][]{{320,568},{640,320}}){
+      UiSkin.set(a,skin);View root=render(size[0],size[1]);
+      View icon=root.findViewWithTag("control_icon_climate"),feedback=root.findViewWithTag("control_feedback_climate");
+      assertNotNull(skin,icon);assertNotNull(skin,feedback);assertEquals(skin,View.VISIBLE,feedback.getVisibility());
+      View tile=icon;while(!"control_tile".equals(tile.getTag())&&tile.getParent() instanceof View)tile=(View)tile.getParent();
+      int[] start=new int[2],at=new int[2];tile.getLocationInWindow(start);
+      for(View child:new View[]{icon,feedback}){child.getLocationInWindow(at);assertTrue(skin+" top",at[1]>=start[1]);assertTrue(skin+" bottom "+size[0]+"x"+size[1],at[1]+child.getHeight()<=start[1]+tile.getHeight());}
+    }
+  }
   private void export(View root,String name)throws Exception{
     File f=new File("build/reports/previews/beta25/"+name+"-minimal.png");f.getParentFile().mkdirs();Bitmap b=Bitmap.createBitmap(360,780,Bitmap.Config.ARGB_8888);root.draw(new Canvas(b));try(FileOutputStream out=new FileOutputStream(f)){b.compress(Bitmap.CompressFormat.PNG,100,out);}b.recycle();
   }

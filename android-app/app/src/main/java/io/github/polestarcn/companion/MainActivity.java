@@ -1365,6 +1365,7 @@ public final class MainActivity extends FragmentActivity {
       int height=fourAcross?(landscape?Math.max(dp(48),dp(8)+2*textLineHeight(10)):Math.max(dp(68),dp(nioSkin()?46:34)+2*textLineHeight(10)))
           :dp(26)+textLineHeight(14)+textLineHeight(Math.max(12,ButtonFeedback.sp(this)))+textLineHeight(11);
       if(fourAcross)height=landscape?Math.max(dp(48),Math.max(dp(nioSkin()?36:24),textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)))+dp(8)):Math.max(height,dp(nioSkin()?52:34)+textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)));
+      if(fourAcross&&minimalMode())height=Math.max(height,dp(nioSkin()?(landscape?44:50):38)+textLineHeight(feedbackSp(true))+dp(8));
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
         body.addView(actions,new LinearLayout.LayoutParams(-1,height)); if(i==0&&!fourAcross)gap(body,4);

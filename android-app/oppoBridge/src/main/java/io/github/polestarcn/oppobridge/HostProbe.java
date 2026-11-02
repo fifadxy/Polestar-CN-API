@@ -34,6 +34,24 @@ final class HostProbe {
       case "com.heytap.opluscarlink":
         module.info("host_ready package=com.heytap.opluscarlink role=official-carlink key-surface=true");
         return;
+      case "com.finshell.wallet":
+        module.info("host_ready package=com.finshell.wallet role=wallet vehicle-key-surface=true");
+        return;
+      case "com.heytap.health.wallet":
+        module.info("host_ready package=com.heytap.health.wallet role=health-wallet vehicle-key-surface=true");
+        return;
+      case "com.oplus.cardigitalkey":
+        module.info("host_ready package=com.oplus.cardigitalkey role=digital-key host=true");
+        return;
+      case "com.oplus.smartengine":
+        module.info("host_ready package=com.oplus.smartengine role=cardwidget-ui-engine host=true");
+        return;
+      case "com.oplus.cardservice":
+        module.info("host_ready package=com.oplus.cardservice role=cardwidget-service host=true");
+        return;
+      case "com.oplus.assistantscreen":
+        module.info("host_ready package=com.oplus.assistantscreen role=shelf-alt host=true");
+        return;
       default:
         module.warn("unexpected_scope package=" + pkg);
     }

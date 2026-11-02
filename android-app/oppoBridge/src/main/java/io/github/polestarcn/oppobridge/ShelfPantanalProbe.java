@@ -23,7 +23,6 @@ final class ShelfPantanalProbe {
   private static final Uri SERVICES =
       Uri.parse("content://com.oplus.pantanal.ums.card.support.shelf/shelf_services");
   private static final String HOST = "com.coloros.assistantscreen";
-  private static final String TARGET_VERSION = "17.14.60";
   private static final int MAX_ROWS = 512;
   private static final int MAX_CANDIDATES = 12;
   private static final int MAX_SERVICE_INDEX = 80;
@@ -50,11 +49,6 @@ final class ShelfPantanalProbe {
     }
     try {
       String version = app.getPackageManager().getPackageInfo(HOST, 0).versionName;
-      if (!TARGET_VERSION.equals(version)) {
-        report(app, false, "host-version-mismatch:" + version, 0, "", "", "");
-        module.info("shelf_pantanal_probe skipped hostVersion=" + version);
-        return;
-      }
 
       int rows = 0;
       List<String> candidates = new ArrayList<>();
@@ -82,8 +76,9 @@ final class ShelfPantanalProbe {
           String joined = (service + " " + pkg + " " + component + " " + name)
               .toLowerCase(Locale.ROOT);
           boolean knownDeviceSpace = KNOWN_MYDEVICES_SERVICE_IDS.contains(service);
-          if ((knownDeviceSpace || looksVehicleRelated(joined, name)) && candidates.size() < MAX_CANDIDATES) {
-            candidates.add("kind=" + (knownDeviceSpace ? "device-space" : "vehicle-candidate")
+          boolean pluginCard = looksCardRelated(joined, name);
+          if ((knownDeviceSpace || looksVehicleRelated(joined, name) || pluginCard) && candidates.size() < MAX_CANDIDATES) {
+            candidates.add("kind=" + (knownDeviceSpace ? "device-space" : (pluginCard ? "shelf-card" : "vehicle-candidate"))
                 + " id=" + safe(service) + " pkg=" + safe(pkg)
                 + " component=" + safe(component) + " name=" + safe(name));
           }
@@ -123,6 +118,12 @@ final class ShelfPantanalProbe {
         || lower.contains("polestar");
   }
 
+  private static boolean looksCardRelated(String lower, String rawName) {
+    return lower.contains("seedling") || lower.contains("shelf") || lower.contains("pantanal")
+        || lower.contains("plugin") || lower.contains("card")
+        || rawName.contains("卡片") || rawName.contains("负一屏") || rawName.contains("速览");
+  }
+
   private static String safe(String value) {
     if (value == null || value.isEmpty()) return "-";
     String flat = value.replace('\n', ' ').replace('\r', ' ').trim();
@@ -139,12 +140,19 @@ final class ShelfPantanalProbe {
       in.putString("columns", columns);
       in.putString("candidates", candidates);
       in.putString("services", services);
-      in.putString("hostVersion", TARGET_VERSION);
-      in.putString("moduleVersion", "1.5.0");
+      in.putString("hostVersion", currentHostVersion(app));
+      in.putString("moduleVersion", "1.9.0");
       BridgeClient.call(app, "shelf-report", in);
     } catch (Throwable ignored) {
       // Diagnostic reporting must not affect AssistantScreen.
     }
+  }
+
+  private static String currentHostVersion(Application app) {
+    try {
+      String value=app.getPackageManager().getPackageInfo(HOST,0).versionName;
+      return value==null?"":value;
+    } catch(Throwable ignored) { return ""; }
   }
 
   private static Application currentApplication() {

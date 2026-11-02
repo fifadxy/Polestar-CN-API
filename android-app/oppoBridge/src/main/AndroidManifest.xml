@@ -11,6 +11,12 @@
         <package android:name="com.coloros.sceneservice"/>
         <provider android:authorities="com.oplus.sceneservice.AccountSDKInitProvider"/>
         <package android:name="com.nearme.instant.platform"/>
+        <package android:name="com.heytap.opluscarlink"/>
+        <package android:name="com.finshell.wallet"/>
+        <package android:name="com.heytap.health.wallet"/>
+        <package android:name="com.oplus.cardigitalkey"/>
+        <intent><action android:name="oppo.intent.action.opluscarlink.BIND_BT_KEY"/></intent>
+        <intent><action android:name="com.nearme.wallet.key.KEY_DETAIL_ACTIVITY"/></intent>
     </queries>
     <application
         android:label="PsAssistant OPPO Bridge"
@@ -48,9 +54,14 @@
         <activity
             android:name=".PolestarOfficialBindActivity"
             android:exported="true"
-            android:excludeFromRecents="true">
+            android:excludeFromRecents="true"
+            android:label="Polestar 极星">
             <intent-filter>
                 <action android:name="io.github.polestarcn.oppobridge.ACTION_OFFICIAL_BIND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="oppo.intent.action.opluscarlink.BIND_BT_KEY"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>

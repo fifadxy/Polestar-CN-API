@@ -33,8 +33,8 @@ public final class PolestarOfficialBindActivity extends Activity {
     root.addView(title);
 
     TextView note=new TextView(this);
-    note.setText("实验桥接只修改 AssistantScreen 当前进程看到的品牌/绑定状态；"
-        +"不会写 OPPO SceneService 数据库，也不会绕过 Polestar 登录。");
+    note.setText("该入口把真实 PsAssistant 登录/车辆状态映射到 ColorOS 车辆 Provider，并在兼容固件中注入 Polestar 品牌行。"
+        +"不会写 SceneService 数据库，不会伪造蓝牙数字钥匙或跳过车辆认证。");
     note.setTextSize(14f);
     note.setPadding(0,p/2,0,p/2);
     root.addView(note);
@@ -44,13 +44,13 @@ public final class PolestarOfficialBindActivity extends Activity {
     root.addView(status);
 
     enable=new Button(this);
-    enable.setText("绑定到 ColorOS（实验）");
+    enable.setText("启用 Polestar 系统车辆入口");
     enable.setAllCaps(false);
     enable.setOnClickListener(v->setBound(true));
     root.addView(enable);
 
     disable=new Button(this);
-    disable.setText("取消 ColorOS 实验绑定");
+    disable.setText("关闭 Polestar 系统车辆入口");
     disable.setAllCaps(false);
     disable.setOnClickListener(v->setBound(false));
     root.addView(disable);
@@ -68,6 +68,7 @@ public final class PolestarOfficialBindActivity extends Activity {
   private void refresh() {
     try {
       Bundle state=BridgeClient.call(this,"oppo-official-bind-status",null);
+      Bundle system=BridgeClient.call(this,"system-vehicle-status",null);
       Bundle vehicle=BridgeClient.snapshot(this);
       StringBuilder out=new StringBuilder("\n");
       out.append("PsAssistant 登录：").append(state.getBoolean("signedIn")?"已登录":"未登录").append('\n');
@@ -78,7 +79,10 @@ public final class PolestarOfficialBindActivity extends Activity {
         if(vehicle.getBoolean("rangeKmKnown"))out.append(" · ").append(vehicle.getInt("rangeKm")).append(" km");
         out.append('\n');
       }
-      out.append("ColorOS 实验绑定：").append(state.getBoolean("enabled")?"已启用":"未启用").append("\n\n");
+      out.append("Polestar 系统入口：").append(state.getBoolean("enabled")?"已启用":"未启用").append('\n');
+      out.append("Provider 目录：").append(system.getBoolean("providerCatalogContainsPolestar",false)?"已出现 Polestar":"尚未出现 Polestar").append('\n');
+      out.append("AssistantScreen Hook：").append(system.getBoolean("assistantHookSeen",false)?"已观察到":"未观察到").append(" · ").append(system.getString("assistantVersion","")).append('\n');
+      out.append("CarLink Hook：").append(system.getBoolean("carLinkHostHookSeen",false)?"已观察到":"未观察到").append(" · ").append(system.getString("carLinkVersion","")).append("\n\n");
       status.setText(out.toString());
       enable.setEnabled(!state.getBoolean("enabled")&&state.getBoolean("signedIn")
           &&state.getBoolean("vehicleAvailable"));
@@ -96,8 +100,8 @@ public final class PolestarOfficialBindActivity extends Activity {
       if(!result.getBoolean("accepted",false))
         status.setText("未启用："+result.getString("reason","unknown"));
       else status.setText(bound
-          ?"已启用。请返回负一屏/“我的车辆”并重新进入。"
-          :"已取消实验绑定。");
+          ?"已启用。请重启负一屏/CarLink 进程，然后重新进入“我的车辆”。"
+          :"已关闭 Polestar 系统车辆入口。");
       status.postDelayed(this::refresh,500L);
     } catch(Throwable failure) {
       status.setText("操作失败："+failure.getClass().getSimpleName());

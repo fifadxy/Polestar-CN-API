@@ -26,11 +26,13 @@ public final class OppoWidgetSetupActivity extends Activity {
     autoShare=state!=null&&state.getBoolean("autoShare");
     LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
     int p=(int)(16*getResources().getDisplayMetrics().density);column.setPadding(p,p,p,p);
-    TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO 组件添加\n\n设备空间车辆卡片、负一屏原生“我的车辆”、Android Widget 是不同入口。先确认标准列表能找到 PsAssistant。桌面添加请求不会指定负一屏位置。\n\n1. 打开标准组件列表，找到 PsAssistant，选择所需尺寸。\n2. 若负一屏提供第三方组件入口，在负一屏＋／编辑中选择；入口是否存在由当前固件决定。\n3. 仅有“我的车辆”品牌名单时，不代表支持第三方 Widget；该私有链路尚未验证。\n\n标准入口采用已公开验证的 ColorOS 启动参数，固件更新可能改变行为。");column.addView(help);
+    TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO CarLink / 我的车辆 / 负一屏插件卡\n\nbeta23 同时推进两条官方系统入口：CarLink 负责‘我的车辆/车钥匙’，Shelf/Seedling 插件卡负责负一屏车辆状态和快捷入口。LSPosed 只做品牌入口、宿主探测和旧固件兼容，不伪造蓝牙数字钥匙。\n\n1. 先启用‘Polestar 系统车辆入口’。\n2. Root/LSPosed 用户确认作用域包含 AssistantScreen、Pantanal 和 CarLink，并重启对应进程。\n3. 打开‘我的车辆’，Polestar 应进入品牌目录；负一屏卡片诊断会同时显示 Shelf/Pantanal 宿主。\n4. 正式 Seedling 插件卡仍需要 OPPO SDK、模板/事件配置与可能的白名单；当前版本已经完成真实车辆数据映射和宿主探测。");column.addView(help);
     button(column,android.view.View.generateViewId(),"打开 OPPO CarLink「我的车辆」绑定",()->{
       try {startActivity(OppoOfficialCarLink.bindIntent());}
       catch(RuntimeException failure){report.setText(diagnostics()+"\nCarLink 绑定入口不可用: "+failure.getClass().getSimpleName());}
     });
+    button(column,android.view.View.generateViewId(),"启用 Polestar 系统车辆入口",()->setSystemVehicleEntry(true));
+    button(column,android.view.View.generateViewId(),"关闭 Polestar 系统车辆入口",()->setSystemVehicleEntry(false));
     button(column,android.R.id.button1,"打开 OPPO 标准组件列表",()->{
       try {startActivity(standardPickerIntent());}
       catch(RuntimeException failure){report.setText(diagnostics()+"\n标准入口不可用: "+failure.getClass().getSimpleName()+"\n请尝试下方系统桌面添加请求。");}
@@ -111,7 +113,7 @@ public final class OppoWidgetSetupActivity extends Activity {
   private Button button(LinearLayout parent,int id,String title,Runnable action){Button b=new Button(this);b.setId(id);b.setText(title);b.setOnClickListener(v->action.run());parent.addView(b);return b;}
   private String diagnostics(){
     StringBuilder out=new StringBuilder("PsAssistant "+BuildConfig.VERSION_NAME+" / "+BuildConfig.VERSION_CODE+"\n");
-    for(String pkg:new String[]{"com.heytap.opluscarlink","com.android.launcher","com.coloros.assistantscreen","com.heytap.mydevices"}){
+    for(String pkg:new String[]{"com.heytap.opluscarlink","com.finshell.wallet","com.heytap.health.wallet","com.oplus.cardigitalkey","com.oplus.smartengine","com.oplus.cardservice","com.oplus.assistantscreen","com.android.launcher","com.coloros.assistantscreen","com.heytap.mydevices"}){
       try{PackageInfo i=getPackageManager().getPackageInfo(pkg,0);out.append(pkg).append(": ").append(i.versionName).append('\n');}
       catch(Exception missing){out.append(pkg).append(": 未检测到／当前不可见\n");}
     }
@@ -122,6 +124,46 @@ public final class OppoWidgetSetupActivity extends Activity {
     }
     out.append("本应用已注册组件: ").append(providers).append("；已绑定实例: ").append(instances).append('\n');
     out.append(OppoOfficialCarLink.describe(this)).append('\n');
+    Bundle system=OppoSystemVehicleState.status(this,VehicleCoordinator.get(this));
+    out.append("Polestar 系统车辆入口: ").append(system.getBoolean("providerEnabled",false)?"已启用":"未启用")
+        .append(" · 登录=").append(system.getBoolean("signedIn",false))
+        .append(" · 车辆=").append(system.getBoolean("vehicleAvailable",false)).append('\n');
+    out.append("Provider 目录已出现 Polestar: ").append(system.getBoolean("providerCatalogContainsPolestar",false))
+        .append(" · AssistantScreen Hook=").append(system.getBoolean("assistantHookSeen",false))
+        .append(" (").append(system.getString("assistantVersion","")).append(")\n");
+    out.append("CarLink: ").append(system.getString("carLinkVersion",""))
+        .append(" · service=").append(system.getBoolean("carLinkServiceAvailable",false))
+        .append(" · Hook=").append(system.getBoolean("carLinkHostHookSeen",false)).append('\n');
+    out.append("BLE 车钥匙框架: ").append(system.getBoolean("oppoBluetoothKeySupported",false)?"入口可见":"未发现")
+        .append(" · PAK 配对状态未知，不会伪造为已绑定。\n");
+    Bundle shelfCard=OppoShelfCardCapability.status(this);
+    Bundle shelfPreview=OppoShelfCardSnapshotAdapter.preview(VehicleCoordinator.get(this).snapshot);
+    out.append("负一屏插件卡: host=").append(shelfCard.getBoolean("cardHostVisible",false))
+        .append(" · CardWidget=").append(shelfCard.getBoolean("cardWidgetRuntimeSupported",false))
+        .append(" SDK=").append(shelfCard.getString("cardWidgetSdkVersionCode",""))
+        .append(" · UIEngine=").append(shelfCard.getString("uiEngineVersion",""))
+        .append(" · CardService=").append(shelfCard.getBoolean("cardServiceInstalled",false))
+        .append(" · Shelf metadata=").append(shelfCard.getBoolean("shelfMetadataReady",false))
+        .append(" · Pantanal Hook=").append(shelfCard.getBoolean("pantanalHookSeen",false))
+        .append(" (").append(shelfCard.getString("pantanalVersion","")).append(")\n");
+    if(shelfPreview.getBoolean("available",false)) {
+      out.append("卡片数据预览: ");
+      if(shelfPreview.getBoolean("socKnown",false))out.append("SOC=").append(shelfPreview.getInt("socPercent",0)).append("% ");
+      if(shelfPreview.getBoolean("rangeKnown",false))out.append("续航=").append(shelfPreview.getInt("rangeKm",0)).append("km ");
+      out.append("charging=").append(shelfPreview.getBoolean("charging",false)).append('\n');
+    } else out.append("卡片数据预览: 暂无车辆快照\n");
     out.append("Widget 实例数量不证明位于负一屏。此页面不刷新车辆。\n");return out.toString();
+  }
+  private void setSystemVehicleEntry(boolean enabled) {
+    try {
+      Bundle state=OppoOfficialVehicleBindState.set(this,VehicleCoordinator.get(this),enabled);
+      if(!state.getBoolean("accepted",false)) {
+        report.setText(diagnostics()+"\n未启用：需要先登录并刷新真实车辆。");
+        return;
+      }
+      report.setText(diagnostics()+"\n"+(enabled?"已启用。请重启负一屏/CarLink 后重新进入“我的车辆”。":"已关闭系统车辆入口。"));
+    } catch(RuntimeException failure) {
+      report.setText(diagnostics()+"\n设置失败: "+failure.getClass().getSimpleName());
+    }
   }
 }

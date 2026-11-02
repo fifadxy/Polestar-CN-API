@@ -35,7 +35,10 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "com.oplus.pantanal.ums",
       "com.heytap.speechassist",
       "com.oplus.ocar",
-      "com.heytap.opluscarlink"
+      "com.heytap.opluscarlink",
+      "com.finshell.wallet",
+      "com.heytap.health.wallet",
+      "com.oplus.cardigitalkey"
   ));
 
   private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
@@ -75,21 +78,29 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     }
     if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
     if("oppo-carlink-status".equals(method))return OppoOfficialCarLink.status(context);
-    if("oppo-car-key-status".equals(method))return OppoCarKeyCapability.status(context);
-    if("carlink-host-report".equals(method)) {
-      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
-      boolean carlink=false;
-      if(callers!=null)for(String pkg:callers)if("com.heytap.opluscarlink".equals(pkg))carlink=true;
-      if(!carlink)throw new SecurityException("Only OPPO CarLink can report host installation");
-      return OppoCarLinkHostDiagnostics.record(context,extras);
-    }
-    if("carlink-host-status".equals(method))return OppoCarLinkHostDiagnostics.status(context);
     if("oppo-carlink-preview".equals(method)) {
       VehicleCoordinator carLinkCoordinator=VehicleCoordinator.get(context);
       VehicleSnapshot carLinkSnapshot=carLinkCoordinator.snapshot;
       if(carLinkSnapshot==null)carLinkSnapshot=VehicleSnapshotStore.loadChina(context);
       return OppoCarLinkSnapshotAdapter.preview(carLinkSnapshot);
     }
+    if("oppo-car-key-status".equals(method))return OppoCarKeyCapability.status(context);
+    if("carlink-host-report".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean carlink=false;if(callers!=null)for(String pkg:callers)if("com.heytap.opluscarlink".equals(pkg))carlink=true;
+      if(!carlink)throw new SecurityException("Only OPPO CarLink can report host installation");
+      return OppoCarLinkHostDiagnostics.record(context,extras);
+    }
+    if("carlink-host-status".equals(method))return OppoCarLinkHostDiagnostics.status(context);
+    if("vehicle-surface-report".equals(method)) {
+      String expected=extras==null?"":extras.getString("packageName","");
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean matched=false;if(callers!=null)for(String pkg:callers)if(pkg.equals(expected)&&ALLOWED_CALLERS.contains(pkg))matched=true;
+      if(!matched)throw new SecurityException("Vehicle-surface report package mismatch");
+      return OppoVehicleSurfaceDiagnostics.record(context,extras);
+    }
+    if("vehicle-surface-status".equals(method))return OppoVehicleSurfaceDiagnostics.status(context);
+    if("system-vehicle-status".equals(method))return OppoSystemVehicleState.status(context,VehicleCoordinator.get(context));
     if("oppo-oem-car-status".equals(method))return OppoOemCarExperimentState.status(context);
     if("oppo-oem-car-set".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
@@ -114,6 +125,22 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoShelfDiagnostics.record(context,extras);
     }
     if("shelf-status".equals(method))return OppoShelfDiagnostics.status(context);
+    if("shelf-host-report".equals(method)) {
+      String expected=extras==null?"":extras.getString("packageName","");
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean matched=false;if(callers!=null)for(String pkg:callers)
+        if(pkg.equals(expected)&&("com.coloros.assistantscreen".equals(pkg)||"com.oplus.pantanal.ums".equals(pkg)))matched=true;
+      if(!matched)throw new SecurityException("Shelf host report package mismatch");
+      return OppoShelfHostDiagnostics.record(context,extras);
+    }
+    if("shelf-host-status".equals(method))return OppoShelfHostDiagnostics.status(context);
+    if("oppo-shelf-card-status".equals(method))return OppoShelfCardCapability.status(context);
+    if("oppo-shelf-card-preview".equals(method)) {
+      VehicleCoordinator shelfCoordinator=VehicleCoordinator.get(context);
+      VehicleSnapshot shelfSnapshot=shelfCoordinator.snapshot;
+      if(shelfSnapshot==null)shelfSnapshot=VehicleSnapshotStore.loadChina(context);
+      return OppoShelfCardSnapshotAdapter.preview(shelfSnapshot);
+    }
     if("account-bind-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean shelf=false;if(callers!=null)for(String pkg:callers)if("com.coloros.assistantscreen".equals(pkg))shelf=true;

@@ -28,7 +28,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
     panel.setOnClickListener(v -> startActivity(new Intent(this, VehicleCardDetailActivity.class)));
     column.addView(panel);
     Button official = new Button(this);
-    official.setText("打开 Polestar“我的车辆”实验绑定");
+    official.setText("打开 Polestar「我的车辆」系统入口");
     official.setOnClickListener(v -> startActivity(new Intent(this, PolestarOfficialBindActivity.class)));
     column.addView(official);
     Button officialCarLink = new Button(this);
@@ -79,7 +79,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void diagnose() {
     status.setText("正在检测 PsAssistant 桥接…");
     worker.execute(() -> {
-      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.5.0\n\n");
+      StringBuilder out = new StringBuilder("PsAssistant OPPO Bridge 1.9.0\n\n");
       try {
         Bundle host=BridgeClient.call(this,"host-status",null);
         long now=System.currentTimeMillis();
@@ -92,8 +92,8 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("上次回报 ").append(new java.util.Date(seen)).append(" · ").append(host.getString(prefix+"phase",""))
                 .append(" · ").append(host.getString(prefix+"reason","")).append(" · 设备空间 ")
                 .append(host.getString(prefix+"hostVersion","")).append(" · 模块 ").append(module).append('\n');
-            if(now-seen>10*60*1000L||!"1.5.0".equals(module))
-              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.5.0，请重启设备空间后再判断新代码是否生效。\n");
+            if(now-seen>10*60*1000L||!"1.9.0".equals(module))
+              out.append("  ⚠ Hook 回报已过期或版本不一致；当前 Bridge 1.9.0，请重启设备空间后再判断新代码是否生效。\n");
           }
         }
         Bundle assistantHost=BridgeClient.call(this,"assistant-host-status",null);
@@ -105,7 +105,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
           out.append(new java.util.Date(assistantSeen)).append(" · ")
               .append(assistantHost.getString("phase","")).append(" · AssistantScreen ")
               .append(assistantHost.getString("hostVersion","")).append(" · 模块 ").append(assistantModule).append('\n');
-          if(now-assistantSeen>10*60*1000L||!"1.5.0".equals(assistantModule))
+          if(now-assistantSeen>10*60*1000L||!"1.9.0".equals(assistantModule))
             out.append("  ⚠ 负一屏 Hook 回报过期/版本不一致，请重启负一屏进程。\n");
         }
         out.append("回报是历史观测，不代表当前仍已启用或车辆已响应。\n\n");
@@ -134,44 +134,56 @@ public final class BridgeDiagnosticsActivity extends Activity {
             .append(" · OCS service=").append(carLink.getBoolean("serviceAvailable",false))
             .append(" · CarAppProvider=").append(carLink.getBoolean("providerAvailable",false))
             .append(" · 绑定入口=").append(carLink.getBoolean("bindRouteAvailable",false)).append('\n');
-        out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");        Bundle keySurface=BridgeClient.call(this,"oppo-car-key-status",null);
-        out.append("OPPO 蓝牙车钥匙框架: 绑定入口=")
-            .append(keySurface.getBoolean("bindSurfaceAvailable",false))
-            .append(" · 钱包详情=").append(keySurface.getBoolean("walletDetailSurfaceAvailable",false))
+        out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");
+        Bundle carLinkPreview=BridgeClient.call(this,"oppo-carlink-preview",null);
+        out.append("CarStatus 映射预览: ");
+        if(!carLinkPreview.getBoolean("available",false))out.append("暂无车辆快照\n");
+        else {
+          if(carLinkPreview.getBoolean("batteryKnown",false))out.append("SOC=").append(Math.round(carLinkPreview.getFloat("batteryLeftRatio",0f)*100f)).append("% / ratio=").append(carLinkPreview.getFloat("batteryLeftRatio",0f));
+          else out.append("SOC=未知");
+          if(carLinkPreview.getBoolean("batteryRangeKnown",false))out.append(" · 续航=").append(carLinkPreview.getFloat("batteryEnduranceMileage",0f)).append("km");
+          if(carLinkPreview.getBoolean("odometerKnown",false))out.append(" · 里程=").append(carLinkPreview.getFloat("totalMileage",0f)).append("km");
+          out.append(" · charging=").append(carLinkPreview.getBoolean("charging",false)).append('\n');
+        }
+
+        Bundle systemVehicle=BridgeClient.call(this,"system-vehicle-status",null);
+        out.append("Polestar 品牌入口: ")
+            .append(systemVehicle.getBoolean("providerEnabled",false)?"已启用":"未启用")
+            .append(" · Provider目录=").append(systemVehicle.getBoolean("providerCatalogContainsPolestar",false)?"已出现":"未出现")
+            .append(" · AssistantHook=").append(systemVehicle.getBoolean("assistantHookSeen",false))
+            .append(" · CarLinkHook=").append(systemVehicle.getBoolean("carLinkHostHookSeen",false)).append('\n');
+        out.append("  真实状态: 登录=").append(systemVehicle.getBoolean("signedIn",false))
+            .append(" · 车辆=").append(systemVehicle.getBoolean("vehicleAvailable",false))
+            .append(" · 远程控车=").append(systemVehicle.getBoolean("remoteControlAvailable",false))
+            .append(" · PAK状态已知=").append(systemVehicle.getBoolean("pakStateKnown",false)).append('\n');
+
+        Bundle keySurface=BridgeClient.call(this,"oppo-car-key-status",null);
+        out.append("OPPO 蓝牙车钥匙框架: bindHandler=").append(keySurface.getInt("bindHandlerCount",0))
+            .append(" · Wallet入口=").append(keySurface.getBoolean("walletDetailSurfaceAvailable",false))
             .append(" · BLE=").append(keySurface.getBoolean("systemBluetoothLe",false)).append('\n');
-        out.append("  安全边界: 只有 Polestar/车企钥匙流程真实完成后才可向 OPPO 报绑定；不把 hasCarBinding/isBluetoothKeyExist Hook 为 true。\n\n");
+        out.append("  数字钥匙不会由 Hook 伪造；只有真实 Polestar PAK 配对后才可注册 OPPO Key。\n");
+
         Bundle carLinkHost=BridgeClient.call(this,"carlink-host-status",null);
         long carLinkSeen=carLinkHost.getLong("seenAt",0L);
         out.append("CarLink LSPosed 宿主: ");
-        if(carLinkSeen<=0) {
-          out.append("尚未观察到 com.heytap.opluscarlink 进程加载模块。\n");
-        } else {
-          out.append(carLinkHost.getBoolean("ready",false)?"已加载":"未就绪")
-              .append(" · host=").append(carLinkHost.getString("hostVersion",""))
-              .append(" · module=").append(carLinkHost.getString("moduleVersion",""))
-              .append(" · process=").append(carLinkHost.getString("process","")).append('\n');
+        if(carLinkSeen<=0)out.append("未观察到 com.heytap.opluscarlink 进程加载模块\n");
+        else out.append(carLinkHost.getBoolean("ready",false)?"已加载":"未就绪")
+            .append(" · host=").append(carLinkHost.getString("hostVersion",""))
+            .append(" · module=").append(carLinkHost.getString("moduleVersion",""))
+            .append(" · process=").append(carLinkHost.getString("process","")).append('\n');
+        String carLinkClasses=carLinkHost.getString("classes","");
+        if(carLinkClasses!=null&&!carLinkClasses.isEmpty())out.append("  OCS classes: ").append(carLinkClasses).append('\n');
+
+        Bundle surfaces=BridgeClient.call(this,"vehicle-surface-status",null);
+        for(String prefix:new String[]{"carlink","wallet","healthWallet","digitalKey"}) {
+          long seen=surfaces.getLong(prefix+"_seenAt",0L);
+          out.append("  ").append(prefix).append(": ");
+          if(seen==0L)out.append("未观察到 Hook 宿主\n");
+          else out.append(surfaces.getString(prefix+"_versionName",""))
+              .append(" · ready=").append(surfaces.getBoolean(prefix+"_ready",false))
+              .append(" · components=").append(surfaces.getString(prefix+"_components","")).append('\n');
         }
-        out.append("  该探针只证明模块加载，不修改任何钥匙绑定/认证返回值。\n\n");
-
-
-        Bundle carLinkPreview=BridgeClient.call(this,"oppo-carlink-preview",null);
-        out.append("CarStatus 映射预览: ");
-        if(!carLinkPreview.getBoolean("available",false)) {
-          out.append("暂无车辆快照；登录并刷新车辆后可验证官方上报字段。\n\n");
-        } else {
-          if(carLinkPreview.getBoolean("batteryKnown",false))
-            out.append("SOC=").append(Math.round(carLinkPreview.getFloat("batteryLeftRatio",0f)*100f)).append("% / ratio=")
-                .append(carLinkPreview.getFloat("batteryLeftRatio",0f));
-          else out.append("SOC=未知");
-          if(carLinkPreview.getBoolean("batteryRangeKnown",false))
-            out.append(" · 续航=").append(carLinkPreview.getFloat("batteryEnduranceMileage",0f)).append("km");
-          if(carLinkPreview.getBoolean("odometerKnown",false))
-            out.append(" · 里程=").append(carLinkPreview.getFloat("totalMileage",0f)).append("km");
-          out.append(" · charging=").append(carLinkPreview.getBoolean("charging",false)).append('\n');
-          out.append("  可上报指令=").append(Arrays.toString(carLinkPreview.getStringArray("availableInstructions"))).append('\n');
-          out.append("  beta21 只验证 CarStatus 语义映射；未取得 OPPO 授权前不会伪造 OCS 鉴权或车企身份。\n\n");
-        }
-
+        out.append('\n');
 
         Bundle oemState=BridgeClient.call(this,"oppo-oem-car-status",null);
         QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(this);
@@ -210,6 +222,30 @@ public final class BridgeDiagnosticsActivity extends Activity {
             out.append("Shelf 元数据列: ").append(columns).append('\n');
         }
         out.append("该探针只读 serviceId/包名/组件/名称元数据，不读取账号、Token 或卡片正文。\n\n");
+        Bundle shelfCard=BridgeClient.call(this,"oppo-shelf-card-status",null);
+        Bundle shelfPreview=BridgeClient.call(this,"oppo-shelf-card-preview",null);
+        Bundle shelfHost=BridgeClient.call(this,"shelf-host-status",null);
+        out.append("OPPO 负一屏插件卡（CardWidget/Seedling）: host=")
+            .append(shelfCard.getBoolean("cardHostVisible",false))
+            .append(" · CardWidget=").append(shelfCard.getBoolean("cardWidgetRuntimeSupported",false))
+            .append(" SDK=").append(shelfCard.getString("cardWidgetSdkVersionCode",""))
+            .append(" · UIEngine=").append(shelfCard.getString("uiEngineVersion",""))
+            .append(" · CardService=").append(shelfCard.getBoolean("cardServiceInstalled",false))
+            .append(" · metadata=").append(shelfCard.getBoolean("shelfMetadataReady",false))
+            .append(" · PantanalHook=").append(shelfCard.getBoolean("pantanalHookSeen",false))
+            .append(" · Pantanal=").append(shelfCard.getString("pantanalVersion","")).append('\n');
+        long pantanalSeen=shelfHost.getLong("pantanal_seenAt",0L);
+        if(pantanalSeen>0)out.append("  Pantanal components: ").append(shelfHost.getString("pantanal_components","")).append('\n');
+        long assistantShelfSeen=shelfHost.getLong("assistant_seenAt",0L);
+        if(assistantShelfSeen>0)out.append("  AssistantScreen card components: ").append(shelfHost.getString("assistant_components","")).append('\n');
+        out.append("  Card data: ");
+        if(!shelfPreview.getBoolean("available",false))out.append("暂无车辆快照\n");
+        else {
+          if(shelfPreview.getBoolean("socKnown",false))out.append("SOC=").append(shelfPreview.getInt("socPercent",0)).append("% ");
+          if(shelfPreview.getBoolean("rangeKnown",false))out.append("range=").append(shelfPreview.getInt("rangeKm",0)).append("km ");
+          out.append("charging=").append(shelfPreview.getBoolean("charging",false)).append(" · lock=").append(shelfPreview.getString("lockLabel","")).append('\n');
+        }
+        out.append("  已按官方 CardWidget 1.2.3 合同识别 AssistantScreen support flag、SmartEngine/UIEngine 与 CardService；正式卡片发布仍需 OPPO 模板/事件配置与可能的白名单。\n\n");
 
         Bundle account=BridgeClient.call(this,"account-bind-status",null);
         long accountSeen=account.getLong("seenAt",0);
@@ -267,7 +303,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
         out.append("检测失败: ").append(failure.getClass().getSimpleName()).append(": ").append(failure.getMessage()).append('\n');
       }
       out.append("\n安装路径\n新版 PsAssistant: 使用内置桥接接口。\n旧版 PsAssistant: 启用 API 102 模块，勾选 PsAssistant 与我的设备，重启目标应用。运行时桥接要求 Android 14 或更高版本。\n");
-      out.append("\n首选路线: OPPO CarLink 官方 SDK/我的车辆；兼容路线: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改系统 RPK；1.5.0 会自动检测并报告 converter/RPK 双重过滤与 OEM QuickApp Provider 实际调用状态。\n待真机验证: CAR=COORDINATED 后原生首页控件实际渲染、OEM QuickApp CAR 路由及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景；0.9.0 现已增加 Pantanal serviceId 与 SceneService provider/绑定状态只读探针。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
+      out.append("\n1.9.0 已实现: Polestar Provider 多入口注入、绑定入口转发、AssistantScreen/CarLink/Wallet 宿主探测、真实 PsAssistant 车辆状态映射，以及 MyDevices 原生卡片兼容。\n数字钥匙仍保持真实 PAK/OPPO Key 状态分离，不修改 isBluetoothKeyExist 或车辆验证结果。\n若品牌仍未显示，先确认 Provider 目录是否出现 POLESTAR，再核对 AssistantScreen 宿主版本和 Hook 回报。\n\n文字可长按选择复制。");
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });
@@ -304,24 +340,24 @@ public final class BridgeDiagnosticsActivity extends Activity {
   private void confirmReloadHosts() {
     new android.app.AlertDialog.Builder(this)
         .setTitle("重新加载 OPPO Hook")
-        .setMessage("将使用 root 强制停止“设备空间”和“负一屏”进程，使 LSPosed/Vector 在下次启动时加载当前 Bridge。不会修改系统 APK 或车辆数据。")
+        .setMessage("将使用 root 强制停止“设备空间”、“负一屏”和 CarLink进程，使 LSPosed/Vector 在下次启动时加载当前 Bridge。不会修改系统 APK 或车辆数据。")
         .setNegativeButton("取消",null)
         .setPositiveButton("重载",(dialog,which)->reloadHosts())
         .show();
   }
 
   private void reloadHosts() {
-    status.setText("正在请求 root 重载设备空间和负一屏…");
+    status.setText("正在请求 root 重载设备空间、负一屏和 CarLink…");
     worker.execute(() -> {
       String message;
       try {
         Process process=new ProcessBuilder("su","-c",
-            "am force-stop com.heytap.mydevices; am force-stop com.coloros.assistantscreen").start();
+            "am force-stop com.heytap.mydevices; am force-stop com.coloros.assistantscreen; am force-stop com.heytap.opluscarlink").start();
         boolean done=process.waitFor(8,java.util.concurrent.TimeUnit.SECONDS);
         int exit=done?process.exitValue():-1;
         if(!done)process.destroyForcibly();
-        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.5.0。";
-        else message="root 重载未成功（exit="+exit+"）。请在 LSPosed/Vector 确认作用域后手动强停“设备空间”和“负一屏”。";
+        if(done&&exit==0) message="目标进程已停止。现在重新打开“设备空间”，再打开一次负一屏；Hook 回报应更新为 Bridge 1.9.0。";
+        else message="root 重载未成功（exit="+exit+"）。请在 LSPosed/Vector 确认作用域后手动强停“设备空间”、“负一屏”和 CarLink。";
       } catch(Throwable failure) {
         message="root 重载不可用："+failure.getClass().getSimpleName()+"。请手动强停目标应用。";
       }

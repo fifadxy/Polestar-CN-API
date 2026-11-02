@@ -33,7 +33,7 @@ final class OppoLightResearchExport {
     try(ZipOutputStream zip=new ZipOutputStream(new CappedOutput(output))) {
       zip.setLevel(6);
       for(String pkg:new String[]{"com.heytap.opluscarlink","com.finshell.wallet","com.heytap.health.wallet","com.oplus.cardigitalkey",
-          "com.coloros.assistantscreen","com.heytap.mydevices","com.heytap.health",
+          "com.coloros.assistantscreen","com.oplus.assistantscreen","com.oplus.smartengine","com.oplus.cardservice","com.heytap.mydevices","com.heytap.health",
           "com.heytap.speechassist","com.oplus.ocar","com.android.launcher","com.oplus.pantanal.ums",
           "com.coloros.sceneservice","com.oplus.sceneservice","com.nearme.instant.platform"}) {
         progress.update("轻量收集 "+pkg);
@@ -62,7 +62,7 @@ final class OppoLightResearchExport {
         ApplicationInfo app=info.applicationInfo;
         if(app!=null&&app.sourceDir!=null) {
           item.put("baseApkBytes",new File(app.sourceDir).length()).put("splitCount",app.splitSourceDirs==null?0:app.splitSourceDirs.length);
-          if(pkg.equals("com.coloros.assistantscreen")||pkg.equals("com.heytap.mydevices"))
+          if(pkg.equals("com.coloros.assistantscreen")||pkg.equals("com.oplus.assistantscreen")||pkg.equals("com.oplus.smartengine")||pkg.equals("com.oplus.cardservice")||pkg.equals("com.heytap.mydevices")||pkg.equals("com.oplus.pantanal.ums"))
             staticAssets(zip,app.sourceDir,pkg,assets);
         }
       }
@@ -82,8 +82,8 @@ final class OppoLightResearchExport {
   }
   static int componentPriority(String value) {
     String name=value.toLowerCase(Locale.ROOT);
-    if(name.matches(".*(vehicle|carcontrol|searchcar|\\.car\\.|carsetting|devicecard|remotecards|quickapp|appagent|deviceapp|feiniu).*") )return 0;
-    if(name.matches(".*(mydevices|card|agent|bridge|wear|watch|remote|speech|bluetooth).*") )return 1;
+    if(name.matches(".*(vehicle|carkey|digitalkey|carcontrol|searchcar|\\.car\\.|carsetting|devicecard|remotecards|wallet|quickapp|appagent|deviceapp|feiniu|seedling|shelf|pantanal|plugin).*") )return 0;
+    if(name.matches(".*(mydevices|card|agent|bridge|wear|watch|remote|speech|bluetooth|service).*") )return 1;
     return 2;
   }
   private static void staticAssets(ZipOutputStream output,String source,String pkg,JSONArray report)throws Exception {

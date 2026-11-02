@@ -23,6 +23,7 @@ public final class OppoOfficialCarLink {
   public static final String INIT_ACTION = "oppo.intent.action.opluscarlink.INIT_OPLUS_SDK";
   public static final String PROVIDER_AUTHORITY = "com.heytap.opluscarlink.CarAppProvider";
   public static final Uri BIND_URI = Uri.parse("card://carlink.heytap.com/control?operation=bind");
+  public static final String BT_KEY_BIND_ACTION = "oppo.intent.action.opluscarlink.BIND_BT_KEY";
   public static final long MIN_CONTROL_HOST_VERSION_CODE = 130000L;
 
   private OppoOfficialCarLink() {}
@@ -68,6 +69,17 @@ public final class OppoOfficialCarLink {
       out.putBoolean("bindRouteAvailable",
           pm.resolveActivity(bindIntent(),PackageManager.MATCH_DEFAULT_ONLY)!=null);
     } catch(RuntimeException failure) { out.putBoolean("bindRouteAvailable",false); }
+    try {
+      Intent keyBind=new Intent(BT_KEY_BIND_ACTION);
+      List<ResolveInfo> handlers=pm.queryIntentActivities(keyBind,PackageManager.MATCH_DEFAULT_ONLY);
+      out.putInt("bluetoothKeyBindHandlerCount",handlers==null?0:handlers.size());
+      boolean ours=false;
+      if(handlers!=null)for(ResolveInfo handler:handlers)
+        if(handler.activityInfo!=null&&context.getPackageName().equals(handler.activityInfo.packageName))ours=true;
+      out.putBoolean("psAssistantBluetoothKeyHandlerVisible",ours);
+    } catch(RuntimeException failure) {
+      out.putInt("bluetoothKeyBindHandlerCount",0);out.putBoolean("psAssistantBluetoothKeyHandlerVisible",false);
+    }
     out.putBoolean("controlHostVersionEligible",version>=MIN_CONTROL_HOST_VERSION_CODE);
     out.putBoolean("officialRouteAvailable",out.getBoolean("installed")&&out.getBoolean("serviceAvailable"));
     return out;
@@ -77,9 +89,9 @@ public final class OppoOfficialCarLink {
     Bundle s=status(context);
     if(!s.getBoolean("installed",false)) return "OPPO CarLink 官方通道：未检测到／当前不可见";
     return "OPPO CarLink 官方通道："+s.getString("versionName","")+" ("+s.getLong("versionCode",-1L)+")"
-        +"\nOCS service="+s.getBoolean("serviceAvailable",false)
+        +"\\nOCS service="+s.getBoolean("serviceAvailable",false)
         +" · CarAppProvider="+s.getBoolean("providerAvailable",false)
         +" · 我的车辆绑定入口="+s.getBoolean("bindRouteAvailable",false)
-        +"\n正式 OCS SDK 初始化仍需 OPPO 为 PsAssistant 分配独立 AUTH_CODE/companyId；不复用 Demo 凭据。";
+        +"\\n正式 OCS SDK 初始化仍需 OPPO 为 PsAssistant 分配独立 AUTH_CODE/companyId；不复用 Demo 凭据。";
   }
 }

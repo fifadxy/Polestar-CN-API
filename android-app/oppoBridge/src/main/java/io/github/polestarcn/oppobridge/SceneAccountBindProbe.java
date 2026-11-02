@@ -26,7 +26,7 @@ final class SceneAccountBindProbe {
       Uri.parse("content://com.oplus.sceneservice.AccountSDKInitProvider");
   private static final String METHOD = "method_get_account_bind_list";
   private static final String HOST = "com.coloros.assistantscreen";
-  private static final String TARGET_VERSION = "17.14.60";
+  private static final String KNOWN_VERSION = "17.14.60";
   private static final Pattern SAFE_CODE = Pattern.compile("[A-Za-z0-9_-]{2,32}");
 
   private SceneAccountBindProbe() {}
@@ -44,10 +44,8 @@ final class SceneAccountBindProbe {
     }
     try {
       String version = app.getPackageManager().getPackageInfo(HOST, 0).versionName;
-      if (!TARGET_VERSION.equals(version)) {
-        report(app, false, "host-version-mismatch:" + version, 0, "", "", "", false, "", "");
-        return;
-      }
+      if (!KNOWN_VERSION.equals(version))
+        module.info("scene_account_bind_probe compatibility_mode hostVersion=" + version);
       ProviderInfo owner=app.getPackageManager().resolveContentProvider(
           "com.oplus.sceneservice.AccountSDKInitProvider",0);
       String ownerPackage=owner==null?"":safeMeta(owner.packageName,96);
@@ -63,7 +61,7 @@ final class SceneAccountBindProbe {
       extras.putBoolean("useDB", true);
       Bundle result = app.getContentResolver().call(URI, METHOD, null, extras);
       if (result == null) {
-        report(app, false, "null-result", 0, "", "", "", false, "", "");
+        report(app, false, "null-result", 0, "", "", "", false, "", "", version);
         module.warn("scene_account_bind_probe null_result");
         return;
       }
@@ -80,14 +78,14 @@ final class SceneAccountBindProbe {
       }
       String codes = String.join("|", safe);
       report(app, true, "ok", count, codes, ownerPackage, ownerPermission, ownerExported,
-          bindActivity, dialogActivity);
+          bindActivity, dialogActivity, version);
       module.info("scene_account_bind_probe ready=true count=" + count
           + " safeCodes=" + safe.size());
     } catch (SecurityException denied) {
-      report(app, false, "permission-denied", 0, "", "", "", false, "", "");
+      report(app, false, "permission-denied", 0, "", "", "", false, "", "", hostVersion(app));
       module.warn("scene_account_bind_probe permission_denied");
     } catch (Throwable failure) {
-      report(app, false, failure.getClass().getSimpleName(), 0, "", "", "", false, "", "");
+      report(app, false, failure.getClass().getSimpleName(), 0, "", "", "", false, "", "", hostVersion(app));
       module.warn("scene_account_bind_probe failed=" + failure.getClass().getSimpleName());
     }
   }
@@ -96,15 +94,15 @@ final class SceneAccountBindProbe {
     try {
       Bundle in = new Bundle();
       in.putString("providerCatalog", catalog == null ? "" : catalog);
-      in.putString("hostVersion", TARGET_VERSION);
-      in.putString("moduleVersion", "1.5.0");
+      in.putString("hostVersion", hostVersion==null?"":hostVersion);
+      in.putString("moduleVersion", "1.9.0");
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}
   }
 
   private static void report(Application app, boolean ready, String reason, int count, String codes,
       String ownerPackage, String ownerPermission, boolean ownerExported,
-      String bindActivity, String dialogActivity) {
+      String bindActivity, String dialogActivity, String hostVersion) {
     try {
       Bundle in = new Bundle();
       in.putBoolean("ready", ready);
@@ -116,10 +114,15 @@ final class SceneAccountBindProbe {
       in.putBoolean("providerExported", ownerExported);
       in.putString("bindActivity", bindActivity);
       in.putString("dialogActivity", dialogActivity);
-      in.putString("hostVersion", TARGET_VERSION);
-      in.putString("moduleVersion", "1.5.0");
+      in.putString("hostVersion", hostVersion==null?"":hostVersion);
+      in.putString("moduleVersion", "1.9.0");
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}
+  }
+
+  private static String hostVersion(Application app) {
+    try { return app.getPackageManager().getPackageInfo(HOST,0).versionName; }
+    catch(Throwable ignored) { return ""; }
   }
 
   private static String resolveActivity(Application app,String action) {

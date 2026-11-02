@@ -90,7 +90,7 @@ final class QuickAppReplacementProbe {
     in.putString("replacedWidgetCode",bounded(replaced,500));
     in.putString("cardPath",path);
     in.putString("reason","read-only final QuickApp deviceList observation; no raw vehicle/account payload persisted");
-    in.putString("moduleVersion","1.5.0");
+    in.putString("moduleVersion","1.9.0");
     try {in.putString("hostVersion",app.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName);}
     catch(Throwable ignored){in.putString("hostVersion","");}
 

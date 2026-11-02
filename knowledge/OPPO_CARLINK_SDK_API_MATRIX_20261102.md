@@ -351,3 +351,51 @@ OPPO CarLinkUnit 文档左侧目录已确认包含：
 - 联系我们
 
 网页正文采用登录/动态加载机制，公开抓取不能稳定导出所有正文；接口合同因此以用户提供的官方 Demo、OCS AAR 与公开可验证的车企 SDK 使用说明交叉校验，不猜测不可读取章节内容。
+
+
+## 16. OPPO 手机 BLE 车钥匙官方文档 10778 / 10781
+
+官方来源锚点：
+- https://open.oppomobile.com/documentation/page/info?id=10778
+- https://open.oppomobile.com/documentation/page/info?id=10781
+
+网页正文为 JavaScript/权限动态内容，自动抓取不稳定，因此本节仅记录可由官方 Demo/AAR 交叉验证的合同，不推测不可读取段落。
+
+### BluetoothKey 主流程
+
+```
+OPPO CarLink capability check
+        ↓
+车企 App 完成真实 OEM / PAK key provisioning
+        ↓
+notifyBluetoothKeyBindResult
+        ↓
+OPPO 保存/展示 BluetoothKey metadata
+        ↓
+BLE ScanFilter 发现候选车辆
+        ↓
+ICarKeyCallback.onCarFound
+        ↓
+onGetBluetoothKeyState / notifyBluetoothKeyStateChanged
+        ↓
+onUserConfirmedUnlock
+        ↓
+车企 App 执行真实钥匙认证/解锁
+        ↓
+notifyCarVerificationResult
+```
+
+### PsAssistant 门禁
+
+必须拆分：
+- `remoteControlAvailable`
+- `oppoBluetoothKeySupported`
+- `polestarPakPaired`
+- `oppoKeyRegistered`
+- `nearbyVehicleDetected`
+- `pakAuthenticated`
+
+只有 `polestarPakPaired=true` 后，才允许正式 adapter 上报 OPPO bind-success。
+
+详细手机侧研究：
+`knowledge/OPPO_MOBILE_BLE_CAR_KEY_10778_10781_20261102.md`

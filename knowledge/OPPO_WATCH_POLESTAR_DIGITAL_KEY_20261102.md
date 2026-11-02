@@ -279,3 +279,19 @@ P1：官方 BluetoothKey/Wallet 对真实已配对钥匙的展示与系统承载
 P1：长续航模式系统组件验证
 P2：Watch 作为独立 PAK endpoint 的合法配对实验
 P3：只有 Polestar/OPPO 官方支持后再评估真正无手机启动体验
+
+
+## 2026-11-02 补充：OPPO 手机 BLE 车钥匙官方文档 10778 / 10781
+
+新增官方来源：
+- https://open.oppomobile.com/documentation/page/info?id=10778
+- https://open.oppomobile.com/documentation/page/info?id=10781
+
+这两页归入**手机侧 BluetoothKey 系统承载资料**，详细研究见：
+`knowledge/OPPO_MOBILE_BLE_CAR_KEY_10778_10781_20261102.md`
+
+对 Watch 路线的新增约束：
+- 手机 CarLink BluetoothKey 的存在，不等于 Watch 有相同 API；
+- 手机 OPPO key entry 不等于 Watch 已成为 Polestar PAK endpoint；
+- Watch 真钥匙仍需自己完成合法 Polestar PAK 配对；
+- Watch Companion 手机中转远控不受此限制，可独立推进。

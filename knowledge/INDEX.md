@@ -78,7 +78,7 @@
 
 `APK_CONFIRMED` 仅代表 APK 字节/类/方法/字段存在；`REFERENCE_USER_VERIFIED` 代表**用户亲测参考 APK**功能可用；`EXTERNAL_ANALYSIS` 代表外部报告判断；`IMPLEMENTED_DEMO` 代表新代码只有演示模型；`CI_VERIFIED` 代表可编译；`PROJECT_DEVICE_VERIFIED` 才代表**本项目新 APK 在授权车辆上端到端成功**；`PLANNED` 或 `MAPPING_REQUIRED` 代表待开发。
 
-**当前状态**：Android v0.8.7-beta1 延续真实 China 登录、车况/远控、停车位置和 Widget 能力，并在 CI 中持续做手机多皮肤/大字号布局回归；尚未完成本轮账号、车辆和独立 Wear OS 端到端验收。历史 DEMO 记录按各文件的版本阅读，不代表当前工程功能。
+**当前状态**：Android v0.9.7-beta26（versionCode 140），集成OPPO Bridge 1.12.0。延续独立China登录、车况/远控、停车位置、Widget与1.5秒外观菜单；新增官方CarLink客户端和≤2MB Root定向诊断。官方SDK授权/车型技能登记、原生设备卡片直控与Watch X2长续航模式仍需真机分阶段验收，不能以编译成功或本地绑车代替。完整分析见[CarLink优先接入研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。历史DEMO记录按各文件版本阅读，不代表当前工程功能。
 
 **文档更新规则**：源码/协议/接口新证据出现时，同提交更新功能矩阵 `04`、进度 `07`、相关研究 `03`、验证 `12`；跨平台证据同步 `docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md`，不得把 Global 的 RPC 或第三方 APK 的实测结论冒充本项目 China API 完成。
 

@@ -55,7 +55,12 @@ def application_sign(parameters: Mapping[str, object], timestamp: str, nonce: st
     return hashlib.sha256(encoded.encode('utf-8')).hexdigest()
 
 def verify_signature(expected: str, received: str) -> bool:
-    return isinstance(received, str) and hmac.compare_digest(expected, received)
+    if not isinstance(expected, str) or not isinstance(received, str):
+        return False
+    try:
+        return hmac.compare_digest(expected, received)
+    except (TypeError, ValueError):
+        return False
 
 APP_TOKEN_LIFETIME_SECONDS = 24 * 60 * 60
 APP_TOKEN_TRANSITION_SECONDS = 10 * 60

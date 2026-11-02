@@ -48,6 +48,16 @@ public class CarLinkBeta26Test {
   @Test public void rejectedCoordinatorCommandCompletesOnceWithoutSending(){
     AtomicInteger calls=new AtomicInteger();VehicleCoordinator.get(c).command("unlock",result->{assertEquals(OperationState.NOT_SENT,result);calls.incrementAndGet();});assertEquals(1,calls.get());assertFalse(VehicleCoordinator.get(c).commandPending);
   }
+  @Test public void lostSdkConnectionInvalidatesPreviousAuthorization()throws Exception{
+    OppoCarLinkRuntime runtime=OppoCarLinkRuntime.get(c);
+    for(String field:new String[]{"authResult","subscribeResult"}){
+      java.lang.reflect.Field f=OppoCarLinkRuntime.class.getDeclaredField(field);f.setAccessible(true);f.set(runtime,1);
+    }
+    java.lang.reflect.Field requested=OppoCarLinkRuntime.class.getDeclaredField("requested");requested.setAccessible(true);requested.setBoolean(runtime,true);
+    runtime.connectionLost("test disconnect");
+    assertFalse(runtime.authorized());assertFalse(requested.getBoolean(runtime));
+    String report=runtime.describe();assertTrue(report.contains("授权回调=null"));assertTrue(report.contains("订阅回调=null"));
+  }
   @Test public void rootLauncherUsesOnlyVerifiedFixedCarLinkComponent(){
     Bundle b=new Bundle();b.putString("bindActivityPackage",OppoOfficialCarLink.PACKAGE);b.putString("bindActivityName","com.heytap.opluscarlink.BindActivity");String command=OppoCarLinkRoot.launchCommand(b);assertTrue(command.contains("--user current"));assertTrue(command.contains("card://carlink.heytap.com/control?operation=bind"));assertFalse(command.contains("pm grant"));
     b.putString("bindActivityName","Bind'; touch /bad");try{OppoCarLinkRoot.launchCommand(b);fail();}catch(IllegalArgumentException expected){}

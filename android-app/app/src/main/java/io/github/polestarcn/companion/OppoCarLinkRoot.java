@@ -26,6 +26,7 @@ final class OppoCarLinkRoot {
       String source=app.sourceDir;
       if(source==null||!source.endsWith(".apk")||!(source.startsWith("/data/app/")||source.startsWith("/system/")||source.startsWith("/product/")||source.startsWith("/system_ext/")||source.startsWith("/vendor/")||source.startsWith("/my_")))throw new IOException("Unrecognized installed APK path");
       // Copy only the installed code APK into app-private cache, never /data/data or another user.
+      try(FileOutputStream owned=new FileOutputStream(temporary)){} // App-created destination retains the correct SELinux label.
       int uid=android.os.Process.myUid();run("cp -- "+quote(source)+" "+quote(temporary.getAbsolutePath())+" && chown "+uid+":"+uid+" "+quote(temporary.getAbsolutePath())+" && chmod 600 "+quote(temporary.getAbsolutePath()));
       if(temporary.length()>100_000_000L)throw new IOException("APK size limit");
       android.content.pm.PackageInfo info=c.getPackageManager().getPackageInfo(OppoOfficialCarLink.PACKAGE,0);

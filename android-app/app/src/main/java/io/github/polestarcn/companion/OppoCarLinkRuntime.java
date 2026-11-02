@@ -28,20 +28,21 @@ final class OppoCarLinkRuntime {
     if(!BuildConfig.OPPO_SDK_PACKAGED){phase="公开验证构建未包含SDK实现；请使用FULL包";return;}
     if(!ready()){phase="请启用桥接、登录并刷新真实车辆";return;}
     List<String> missing=OppoCarLinkConfig.load(context).missing();if(!missing.isEmpty()){phase="缺少："+android.text.TextUtils.join("、",missing);return;}
-    if(requested)return;requested=true;
+    if(requested)return;authResult=null;subscribeResult=null;authInFlight=false;errorCode=0;requested=true;
     try {
       phase="SDK鉴权／服务绑定中";
       CarLink.init(context,CarLink.FLAG_CAR_CONTROL,new ICallback(){
         public void onCarControlSdkInitComplete(){main.post(()->initialized());}
         @Override public void onServiceConnected(){main.post(()->{phase="服务已连接，等待车控初始化";if(CarLink.isCarControlInitComplete())initialized();});}
-        @Override public void onServiceDisconnected(){main.post(()->{phase="服务断开";requested=false;cancelAll("服务断开");});}
+        @Override public void onServiceDisconnected(){main.post(()->connectionLost("服务断开"));}
         @Override public void onUnbindService(){onServiceDisconnected();}
-        @Override public void onError(int code,String ignored){main.post(()->{errorCode=code;phase="SDK鉴权／绑定失败（code="+code+"）";requested=false;cancelAll("SDK失败");});}
+        @Override public void onError(int code,String ignored){main.post(()->{errorCode=code;connectionLost("SDK鉴权／绑定失败（code="+code+"）");});}
       },false);
       if(!registered){CarControl.registerCallback(callback);registered=true;}
     }catch(RuntimeException|LinkageError failure){requested=false;phase="SDK不可用："+failure.getClass().getSimpleName();}
   }
   private void initialized(){if(!ready()||!CarLink.isCarControlInitComplete())return;phase="车控SDK已初始化；授权／订阅另行核对";publish(true);requestAuthIfReady();}
+  void connectionLost(String reason){requested=false;authResult=null;subscribeResult=null;authInFlight=false;phase=reason;cancelAll(reason);}
   void authorize(){authRequested=true;start();requestAuthIfReady();}
   private void requestAuthIfReady(){if(authRequested&&!authInFlight&&ready()&&CarLink.isCarControlInitComplete()){try{authInFlight=true;CarControl.auth();phase="已请求系统授权";}catch(RuntimeException failure){authInFlight=false;phase="授权调用失败："+failure.getClass().getSimpleName();}}}
   boolean authorized(){return requested&&Integer.valueOf(1).equals(authResult)&&CarLink.isCarControlInitComplete()&&OppoDeviceIntegration.enabled(context);}
@@ -64,8 +65,8 @@ final class OppoCarLinkRuntime {
     @Override public void inquireCarInfo(){main.post(()->publish(true));}
     @Override public void inquireCarStatus(){main.post(()->publish(true,false));}
     @Override public void onShowCard(){main.post(()->publish(true,false));}
-    @Override public void onAuthResult(int code){main.post(()->{authResult=code;authInFlight=false;authRequested=false;phase="授权回调 code="+code+(code==1?"（成功）":"（未成功）");});}
-    @Override public void onSubscribeResult(int code){main.post(()->{subscribeResult=code;phase="订阅回调 code="+code+(code==1?"（成功）":"（未成功）");});}
+    @Override public void onAuthResult(int code){main.post(()->{if(!requested)return;authResult=code;authInFlight=false;authRequested=false;phase="授权回调 code="+code+(code==1?"（成功）":"（未成功）");});}
+    @Override public void onSubscribeResult(int code){main.post(()->{if(!requested)return;subscribeResult=code;phase="订阅回调 code="+code+(code==1?"（成功）":"（未成功）");});}
     @Override public void onUnbindResult(int code){main.post(()->{authResult=null;subscribeResult=null;phase="解绑回调 code="+code;cancelAll("系统解绑");});}
     @Override public void onVerify(String ignored){main.post(()->phase="收到SDK验证回调；车辆操作仍按本应用验证策略执行");}
     @Override public void onSwitchCar(String car){main.post(()->{if(ready()&&OppoCarLinkModels.carId(model().selected.vin).equals(car))publish(true);else phase="请求车辆不匹配，未切换";});}
@@ -80,7 +81,7 @@ final class OppoCarLinkRuntime {
     String canonical=OppoCarLinkCommandMap.canonical(instruction);
     String action=actionForInstruction(canonical,value);
     Task task=new Task(id,action,car);tasks.put(id,task);
-    if(!ready()||action==null||!OppoCarLinkModels.carId(model().selected.vin).equals(car)||!model().canCommand(action)){
+    if(!ready()||!authorized()||action==null||!OppoCarLinkModels.carId(model().selected.vin).equals(car)||!model().canCommand(action)){
       finish(id,OperationState.FAILED,"车辆、技能或会话不匹配，未发送");return;
     }
     for(Task other:tasks.values())if(other!=task&&CommandSlots.group(action).equals(CommandSlots.group(other.action))){finish(id,OperationState.FAILED,"同类指令正在处理");return;}
@@ -98,7 +99,7 @@ final class OppoCarLinkRuntime {
   }
   String action(String id){Task t=tasks.get(id);return t==null?null:t.action;}
   void dispatch(String id){Task t=tasks.get(id);if(t==null)return;
-    if(t.sent||SystemClock.elapsedRealtime()>=t.deadline||!ready()||!t.car.equals(OppoCarLinkModels.carId(model().selected.vin))||!model().canCommand(t.action)){
+    if(t.sent||SystemClock.elapsedRealtime()>=t.deadline||!ready()||!authorized()||!t.car.equals(OppoCarLinkModels.carId(model().selected.vin))||!model().canCommand(t.action)){
       finish(id,OperationState.FAILED,"请求已失效或车辆已变化");return;}
     if(!commandWindow.admit(t.car+"|"+t.action,SystemClock.elapsedRealtime())){finish(id,OperationState.FAILED,"重复指令冷却中，未发送");return;}
     t.sent=true;message(id,ControlMessage.CONTROL_EXECUTING,"执行中");

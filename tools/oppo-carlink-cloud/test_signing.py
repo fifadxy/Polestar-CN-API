@@ -19,6 +19,6 @@ class Signatures(unittest.TestCase):
         for values in ({'A':1,'a':2},{'body':{'a':1}}):
             with self.assertRaises(ValueError):application_sign(values,'123','nonce','key','secret')
     def test_comparison_is_exact(self):
-        self.assertTrue(verify_signature('abc','abc'));self.assertFalse(verify_signature('abc','ABC'))
+        self.assertTrue(verify_signature('abc','abc'));self.assertFalse(verify_signature('abc','ABC'));self.assertFalse(verify_signature('abc','中文'))
 
 if __name__=='__main__':unittest.main()

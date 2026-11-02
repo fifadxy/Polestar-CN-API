@@ -29,6 +29,9 @@ public final class OppoBridgeModule extends XposedModule {
         return;
       }
       HostProbe.install(this, pkg, param.getClassLoader());
+      if ("com.heytap.opluscarlink".equals(pkg)) {
+        CarLinkHostReporter.report(this, process, "hooks-entered", true, "");
+      }
       if ("com.coloros.assistantscreen".equals(pkg)
           && "com.coloros.assistantscreen".equals(process)) {
         AssistantScreenHostReporter.report(this,"hooks-entered",true,"");

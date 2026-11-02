@@ -14,6 +14,7 @@ public final class VehicleShortcutActivityTest {
   private static Bundle state(String key,String value) {
     Bundle out=new Bundle();
     out.putBoolean("available",true);
+    out.putLong("capturedAt",System.currentTimeMillis());
     out.putString(key,value);
     return out;
   }
@@ -32,6 +33,25 @@ public final class VehicleShortcutActivityTest {
         "air-toggle",state("air","关闭")));
     assertEquals("trunk-close",VehicleShortcutActivity.resolveToggle(
         "trunk-toggle",state("tailgate","已打开")));
+  }
+
+  @Test public void englishStateValuesNeverMatchTheirOpposites() {
+    assertEquals("lock",VehicleShortcutActivity.resolveToggle("lock-toggle",state("lock","UNLOCKED")));
+    assertEquals("unlock",VehicleShortcutActivity.resolveToggle("lock-toggle",state("lock","LOCKED")));
+    assertEquals("climate-start",VehicleShortcutActivity.resolveToggle("climate-toggle",state("climate","INACTIVE")));
+    assertEquals("climate-stop",VehicleShortcutActivity.resolveToggle("climate-toggle",state("climate","ACTIVE")));
+    assertEquals("air-start",VehicleShortcutActivity.resolveToggle("air-toggle",state("air","INACTIVE")));
+  }
+
+  @Test public void staleOrFutureDataNeverAuthorizesAToggle() {
+    Bundle old=state("lock","已上锁");
+    old.putLong("capturedAt",System.currentTimeMillis()-6*60_000L);
+    assertNull(VehicleShortcutActivity.resolveToggle("lock-toggle",old));
+    Bundle future=state("climate","关闭");
+    future.putLong("capturedAt",System.currentTimeMillis()+60_000L);
+    assertNull(VehicleShortcutActivity.resolveToggle("climate-toggle",future));
+    Bundle missing=state("air","开启");missing.remove("capturedAt");
+    assertNull(VehicleShortcutActivity.resolveToggle("air-toggle",missing));
   }
 
   @Test public void unknownStateNeverGuessesACommand() {

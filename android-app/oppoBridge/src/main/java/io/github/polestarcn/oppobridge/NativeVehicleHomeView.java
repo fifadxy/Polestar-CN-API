@@ -100,23 +100,51 @@ final class NativeVehicleHomeView extends LinearLayout {
     long time=data.getLong("capturedAt",0);
     String stamp=time>0?android.text.format.DateFormat.format("MM-dd HH:mm",time).toString():"时间未知";
     summary.setText("Polestar · "+battery+" · "+range+"\n缓存 "+stamp);
-    boolean locked="已上锁".equals(data.getString("lock"))||"已锁".equals(data.getString("lock"));
-    boolean climate="开启".equals(data.getString("climate"));
-    boolean air="开启".equals(data.getString("air"));
-    boolean trunk="已打开".equals(data.getString("tailgate"))||"未关严".equals(data.getString("tailgate"));
+    String lock=data.getString("lock"),climateValue=data.getString("climate");
+    String airValue=data.getString("air"),tailgate=data.getString("tailgate");
+    boolean locked=stateIs(lock,"已上锁","已锁","LOCKED");
+    boolean climate=stateIs(climateValue,"开启","运行中","ON","ACTIVE","RUNNING");
+    boolean air=stateIs(airValue,"开启","运行中","ON","ACTIVE","RUNNING");
+    boolean trunk=stateIs(tailgate,"已打开","未关严","OPEN","AJAR");
+    boolean[] known={
+      stateIs(lock,"已上锁","已锁","LOCKED","已解锁","未上锁","UNLOCKED"),
+      stateIs(climateValue,"开启","运行中","ON","ACTIVE","RUNNING","关闭","未运行","OFF","INACTIVE","STOPPED"),
+      stateIs(airValue,"开启","运行中","ON","ACTIVE","RUNNING","关闭","未运行","OFF","INACTIVE","STOPPED"),
+      stateIs(tailgate,"已打开","未关严","OPEN","AJAR","已关闭","关闭","CLOSED")
+    };
     actions[0]=locked?"unlock":"lock";controls[0].setText(locked?"解锁":"上锁");
     actions[1]=climate?"climate-stop":"climate-start";controls[1].setText(climate?"关闭空调":"开启空调");
     actions[2]=air?"air-stop":"air-start";controls[2].setText(air?"关闭净化":"净化");
     actions[3]=trunk?"trunk-close":"trunk-open";controls[3].setText(trunk?"关闭尾门":"开启尾门");
-    boolean enabled=data.getBoolean("available")&&!data.getBoolean("demo")&&data.getBoolean("cardEnabled",true);
-    for(Button b:controls)b.setEnabled(enabled&&!busy);
+    boolean fresh=VehicleShortcutActivity.fresh(data.getLong("capturedAt",0L),System.currentTimeMillis());
+    boolean enabled=data.getBoolean("available")&&!data.getBoolean("demo")
+        &&data.getBoolean("cardEnabled",true)&&fresh;
+    String[] unknownLabels={"车锁未知","空调未知","净化未知","尾门未知"};
+    for(int i=0;i<controls.length;i++) {
+      controls[i].setEnabled(enabled&&known[i]&&!busy);
+      if(!known[i]) {actions[i]=null;controls[i].setText(unknownLabels[i]);}
+    }
     refresh.setEnabled(data.getBoolean("cardEnabled",true)&&!busy);
     more.setEnabled(data.getBoolean("cardEnabled",true)&&!busy);
-    if(enabled&&feedback.getText().toString().startsWith("请在 PsAssistant"))feedback.setText("");
-    if(!enabled)feedback.setText("请在 PsAssistant 登录并刷新车况，或检查集成开关");
+    String previous=feedback.getText().toString();
+    if(enabled&&(previous.startsWith("请在 PsAssistant")||previous.startsWith("车况缓存已过期")))feedback.setText("");
+    if(!data.getBoolean("available")||data.getBoolean("demo")||!data.getBoolean("cardEnabled",true))
+      feedback.setText("请在 PsAssistant 登录并刷新车况，或检查集成开关");
+    else if(!fresh)feedback.setText("车况缓存已过期，请先刷新");
+  }
+  private static boolean stateIs(String observed,String... known) {
+    if(observed==null)return false;
+    String value=observed.trim().toUpperCase(java.util.Locale.ROOT);
+    for(String item:known)if(value.equals(item.toUpperCase(java.util.Locale.ROOT)))return true;
+    return false;
   }
   private void submit(String action,String label){
     if(!active||busy||worker==null)return;
+    if(action!=null&&!VehicleShortcutActivity.fresh(snapshot.getLong("capturedAt",0L),System.currentTimeMillis())) {
+      bindSnapshot(snapshot);
+      feedback.setText("车况缓存已过期，请先刷新");
+      return;
+    }
     if("unlock".equals(action)||"trunk-open".equals(action)||"trunk-close".equals(action)) {
       new android.app.AlertDialog.Builder(getContext()).setTitle(label).setNegativeButton("取消",null)
           .setPositiveButton("确认",(d,w)->dispatch(action)).show();

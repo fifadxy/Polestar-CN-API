@@ -21,6 +21,13 @@ public final class VehicleShortcutActivity extends Activity {
     worker.execute(()->{
       try {
         Bundle state=BridgeClient.snapshot(this);
+        if(state.getBoolean("available",false)
+            && !fresh(state.getLong("capturedAt",0L),System.currentTimeMillis())) {
+          try { BridgeClient.refresh(this); } catch(RuntimeException ignored) {}
+          toast("车况已过期，已尝试刷新，请稍后重试");
+          finishSafely();
+          return;
+        }
         String action=resolveToggle(requested,state);
         if(action==null) {
           toast("当前车况不足，先刷新车辆状态");
@@ -66,7 +73,9 @@ public final class VehicleShortcutActivity extends Activity {
   }
 
   static String resolveToggle(String requested,Bundle state) {
-    if(state==null||!state.getBoolean("available",false))return null;
+    if(state==null||!state.getBoolean("available",false)||state.getBoolean("demo",false)
+        ||!state.getBoolean("cardEnabled",true)
+        ||!fresh(state.getLong("capturedAt",0L),System.currentTimeMillis()))return null;
     if("lock-toggle".equals(requested)) {
       String value=upper(state.getString("lock"));
       if(any(value,"已上锁","已锁","LOCKED"))return "unlock";
@@ -94,13 +103,19 @@ public final class VehicleShortcutActivity extends Activity {
     return null;
   }
 
+  // Never guess a state-dependent command from an expired snapshot.
+  // A 30-second clock tolerance avoids false-negative timestamp jitter.
+  static boolean fresh(long capturedAt,long now) {
+    return capturedAt>0L && capturedAt<=now+30_000L && now-capturedAt<=5*60_000L;
+  }
+
   private static String upper(String value) {
     return value==null?"":value.trim().toUpperCase(Locale.ROOT);
   }
 
   private static boolean any(String value,String... expected) {
     for(String item:expected)
-      if(value.contains(item.toUpperCase(Locale.ROOT)))return true;
+      if(value.equals(item.toUpperCase(Locale.ROOT)))return true;
     return false;
   }
 

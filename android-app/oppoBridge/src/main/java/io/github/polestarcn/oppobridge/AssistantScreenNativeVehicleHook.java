@@ -180,7 +180,7 @@ final class AssistantScreenNativeVehicleHook {
   private static boolean contains(String value,String... expected) {
     String normalized=value==null?"":value.trim().toUpperCase(java.util.Locale.ROOT);
     for(String item:expected)
-      if(normalized.contains(item.toUpperCase(java.util.Locale.ROOT)))return true;
+      if(normalized.equals(item.toUpperCase(java.util.Locale.ROOT)))return true;
     return false;
   }
 

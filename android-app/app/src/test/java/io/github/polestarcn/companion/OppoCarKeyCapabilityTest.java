@@ -2,7 +2,12 @@ package io.github.polestarcn.companion;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk=28)
 public class OppoCarKeyCapabilityTest {
   @Test public void exposesOfficialBluetoothKeyEntryPointsWithoutBindingSideEffects() {
     assertEquals("oppo.intent.action.opluscarlink.BIND_BT_KEY",

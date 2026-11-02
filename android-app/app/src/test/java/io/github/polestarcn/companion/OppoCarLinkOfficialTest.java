@@ -2,6 +2,7 @@ package io.github.polestarcn.companion;
 
 import static org.junit.Assert.*;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -16,6 +17,23 @@ public class OppoCarLinkOfficialTest {
     assertEquals("card",intent.getData().getScheme());
     assertEquals("carlink.heytap.com",intent.getData().getHost());
     assertEquals("bind",intent.getData().getQueryParameter("operation"));
+  }
+
+  @Test public void protectedManifestEntryIsNotTreatedAsLaunchable() {
+    assertFalse(OppoOfficialCarLink.directLaunchAllowed(
+        false,"",PackageManager.PERMISSION_GRANTED));
+    assertFalse(OppoOfficialCarLink.directLaunchAllowed(
+        true,"oppo.permission.PRIVATE",PackageManager.PERMISSION_DENIED));
+    assertTrue(OppoOfficialCarLink.directLaunchAllowed(
+        true,"",PackageManager.PERMISSION_DENIED));
+    assertTrue(OppoOfficialCarLink.directLaunchAllowed(
+        true,"oppo.permission.PRIVATE",PackageManager.PERMISSION_GRANTED));
+  }
+
+  @Test public void localFallbackTargetsTheCurrentApplicationOnly() {
+    Intent intent=OppoOfficialCarLink.localBindIntentForPackage("io.github.polestarcn.companion");
+    assertEquals(OppoOfficialCarLink.LOCAL_BIND_ACTION,intent.getAction());
+    assertEquals("io.github.polestarcn.companion",intent.getPackage());
   }
 
   @Test public void mapsSupportedInstructions() {

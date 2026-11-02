@@ -28,8 +28,13 @@ public final class OppoWidgetSetupActivity extends Activity {
     int p=(int)(16*getResources().getDisplayMetrics().density);column.setPadding(p,p,p,p);
     TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO CarLink / 我的车辆 / 负一屏插件卡\n\nbeta23 同时推进两条官方系统入口：CarLink 负责‘我的车辆/车钥匙’，Shelf/Seedling 插件卡负责负一屏车辆状态和快捷入口。LSPosed 只做品牌入口、宿主探测和旧固件兼容，不伪造蓝牙数字钥匙。\n\n1. 先启用‘Polestar 系统车辆入口’。\n2. Root/LSPosed 用户确认作用域包含 AssistantScreen、Pantanal 和 CarLink，并重启对应进程。\n3. 打开‘我的车辆’，Polestar 应进入品牌目录；负一屏卡片诊断会同时显示 Shelf/Pantanal 宿主。\n4. 正式 Seedling 插件卡仍需要 OPPO SDK、模板/事件配置与可能的白名单；当前版本已经完成真实车辆数据映射和宿主探测。");column.addView(help);
     button(column,android.view.View.generateViewId(),"打开 OPPO CarLink「我的车辆」绑定",()->{
-      try {startActivity(OppoOfficialCarLink.bindIntent());}
-      catch(RuntimeException failure){report.setText(diagnostics()+"\nCarLink 绑定入口不可用: "+failure.getClass().getSimpleName());}
+      Bundle launch=OppoOfficialCarLink.launchBind(this);
+      String path=launch.getString("launchPath","");
+      if("local-fallback".equals(path)) {
+        report.setText(diagnostics()+"\nOPPO 官方绑定入口受系统权限保护，已转入 PsAssistant 本地 Polestar 系统车辆入口。请从 OPPO「我的车辆」页面验证 Polestar 品牌行。");
+      } else if("failed".equals(path)) {
+        report.setText(diagnostics()+"\n绑定入口不可用: "+launch.getString("launchReason","unknown"));
+      }
     });
     button(column,android.view.View.generateViewId(),"启用 Polestar 系统车辆入口",()->setSystemVehicleEntry(true));
     button(column,android.view.View.generateViewId(),"关闭 Polestar 系统车辆入口",()->setSystemVehicleEntry(false));

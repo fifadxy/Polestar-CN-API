@@ -19,6 +19,8 @@ public final class OppoDeviceIntegration {
   public static void setEnabled(Context context, boolean enabled) {
     SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     boolean previous = enabled(context);
+    ComponentName component=new ComponentName(context.getPackageName(),PROVIDER_CLASS);
+    int previousComponent=context.getPackageManager().getComponentEnabledSetting(component);
     if (!preferences.edit().putBoolean(KEY, enabled).commit())
       throw new IllegalStateException("Cannot save OPPO integration preference");
     try {
@@ -30,11 +32,26 @@ public final class OppoDeviceIntegration {
           PackageManager.DONT_KILL_APP);
       if (enabled) context.getSharedPreferences("vehicle-card", Context.MODE_PRIVATE).edit().remove("hidden").apply();
       notifyHosts(context);
-      if(enabled)OppoCarLinkRuntime.get(context).start();else OppoCarLinkRuntime.get(context).stop();
+      if(enabled)OppoCarLinkRuntime.get(context).start();else {BridgeCommandRequests.cancelAll();OppoCarLinkRuntime.get(context).stop();}
     } catch (RuntimeException failure) {
       preferences.edit().putBoolean(KEY, previous).commit();
+      try{context.getPackageManager().setComponentEnabledSetting(component,previousComponent,PackageManager.DONT_KILL_APP);}catch(RuntimeException ignored){}
       throw failure;
     }
+  }
+  /** Repair persisted PackageManager overrides after an interrupted update without changing opt-in. */
+  static void reconcile(Context context) {
+    ComponentName name=new ComponentName(context.getPackageName(),PROVIDER_CLASS);
+    boolean on=enabled(context);
+    int expected=on?PackageManager.COMPONENT_ENABLED_STATE_ENABLED:PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+    if(context.getPackageManager().getComponentEnabledSetting(name)!=expected){
+      context.getPackageManager().setComponentEnabledSetting(name,expected,PackageManager.DONT_KILL_APP);notifyHosts(context);
+    }
+  }
+  static void restoreCard(Context context) {
+    reconcile(context);
+    if(!enabled(context))return;
+    context.getSharedPreferences("vehicle-card",Context.MODE_PRIVATE).edit().remove("hidden").apply();notifyHosts(context);
   }
   private static void notifyHosts(Context context) {
     try { context.getContentResolver().notifyChange(CARD_URI, null); } catch (RuntimeException ignored) {}

@@ -44,6 +44,10 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   ));
   private static final String CALLBACK_DESCRIPTOR = "com.heytap.deviceinfo.DeviceAppCallbackInterface";
   private static final int CALLBACK_RESULT = 196611;
+  public static final String METHOD_DIAGNOSTICS = "ps_vehicle_diagnostics";
+  private static volatile long lastQueryAt;
+  private static volatile String lastQueryReason="not-queried";
+  private static volatile int lastRows;
   private ContentObserver upstream;
 
   @Override public boolean onCreate() {
@@ -66,9 +70,14 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   @Override public Cursor query(Uri uri, String[] projection, String selection,
       String[] selectionArgs, String sortOrder) {
     requireHost();
-    if (!URI.equals(uri)) throw new IllegalArgumentException("Unsupported vehicle card URI");
-    if (sortOrder != null) throw new IllegalArgumentException("Sort order not supported");
+    long identity=Binder.clearCallingIdentity();
+    try { return queryLocal(uri,projection,selection,selectionArgs,sortOrder); }
+    finally { Binder.restoreCallingIdentity(identity); }
+  }
 
+  private Cursor queryLocal(Uri uri,String[] projection,String selection,String[] selectionArgs,String sortOrder) {
+    requireUri(uri);
+    if(projection!=null&&projection.length>32)throw new IllegalArgumentException("Projection limit");
     String[] columns = projection == null ? COLUMNS : projection.clone();
     MatrixCursor cursor = new MatrixCursor(columns, 1);
     cursor.setNotificationUri(context().getContentResolver(), URI);
@@ -77,19 +86,17 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     try {
       state = BridgeClient.snapshot(context());
     } catch (RuntimeException unavailable) {
-      return cursor;
+      return observed(cursor,"upstream-unavailable");
     }
-    if (!state.getBoolean("cardEnabled", true)) return cursor;
-    if (!state.getBoolean("available", false) || state.getBoolean("demo", false)) return cursor;
+    if (!state.getBoolean("cardEnabled", false)) return observed(cursor,"integration-disabled-or-upstream-unavailable");
+    if (!state.getBoolean("available", false)) return observed(cursor,"no-snapshot");
+    if (state.getBoolean("demo", false)) return observed(cursor,"demo-excluded");
     if (context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
-        .getBoolean("hidden", false)) return cursor;
+        .getBoolean("hidden", false)) return observed(cursor,"hidden-by-user");
 
     String id = deviceId(state);
     String pseudoMac = "02:50:53:41:00:01";
-    if (selection != null) {
-      String arg = selectionArgs != null && selectionArgs.length > 0 ? selectionArgs[0] : null;
-      if (arg == null || !(arg.equals(id) || arg.equals(pseudoMac) || arg.equals(AUTHORITY))) return cursor;
-    }
+    if (!matchesSelection(selection,selectionArgs,id,pseudoMac)) return observed(cursor,"selection-miss");
 
     JSONObject data = deviceData(state, id, pseudoMac);
     MatrixCursor.RowBuilder row = cursor.newRow();
@@ -102,12 +109,45 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         default: row.add(null);
       }
     }
-    return cursor;
+    return observed(cursor,"row-ready");
+  }
+
+  static void requireUri(Uri uri) {
+    if(uri==null||!"content".equals(uri.getScheme())||!AUTHORITY.equals(uri.getAuthority())
+        ||uri.getFragment()!=null||!uri.getPathSegments().equals(java.util.Collections.singletonList("device_info_table_new")))
+      throw new IllegalArgumentException("Unsupported vehicle card URI");
+  }
+  static boolean matchesSelection(String selection,String[] args,String id,String mac) {
+    if(selection==null||selection.trim().isEmpty()) {
+      if(args!=null&&args.length>0)throw new IllegalArgumentException("Arguments without selection");
+      return true;
+    }
+    if(args==null||args.length!=1)throw new IllegalArgumentException("Expected one selection argument");
+    String key=selection.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
+    if("device_id=?".equals(key))return id.equals(args[0]);
+    if("device_mac=?".equals(key))return mac.equals(args[0]);
+    if("authority=?".equals(key))return AUTHORITY.equals(args[0]);
+    throw new IllegalArgumentException("Unsupported vehicle selection");
+  }
+  private static Cursor observed(MatrixCursor cursor,String reason) {
+    lastQueryAt=System.currentTimeMillis();lastQueryReason=reason;lastRows=cursor.getCount();
+    Bundle status=new Bundle();status.putString("reason",reason);status.putInt("rows",lastRows);cursor.setExtras(status);return cursor;
+  }
+  static Bundle runtimeStatus(Context context) {
+    Bundle b=new Bundle();b.putString("authority",AUTHORITY);b.putString("lastQueryReason",lastQueryReason);
+    b.putLong("lastQueryAt",lastQueryAt);b.putInt("lastRows",lastRows);
+    b.putBoolean("hidden",context.getSharedPreferences("vehicle-card",Context.MODE_PRIVATE).getBoolean("hidden",false));return b;
   }
 
   @Override public Bundle call(String method, String arg, Bundle extras) {
     requireHost();
-    if (!BridgeClient.capabilities(context()).getBoolean("cardEnabled", true)) {
+    long identity=Binder.clearCallingIdentity();
+    try { return callLocal(method,arg,extras); }
+    finally { Binder.restoreCallingIdentity(identity); }
+  }
+  private Bundle callLocal(String method,String arg,Bundle extras) {
+    if(METHOD_DIAGNOSTICS.equals(method))return runtimeStatus(context());
+    if (!BridgeClient.capabilities(context()).getBoolean("cardEnabled", false)) {
       Bundle disabled = new Bundle();
       disabled.putBoolean("result", false);
       disabled.putBoolean("accepted", false);
@@ -123,6 +163,11 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     try {
       if (METHOD_COMMAND.equals(method)) {
         String action = extras == null ? null : extras.getString("extra");
+        Bundle state=BridgeClient.snapshot(context());
+        if(!state.getBoolean("available")||state.getBoolean("demo")||!VehicleShortcutActivity.fresh(state.getLong("capturedAt"),System.currentTimeMillis())) {
+          result.putBoolean("result",false);result.putBoolean("accepted",false);result.putString("reason","fresh-vehicle-state-required");
+          if(callback!=null)reply(callback,false);return result;
+        }
         Bundle response = BridgeClient.command(context(), action);
         ok = response.getBoolean("accepted", false);
         result.putAll(response);
@@ -149,7 +194,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
       }
     } catch (Throwable failure) {
       ok = false;
-      result.putString("reason", failure.getClass().getSimpleName() + ": " + failure.getMessage());
+      result.putString("reason", failure.getClass().getSimpleName());
       Log.w(TAG, "card call failed", failure);
     }
     result.putBoolean("result", ok);
@@ -250,20 +295,21 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
 
   private static JSONArray shortcuts(Bundle state) throws Exception {
     JSONArray out = new JSONArray();
+    if(!VehicleShortcutActivity.fresh(state.getLong("capturedAt",0L),System.currentTimeMillis()))return out;
     String lock = state.getString("lock", "");
-    addShortcut(out, ("已上锁".equals(lock) || "已锁".equals(lock)) ? "解锁" : "上锁",
+    if("已上锁".equals(lock)||"已锁".equals(lock)||"未锁".equals(lock))addShortcut(out, ("已上锁".equals(lock) || "已锁".equals(lock)) ? "解锁" : "上锁",
         ("已上锁".equals(lock) || "已锁".equals(lock)) ? "unlock" : "lock");
 
     String climate = state.getString("climate", "");
-    addShortcut(out, "开启".equals(climate) ? "关闭空调" : "开启空调",
+    if("开启".equals(climate)||"关闭".equals(climate))addShortcut(out, "开启".equals(climate) ? "关闭空调" : "开启空调",
         "开启".equals(climate) ? "climate-stop" : "climate-start");
 
     String tailgate = state.getString("tailgate", "");
-    addShortcut(out, ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "关闭尾门" : "开启尾门",
+    if("已打开".equals(tailgate)||"未关严".equals(tailgate)||"已关闭".equals(tailgate))addShortcut(out, ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "关闭尾门" : "开启尾门",
         ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "trunk-close" : "trunk-open");
 
     String air = state.getString("air", "");
-    addShortcut(out, "开启".equals(air) ? "关闭净化" : "净化",
+    if("开启".equals(air)||"关闭".equals(air))addShortcut(out, "开启".equals(air) ? "关闭净化" : "净化",
         "开启".equals(air) ? "air-stop" : "air-start");
     return out;
   }
@@ -333,7 +379,12 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     return c;
   }
 
+  @Override public void shutdown() {
+    if(upstream!=null&&getContext()!=null){context().getContentResolver().unregisterContentObserver(upstream);upstream=null;}
+    super.shutdown();
+  }
   @Override public String getType(Uri uri) {
+    requireUri(uri);
     return "vnd.android.cursor.dir/vnd." + AUTHORITY + ".device_info";
   }
   @Override public Uri insert(Uri uri, ContentValues values) { return null; }

@@ -35,6 +35,7 @@ public final class OppoWidgetSetupActivity extends Activity {
     local.setOnCheckedChangeListener((v,on)->{setSystemVehicleEntry(on);local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));});column.addView(local);
     button(column,android.view.View.generateViewId(),"打开 Polestar 本地车辆面板",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.PolestarOfficialBindActivity")));
     button(column,android.view.View.generateViewId(),"高级诊断 · 模块／卡片／官方接口",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
+    button(column,android.view.View.generateViewId(),"修复 Provider 注册并恢复设备卡",()->{try{OppoDeviceIntegration.restoreCard(this);report.setText(diagnostics()+(OppoDeviceIntegration.enabled(this)?"\nProvider注册及本卡可见性已恢复；没有刷新车辆，请重新进入设备空间。":"\n桥接总开关关闭，Provider保持停用；开启后再恢复。"));}catch(RuntimeException e){report.setText("Provider修复失败："+e.getClass().getSimpleName());}});
     button(column,android.R.id.button1,"打开 OPPO 标准组件列表",()->{
       try {startActivity(standardPickerIntent());}
       catch(RuntimeException failure){report.setText(diagnostics()+"\n标准入口不可用: "+failure.getClass().getSimpleName()+"\n请尝试下方系统桌面添加请求。");}
@@ -125,6 +126,7 @@ public final class OppoWidgetSetupActivity extends Activity {
       out.append(i.provider.getClassName()).append(" · 已绑定实例 ").append(count).append('\n');
     }
     out.append("本应用已注册组件: ").append(providers).append("；已绑定实例: ").append(instances).append('\n');
+    out.append("设备卡Provider自检（仅缓存）：\n").append(OppoProviderDiagnostics.inspect(this).toString()).append('\n');
     out.append(OppoOfficialCarLink.describe(this)).append('\n');
     Bundle system=OppoSystemVehicleState.status(this,VehicleCoordinator.get(this));
     out.append("Polestar 系统车辆入口: ").append(system.getBoolean("providerEnabled",false)?"已启用":"未启用")

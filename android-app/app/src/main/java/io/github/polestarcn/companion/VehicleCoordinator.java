@@ -367,6 +367,7 @@ public final class VehicleCoordinator {
   public void logout() {
     if(CampModeManager.active(context)||"STOPPING".equals(CampModeManager.phase(context)))CampModeManager.requestStop(context);
     sessionGeneration++;
+    BridgeCommandRequests.cancelAll();
     signedIn=false;exclusive=false;busy=false;quietRefresh=false;userRefreshing=false;
     for(PendingCommand pending:pendingCommands.values()){pending.cancelled=true;if(pending.readback!=null)pending.readback.cancel();}pendingCommands.clear();syncCommandStatus();completions.clear();
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();

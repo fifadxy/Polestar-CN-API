@@ -105,6 +105,7 @@ public class OppoResearchExportTest {
     assertArrayEquals(new byte[]{8,9},files.get("com.coloros.assistantscreen/AndroidManifest.xml"));
     for(String name:files.keySet()){assertFalse(name.endsWith(".apk"));assertFalse(name.endsWith(".dex"));}
     JSONObject report=new JSONObject(new String(files.get("report.json"),"UTF-8"));
+    assertTrue(files.containsKey("provider-diagnostics.json"));assertTrue(report.has("deviceProvider"));
     assertEquals("light",report.getString("mode"));assertFalse(report.getBoolean("fullApksIncluded"));
     assertTrue(report.has("watchData"));assertEquals(2_000_000,report.getInt("archiveLimitBytes"));
   }

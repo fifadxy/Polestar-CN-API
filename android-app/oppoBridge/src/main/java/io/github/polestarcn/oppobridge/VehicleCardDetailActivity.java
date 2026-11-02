@@ -1,7 +1,6 @@
 package io.github.polestarcn.oppobridge;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.res.ColorStateList;
 import android.database.ContentObserver;
 import android.graphics.Color;
@@ -70,10 +69,7 @@ public final class VehicleCardDetailActivity extends Activity {
     params.setMargins(dp(2),dp(5),dp(2),dp(5));parent.addView(b,params);buttons.add(b);
     b.setOnClickListener(v->{
       if(busy)return;
-      if("unlock".equals(action)||"trunk-open".equals(action)||"trunk-close".equals(action)||"windows-open".equals(action)) {
-        new AlertDialog.Builder(this).setTitle(label).setMessage("确认车辆周围安全后执行。请求受理不代表车辆已完成操作。")
-            .setNegativeButton("取消",null).setPositiveButton("确认",(dialog,which)->submit(action)).show();
-      } else submit(action);
+      submit(action); // The main app owns direct/confirm/biometric policy.
     });
   }
   private void submit(String action) {

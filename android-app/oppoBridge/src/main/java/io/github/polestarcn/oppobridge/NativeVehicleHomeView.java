@@ -145,10 +145,7 @@ final class NativeVehicleHomeView extends LinearLayout {
       feedback.setText("车况缓存已过期，请先刷新");
       return;
     }
-    if("unlock".equals(action)||"trunk-open".equals(action)||"trunk-close".equals(action)) {
-      new android.app.AlertDialog.Builder(getContext()).setTitle(label).setNegativeButton("取消",null)
-          .setPositiveButton("确认",(d,w)->dispatch(action)).show();
-    }else dispatch(action);
+    dispatch(action); // Main app applies the selected per-action verification exactly once.
   }
   private void dispatch(String action){
     if(!active||busy||worker==null)return;

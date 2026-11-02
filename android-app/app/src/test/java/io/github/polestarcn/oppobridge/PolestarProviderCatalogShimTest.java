@@ -29,6 +29,24 @@ public class PolestarProviderCatalogShimTest {
     public String getAppName(){return appName;} public void setAppName(String value){appName=value;}
     public String getPackageName(){return packageName;} public void setPackageName(String value){packageName=value;}
   }
+  public static final class OemProvider {
+    private final String code,name,icon;
+    public OemProvider(String code,String name,String icon){this.code=code;this.name=name;this.icon=icon;}
+    public String getSpCode(){return code;}public String getName(){return name;}public String getIconUrl(){return icon;}
+  }
+  @Test public void emptyTypedOemCatalogWorksWithoutBorrowingAnotherBrandsTemplate(){
+    List<?> empty=java.util.Collections.emptyList();List<?> result=PolestarProviderCatalogShim.appendCopy(empty,OemProvider.class);
+    assertEquals(0,empty.size());assertEquals(1,result.size());OemProvider row=(OemProvider)result.get(0);
+    assertEquals("POLESTAR",row.getSpCode());assertTrue(row.getName().contains("极星"));
+    assertTrue(row.getIconUrl().startsWith("android.resource://"));
+    assertSame(empty,PolestarProviderCatalogShim.appendCopy(empty,null));
+  }
+  @Test public void immutableCatalogIsCopiedBeforeAddingAndNeverCorruptsTheOriginal(){
+    List<Provider> original=java.util.Collections.singletonList(new Provider("EXAMPLE","Example"));
+    List<?> result=PolestarProviderCatalogShim.appendCopy(original,null);
+    assertEquals(1,original.size());assertEquals(2,result.size());assertTrue(PolestarProviderCatalogShim.hasCode(result,"POLESTAR"));
+    assertSame(result,PolestarProviderCatalogShim.appendCopy(result,null));
+  }
 
   @Test public void appendsPolestarToProviderShapedListWithoutDuplicates() {
     List<Provider> providers=new ArrayList<>();providers.add(new Provider("EXAMPLE","Example"));

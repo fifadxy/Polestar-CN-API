@@ -28,6 +28,8 @@ final class OppoAccountBindDiagnostics {
     if(in.containsKey("providerCatalog")) {
       String catalog = bounded(in.getString("providerCatalog", ""), 3200);
       e.putString("providerCatalog", catalog);
+      e.putLong("catalogSeenAt",System.currentTimeMillis());
+      String source=in.getString("catalogSource","observed");e.putString("catalogSource","injected".equals(source)?"injected":"observed");
     }
     e.apply();
     return status(context);
@@ -37,6 +39,7 @@ final class OppoAccountBindDiagnostics {
     SharedPreferences p = context.getSharedPreferences(PREF, 0);
     Bundle out = new Bundle();
     out.putLong("seenAt", p.getLong("seenAt", 0L));
+    out.putLong("catalogSeenAt",p.getLong("catalogSeenAt",0L));out.putString("catalogSource",p.getString("catalogSource",""));
     out.putBoolean("ready", p.getBoolean("ready", false));
     out.putInt("bindCount", p.getInt("bindCount", 0));
     for (String key : new String[]{"reason","hostVersion","moduleVersion","boundCodes","providerCatalog","providerOwner","providerPermission","bindActivity","dialogActivity"})

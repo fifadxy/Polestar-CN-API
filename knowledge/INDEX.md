@@ -1,3 +1,5 @@
+当前增量：[beta27 Provider完整修复](OPPO_PROVIDER_BETA27_20261102.md)，主APK141、Bridge1.13.0/25。以下保留历史阶段。
+
 当前分支 **beta26 /140 · Bridge1.12.0**：[CarLink优先接入与Root诊断](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。
 
 当前分支版本 **v0.9.7-beta25 / 139**，内置 Bridge **1.11.0 / 23**：[1.5秒外观菜单、极简车控与OPPO路由纠错](BETA25_APPEARANCE_CONTROLS_OPPO_20261102.md)。

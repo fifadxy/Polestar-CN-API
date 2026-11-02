@@ -1,0 +1,30 @@
+{
+  "source_archive_sha256": "ee7722dec562318b5eaadf1a4cdc7ea7aa68cf617cee9aa6190cb4de9ed232ee",
+  "appVersion": "0.9.7-beta26-standalone",
+  "appVersionCode": 140,
+  "androidSdk": 36,
+  "integrationEnabled": true,
+  "mainHostVersion": "17.4.15",
+  "moduleVersion": "1.12.0",
+  "mainPhase": "hooks-installed",
+  "cardsPhase": "quickapp-provider",
+  "providerDiagnosticIncluded": false,
+  "rootContractIncluded": false,
+  "carLinkSdkInitialized": false,
+  "carLinkAuthorizationObserved": false,
+  "sourceContract": {
+    "MyDevices": "17.4.15",
+    "AssistantScreen": "17.14.60",
+    "discoveryAction": "oplus.devicecards.action.DEVICE_INFO",
+    "queryPath": "device_info_table_new",
+    "singleRowSelection": "device_id = ?",
+    "providerInfoClass": "com.oplus.advice.settings.ui.viewmodel.ProviderInfo",
+    "providerInfoConstructor": [
+      "java.lang.String",
+      "java.lang.String",
+      "java.lang.String"
+    ],
+    "providerInfoNoArgConstructor": false
+  },
+  "deviceAcceptance": "PENDING"
+}

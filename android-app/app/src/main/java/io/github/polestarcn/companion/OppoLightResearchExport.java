@@ -23,10 +23,11 @@ final class OppoLightResearchExport {
     @Override public void write(byte[] b,int off,int len)throws IOException{reserve(len);out.write(b,off,len);}
   }
   static OppoHostApkExport.Result write(Context context,OutputStream output,OppoHostApkExport.Progress progress)throws Exception {
-    JSONObject report=new JSONObject().put("schemaVersion",4).put("mode","light")
+    JSONObject report=new JSONObject().put("schemaVersion",5).put("mode","light")
         .put("archiveLimitBytes",MAX_BYTES).put("fullApksIncluded",false)
         .put("generatedAt",System.currentTimeMillis()).put("environment",OppoHostApkExport.environment(context))
         .put("module",OppoHostApkExport.module(context))
+        .put("deviceProvider",OppoProviderDiagnostics.inspect(context))
         .put("watchData","Phone capture cannot read watch firmware or prove endurance-mode support");
     JSONArray packages=new JSONArray(),assets=new JSONArray();report.put("packages",packages).put("staticAssets",assets);
     boolean criticalComplete=true;
@@ -74,6 +75,7 @@ final class OppoLightResearchExport {
       }
       if(json.length>1_000_000)throw new IOException("Metadata size limit");
       put(zip,"report.json",json);
+      put(zip,"provider-diagnostics.json",report.getJSONObject("deviceProvider").toString(2).getBytes(StandardCharsets.UTF_8));
       put(zip,"carlink-sdk-status.txt",OppoCarLinkRuntime.get(context).describe().getBytes(StandardCharsets.UTF_8));
       File contract=OppoCarLinkRoot.report(context);
       if(contract.isFile()&&contract.length()<=200_000)put(zip,"carlink-root-contract.txt",java.nio.file.Files.readAllBytes(contract.toPath()));

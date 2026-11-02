@@ -1,7 +1,6 @@
 package io.github.polestarcn.oppobridge;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.widget.Toast;
 import java.util.Locale;
@@ -34,28 +33,12 @@ public final class VehicleShortcutActivity extends Activity {
           finishSafely();
           return;
         }
-        if("unlock".equals(action)||"trunk-open".equals(action)||"trunk-close".equals(action)) {
-          runOnUiThread(()->confirm(action));
-        } else {
-          execute(action);
-        }
+        execute(action); // Verification belongs to the current main app, not this OEM facade.
       } catch(Throwable failure) {
         toast("车控桥接不可用");
         finishSafely();
       }
     });
-  }
-
-  private void confirm(String action) {
-    if(isFinishing()||isDestroyed())return;
-    String title="unlock".equals(action)?"确认解锁车辆":"确认操作尾门";
-    new AlertDialog.Builder(this)
-        .setTitle(title)
-        .setMessage("指令会发送到已登录的 Polestar 车辆，并由 PsAssistant 继续执行状态回读。")
-        .setNegativeButton("取消",(d,w)->finish())
-        .setPositiveButton("确认",(d,w)->worker.execute(()->execute(action)))
-        .setOnCancelListener(d->finish())
-        .show();
   }
 
   private void execute(String action) {

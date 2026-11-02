@@ -28,7 +28,8 @@ final class PolestarProviderCatalogShim {
       "com.oplus.advice.settings.ui.viewmodel.AdviceSettingCompatViewModel$queryProviderInfoListFromDB$1";
   private static final String VIEW_MODEL=
       "com.oplus.advice.settings.ui.viewmodel.AdviceSettingCompatViewModel";
-  private static volatile Object cachedTemplate;
+  private static volatile Class<?> providerType;
+  private static long lastCatalogReport=-1;
 
   private PolestarProviderCatalogShim() {}
 
@@ -38,6 +39,8 @@ final class PolestarProviderCatalogShim {
     try { if(app!=null)hostVersion=app.getPackageManager().getPackageInfo(app.getPackageName(),0).versionName; }
     catch(Throwable ignored) {}
 
+    try { providerType=loader.loadClass("com.oplus.advice.settings.ui.viewmodel.ProviderInfo"); }
+    catch(ClassNotFoundException missing){providerType=null;}
     int hooks=0;
     try { hooks+=hookCoroutine(module,loader); }
     catch(Throwable failure) { module.warn("polestar_provider_catalog coroutine="+failure.getClass().getSimpleName()); }
@@ -49,7 +52,7 @@ final class PolestarProviderCatalogShim {
     // The class fingerprint is the safety gate. We intentionally do not hard-fail only because the
     // minor AssistantScreen version changed; if the known class/method shape still exists, the hook
     // remains useful. Unknown shapes simply install zero hooks and leave the OEM UI untouched.
-    module.info("polestar_provider_catalog generation=4 hostVersion="+hostVersion+" hooks="+hooks);
+    module.info("polestar_provider_catalog generation=5 hostVersion="+hostVersion+" hooks="+hooks);
   }
 
   private static int hookCoroutine(OppoBridgeModule module,ClassLoader loader) throws Exception {
@@ -57,15 +60,16 @@ final class PolestarProviderCatalogShim {
     Method invoke=coroutine.getDeclaredMethod("invokeSuspend",Object.class);
     invoke.setAccessible(true);
     module.hook(invoke)
-        .setId("psassistant_polestar_provider_catalog_coroutine_v4")
+        .setId("psassistant_polestar_provider_catalog_coroutine_v5")
         .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
         .intercept(chain->{
           Object result=chain.proceed();
+          if(!enabled())return result;
           try {
             Object continuation=chain.getThisObject();
             Object vm=outerViewModel(continuation);
             int changed=injectEveryProviderList(vm);
-            if(result instanceof List<?>)changed+=injectList((List<?>)result);
+            if(result instanceof List<?>){List<?> updated=appendCopy((List<?>)result,providerType);if(updated!=result){result=updated;changed++;reportInjected(updated);}}
             if(changed>0)module.info("polestar_provider_catalog injected coroutine changed="+changed);
             scheduleRecheck(module,vm);
           } catch(Throwable failure) {
@@ -87,14 +91,18 @@ final class PolestarProviderCatalogShim {
       if(!providerNamed&&!listResult)continue;
       if(method.getParameterTypes().length>4)continue;
       method.setAccessible(true);
-      final String id="psassistant_polestar_provider_vm_v4_"+safeId(method.getName())+"_"+method.getParameterTypes().length+"_"+Integer.toHexString(method.toGenericString().hashCode());
+      final String id="psassistant_polestar_provider_vm_v5_"+safeId(method.getName())+"_"+method.getParameterTypes().length+"_"+Integer.toHexString(method.toGenericString().hashCode());
       module.hook(method).setId(id)
           .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
           .intercept(chain->{
             Object result=chain.proceed();
+            if(!enabled())return result;
             try {
               int changed=0;
-              if(result instanceof List<?>)changed+=injectList((List<?>)result);
+              if(result instanceof List<?> && method.getReturnType().isAssignableFrom(ArrayList.class)){
+                Class<?> emptyType=method.getName().toLowerCase(Locale.ROOT).contains("provider")||method.getGenericReturnType().toString().contains("ProviderInfo")?providerType:null;
+                List<?> updated=appendCopy((List<?>)result,emptyType);if(updated!=result){result=updated;changed++;reportInjected(updated);}
+              }
               Object owner=chain.getThisObject();
               changed+=injectEveryProviderList(owner);
               if(changed>0)module.info("polestar_provider_catalog injected method="+method.getName()+" changed="+changed);
@@ -126,27 +134,24 @@ final class PolestarProviderCatalogShim {
       Class<?> first=method.getParameterTypes()[0];
       if(first!=Object.class&&!List.class.isAssignableFrom(first))continue;
       method.setAccessible(true);
-      final String id="psassistant_polestar_provider_sink_v4_"+safeId(type.getSimpleName())+"_"+safeId(method.getName())+"_"+method.getParameterTypes().length;
+      final String id="psassistant_polestar_provider_sink_v5_"+safeId(type.getSimpleName())+"_"+safeId(method.getName())+"_"+method.getParameterTypes().length;
       module.hook(method).setId(id)
           .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
           .intercept(chain->{
+            Object[] replacement=null;
             try {
               List<Object> args=chain.getArgs();
-              if(args!=null&&!args.isEmpty()&&args.get(0) instanceof List<?>) {
+              if(enabled()&&args!=null&&!args.isEmpty()&&args.get(0) instanceof List<?>) {
                 List<?> original=(List<?>)args.get(0);
-                if(looksLikeProviderList("sink",original)&&!hasCode(original,PROVIDER_CODE)) {
-                  int changed=injectList(original);
-                  if(changed==0) {
-                    ArrayList<Object> copy=new ArrayList<>();copy.addAll(original);
-                    if(injectList(copy)>0) { args.set(0,copy);changed=1; }
-                  }
-                  if(changed>0)module.info("polestar_provider_catalog sink="+type.getSimpleName()+"."+method.getName());
+                if(looksLikeProviderList("sink",original)) {
+                  List<?> updated=appendCopy(original,null);
+                  if(updated!=original){replacement=args.toArray();replacement[0]=updated;reportInjected(updated);module.info("polestar_provider_catalog sink="+type.getSimpleName()+"."+method.getName());}
                 }
               }
             } catch(Throwable failure) {
               module.warn("polestar_provider_catalog sink_fallback="+type.getSimpleName()+":"+failure.getClass().getSimpleName());
             }
-            return chain.proceed();
+            return replacement==null?chain.proceed():chain.proceed(replacement);
           });
       hooks++;
     }
@@ -160,6 +165,15 @@ final class PolestarProviderCatalogShim {
     handler.postDelayed(()->{try{int n=injectEveryProviderList(owner);if(n>0)module.info("polestar_provider_catalog delayed=1200 changed="+n);}catch(Throwable ignored){}},1200L);
   }
 
+  private static synchronized void reportInjected(List<?> list) {
+    long now=android.os.SystemClock.elapsedRealtime();if(lastCatalogReport>=0&&now-lastCatalogReport<2000)return;
+    Application app=currentApplication();if(app==null)return;
+    ArrayList<String> rows=new ArrayList<>();
+    for(Object item:list){String code=providerCode(item),name=providerName(item);if(code.isEmpty()&&"io.github.polestarcn.companion".equals(providerPackage(item)))code=PROVIDER_CODE;
+      if(!code.isEmpty()&&rows.size()<64)rows.add(code.replaceAll("[^A-Za-z0-9_-]","")+"="+name.replace('|',' ').replace('=',' '));}
+    lastCatalogReport=now;SceneAccountBindProbe.reportCatalog(app,String.join("|",rows),"injected");
+  }
+
   private static Object outerViewModel(Object continuation) throws Exception {
     Class<?> type=continuation.getClass();
     for(Class<?> c=type;c!=null;c=c.getSuperclass()) {
@@ -171,7 +185,7 @@ final class PolestarProviderCatalogShim {
   }
 
   private static int injectEveryProviderList(Object owner) {
-    if(owner==null)return 0;
+    if(owner==null||!enabled())return 0;
     int changed=0;
     for(Class<?> c=owner.getClass();c!=null;c=c.getSuperclass()) {
       for(Field field:c.getDeclaredFields()) {
@@ -182,18 +196,10 @@ final class PolestarProviderCatalogShim {
           if(!(value instanceof List<?>))continue;
           List<?> list=(List<?>)value;
           if(!looksLikeProviderList(field.getName(),list))continue;
-          int one=injectList(list);
-          changed+=one;
-          if(one==0&&!hasCode(list,PROVIDER_CODE)&&!list.isEmpty()) {
-            // Some Kotlin collections are immutable snapshots. Replace only a field that already
-            // looks like a provider list; no database or system provider is modified.
-            ArrayList<Object> copy=new ArrayList<>();
-            copy.addAll((List<?>)list);
-            if(injectList(copy)>0) {
-              field.set(owner,copy);
-              changed++;
-            }
-          }
+          Class<?> emptyType=field.getGenericType().toString().contains("ProviderInfo")
+              ||(VIEW_MODEL.equals(owner.getClass().getName())&&"o".equals(field.getName()))?providerType:null;
+          List<?> updated=appendCopy(list,emptyType);
+          if(updated!=list){field.set(owner,updated);changed++;reportInjected(updated);}
         } catch(Throwable ignored) {}
       }
     }
@@ -204,7 +210,7 @@ final class PolestarProviderCatalogShim {
     String n=fieldName==null?"":fieldName.toLowerCase(Locale.ROOT);
     if(n.contains("provider")||n.contains("account")||n.contains("catalog")||n.contains("vehicle")||n.contains("car"))return true;
     if(smartVehicleBrandHits(list)>=2)return true;
-    for(Object item:list)if(isProviderItem(item))return true;
+    for(Object item:list)if(item!=null)try{item.getClass().getMethod("getSpCode");item.getClass().getMethod("getName");return true;}catch(NoSuchMethodException ignored){}
     return false;
   }
 
@@ -230,8 +236,6 @@ final class PolestarProviderCatalogShim {
   static int injectList(List<?> raw) {
     if(raw==null||hasCode(raw,PROVIDER_CODE))return 0;
     Object sample=firstProvider(raw);
-    if(sample!=null)cachedTemplate=sample;
-    if(sample==null)sample=cachedTemplate;
     if(sample==null)return 0;
     Object injected=copyProvider(sample);
     if(injected==null)return 0;
@@ -240,6 +244,17 @@ final class PolestarProviderCatalogShim {
       return 1;
     } catch(Throwable ignored) {return 0;}
   }
+
+  static List<?> appendCopy(List<?> original,Class<?> emptyType) {
+    if(original==null||hasCode(original,PROVIDER_CODE))return original;
+    ArrayList<Object> copy=new ArrayList<>();copy.addAll(original);
+    if(copy.isEmpty()) {
+      Object added=constructFallback(emptyType);if(added==null)return original;copy.add(added);
+    }else if(injectList(copy)==0)return original;
+    return copy;
+  }
+
+  private static boolean enabled(){Application app=currentApplication();return app!=null&&app.getPackageManager().resolveContentProvider(VehicleDeviceCardProvider.AUTHORITY,0)!=null;}
 
   static boolean hasCode(List<?> list,String code) {
     for(Object item:list) {
@@ -313,6 +328,14 @@ final class PolestarProviderCatalogShim {
 
   private static Object constructFallback(Class<?> type) {
     if(type==null)return null;
+    try {
+      // Exact 17.14.60 ProviderInfo has a three-String constructor and no empty constructor.
+      if(type.getMethod("getSpCode").getReturnType()==String.class&&type.getMethod("getName").getReturnType()==String.class&&type.getMethod("getIconUrl").getReturnType()==String.class){
+        Constructor<?> ctor=type.getDeclaredConstructor(String.class,String.class,String.class);ctor.setAccessible(true);
+        Object value=ctor.newInstance(PROVIDER_CODE,DISPLAY_NAME,"android.resource://io.github.polestarcn.companion/drawable/ic_vehicle_card");
+        if(verify(value))return value;
+      }
+    }catch(ReflectiveOperationException ignored){}
     try {
       Constructor<?> ctor=type.getDeclaredConstructor();ctor.setAccessible(true);Object out=ctor.newInstance();
       setAny(out,new String[]{"spCode","providerCode","brandCode","code"},PROVIDER_CODE);

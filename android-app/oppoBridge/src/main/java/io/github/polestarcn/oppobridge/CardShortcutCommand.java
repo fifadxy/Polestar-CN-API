@@ -44,7 +44,7 @@ final class CardShortcutCommand {
   private static String lockToggle(Bundle state) {
     String value = value(state, "lock");
     if (contains(value, "已上锁", "已锁", "LOCKED")) return "unlock";
-    if (contains(value, "已解锁", "未上锁", "UNLOCKED")) return "lock";
+    if (contains(value, "未锁", "已解锁", "未上锁", "UNLOCKED")) return "lock";
     return null;
   }
 
@@ -62,7 +62,7 @@ final class CardShortcutCommand {
   private static boolean contains(String value, String... expected) {
     String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
     for (String item : expected)
-      if (normalized.contains(item.toUpperCase(Locale.ROOT))) return true;
+      if (normalized.equals(item.toUpperCase(Locale.ROOT))) return true;
     return false;
   }
 }

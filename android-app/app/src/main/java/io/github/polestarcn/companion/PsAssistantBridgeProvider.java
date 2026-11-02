@@ -63,6 +63,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     Context context = contextOrThrow();
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
+    out.putInt("authorizationPolicyVersion",1);
     if("host-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean host=false;if(callers!=null)for(String pkg:callers)if("com.heytap.mydevices".equals(pkg))host=true;
@@ -212,12 +213,22 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
         out.putString("reason", "unsupported-command");
         return out;
       }
+      if(!FirstUseConsent.accepted(context)||!commandStateReady(coordinator.snapshot,System.currentTimeMillis())) {
+        out.putBoolean("accepted",false);out.putString("reason","fresh-consented-vehicle-state-required");return out;
+      }
       if (!coordinator.canCommand(action)) {
         out.putBoolean("accepted", false);
         out.putString("reason", coordinator.hasSession() ? "vehicle-not-ready-or-busy" : "not-signed-in");
         return out;
       }
-      main.post(() -> coordinator.command(action));
+      if(!"direct".equals(ControlAuthorization.mode(context,action))) {
+        out.putAll(BridgeCommandRequests.request(context,action,coordinator));return out;
+      }
+      final String vehicle=VehicleCoordinator.identity(coordinator.selected.vin);
+      main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.canCommand(action)
+          &&vehicle.equals(VehicleCoordinator.identity(coordinator.selected.vin))
+          &&commandStateReady(coordinator.snapshot,System.currentTimeMillis())
+          &&"direct".equals(ControlAuthorization.mode(context,action)))coordinator.command(action);});
       out.putBoolean("accepted", true);
       out.putString("reason", "queued");
       out.putString("action", action);
@@ -225,6 +236,9 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     }
 
     throw new IllegalArgumentException("Unknown bridge method: " + method);
+  }
+  static boolean commandStateReady(VehicleSnapshot state,long now) {
+    return state!=null&&!state.isDemo&&state.timestampMillis>0&&state.timestampMillis<=now+30_000L&&now-state.timestampMillis<=5*60_000L;
   }
 
   private static void writeSnapshot(Bundle out, VehicleSnapshot state) {

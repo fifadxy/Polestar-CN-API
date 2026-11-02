@@ -18,15 +18,15 @@ final class VehicleCommandConfirmation {
   static boolean matches(Bundle state, String action) {
     if (state == null || !state.getBoolean("available", false)) return false;
     if ("lock".equals(action)) return any(state.getString("lock"), "已上锁", "已锁", "LOCKED");
-    if ("unlock".equals(action)) return any(state.getString("lock"), "已解锁", "未上锁", "UNLOCKED");
+    if ("unlock".equals(action)) return any(state.getString("lock"), "未锁", "已解锁", "未上锁", "UNLOCKED");
     if ("climate-start".equals(action)) return on(state.getString("climate"));
     if ("climate-stop".equals(action)) return off(state.getString("climate"));
     if ("air-start".equals(action)) return on(state.getString("air"));
     if ("air-stop".equals(action)) return off(state.getString("air"));
     if ("trunk-open".equals(action)) return any(state.getString("tailgate"), "已打开", "未关严", "OPEN");
-    if ("trunk-close".equals(action)) return any(state.getString("tailgate"), "已关闭", "关闭", "CLOSED");
+    if ("trunk-close".equals(action)) return any(state.getString("tailgate"), "全部关闭", "已关闭", "关闭", "CLOSED");
     if ("windows-open".equals(action)) return any(state.getString("windows"), "已打开", "打开", "OPEN");
-    if ("windows-close".equals(action)) return any(state.getString("windows"), "已关闭", "关闭", "CLOSED");
+    if ("windows-close".equals(action)) return any(state.getString("windows"), "全部关闭", "已关闭", "关闭", "CLOSED");
     return false;
   }
 
@@ -56,7 +56,7 @@ final class VehicleCommandConfirmation {
     if (value == null) return false;
     String normalized = value.trim().toUpperCase(Locale.ROOT);
     for (String item : expected) {
-      if (normalized.contains(item.toUpperCase(Locale.ROOT))) return true;
+      if (normalized.equals(item.toUpperCase(Locale.ROOT))) return true;
     }
     return false;
   }

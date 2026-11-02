@@ -56,7 +56,7 @@ final class VehicleSurfaceProbe {
       in.putBoolean("ready",true);in.putString("reason","");
       in.putString("versionName",info.versionName==null?"":info.versionName);
       in.putLong("versionCode",Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode);
-      in.putString("moduleVersion","1.12.0");
+      in.putString("moduleVersion","1.13.0");
       in.putString("classes",probeClasses(pkg,loader));
       in.putString("components",components(info));
       BridgeClient.call(app,"vehicle-surface-report",in);
@@ -65,7 +65,7 @@ final class VehicleSurfaceProbe {
       try {
         Bundle in=new Bundle();in.putString("packageName",pkg);in.putString("process",process==null?"":process);
         in.putBoolean("ready",false);in.putString("reason",failure.getClass().getSimpleName());
-        in.putString("moduleVersion","1.12.0");BridgeClient.call(app,"vehicle-surface-report",in);
+        in.putString("moduleVersion","1.13.0");BridgeClient.call(app,"vehicle-surface-report",in);
       } catch(Throwable ignored) {}
       module.warn("vehicle_surface_probe package="+pkg+" failed="+failure.getClass().getSimpleName());
     }

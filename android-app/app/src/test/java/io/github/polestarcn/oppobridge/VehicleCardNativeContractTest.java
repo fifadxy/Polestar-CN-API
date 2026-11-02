@@ -14,6 +14,7 @@ import org.robolectric.annotation.Config;
 public class VehicleCardNativeContractTest {
   @Test public void homeShortcutsSurviveOemStyleFilterAndRetainProviderTransport() throws Exception {
     Bundle source = new Bundle(); source.putString("lock", "已上锁");
+    source.putLong("capturedAt",System.currentTimeMillis());source.putString("climate","关闭");source.putString("air","关闭");source.putString("tailgate","已关闭");
     JSONObject data = VehicleDeviceCardProvider.deviceData(source, "sample", "02:00:00:00:00:01");
     JSONArray shortcuts = data.getJSONArray("shortcuts");
     assertEquals(4, shortcuts.length());

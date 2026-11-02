@@ -89,7 +89,7 @@ final class OppoHostApkExport {
     Bundle state=OppoHostDiagnostics.status(c);
     for(String prefix:new String[]{"main_","cards_"}) {
       out.put(prefix+"seenAt",state.getLong(prefix+"seenAt")).put(prefix+"ready",state.getBoolean(prefix+"ready"));
-      for(String key:new String[]{"phase","hostVersion","moduleVersion"})out.put(prefix+key,state.getString(prefix+key,""));
+      for(String key:new String[]{"phase","hostVersion","moduleVersion","reason"})out.put(prefix+key,state.getString(prefix+key,""));
     }
     return out;
   }

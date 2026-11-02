@@ -6,4 +6,5 @@ public interface ICarControlCallback extends ICallback {
  default void onAuthResult(int code){} default void onSubscribeResult(int code){} default void onUnbindResult(int code){}
  default void onVerify(String result){} default void onSwitchCar(String carId){} default void onShowCard(){} default void onHideCard(){}
  default ControlTask onControl(ControlInstruction instruction){return null;}
+ default ActiveTask activateCar(java.util.List<String> carIds){return null;}
 }

@@ -152,3 +152,5 @@ Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 �
 
 
 2026-11-02 beta26 /140，Bridge1.12.0：新增CarLink官方SDK客户端、独立命令完成事件、Root固定入口和≤2MB静态契约导出；已取得33项官方文档。修复LOCK-CAR OPEN方向和空调数值误映射。未获本应用正式OPPO授权/车型配置，实机仍待验收。见 [CarLink优先研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。
+
+2026-11-02 beta26后续核对：保留远端`8bae900`、`32e8913`、`79960a5`修正；补齐隐式CarLink服务绑定观察、断线清除旧授权和`activateCar`按需连接回调。按需读取默认关闭、服从长停省电，当前车辆5分钟最多一次，无轮询。代码与官方授权/车型配置、手机和手表真机验收仍分阶段记录。见[完整研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。

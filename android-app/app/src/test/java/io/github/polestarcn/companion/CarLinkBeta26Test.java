@@ -74,5 +74,26 @@ public class CarLinkBeta26Test {
     assertNull(io.github.polestarcn.companion.auth.SecureVehicleSelection.load(c,"wrong-hash"));
     assertFalse(c.getSharedPreferences("vehicle_selection_secure",0).contains("selection"));
   }
+  @Test public void activationReadsRespectOptInPowerVehicleAndCooldown(){
+    OppoCarLinkActivationWindow w=new OppoCarLinkActivationWindow();List<String> car=Collections.singletonList("current");
+    assertFalse(w.admit(car,"current",false,true,false,0));
+    assertFalse(w.admit(car,"current",true,false,false,0));
+    assertFalse(w.admit(car,"other",true,true,false,0));
+    assertFalse(w.admit(car,"current",true,true,true,0));
+    assertTrue(w.admit(car,"current",true,true,false,0));
+    assertFalse(w.admit(car,"current",true,true,false,299999));
+    assertTrue(w.admit(car,"current",true,true,false,300000));
+    assertFalse(w.admit(car,"current",true,true,false,1));
+  }
+  @Test public void activationSettingIsOffByDefaultAndPersistsExplicitOptIn(){
+    org.robolectric.android.controller.ActivityController<OppoCarLinkSetupActivity> controller=Robolectric.buildActivity(OppoCarLinkSetupActivity.class).setup();
+    android.view.ViewGroup content=controller.get().findViewById(android.R.id.content);
+    android.widget.ScrollView scroll=(android.widget.ScrollView)content.getChildAt(0);
+    android.view.ViewGroup page=(android.view.ViewGroup)scroll.getChildAt(0);
+    android.widget.Switch toggle=null;for(int i=0;i<page.getChildCount();i++)if(page.getChildAt(i) instanceof android.widget.Switch)toggle=(android.widget.Switch)page.getChildAt(i);
+    assertNotNull(toggle);assertFalse(toggle.isChecked());assertFalse(AppPreferences.visible(c,"carlink_activation_reads",false));
+    toggle.setChecked(true);assertTrue(AppPreferences.visible(c,"carlink_activation_reads",false));
+    toggle.setChecked(false);assertFalse(AppPreferences.visible(c,"carlink_activation_reads",false));controller.pause().stop().destroy();
+  }
 
 }

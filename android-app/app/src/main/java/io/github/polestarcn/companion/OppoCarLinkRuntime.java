@@ -15,6 +15,7 @@ final class OppoCarLinkRuntime {
   private final Context context;private final Handler main=new Handler(Looper.getMainLooper());
   private final Map<String,Task> tasks=new LinkedHashMap<>();
   private final OppoCarLinkCommandWindow commandWindow=new OppoCarLinkCommandWindow();
+  private final OppoCarLinkActivationWindow activationWindow=new OppoCarLinkActivationWindow();
   private volatile boolean registered,requested;private boolean authRequested,authInFlight;private volatile Integer authResult,subscribeResult;private volatile String phase="未初始化";private volatile int errorCode;
   private long publishedAt=-1;private String publishedCar="";
   private OppoCarLinkRuntime(Context c){context=c;}
@@ -70,6 +71,10 @@ final class OppoCarLinkRuntime {
     @Override public void onUnbindResult(int code){main.post(()->{authResult=null;subscribeResult=null;phase="解绑回调 code="+code;cancelAll("系统解绑");});}
     @Override public void onVerify(String ignored){main.post(()->phase="收到SDK验证回调；车辆操作仍按本应用验证策略执行");}
     @Override public void onSwitchCar(String car){main.post(()->{if(ready()&&OppoCarLinkModels.carId(model().selected.vin).equals(car))publish(true);else phase="请求车辆不匹配，未切换";});}
+    @Override public ActiveTask activateCar(List<String> cars){
+      List<String> ids=cars!=null&&cars.size()<=8?new ArrayList<>(cars):Collections.emptyList();
+      main.post(()->activate(ids));return new ActiveTask(60);
+    }
     @Override public ControlTask onControl(ControlInstruction in){
       String id=UUID.randomUUID().toString();String car=in==null?"":in.getCarId();
       String instruction=in==null?"":in.getInstruction();String value=in==null?"":in.getInstructionValue();
@@ -77,6 +82,18 @@ final class OppoCarLinkRuntime {
       main.post(()->receive(id,car,instruction,value));return new ControlTask(id,60);
     }
   };
+  private void activate(List<String> cars){
+    if(!ready()||!authorized())return;
+    VehicleCoordinator m=model();String car=OppoCarLinkModels.carId(m.selected.vin);
+    if(!cars.contains(car))return;
+    if(EffectStateController.fresh(m.snapshot,System.currentTimeMillis())){publish(true,false);return;}
+    boolean optedIn=AppPreferences.visible(context,"carlink_activation_reads",false);
+    if(!activationWindow.admit(cars,car,optedIn,VehiclePowerPolicy.automaticReads(context),m.busy||m.commandPending,SystemClock.elapsedRealtime())){
+      phase="连接请求未新增读取：请检查按需更新、长停省电或稍后手动刷新";return;
+    }
+    phase="CarLink按需更新一次车况；未安排轮询";
+    m.refresh(()->{if(ready()&&car.equals(OppoCarLinkModels.carId(model().selected.vin)))publish(true,false);});
+  }
   private void receive(String id,String car,String instruction,String value){
     String canonical=OppoCarLinkCommandMap.canonical(instruction);
     String action=actionForInstruction(canonical,value);
@@ -109,5 +126,5 @@ final class OppoCarLinkRuntime {
   static int messageCode(OperationState result){return result==OperationState.VEHICLE_CONFIRMED?ControlMessage.CONTROL_SUCCESS:ControlMessage.CONTROL_FAILED;}
   private void finish(String id,OperationState result,String reason){if(tasks.remove(id)==null)return;message(id,messageCode(result),reason);changed();}
   private void message(String id,int code,String reason){try{if(CarLink.isCarControlInitComplete())CarControl.sendControlMessage(new ControlMessage(code,reason,new ControlMessage.ControlData(id,code==ControlMessage.CONTROL_SUCCESS||code==ControlMessage.CONTROL_EXECUTING?0:500,reason)));}catch(RuntimeException ignored){}}
-  String describe(){return "CarLink SDK："+phase+"\nsdkPackaged="+BuildConfig.OPPO_SDK_PACKAGED+"\nSDK错误码="+errorCode+" · 授权回调="+authResult+" · 订阅回调="+subscribeResult+" · callbackRegistered="+registered+" · initialized="+CarLink.isCarControlInitComplete()+"\nSDK只初始化远程车控FLAG=2；未启用蓝牙钥匙。读取卡片只返回缓存，未安排轮询。\n缺项预检："+android.text.TextUtils.join("、",OppoCarLinkConfig.load(context).missing());}
+  String describe(){return "CarLink SDK："+phase+"\nsdkPackaged="+BuildConfig.OPPO_SDK_PACKAGED+"\nSDK错误码="+errorCode+" · 授权回调="+authResult+" · 订阅回调="+subscribeResult+" · callbackRegistered="+registered+" · initialized="+CarLink.isCarControlInitComplete()+"\nSDK只初始化远程车控FLAG=2；未启用蓝牙钥匙。读卡只返回缓存；按需更新默认关闭，开启后仍服从长停省电，5分钟最多一次，无轮询。\n缺项预检："+android.text.TextUtils.join("、",OppoCarLinkConfig.load(context).missing());}
 }

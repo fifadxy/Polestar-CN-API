@@ -45,7 +45,8 @@ public class OppoCarLinkOfficialTest {
     assertEquals("honk",OppoCarLinkCommandMap.toPsAssistantAction("CAR-HORN",""));
     assertEquals("flash",OppoCarLinkCommandMap.toPsAssistantAction("DOUBLE-FLASH",""));
     assertEquals("honk-flash",OppoCarLinkCommandMap.toPsAssistantAction("CAR-HORN&&DOUBLE-FLASH",""));
-    assertEquals("climate-start",OppoCarLinkCommandMap.toPsAssistantAction("AC-TEMP","22"));
+    assertNull(OppoCarLinkCommandMap.toPsAssistantAction("AC-TEMP","22"));
+    assertEquals("climate-start",OppoCarLinkCommandMap.toPsAssistantAction("AC-TEMP","OPEN"));
     assertEquals("climate-stop",OppoCarLinkCommandMap.toPsAssistantAction("AC-TEMP","OFF"));
   }
 

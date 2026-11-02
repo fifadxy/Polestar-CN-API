@@ -29,7 +29,7 @@ final class OppoOfficialVehicleBindState {
     out.putBoolean("vehicleAvailable",vehicle);
     out.putBoolean("enabled",requested&&signedIn&&vehicle&&OppoDeviceIntegration.enabled(context));
     out.putString("bindingScope","local-bridge");
-    out.putBoolean("officialSdkAuthorized",false);
+    out.putBoolean("officialSdkAuthorized",OppoCarLinkRuntime.get(context).authorized());
     out.putBoolean("automaticDefault",!prefs.contains(KEY));
     out.putBoolean("extraProviderVerificationRequired",false);
     out.putString("providerCode","POLESTAR");

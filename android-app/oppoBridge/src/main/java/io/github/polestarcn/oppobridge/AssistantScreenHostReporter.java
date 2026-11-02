@@ -27,7 +27,7 @@ final class AssistantScreenHostReporter {
       in.putBoolean("ready",ready);
       in.putString("reason",reason==null?"":reason);
       in.putString("hostVersion",app.getPackageManager().getPackageInfo(HOST,0).versionName);
-      in.putString("moduleVersion","1.11.0");
+      in.putString("moduleVersion","1.12.0");
       BridgeClient.call(app,"assistant-host-report",in);
       module.info("assistant_host_report phase="+phase+" ready="+ready);
     } catch(Throwable failure) {

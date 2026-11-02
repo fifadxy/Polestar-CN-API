@@ -149,3 +149,6 @@ Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 �
 
 
 2026-11-02 beta25 /139：恢复1.5秒外观菜单，极简状态门控、空调/净化倒计时；修正QuickApp路由假阳性并补AssistantScreen自有行构建。静态/CI验证与实机成功分别记录，Watch和官方授权仍待验收。见 [本轮依据与边界](BETA25_APPEARANCE_CONTROLS_OPPO_20261102.md)。
+
+
+2026-11-02 beta26 /140，Bridge1.12.0：新增CarLink官方SDK客户端、独立命令完成事件、Root固定入口和≤2MB静态契约导出；已取得33项官方文档。修复LOCK-CAR OPEN方向和空调数值误映射。未获本应用正式OPPO授权/车型配置，实机仍待验收。见 [CarLink优先研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。

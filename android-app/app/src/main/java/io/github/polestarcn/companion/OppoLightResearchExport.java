@@ -62,7 +62,7 @@ final class OppoLightResearchExport {
         ApplicationInfo app=info.applicationInfo;
         if(app!=null&&app.sourceDir!=null) {
           item.put("baseApkBytes",new File(app.sourceDir).length()).put("splitCount",app.splitSourceDirs==null?0:app.splitSourceDirs.length);
-          if(pkg.equals("com.coloros.assistantscreen")||pkg.equals("com.oplus.assistantscreen")||pkg.equals("com.oplus.smartengine")||pkg.equals("com.oplus.cardservice")||pkg.equals("com.heytap.mydevices")||pkg.equals("com.oplus.pantanal.ums"))
+          if(pkg.equals("com.heytap.opluscarlink")||pkg.equals("com.coloros.assistantscreen")||pkg.equals("com.oplus.assistantscreen")||pkg.equals("com.oplus.smartengine")||pkg.equals("com.oplus.cardservice")||pkg.equals("com.heytap.mydevices")||pkg.equals("com.oplus.pantanal.ums"))
             staticAssets(zip,app.sourceDir,pkg,assets);
         }
       }
@@ -74,6 +74,9 @@ final class OppoLightResearchExport {
       }
       if(json.length>1_000_000)throw new IOException("Metadata size limit");
       put(zip,"report.json",json);
+      put(zip,"carlink-sdk-status.txt",OppoCarLinkRuntime.get(context).describe().getBytes(StandardCharsets.UTF_8));
+      File contract=OppoCarLinkRoot.report(context);
+      if(contract.isFile()&&contract.length()<=200_000)put(zip,"carlink-root-contract.txt",java.nio.file.Files.readAllBytes(contract.toPath()));
       put(zip,"README.txt",("轻量适配资料包，最大 2 MB。\\n不包含完整 APK、DEX 方法体、账号、Token、VIN、车辆状态、蓝牙地址或系统日志。\\n"+
           "包含版本、公开组件信息、少量静态 Manifest/设备配置。缺失和截断会标明；这不是完整反编译资料。\\n"+
           "无法从手机读取手表 RTOS 固件；手表需另行运行只读 ADB 采集脚本。\\n").replace("\\n","\n").getBytes(StandardCharsets.UTF_8));

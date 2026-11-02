@@ -1,3 +1,5 @@
+> beta26更新：本轮已读取完整官方目录并新增SDK客户端及Root定向导出；LOCK-CAR语义、回调成功值及旧SDK差异以 [最新研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md) 为准。
+
 # OPPO CarLink 官方车辆接入研究 / PsAssistant beta20
 
 日期：2026-11-02

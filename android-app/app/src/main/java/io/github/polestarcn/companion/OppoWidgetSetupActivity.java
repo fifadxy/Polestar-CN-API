@@ -23,10 +23,11 @@ public final class OppoWidgetSetupActivity extends Activity {
   private static final int EXPORT_HOSTS=7305;
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
-    autoShare=state!=null&&state.getBoolean("autoShare");
+    autoShare=state!=null?state.getBoolean("autoShare"):getIntent().getBooleanExtra("autoShare",false);
     LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
     int p=(int)(16*getResources().getDisplayMetrics().density);column.setPadding(p,p,p,p);
     TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO 互联\n\n设备卡、本地车辆入口与官方 CarLink 授权是不同层。此页统一管理接入开关；卡片可见或显示 Connected 不等于官方授权、手表同步或车辆指令已完成。\n\n设备空间需在 LSPosed 中启用当前使用的 PsAssistant 模块，作用域勾选‘我的设备’；本地车辆目录另需负一屏、CarLink。请只启用内置或独立模块中的一种，更新后重启手机。关闭总开关后停止输出和操作。");column.addView(help);
+    button(column,android.view.View.generateViewId(),"CarLink接入与Root定向诊断",()->startActivity(new Intent(this,OppoCarLinkSetupActivity.class)));
     android.widget.Switch integration=new android.widget.Switch(this);integration.setText("启用 OPPO 车辆桥接");integration.setChecked(OppoDeviceIntegration.enabled(this));
     integration.setOnCheckedChangeListener((v,on)->{try{OppoDeviceIntegration.setEnabled(this,on);report.setText(diagnostics());}catch(RuntimeException failure){integration.setChecked(OppoDeviceIntegration.enabled(this));report.setText("切换失败："+failure.getClass().getSimpleName());}});column.addView(integration);
     android.widget.Switch local=new android.widget.Switch(this);local.setText("向系统提供 Polestar 本地车辆入口");

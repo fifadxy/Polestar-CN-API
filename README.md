@@ -1,3 +1,5 @@
+当前分支 **v0.9.7-beta26 /140 · Bridge1.12.0 /24**：[CarLink SDK、Root定向诊断与协议纠错](knowledge/OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。正式SDK鉴权和车型后台配置仍需本应用身份，不能把编译/本地绑定当作实机打通。
+
 当前分支版本 **v0.9.7-beta25 / 139**，内置 Bridge **1.11.0 / 23**：[1.5秒外观菜单、极简车控与OPPO路由纠错](knowledge/BETA25_APPEARANCE_CONTROLS_OPPO_20261102.md)。本记录优先于下方历史版本。 [交付验证](docs/Psa_v097_beta25_Validation.md)：430项测试及Lint通过，FULL整合包9.46 MB。
 
 当前增量：[v0.9.6-beta2 · 自动测试与车窗羽化](docs/Psa_v096_beta2_Update.md)，版本107。

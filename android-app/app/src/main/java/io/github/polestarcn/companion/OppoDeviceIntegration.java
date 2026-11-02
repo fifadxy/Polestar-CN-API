@@ -30,6 +30,7 @@ public final class OppoDeviceIntegration {
           PackageManager.DONT_KILL_APP);
       if (enabled) context.getSharedPreferences("vehicle-card", Context.MODE_PRIVATE).edit().remove("hidden").apply();
       notifyHosts(context);
+      if(enabled)OppoCarLinkRuntime.get(context).start();else OppoCarLinkRuntime.get(context).stop();
     } catch (RuntimeException failure) {
       preferences.edit().putBoolean(KEY, previous).commit();
       throw failure;

@@ -42,6 +42,7 @@ public final class OppoBridgeModule extends XposedModule {
 
       if("com.heytap.opluscarlink".equals(pkg)) {
         CarLinkHostReporter.report(this,process,"hooks-entered",true,"",param.getClassLoader());
+        try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}
         // The official host may launch a synthetic provider/account row. Redirect only a payload
         // explicitly marked POLESTAR; do not alter key/auth results.
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("carlink_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}

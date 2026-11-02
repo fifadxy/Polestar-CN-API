@@ -23,12 +23,14 @@ final class OppoResearchExportJob {
   static State current(){return state;}
   private static void dispatch(){MAIN.post(()->{Listener current=listener;if(current!=null)current.changed(state);});}
   private static void publish(State next){state=next;dispatch();}
-  static synchronized boolean start(Context context) {
+  static boolean start(Context context){return start(context,false);}
+  static synchronized boolean start(Context context,boolean captureCarLinkRoot) {
     if(state.running)return false;
     Context app=context.getApplicationContext();publish(new State(true,"准备生成适配资料包…",null));
     new Thread(()->{
       File temporary=null;
       try {
+        if(captureCarLinkRoot){publish(new State(true,"请求root定向采集CarLink静态契约…",null));OppoCarLinkRoot.capture(app);}
         File directory=new File(app.getCacheDir(),"oppo-research");
         if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException("Cannot create export directory");
         temporary=new File(directory,"research.zip.part");

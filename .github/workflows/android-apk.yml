@@ -12,6 +12,7 @@ on:
       - 'android-app/**'
       - 'knowledge/**'
       - 'scripts/**'
+      - 'tools/oppo-carlink-cloud/**'
       - 'docs/HISINGEN_GLOBAL_CN_API_COMPARISON.md'
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
@@ -24,12 +25,20 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Describe SDK input mode
+        run: |
+          if [ -f android-app/app/libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar ] && [ -f android-app/app/libs/com.oplus.ocs.base-release-1.0.9.aar ]; then
+            echo "PSA_OPPO_SDK_AVAILABLE=true" >> "$GITHUB_ENV"
+          else
+            echo "PSA_OPPO_SDK_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "Public validation uses API contracts only; FULL delivery is compiled locally with private SDK inputs." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Package clean Android source snapshot
-        run: git archive --format=zip --output=PsAssistant-beta25-android-source.zip HEAD android-app
+        run: git archive --format=zip --output=PsAssistant-beta26-android-source.zip HEAD android-app
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-beta25-android-source
-          path: PsAssistant-beta25-android-source.zip
+          name: PsAssistant-beta26-android-source
+          path: PsAssistant-beta26-android-source.zip
           if-no-files-found: error
       - uses: actions/setup-java@v4
         with:
@@ -44,6 +53,7 @@ jobs:
           python3 scripts/check_knowledge.py
           sh scripts/test_models.sh
           node scripts/test_map_distance.cjs
+          (cd tools/oppo-carlink-cloud && python3 -m unittest -v)
       - name: Ensure Android API 35 is present
         run: |
           test -n "${ANDROID_HOME:-}"
@@ -83,12 +93,12 @@ jobs:
               print('No persistent key configured; debug APK is for validation, not a stable update identity')
           PYCODE
       - name: Build signed release with persistent identity
-        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
+        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != '' && env.PSA_OPPO_SDK_AVAILABLE == 'true'
         working-directory: android-app
         run: gradle --no-daemon :app:assembleRelease :app:assemblePreview
       - name: Describe build configuration
         run: |
-          if [ -n "$PSA_CLIENT_CONFIG" ] && [ -n "$PSA_SIGNING_KEYSTORE" ]; then
+          if [ -n "$PSA_CLIENT_CONFIG" ] && [ -n "$PSA_SIGNING_KEYSTORE" ] && [ "$PSA_OPPO_SDK_AVAILABLE" = "true" ]; then
             echo "FULL standalone release eligible: private client configuration and persistent signing identity supplied." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "VALIDATION Debug only: this APK is intentionally not a standalone-login deliverable." >> "$GITHUB_STEP_SUMMARY"
@@ -97,14 +107,15 @@ jobs:
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
           test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta25-VALIDATION-debug.apk
-          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v1.11.0-debug.apk
+          python3 scripts/compact_debug_apk.py android-app/app/build/outputs/apk/debug/app-debug.apk --apksigner "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" --keystore "$HOME/.android/debug.keystore"
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta26-VALIDATION-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v1.12.0-debug.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" android-apksigner.jar
       - name: Verify integrated module packaging
         run: |
           python3 - <<'PYCODE'
           import zipfile, pathlib, hashlib
-          p=pathlib.Path('PsAssistant-v0.9.7-beta25-VALIDATION-debug.apk')
+          p=pathlib.Path('PsAssistant-v0.9.7-beta26-VALIDATION-debug.apk')
           with zipfile.ZipFile(p) as z:
               assert z.testzip() is None
               assert z.read('META-INF/xposed/java_init.list').decode().strip() == 'io.github.polestarcn.oppobridge.OppoBridgeModule'
@@ -116,8 +127,8 @@ jobs:
           PYCODE
       - name: Guard standalone-login packaging
         run: |
-          python3 scripts/verify_standalone_apk.py PsAssistant-v0.9.7-beta25-VALIDATION-debug.apk --expect absent
-          if [ -n "$PSA_SIGNING_KEYSTORE" ] && [ -n "$PSA_CLIENT_CONFIG" ]; then
+          python3 scripts/verify_standalone_apk.py PsAssistant-v0.9.7-beta26-VALIDATION-debug.apk --expect absent
+          if [ -n "$PSA_SIGNING_KEYSTORE" ] && [ -n "$PSA_CLIENT_CONFIG" ] && [ "$PSA_OPPO_SDK_AVAILABLE" = "true" ]; then
             python3 scripts/verify_standalone_apk.py android-app/app/build/outputs/apk/release/app-release.apk --expect present
             python3 scripts/verify_standalone_apk.py android-app/app/build/outputs/apk/preview/app-preview.apk --expect present
           fi
@@ -128,30 +139,30 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.9.7-beta25-VALIDATION-debug
-          path: PsAssistant-v0.9.7-beta25-VALIDATION-debug.apk
+          name: PsAssistant-v0.9.7-beta26-VALIDATION-debug
+          path: PsAssistant-v0.9.7-beta26-VALIDATION-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-OPPO-Bridge-v1.11.0-debug
-          path: PsAssistant-OPPO-Bridge-v1.11.0-debug.apk
+          name: PsAssistant-OPPO-Bridge-v1.12.0-debug
+          path: PsAssistant-OPPO-Bridge-v1.12.0-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
-        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
+        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != '' && env.PSA_OPPO_SDK_AVAILABLE == 'true'
         with:
-          name: PsAssistant-v0.9.7-beta25-Standalone-FULL
+          name: PsAssistant-v0.9.7-beta26-Standalone-FULL
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
-        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
+        if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != '' && env.PSA_OPPO_SDK_AVAILABLE == 'true'
         with:
-          name: PsAssistant-v0.9.7-beta25-Standalone-PREVIEW
+          name: PsAssistant-v0.9.7-beta26-Standalone-PREVIEW
           path: android-app/app/build/outputs/apk/preview/app-preview.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-v0.9.7-beta25-standalone-checks
+          name: PsAssistant-v0.9.7-beta26-standalone-checks
           path: |
             android-app/app/build/reports/previews/
             android-app/app/build/test-results/testDebugUnitTest/

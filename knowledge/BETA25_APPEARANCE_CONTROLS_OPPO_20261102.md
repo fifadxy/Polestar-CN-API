@@ -1,3 +1,5 @@
+> beta26更新：本轮已读取完整官方目录并新增SDK客户端及Root定向导出；LOCK-CAR语义、回调成功值及旧SDK差异以 [最新研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md) 为准。
+
 # beta25 / 139：外观菜单、极简车控与 OPPO 路由纠错
 
 日期：2026-11-02。承接 beta24 / 138，内置/独立 Bridge 同源版本 1.11.0 / 23。

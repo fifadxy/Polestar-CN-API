@@ -6,3 +6,9 @@
 client-signing.*
 .psa-private/
 .DS_Store
+
+__pycache__/
+*.pyc
+
+# User-supplied SDK binaries remain private build inputs.
+android-app/app/libs/*.aar

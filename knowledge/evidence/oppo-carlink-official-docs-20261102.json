@@ -1,0 +1,270 @@
+{
+  "retrievedOn": "2026-11-02",
+  "source": "OPPO public documentation frontend and its anonymous doc/detail API",
+  "pages": [
+    {
+      "id": "10978",
+      "title": "CarLinkUnit 介绍",
+      "code": 0,
+      "chars": 1565,
+      "sha256": "bc7091dfac595e3d530f155a66afff2ed9d142cf92547d8f9755c3c135dfeda3",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=10978"
+    },
+    {
+      "id": "10979",
+      "title": "CarLinkUnit 接入指南",
+      "code": 0,
+      "chars": 10097,
+      "sha256": "ec78ccaa4920bf0e450ce498bcd426177b2119ed683a4667804fc792d513a18f",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=10979"
+    },
+    {
+      "id": "10980",
+      "title": "CarLinkUnit 版本更新说明",
+      "code": 0,
+      "chars": 973,
+      "sha256": "e648f826bea5ff961621c0802dd91d5080cdf66b5f715fbfc553728de1f11d7d",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=10980"
+    },
+    {
+      "id": "11008",
+      "title": "CarLinkUnit 接口指导",
+      "code": 0,
+      "chars": 6,
+      "sha256": "8545f223236dd7d7ef12ebe63a05749d8c3d99fd4e5daa5e262e6cebd0e34cac",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11008"
+    },
+    {
+      "id": "11009",
+      "title": "com.oplus.ocs.carlink.CarLink",
+      "code": 0,
+      "chars": 1636,
+      "sha256": "f24b9986a97c4184a345443b82f412e1122f779a2705259620c43e2e3fa8eca6",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11009"
+    },
+    {
+      "id": "11010",
+      "title": "com.oplus.ocs.carlink.Callback",
+      "code": 0,
+      "chars": 292,
+      "sha256": "17e06ed1ffdcc1ad2d7f8e98e51b774936c81bb10e92ef4eb13e83061d7a9250",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11010"
+    },
+    {
+      "id": "11011",
+      "title": "com.oplus.ocs.carlink.utils.Co",
+      "code": 0,
+      "chars": 4539,
+      "sha256": "ad484cac9b7ba07c0bac51b320fe90e300d3949e96497a133c79991acc933103",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11011"
+    },
+    {
+      "id": "11012",
+      "title": "com.oplus.ocs.carlink.key.ICar",
+      "code": 0,
+      "chars": 1348,
+      "sha256": "82482603b74e5e83d2b6f58f72b87a72f010967a9749920b9a4c114005f8d5f9",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11012"
+    },
+    {
+      "id": "11013",
+      "title": "com.oplus.ocs.carlink.CarLinkM",
+      "code": 0,
+      "chars": 7506,
+      "sha256": "9f2eb6f655f81c6011b7d3a231bdf705fed9a240daa893de7ce052b1a45ad030",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11013"
+    },
+    {
+      "id": "11014",
+      "title": "com.oplus.ocs.carlink.Bluetoot",
+      "code": 0,
+      "chars": 536,
+      "sha256": "a896905fd6a903a8b676c2bfa77dd83b5800174a025f08be52fe4c0f21abd0d9",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11014"
+    },
+    {
+      "id": "11079",
+      "title": "carlink.control.CarControl",
+      "code": 0,
+      "chars": 1701,
+      "sha256": "8d0f72bcfeabaaebd7ab256f92cabb9c58173a60fcee80164ab4c1fde0486565",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11079"
+    },
+    {
+      "id": "11080",
+      "title": "control.CarControl.ICarControl",
+      "code": 0,
+      "chars": 1585,
+      "sha256": "1c79acb59236176af6f2fe1936f851591a00d0ef10b945a9da9790d819d09ad7",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11080"
+    },
+    {
+      "id": "11081",
+      "title": "carlink.model.CarInfo",
+      "code": 0,
+      "chars": 3114,
+      "sha256": "dc423605c709e46dba437efcb820f72cadf92eb2bf710bc8300668d2a35cc04e",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11081"
+    },
+    {
+      "id": "11082",
+      "title": "carlink.model.CarStatus",
+      "code": 0,
+      "chars": 7066,
+      "sha256": "1b02ad74cf5b30b20a7069edf1b7bc6ac7c1190d45f3e381133dcb55fcac8ebe",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11082"
+    },
+    {
+      "id": "11083",
+      "title": "carlink.model.InstructionType",
+      "code": 0,
+      "chars": 1025,
+      "sha256": "567b35c7be081e00233c9fe5f797511bf59aaebb7ebe16943db6d9a4faaaa467",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11083"
+    },
+    {
+      "id": "11084",
+      "title": "carlink.model.ControlInstructi",
+      "code": 0,
+      "chars": 2719,
+      "sha256": "a43d6afbcb30cfbea184777d9e15f732b02a621156a0929dac85f7163f06fa21",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11084"
+    },
+    {
+      "id": "11085",
+      "title": "carlink.model.ControlMessage",
+      "code": 0,
+      "chars": 1569,
+      "sha256": "b5033697e87a730063cd2e2e74edad4ff273ef577a1b1e557ae811fa622b0ea9",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11085"
+    },
+    {
+      "id": "11086",
+      "title": "carlink.model.ControlMessage.C",
+      "code": 0,
+      "chars": 666,
+      "sha256": "4ff718bdc79cef6e3f9f2af242116215ed13e7601d0d7561c5036be5e65f7f65",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11086"
+    },
+    {
+      "id": "11087",
+      "title": "carlink.model.VerifyData",
+      "code": 0,
+      "chars": 1597,
+      "sha256": "c6fe5a0dff9d98c8229e882beca23116e7df4b3e18116ba6a52bd5552011eaa6",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11087"
+    },
+    {
+      "id": "11088",
+      "title": "carlink.model.ControlTask",
+      "code": 0,
+      "chars": 706,
+      "sha256": "1c2edf6717ff1edb5a09d9f3d2c0c741b2f578496832308dff39b5e699798c99",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11088"
+    },
+    {
+      "id": "11089",
+      "title": "carlink.model.ActiveTask",
+      "code": 0,
+      "chars": 373,
+      "sha256": "9e718dec6421417fc76f7b467158214d2c1e79b63693902d31b6899f0949e993",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11089"
+    },
+    {
+      "id": "11090",
+      "title": "CarLinkUnit 附录",
+      "code": 0,
+      "chars": 1,
+      "sha256": "65aef1adba8672a5fe7932d9f9f0dc35c2435893f65112acac628d2dc17a0bcf",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11090"
+    },
+    {
+      "id": "11105",
+      "title": "CarLinkUnit 常见问题（FAQ）",
+      "code": 0,
+      "chars": 340,
+      "sha256": "86f2e21054580a89e75c49d67063e775ac2286a492fa08ae1b639616c97db36e",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11105"
+    },
+    {
+      "id": "11110",
+      "title": "CarLink 云端接入指导",
+      "code": 0,
+      "chars": 3,
+      "sha256": "30809302a9c64d9b1be1ffda33c39989e3ae8ee4c9e40fdaa83ee30067ec470b",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11110"
+    },
+    {
+      "id": "11111",
+      "title": "CarLink云端对接服务介绍",
+      "code": 0,
+      "chars": 375,
+      "sha256": "4d34af31d68fa29944d2b12c39a64feea135c8bb9353101d4ee320eef25ac40f",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11111"
+    },
+    {
+      "id": "11112",
+      "title": "车企应用身份-应用身份令牌颁发",
+      "code": 0,
+      "chars": 860,
+      "sha256": "63c424766dc1cfd47b2f7a77d9b6035953ec2989cf954856f049694fc8cd6890",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11112"
+    },
+    {
+      "id": "11113",
+      "title": "OPPO车联网云端互联标准",
+      "code": 0,
+      "chars": 12243,
+      "sha256": "a26c91bfe4362c91b8375bbfde88da6dc07ce15eac42ff83b6db9d4ed7eaf397",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11113"
+    },
+    {
+      "id": "11115",
+      "title": "错误码",
+      "code": 0,
+      "chars": 649,
+      "sha256": "e1467d87a172e4ccda1e632fe02251d396af8c1debb4e7c2a818bdba5dec0ba9",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11115"
+    },
+    {
+      "id": "11116",
+      "title": "基本常量定义",
+      "code": 0,
+      "chars": 350,
+      "sha256": "86c45e28f6257d1cf204c6cf594ad9a35d6991ad4657bcb2f12d0fb9b7bb14cd",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11116"
+    },
+    {
+      "id": "11117",
+      "title": "离车管家code定义规范",
+      "code": 0,
+      "chars": 2066,
+      "sha256": "97b4a3f0c15a5cbd379012955b5c5fb200c93f2e510c870d77a02e5f092da3fa",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11117"
+    },
+    {
+      "id": "11166",
+      "title": "CarLinkUnit 接口目录",
+      "code": 0,
+      "chars": 732,
+      "sha256": "cfcbb82c9097a45f79d5b12e62bed5d43f70717407c1626e577a9ae194005294",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11166"
+    },
+    {
+      "id": "11306",
+      "title": "云端对接FAQ",
+      "code": 0,
+      "chars": 1257,
+      "sha256": "6b8c2440daee7b6f94d0776e431efa5069bc3a79f3b79bc42c64f7d285e7ed01",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11306"
+    },
+    {
+      "id": "11366",
+      "title": "联系我们",
+      "code": 0,
+      "chars": 80,
+      "sha256": "107809af563c2bf9f3d2cf2128eac9d406167ba0380fd7d83817b343d6a206e4",
+      "url": "https://open.oppomobile.com/documentation/page/info?id=11366"
+    }
+  ]
+}

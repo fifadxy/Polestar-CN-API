@@ -35,6 +35,8 @@ public final class VehicleCoordinator {
   private static final class PendingCommand {
     final String action; final ChinaPolestarApi.VehicleInfo vehicle; final String group;
     final long issued; final Float target; boolean accepted; int checks; long started; boolean repeatQueued;volatile boolean cancelled;int percent;long percentAt;CommandReadback readback;
+    boolean allowLockRetry=true;
+    java.util.function.Consumer<OperationState> completion;
     OperationState state=OperationState.SENDING;
     PendingCommand(String a, ChinaPolestarApi.VehicleInfo v, long issued, Float target) {
       this.action=a;this.vehicle=v;this.group=CommandSlots.group(a);this.issued=issued;this.target=target;
@@ -130,6 +132,7 @@ public final class VehicleCoordinator {
     api = new ChinaPolestarApi(c);
     snapshot = VehicleSnapshotStore.loadChina(c);
     signedIn = api.session() != null;
+    if(signedIn&&snapshot!=null&&!snapshot.isDemo){selected=io.github.polestarcn.companion.auth.SecureVehicleSelection.load(c,AppPreferences.get(c,"vehicle",""));if(selected!=null)cars.add(selected);}
   }
 
   public void listen(Runnable r) {
@@ -147,6 +150,7 @@ public final class VehicleCoordinator {
   private void changed() {
     for (Runnable r : new ArrayList<>(listeners)) r.run();
     ResidentService.update(context);
+    if(OppoDeviceIntegration.enabled(context))OppoCarLinkRuntime.get(context).changed();
     try {
       context.getContentResolver().notifyChange(PsAssistantBridgeProvider.URI, null);
     } catch (RuntimeException ignored) {
@@ -175,7 +179,8 @@ public final class VehicleCoordinator {
             api.login(phone, password);
             main.post(
                 () -> {
-                  signedIn = true;
+                  io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(context);
+                  signedIn = true;OppoCarLinkModels.account(context,phone);
                   busy = false;exclusive=false;
                   refresh(null);
                 });
@@ -231,7 +236,9 @@ public final class VehicleCoordinator {
                   cars.clear();
                   cars.addAll(found);
                   if (discover) vehiclesDiscoveredAt = System.currentTimeMillis();
+                  boolean selectionChanged=selected==null||!selected.vin.equals(pick.vin);
                   selected = pick;
+                  if(selectionChanged)io.github.polestarcn.companion.auth.SecureVehicleSelection.save(context,pick);
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;lastVehicleReadOk=true;
                   protectCamp(pick.vin, live);
@@ -253,6 +260,7 @@ public final class VehicleCoordinator {
   public void choose(ChinaPolestarApi.VehicleInfo car) {
     if (busy || commandPending) return;
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
+    io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(context);
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
     snapshot = null;
@@ -262,11 +270,13 @@ public final class VehicleCoordinator {
   }
 
   /** Different command families can progress while another family is under readback or a read refresh is in flight. */
-  public void command(String action) {
-    if (!FirstUseConsent.accepted(context) || !canCommand(action)) return;
+  public void command(String action) { command(action,null,true); }
+  public void command(String action,java.util.function.Consumer<OperationState> completion) {command(action,completion,false);}
+  private void command(String action,java.util.function.Consumer<OperationState> completion,boolean allowLockRetry) {
+    if (!FirstUseConsent.accepted(context) || !canCommand(action)) {if(completion!=null)completion.accept(OperationState.NOT_SENT);return;}
     final ChinaPolestarApi.VehicleInfo vehicle=selected;
     final Float target="climate-start".equals(action)&&ClimateTarget.enabled(context)?ClimateTarget.request(context):null;
-    final PendingCommand ticket=new PendingCommand(action,vehicle,System.currentTimeMillis(),target);
+    final PendingCommand ticket=new PendingCommand(action,vehicle,System.currentTimeMillis(),target);ticket.completion=completion;ticket.allowLockRetry=allowLockRetry;
     pendingCommands.put(ticket.group,ticket);syncCommandStatus();
     message=tr("发送中","Sending");
     if(pendingCommands.size()==1){main.removeCallbacks(progressTick);main.post(progressTick);}
@@ -297,7 +307,7 @@ public final class VehicleCoordinator {
       } catch(Exception e){main.post(()->{
         if(pendingCommands.get(ticket.group)!=ticket)return;
         if(e instanceof IllegalArgumentException){ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();operation=OperationState.FAILED;
-          message=tr("指令参数不受支持：","Invalid command: ")+safe(e);changed();return;}
+          message=tr("指令参数不受支持：","Invalid command: ")+safe(e);complete(ticket,OperationState.FAILED);changed();return;}
         ticket.state=OperationState.UNCONFIRMED;
         message=tr("确认中","Verifying");
         syncCommandStatus();changed();confirmCommand(ticket);
@@ -310,6 +320,7 @@ public final class VehicleCoordinator {
     if(momentary(ticket.action)){
       ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();
       if(!commandPending)operation=ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED;
+      complete(ticket,ticket.accepted?OperationState.SERVER_ACCEPTED:OperationState.UNCONFIRMED);
       message=ticket.accepted?tr("寻车已发送 · 效果未确认","Find car sent · unverified"):tr("执行结果未确认","Result unconfirmed");changed();dispatchQueuedRepeat(ticket);return;
     }
     ticket.started=android.os.SystemClock.elapsedRealtime();ticket.percentAt=ticket.started;syncCommandStatus();changed();
@@ -335,13 +346,14 @@ public final class VehicleCoordinator {
         message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
             :verified?tr("执行成功","Successful")
             :tr("指令已发送，请确认执行情况","Command sent. Please confirm execution.");
-        changed();dispatchQueuedRepeat(ticket);
+        complete(ticket,result);changed();dispatchQueuedRepeat(ticket);
       }
     }).require(state->EffectStateController.fresh(state,System.currentTimeMillis())&&(ticket.target==null||ClimateTarget.confirmed(state,ticket.target,ticket.issued)));
-    if("lock".equals(ticket.action)||"unlock".equals(ticket.action))ticket.readback.retryLockOnce(()->{if("unlock".equals(ticket.action))api.unlock(ticket.vehicle.vin);else api.lock(ticket.vehicle.vin);},commandIO,()->!ticket.cancelled&&signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&FirstUseConsent.accepted(context));
+    if(ticket.allowLockRetry&&("lock".equals(ticket.action)||"unlock".equals(ticket.action)))ticket.readback.retryLockOnce(()->{if("unlock".equals(ticket.action))api.unlock(ticket.vehicle.vin);else api.lock(ticket.vehicle.vin);},commandIO,()->!ticket.cancelled&&signedIn&&selected!=null&&ticket.vehicle.vin.equals(selected.vin)&&FirstUseConsent.accepted(context));
     ticket.readback.start(ticket.action);
   }
 
+  private static void complete(PendingCommand ticket,OperationState result){java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}}
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
     if(updated==null||selected==null||!vehicle.vin.equals(selected.vin))return;
     // A delayed callback cannot overwrite a newer refresh / another family's readback.
@@ -362,6 +374,9 @@ public final class VehicleCoordinator {
     // It must not make network calls until the user signs in to the matching vehicle again.
     if(!CampModeManager.pendingStop(context))CampModeManager.clear(context);
     else CampModeManager.suspendPendingStopForSignOut(context);
+    OppoCarLinkRuntime.get(context).stop();
+    io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(context);
+    context.getSharedPreferences("oppo-carlink-identity",0).edit().clear().apply();
     api.logout();
     selected = null;
     cars.clear();

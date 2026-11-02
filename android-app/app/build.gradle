@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
 }
+def privateOppoSdk = file('libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar').isFile() && file('libs/com.oplus.ocs.base-release-1.0.9.aar').isFile()
 android {
     namespace 'io.github.polestarcn.companion'
     compileSdk 35
@@ -9,8 +10,15 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 139
-        versionName '0.9.7-beta25-standalone'
+        buildConfigField 'boolean', 'OPPO_SDK_PACKAGED', privateOppoSdk.toString()
+        versionCode 140
+        versionName '0.9.7-beta26-standalone'
+        def oppoCompany = System.getenv('PSA_OPPO_COMPANY_ID') ?: '0'
+        def oppoAuth = System.getenv('PSA_OPPO_AUTH_CODE') ?: 'PSASSISTANT_UNCONFIGURED'
+        if (!(oppoCompany ==~ /[0-9]{1,9}/) || !(oppoAuth ==~ /[A-Za-z0-9_+\/=.-]{1,4096}/))
+            throw new GradleException('Invalid private OPPO manifest configuration')
+        manifestPlaceholders.oppoCarLinkCompanyId = oppoCompany
+        manifestPlaceholders.oppoCarLinkAuthCode = oppoAuth
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -56,6 +64,9 @@ android {
 }
 
 dependencies {
+    if (privateOppoSdk) implementation files('libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar', 'libs/com.oplus.ocs.base-release-1.0.9.aar')
+    else implementation project(':carlinkApiStubs')
+    implementation 'com.google.code.gson:gson:2.10.1'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'
     compileOnly 'io.github.libxposed:api:102.0.0'

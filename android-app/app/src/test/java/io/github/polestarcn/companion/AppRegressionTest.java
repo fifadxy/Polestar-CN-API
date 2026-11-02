@@ -32,6 +32,7 @@ public final class AppRegressionTest {
     c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit();
     c.getSharedPreferences("climate_runtime_v1", 0).edit().clear().commit();
     AirRuntime.stopped(c);
+    io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(c);
     Field f = VehicleCoordinator.class.getDeclaredField("instance");
     f.setAccessible(true);
     f.set(null, null);

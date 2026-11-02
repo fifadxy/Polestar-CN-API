@@ -15,3 +15,5 @@ dependencyResolutionManagement {
 rootProject.name = 'PsAssistant'
 include ':app'
 include ':oppoBridge'
+
+include ':carlinkApiStubs'

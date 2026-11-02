@@ -94,7 +94,7 @@ final class SceneAccountBindProbe {
     try {
       Bundle in = new Bundle();
       in.putString("providerCatalog", catalog == null ? "" : catalog);
-      in.putString("hostVersion", hostVersion==null?"":hostVersion);
+      in.putString("hostVersion", hostVersion(app));
       in.putString("moduleVersion", "1.9.0");
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}

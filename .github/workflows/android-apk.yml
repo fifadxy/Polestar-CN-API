@@ -25,11 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Package clean Android source snapshot
-        run: git archive --format=zip --output=PsAssistant-beta18-android-source.zip HEAD android-app
+        run: git archive --format=zip --output=PsAssistant-beta19-android-source.zip HEAD android-app
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-beta18-android-source
-          path: PsAssistant-beta18-android-source.zip
+          name: PsAssistant-beta19-android-source
+          path: PsAssistant-beta19-android-source.zip
           if-no-files-found: error
       - uses: actions/setup-java@v4
         with:
@@ -88,23 +88,23 @@ jobs:
         run: gradle --no-daemon :app:assembleRelease :app:assemblePreview
       - name: Describe build configuration
         run: |
-          if [ -n "$PSA_CLIENT_CONFIG" ]; then
-            echo "Standalone client configuration supplied" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$PSA_CLIENT_CONFIG" ] && [ -n "$PSA_SIGNING_KEYSTORE" ]; then
+            echo "FULL standalone release eligible: private client configuration and persistent signing identity supplied." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Validation APK only: private account client configuration is absent. Use the signed complete APK delivered privately." >> "$GITHUB_STEP_SUMMARY"
+            echo "VALIDATION Debug only: this APK is intentionally not a standalone-login deliverable." >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Check output
         run: |
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
           test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta18-standalone-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta19-VALIDATION-debug.apk
           cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v1.5.0-debug.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" android-apksigner.jar
       - name: Verify integrated module packaging
         run: |
           python3 - <<'PYCODE'
           import zipfile, pathlib, hashlib
-          p=pathlib.Path('PsAssistant-v0.9.7-beta18-standalone-debug.apk')
+          p=pathlib.Path('PsAssistant-v0.9.7-beta19-VALIDATION-debug.apk')
           with zipfile.ZipFile(p) as z:
               assert z.testzip() is None
               assert z.read('META-INF/xposed/java_init.list').decode().strip() == 'io.github.polestarcn.oppobridge.OppoBridgeModule'
@@ -114,6 +114,13 @@ jobs:
           print('Integrated APK bytes:', p.stat().st_size)
           print('SHA256:', hashlib.sha256(p.read_bytes()).hexdigest())
           PYCODE
+      - name: Guard standalone-login packaging
+        run: |
+          python3 scripts/verify_standalone_apk.py PsAssistant-v0.9.7-beta19-VALIDATION-debug.apk --expect absent
+          if [ -n "$PSA_SIGNING_KEYSTORE" ] && [ -n "$PSA_CLIENT_CONFIG" ]; then
+            python3 scripts/verify_standalone_apk.py android-app/app/build/outputs/apk/release/app-release.apk --expect present
+            python3 scripts/verify_standalone_apk.py android-app/app/build/outputs/apk/preview/app-preview.apk --expect present
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: Android-apksigner-tool
@@ -121,8 +128,8 @@ jobs:
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.9.7-beta18-standalone-debug
-          path: PsAssistant-v0.9.7-beta18-standalone-debug.apk
+          name: PsAssistant-v0.9.7-beta19-VALIDATION-debug
+          path: PsAssistant-v0.9.7-beta19-VALIDATION-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
@@ -132,19 +139,19 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
-          name: PsAssistant-v0.9.7-beta18-standalone-release
+          name: PsAssistant-v0.9.7-beta19-Standalone-FULL
           path: android-app/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != ''
         with:
-          name: PsAssistant-v0.9.7-beta18-standalone-preview
+          name: PsAssistant-v0.9.7-beta19-Standalone-PREVIEW
           path: android-app/app/build/outputs/apk/preview/app-preview.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-v0.9.7-beta18-standalone-checks
+          name: PsAssistant-v0.9.7-beta19-standalone-checks
           path: |
             android-app/app/build/reports/previews/
             android-app/app/build/test-results/testDebugUnitTest/

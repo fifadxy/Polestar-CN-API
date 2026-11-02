@@ -9,8 +9,8 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        versionCode 129
-        versionName '0.9.7-beta18-standalone'
+        versionCode 130
+        versionName '0.9.7-beta19-standalone'
     }
     // The signing file stays outside the repository; CI secrets can supply the same identity.
     def persistentKey = System.getenv('PSA_SIGNING_KEYSTORE')
@@ -42,7 +42,11 @@ android {
             matchingFallbacks = ['release']
         }
     }
-    sourceSets { main.assets.srcDir(layout.buildDirectory.dir("generated/standaloneAssets")) }
+    sourceSets {
+        // Private China login material is release-only. Validation Debug APKs must never bundle it.
+        release.assets.srcDir(layout.buildDirectory.dir("generated/standaloneAssets"))
+        preview.assets.srcDir(layout.buildDirectory.dir("generated/standaloneAssets"))
+    }
     buildFeatures { buildConfig = true }
     testOptions { unitTests.includeAndroidResources = true }
     compileOptions {
@@ -155,7 +159,8 @@ tasks.register("prepareClientConfig") {
         }
     }
 }
-tasks.named("preBuild").configure { dependsOn("prepareClientConfig") }
+tasks.named("preReleaseBuild").configure { dependsOn("prepareClientConfig") }
+tasks.named("prePreviewBuild").configure { dependsOn("prepareClientConfig") }
 tasks.matching { it.name in ["assembleRelease", "assemblePreview"] }.configureEach {
     doFirst {
         if (!clientAsset.get().asFile.exists() || clientAsset.get().asFile.length() != 48L)

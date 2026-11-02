@@ -18,7 +18,8 @@ final class OppoOfficialVehicleBindState {
 
   static Bundle status(Context context, VehicleCoordinator coordinator) {
     Bundle out=new Bundle();
-    boolean requested=context.getSharedPreferences(PREF,0).getBoolean(KEY,false);
+    android.content.SharedPreferences prefs=context.getSharedPreferences(PREF,0);
+    boolean requested=prefs.contains(KEY)?prefs.getBoolean(KEY,false):true;
     boolean signedIn=coordinator!=null&&coordinator.hasSession();
     VehicleSnapshot snapshot=coordinator==null?null:coordinator.snapshot;
     if(snapshot==null)snapshot=VehicleSnapshotStore.loadChina(context);
@@ -27,6 +28,8 @@ final class OppoOfficialVehicleBindState {
     out.putBoolean("signedIn",signedIn);
     out.putBoolean("vehicleAvailable",vehicle);
     out.putBoolean("enabled",requested&&signedIn&&vehicle);
+    out.putBoolean("automaticDefault",!prefs.contains(KEY));
+    out.putBoolean("extraProviderVerificationRequired",false);
     out.putString("providerCode","POLESTAR");
     return out;
   }

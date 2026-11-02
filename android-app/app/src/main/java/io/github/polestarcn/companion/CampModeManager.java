@@ -195,6 +195,6 @@ public final class CampModeManager {
     if(active(c))return "RUNNING".equals(result)?AppPreferences.tr(c,"运行中","Active"):AppPreferences.tr(c,"待检查","Queued");
     if(result.startsWith("LOW_BATTERY"))return AppPreferences.tr(c,"低电停止","Low SoC");
     if(result.startsWith("EXPIRED"))return AppPreferences.tr(c,"已结束","Ended");
-    return AppPreferences.tr(c,"未开启","Off");
+    return AppPreferences.tr(c,"未托管","Not managed");
   }
 }

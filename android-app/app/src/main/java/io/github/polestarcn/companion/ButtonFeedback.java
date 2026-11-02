@@ -4,12 +4,12 @@ import android.graphics.Typeface;
 /** Display-only feedback settings; none of these preferences affect remote control validation. */
 public final class ButtonFeedback {
  private ButtonFeedback(){}
- public static String mode(Context c,String control){String v=AppPreferences.get(c,"feedback_"+control,"climate".equals(control)?"climate":"state");return v.equals("hidden")||v.equals("state")||v.equals("temperature")||v.equals("remaining")||v.equals("air")||v.equals("climate")?v:"state";}
+ public static String mode(Context c,String control){String v=AppPreferences.get(c,"feedback_"+control,"state");return v.equals("hidden")||v.equals("state")||v.equals("temperature")||v.equals("remaining")||v.equals("air")||v.equals("climate")?v:"state";}
  public static int sp(Context c){try{return Math.max(8,Math.min(14,Integer.parseInt(AppPreferences.get(c,"feedback_sp","10"))));}catch(NumberFormatException e){return 10;}}
  public static Typeface typeface(Context c){return AppPreferences.visible(c,"feedback_bold",false)?PsaDesign.display():PsaDesign.regular();}
  public static String value(Context c,String control,VehicleSnapshot s,String state){
   if("camp".equals(control)&&!"hidden".equals(mode(c,control))&& (CampModeManager.active(c)||"STOPPING".equals(CampModeManager.phase(c)))) return CampModeManager.remainingCaption(c);
-  if("camp".equals(control)&&"state".equals(mode(c,control)))return CampModeManager.compactStatus(c);
+  if("camp".equals(control)&&"state".equals(mode(c,control)))return ControlStatusText.value(c,"camp",s,state);
   switch(mode(c,control)){
    case "hidden":return "";
    case "climate":{
@@ -22,7 +22,7 @@ public final class ButtonFeedback {
    case "temperature":return DisplayMetric.TEMPERATURE.value(c,s,true,AppPreferences.english(c));
    case "remaining":return s!=null&&"开启".equals(s.climate)?ClimateRuntime.shortLabel(c,s,AppPreferences.get(c,"vehicle",""),AppPreferences.english(c)):"--";
    case "air":return "AQI "+DisplayMetric.AQI.value(c,s,false,AppPreferences.english(c));
-   default:return state;
+   default:return ControlStatusText.value(c,control,s,state);
   }
  }
 }

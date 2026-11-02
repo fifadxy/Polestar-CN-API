@@ -41,7 +41,7 @@ final class ShelfCardHostProbe {
       in.putString("reason","");
       in.putString("versionName",info.versionName==null?"":info.versionName);
       in.putLong("versionCode",Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode);
-      in.putString("moduleVersion","1.9.0");
+      in.putString("moduleVersion","1.10.0");
       in.putString("components",components(info));
       BridgeClient.call(app,"shelf-host-report",in);
       module.info("shelf_card_host package="+pkg+" components="+in.getString("components",""));
@@ -49,7 +49,7 @@ final class ShelfCardHostProbe {
       try {
         Bundle in=new Bundle();in.putString("packageName",pkg);in.putString("process",process==null?"":process);
         in.putBoolean("ready",false);in.putString("reason",failure.getClass().getSimpleName());
-        in.putString("moduleVersion","1.9.0");BridgeClient.call(app,"shelf-host-report",in);
+        in.putString("moduleVersion","1.10.0");BridgeClient.call(app,"shelf-host-report",in);
       } catch(Throwable ignored) {}
       module.warn("shelf_card_host package="+pkg+" failed="+failure.getClass().getSimpleName());
     }

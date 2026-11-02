@@ -49,7 +49,7 @@ final class PolestarProviderCatalogShim {
     // The class fingerprint is the safety gate. We intentionally do not hard-fail only because the
     // minor AssistantScreen version changed; if the known class/method shape still exists, the hook
     // remains useful. Unknown shapes simply install zero hooks and leave the OEM UI untouched.
-    module.info("polestar_provider_catalog generation=3 hostVersion="+hostVersion+" hooks="+hooks);
+    module.info("polestar_provider_catalog generation=4 hostVersion="+hostVersion+" hooks="+hooks);
   }
 
   private static int hookCoroutine(OppoBridgeModule module,ClassLoader loader) throws Exception {
@@ -57,7 +57,7 @@ final class PolestarProviderCatalogShim {
     Method invoke=coroutine.getDeclaredMethod("invokeSuspend",Object.class);
     invoke.setAccessible(true);
     module.hook(invoke)
-        .setId("psassistant_polestar_provider_catalog_coroutine_v3")
+        .setId("psassistant_polestar_provider_catalog_coroutine_v4")
         .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
         .intercept(chain->{
           Object result=chain.proceed();
@@ -87,7 +87,7 @@ final class PolestarProviderCatalogShim {
       if(!providerNamed&&!listResult)continue;
       if(method.getParameterTypes().length>4)continue;
       method.setAccessible(true);
-      final String id="psassistant_polestar_provider_vm_v3_"+safeId(method.getName())+"_"+method.getParameterTypes().length+"_"+Integer.toHexString(method.toGenericString().hashCode());
+      final String id="psassistant_polestar_provider_vm_v4_"+safeId(method.getName())+"_"+method.getParameterTypes().length+"_"+Integer.toHexString(method.toGenericString().hashCode());
       module.hook(method).setId(id)
           .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
           .intercept(chain->{
@@ -126,7 +126,7 @@ final class PolestarProviderCatalogShim {
       Class<?> first=method.getParameterTypes()[0];
       if(first!=Object.class&&!List.class.isAssignableFrom(first))continue;
       method.setAccessible(true);
-      final String id="psassistant_polestar_provider_sink_v3_"+safeId(type.getSimpleName())+"_"+safeId(method.getName())+"_"+method.getParameterTypes().length;
+      final String id="psassistant_polestar_provider_sink_v4_"+safeId(type.getSimpleName())+"_"+safeId(method.getName())+"_"+method.getParameterTypes().length;
       module.hook(method).setId(id)
           .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
           .intercept(chain->{
@@ -202,15 +202,28 @@ final class PolestarProviderCatalogShim {
 
   private static boolean looksLikeProviderList(String fieldName,List<?> list) {
     String n=fieldName==null?"":fieldName.toLowerCase(Locale.ROOT);
-    if(n.contains("provider")||n.contains("account")||n.contains("catalog"))return true;
+    if(n.contains("provider")||n.contains("account")||n.contains("catalog")||n.contains("vehicle")||n.contains("car"))return true;
+    if(smartVehicleBrandHits(list)>=2)return true;
     for(Object item:list)if(isProviderItem(item))return true;
     return false;
   }
 
+  private static int smartVehicleBrandHits(List<?> list) {
+    int hits=0;
+    String[] known={"比亚迪","长安","东风","日产","极氪","零跑","理想","smart","腾势","tesla","特斯拉","小牛","小鹏","名爵","荣威","深蓝","阿维塔","arcfox","极狐"};
+    for(Object item:list) {
+      String name=providerName(item).toLowerCase(Locale.ROOT);
+      if(name.isEmpty())continue;
+      for(String brand:known)if(name.contains(brand.toLowerCase(Locale.ROOT))){hits++;break;}
+      if(hits>=2)return hits;
+    }
+    return hits;
+  }
+
   private static boolean isProviderItem(Object item) {
     if(item==null)return false;
-    try { item.getClass().getMethod("getSpCode");item.getClass().getMethod("getName");return true; }
-    catch(Throwable ignored) {return false;}
+    String name=providerName(item);
+    return !name.isEmpty()&&(!providerCode(item).isEmpty()||!providerPackage(item).isEmpty());
   }
 
   @SuppressWarnings({"unchecked","rawtypes"})
@@ -229,10 +242,13 @@ final class PolestarProviderCatalogShim {
   }
 
   static boolean hasCode(List<?> list,String code) {
-    for(Object item:list)if(item!=null)try {
-      Object value=item.getClass().getMethod("getSpCode").invoke(item);
-      if(code.equalsIgnoreCase(String.valueOf(value)))return true;
-    } catch(Throwable ignored) {}
+    for(Object item:list) {
+      if(item==null)continue;
+      if(code.equalsIgnoreCase(providerCode(item)))return true;
+      if("io.github.polestarcn.companion".equalsIgnoreCase(providerPackage(item)))return true;
+      String name=providerName(item).toLowerCase(Locale.ROOT);
+      if(name.contains("polestar")||name.contains("极星"))return true;
+    }
     return false;
   }
 
@@ -244,8 +260,6 @@ final class PolestarProviderCatalogShim {
   private static Object copyProvider(Object sample) {
     try {
       Class<?> type=sample.getClass();
-      Method getCode=type.getMethod("getSpCode");
-      Method getName=type.getMethod("getName");
       Method copyDefault=null;
       for(Method m:type.getDeclaredMethods()) {
         Class<?>[] p=m.getParameterTypes();
@@ -253,33 +267,32 @@ final class PolestarProviderCatalogShim {
             &&m.getReturnType()==type&&p.length>=4&&p[0]==type
             &&p[p.length-2]==int.class&&p[p.length-1]==Object.class) {copyDefault=m;break;}
       }
-      if(copyDefault==null)return constructFallback(type,getCode,getName);
+      if(copyDefault==null)return constructFallback(type);
       copyDefault.setAccessible(true);
       Class<?>[] p=copyDefault.getParameterTypes();
       int dataCount=p.length-3;
-      if(dataCount<=0||dataCount>31)return constructFallback(type,getCode,getName);
+      if(dataCount<=0||dataCount>31)return constructFallback(type);
 
-      int codeIndex=-1,nameIndex=-1;
+      int codeIndex=-1,nameIndex=-1,packageIndex=-1;
       for(int i=0;i<dataCount;i++) {
         if(p[i+1]!=String.class)continue;
         String sentinel="__PS_PROBE_"+i+"__";
         Object probe=invokeCopy(copyDefault,sample,dataCount,i,sentinel);
         if(probe==null)continue;
-        if(sentinel.equals(String.valueOf(getCode.invoke(probe))))codeIndex=i;
-        if(sentinel.equals(String.valueOf(getName.invoke(probe))))nameIndex=i;
+        if(sentinel.equals(providerCode(probe)))codeIndex=i;
+        if(sentinel.equals(providerName(probe)))nameIndex=i;
+        if(sentinel.equals(providerPackage(probe)))packageIndex=i;
       }
-      if(codeIndex<0||nameIndex<0)return constructFallback(type,getCode,getName);
-
+      if(nameIndex<0)return constructFallback(type);
       Object[] args=copyArgs(copyDefault,sample,dataCount);
       int mask=(1<<dataCount)-1;
-      args[1+codeIndex]=PROVIDER_CODE;mask&=~(1<<codeIndex);
       args[1+nameIndex]=DISPLAY_NAME;mask&=~(1<<nameIndex);
-      // Keep the OEM sample icon/flags/feature metadata through the default mask. An empty icon can
-      // cause some ColorOS list renderers to drop the row entirely.
+      if(codeIndex>=0){args[1+codeIndex]=PROVIDER_CODE;mask&=~(1<<codeIndex);}
+      if(packageIndex>=0){args[1+packageIndex]="io.github.polestarcn.companion";mask&=~(1<<packageIndex);}
       args[1+dataCount]=mask;
       Object result=copyDefault.invoke(null,args);
-      return verify(result,getCode,getName)?result:null;
-    } catch(Throwable ignored) {return null;}
+      return verify(result)?result:null;
+    } catch(Throwable ignored) {return constructFallback(sample==null?null:sample.getClass());}
   }
 
   private static Object invokeCopy(Method copy,Object sample,int dataCount,int index,String value) {
@@ -298,28 +311,54 @@ final class PolestarProviderCatalogShim {
     args[1+dataCount]=(1<<dataCount)-1;args[2+dataCount]=null;return args;
   }
 
-  private static Object constructFallback(Class<?> type,Method getCode,Method getName) {
+  private static Object constructFallback(Class<?> type) {
+    if(type==null)return null;
     try {
       Constructor<?> ctor=type.getDeclaredConstructor();ctor.setAccessible(true);Object out=ctor.newInstance();
-      set(out,"spCode",PROVIDER_CODE);set(out,"name",DISPLAY_NAME);
-      return verify(out,getCode,getName)?out:null;
+      setAny(out,new String[]{"spCode","providerCode","brandCode","code"},PROVIDER_CODE);
+      setAny(out,new String[]{"name","providerName","brandName","appName","label"},DISPLAY_NAME);
+      setAny(out,new String[]{"packageName","pkgName","appPackage","package"},"io.github.polestarcn.companion");
+      return verify(out)?out:null;
     } catch(Throwable ignored) {return null;}
   }
 
-  private static void set(Object target,String property,String value) {
-    String setter="set"+Character.toUpperCase(property.charAt(0))+property.substring(1);
-    try {target.getClass().getMethod(setter,String.class).invoke(target,value);return;}catch(Throwable ignored) {}
-    for(Class<?> c=target.getClass();c!=null;c=c.getSuperclass())try {
-      Field f=c.getDeclaredField(property);f.setAccessible(true);f.set(target,value);return;
-    } catch(Throwable ignored) {}
+  private static void setAny(Object target,String[] properties,String value) {
+    for(String property:properties) {
+      String setter="set"+Character.toUpperCase(property.charAt(0))+property.substring(1);
+      try {target.getClass().getMethod(setter,String.class).invoke(target,value);return;}catch(Throwable ignored) {}
+      for(Class<?> c=target.getClass();c!=null;c=c.getSuperclass())try {
+        Field f=c.getDeclaredField(property);if(f.getType()!=String.class)continue;f.setAccessible(true);f.set(target,value);return;
+      } catch(Throwable ignored) {}
+    }
   }
 
-  private static boolean verify(Object value,Method getCode,Method getName) {
+  private static String providerCode(Object item) {
+    return stringProperty(item,new String[]{"getSpCode","getProviderCode","getBrandCode","getCode"},new String[]{"spCode","providerCode","brandCode","code"});
+  }
+  private static String providerName(Object item) {
+    return stringProperty(item,new String[]{"getName","getProviderName","getBrandName","getAppName","getLabel"},new String[]{"name","providerName","brandName","appName","label"});
+  }
+  private static String providerPackage(Object item) {
+    return stringProperty(item,new String[]{"getPackageName","getPkgName","getAppPackage"},new String[]{"packageName","pkgName","appPackage"});
+  }
+  private static String stringProperty(Object item,String[] getters,String[] fields) {
+    if(item==null)return "";
+    for(String getter:getters)try {
+      Method m=item.getClass().getMethod(getter);if(m.getParameterTypes().length!=0||m.getReturnType()!=String.class)continue;
+      Object value=m.invoke(item);if(value!=null)return String.valueOf(value);
+    } catch(Throwable ignored) {}
+    for(String field:fields)for(Class<?> c=item.getClass();c!=null;c=c.getSuperclass())try {
+      Field f=c.getDeclaredField(field);if(f.getType()!=String.class)continue;f.setAccessible(true);Object value=f.get(item);if(value!=null)return String.valueOf(value);
+    } catch(Throwable ignored) {}
+    return "";
+  }
+
+  private static boolean verify(Object value) {
     if(value==null)return false;
-    try {
-      return PROVIDER_CODE.equalsIgnoreCase(String.valueOf(getCode.invoke(value)))
-          &&String.valueOf(getName.invoke(value)).toLowerCase(Locale.ROOT).contains("polestar");
-    } catch(Throwable ignored) {return false;}
+    String name=providerName(value).toLowerCase(Locale.ROOT);
+    if(!(name.contains("polestar")||name.contains("极星")))return false;
+    String code=providerCode(value),pkg=providerPackage(value);
+    return PROVIDER_CODE.equalsIgnoreCase(code)||"io.github.polestarcn.companion".equalsIgnoreCase(pkg)||(!code.isEmpty()&&name.contains("polestar"));
   }
 
   private static Object defaultValue(Class<?> type) {

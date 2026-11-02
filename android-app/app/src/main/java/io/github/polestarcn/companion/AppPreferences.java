@@ -54,7 +54,11 @@ public final class AppPreferences {
   }
   public static String translated(String raw, boolean en) {
     if (raw == null || raw.trim().isEmpty()) return en ? "Unknown" : "未知";
-    if (!en) return "处理中".equals(raw) ? "运行中（待确认）" : raw;
+    if (!en) {
+      if("处理中".equals(raw))return "运行中（待确认）";
+      if("已上锁".equals(raw))return "已锁";
+      return raw;
+    }
     if (raw.contains(" 个开启")) return raw.replace(" 个开启", " open").replace("部分未知", "partly unknown");
     switch (raw) {
       case "已上锁": case "已锁": return "Locked";
@@ -79,4 +83,3 @@ public final class AppPreferences {
     }
   }
 }
-

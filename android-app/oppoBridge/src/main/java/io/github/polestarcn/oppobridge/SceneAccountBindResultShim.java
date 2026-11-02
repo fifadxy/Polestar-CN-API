@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Caller-side account-bind result shim for the exact AssistantScreen process.
  *
- * <p>When the user explicitly enables the local Polestar bridge, only the Bundle returned to
+ * <p>When PsAssistant has an authenticated real vehicle and the local bridge is not explicitly disabled, only the Bundle returned to
  * AssistantScreen is extended with POLESTAR. The real SceneService provider/database is untouched.</p>
  */
 final class SceneAccountBindResultShim {

@@ -34,6 +34,7 @@ public final class PolestarOfficialBindActivity extends Activity {
 
     TextView note=new TextView(this);
     note.setText("该入口把真实 PsAssistant 登录/车辆状态映射到 ColorOS 车辆 Provider，并在兼容固件中注入 Polestar 品牌行。"
+        +"登录且已发现真实车辆后默认自动映射，不再要求额外本地确认；手动关闭后会保持关闭。"
         +"不会写 SceneService 数据库，不会伪造蓝牙数字钥匙或跳过车辆认证。");
     note.setTextSize(14f);
     note.setPadding(0,p/2,0,p/2);
@@ -79,7 +80,8 @@ public final class PolestarOfficialBindActivity extends Activity {
         if(vehicle.getBoolean("rangeKmKnown"))out.append(" · ").append(vehicle.getInt("rangeKm")).append(" km");
         out.append('\n');
       }
-      out.append("Polestar 系统入口：").append(state.getBoolean("enabled")?"已启用":"未启用").append('\n');
+      out.append("Polestar 系统入口：").append(state.getBoolean("enabled")?"已映射":"未映射").append('\n');
+      out.append("额外本地验证：").append(state.getBoolean("extraProviderVerificationRequired",true)?"需要":"不需要").append('\n');
       out.append("Provider 目录：").append(system.getBoolean("providerCatalogContainsPolestar",false)?"已出现 Polestar":"尚未出现 Polestar").append('\n');
       out.append("AssistantScreen Hook：").append(system.getBoolean("assistantHookSeen",false)?"已观察到":"未观察到").append(" · ").append(system.getString("assistantVersion","")).append('\n');
       out.append("CarLink Hook：").append(system.getBoolean("carLinkHostHookSeen",false)?"已观察到":"未观察到").append(" · ").append(system.getString("carLinkVersion","")).append("\n\n");

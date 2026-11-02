@@ -17,6 +17,13 @@ public final class VehicleArt {
 
   public static String modelKey(boolean night){return night?"vehicle_art_model_night":"vehicle_art_model_day";}
   public static String selectionKey(boolean night){return night?"vehicle_art_night":"vehicle_art_day";}
+  public static String modelKey(Context c,boolean night){return modelKey(night)+"_"+UiSkin.get(c);}
+  public static String selectionKey(Context c,boolean night){return selectionKey(night)+"_"+UiSkin.get(c);}
+  public static String selection(Context c,boolean night){
+    String scoped=AppPreferences.get(c,selectionKey(c,night),"");
+    if(scoped.isEmpty()){scoped=AppPreferences.get(c,selectionKey(night),"auto");AppPreferences.set(c,selectionKey(c,night),scoped);}
+    return scoped;
+  }
   public static String model(Context c){return modelFor(c,AppPreferences.dark(c));}
   public static String modelFor(Context c,boolean night){
     return POLESTAR_2;
@@ -50,10 +57,10 @@ public final class VehicleArt {
     }
   }
   public static String key(Context c){
-    String value=AppPreferences.get(c,selectionKey(AppPreferences.dark(c)),"auto");
+    String value=selection(c,AppPreferences.dark(c));
     String normalized=normalizeKey(value,AppPreferences.dark(c));
     if(!normalized.equals(value)) {
-      AppPreferences.set(c,selectionKey(AppPreferences.dark(c)),normalized);
+      AppPreferences.set(c,selectionKey(c,AppPreferences.dark(c)),normalized);
       value=normalized;
     }
     if(value.equals("side_dark_left")||value.equals("side_dark_right"))return "side_official_space";

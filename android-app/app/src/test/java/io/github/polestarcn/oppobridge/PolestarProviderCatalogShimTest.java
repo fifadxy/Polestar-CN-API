@@ -21,12 +21,33 @@ public class PolestarProviderCatalogShimTest {
     public String getIconUrl(){return iconUrl;} public void setIconUrl(String value){iconUrl=value;}
   }
 
+
+  public static final class SmartApp {
+    private String appName; private String packageName;
+    public SmartApp() {}
+    SmartApp(String name,String pkg){appName=name;packageName=pkg;}
+    public String getAppName(){return appName;} public void setAppName(String value){appName=value;}
+    public String getPackageName(){return packageName;} public void setPackageName(String value){packageName=value;}
+  }
+
   @Test public void appendsPolestarToProviderShapedListWithoutDuplicates() {
     List<Provider> providers=new ArrayList<>();providers.add(new Provider("EXAMPLE","Example"));
     assertEquals(1,PolestarProviderCatalogShim.injectList(providers));
     assertTrue(PolestarProviderCatalogShim.hasCode(providers,"POLESTAR"));
     assertEquals(0,PolestarProviderCatalogShim.injectList(providers));
     assertEquals(2,providers.size());
+  }
+
+  @Test public void appendsPolestarToSmartControlsAppListUsingMainPackage() {
+    List<SmartApp> apps=new ArrayList<>();
+    apps.add(new SmartApp("比亚迪","com.byd.app"));
+    apps.add(new SmartApp("Tesla","com.tesla.app"));
+    assertEquals(1,PolestarProviderCatalogShim.injectList(apps));
+    assertEquals(3,apps.size());
+    SmartApp added=apps.get(2);
+    assertTrue(added.getAppName().contains("Polestar")||added.getAppName().contains("极星"));
+    assertEquals("io.github.polestarcn.companion",added.getPackageName());
+    assertEquals(0,PolestarProviderCatalogShim.injectList(apps));
   }
 
   @Test public void bindRedirectRequiresBothPolestarMarkerAndVehicleBindShape() {

@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <queries><package android:name="com.coloros.ocs.opencapabilityservice"/><package android:name="com.oplus.ocs.opencapabilityservice"/><package android:name="com.android.launcher"/><package android:name="com.heytap.opluscarlink"/><package android:name="com.finshell.wallet"/><package android:name="com.heytap.health.wallet"/><package android:name="com.oplus.cardigitalkey"/><package android:name="com.coloros.assistantscreen"/><package android:name="com.heytap.mydevices"/><package android:name="com.oplus.wirelesssettings"/><package android:name="com.oplus.pantanal.ums"/><package android:name="com.oplus.smartengine"/><package android:name="com.oplus.cardservice"/><package android:name="com.oplus.assistantscreen"/><package android:name="com.nearme.instant.platform"/><package android:name="com.heytap.health"/><package android:name="com.heytap.speechassist"/><package android:name="com.oplus.ocar"/><package android:name="com.oplus.sceneservice"/><package android:name="com.coloros.sceneservice"/><provider android:authorities="com.oplus.sceneservice.AccountSDKInitProvider"/><provider android:authorities="com.heytap.opluscarlink.CarAppProvider"/><intent><action android:name="oppo.intent.action.opluscarlink.OPLUS_SDK_SERVICE"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="card" android:host="carlink.heytap.com"/></intent><intent><action android:name="oppo.intent.action.opluscarlink.BIND_BT_KEY"/></intent><intent><action android:name="com.nearme.wallet.key.KEY_DETAIL_ACTIVITY"/></intent></queries>
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" tools:ignore="QueryAllPackagesPermission"/>
     <application
         android:name=".PsAssistantApplication"
         android:label="@string/app_name"
@@ -23,7 +23,7 @@
         android:fullBackupContent="@xml/backup_exclusions"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:usesCleartextTraffic="false">
-        <receiver android:name="com.coloros.ocs.carlink.inner.OplusCarReceiver" tools:node="remove"/>
+        <receiver android:name="com.coloros.ocs.carlink.inner.OplusCarReceiver" tools:node="remove" tools:ignore="MissingClass"/>
         <receiver android:name=".OppoCarLinkInitReceiver" android:exported="true" android:permission="com.oppo.permission.safe.BLUETOOTH">
             <intent-filter><action android:name="oppo.intent.action.opluscarlink.INIT_OPLUS_SDK"/></intent-filter>
         </receiver>

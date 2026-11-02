@@ -6,7 +6,7 @@ import android.widget.*;
 /** One CarLink setup surface; root is requested only by a user-pressed diagnostic action. */
 public final class OppoCarLinkSetupActivity extends Activity {
   private TextView status;private final java.util.concurrent.ExecutorService work=java.util.concurrent.Executors.newSingleThreadExecutor();
-  @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout page=new LinearLayout(this);page.setOrientation(1);int p=(int)(16*getResources().getDisplayMetrics().density);page.setPadding(p,p,p,p);
+  @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);int p=(int)(16*getResources().getDisplayMetrics().density);page.setPadding(p,p,p,p);
     TextView intro=new TextView(this);intro.setText("CarLink优先接入\nSDK初始化、账号授权、车型技能、系统卡片是不同阶段。Root可测试受保护入口并采集本机宿主静态契约；不能生成OPPO服务器的应用授权或车型配置。\n\n本页仅申请远程车控，不启用BLE钥匙扫描。");page.addView(intro);
     EditText type=field(page,"OPPO后台typeCode",AppPreferences.get(this,"carlink_type_code",""));
     EditText name=field(page,"车型名称typeName",AppPreferences.get(this,"carlink_type_name","Polestar 2"));

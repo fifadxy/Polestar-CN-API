@@ -1,3 +1,5 @@
+> 2026-11-02更新：本文是历史阶段记录。当前实现与纠错以 [beta25](BETA25_APPEARANCE_CONTROLS_OPPO_20261102.md) 为准，特别是QuickApp检测假阳性、无自有原生行的处理及1.5秒外观菜单。
+
 # OPPO QuickApp 4x2 phase 4 — exact runtime data capture
 
 Date: 2026-11-02

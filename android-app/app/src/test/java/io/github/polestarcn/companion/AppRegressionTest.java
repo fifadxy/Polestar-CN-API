@@ -31,6 +31,7 @@ public final class AppRegressionTest {
     c.getSharedPreferences("camp_status", 0).edit().clear().commit();
     c.getSharedPreferences("camp_mode_secure", 0).edit().clear().commit();
     c.getSharedPreferences("climate_runtime_v1", 0).edit().clear().commit();
+    AirRuntime.stopped(c);
     Field f = VehicleCoordinator.class.getDeclaredField("instance");
     f.setAccessible(true);
     f.set(null, null);

@@ -330,6 +330,8 @@ public final class VehicleCoordinator {
         if(!commandPending)operation=result;
         if(reached&&"climate-start".equals(ticket.action))ClimateRuntime.started(context,identity(ticket.vehicle.vin),System.currentTimeMillis());
         if(reached&&"climate-stop".equals(ticket.action))ClimateRuntime.stopped(context);
+        if(reached&&"air-start".equals(ticket.action))AirRuntime.started(context,identity(ticket.vehicle.vin),System.currentTimeMillis());
+        if(reached&&"air-stop".equals(ticket.action))AirRuntime.stopped(context);
         message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
             :verified?tr("执行成功","Successful")
             :tr("指令已发送，请确认执行情况","Command sent. Please confirm execution.");
@@ -367,6 +369,7 @@ public final class VehicleCoordinator {
     snapshot = null;
     VehicleSnapshotStore.clearChina(context);
     ClimateRuntime.stopped(context);
+    AirRuntime.stopped(context);
     AppPreferences.set(context, "vehicle", "");
     operation = OperationState.NOT_SENT;
     message = "";
@@ -473,6 +476,8 @@ public final class VehicleCoordinator {
           if(reached){
             if("climate-start".equals(action))ClimateRuntime.started(context,identity(s.vin),System.currentTimeMillis());
             if("climate-stop".equals(action))ClimateRuntime.stopped(context);
+            if("air-start".equals(action))AirRuntime.started(context,identity(s.vin),System.currentTimeMillis());
+            if("air-stop".equals(action))AirRuntime.stopped(context);
           }
           return reached;
         }

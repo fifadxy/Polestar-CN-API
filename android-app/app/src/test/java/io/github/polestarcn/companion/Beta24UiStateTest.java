@@ -33,13 +33,13 @@ public class Beta24UiStateTest {
     Context c=c();VehicleSnapshot on=state("已上锁","全部关闭","开启","开启");
     assertEquals("已锁",ControlStatusText.value(c,"lock",on,""));
     assertEquals("已关",ControlStatusText.value(c,"windows",on,""));
-    assertEquals("运行中",ControlStatusText.value(c,"climate",on,""));
-    assertEquals("运行中",ControlStatusText.value(c,"air",on,""));
+    assertEquals("开启",ControlStatusText.value(c,"climate",on,""));
+    assertEquals("开启",ControlStatusText.value(c,"air",on,""));
     VehicleSnapshot off=state("未锁","未关严","关闭","关闭");
     assertEquals("未锁",ControlStatusText.value(c,"lock",off,""));
     assertEquals("未关",ControlStatusText.value(c,"windows",off,""));
-    assertEquals("未运行",ControlStatusText.value(c,"climate",off,""));
-    assertEquals("未运行",ControlStatusText.value(c,"air",off,""));
+    assertEquals("关闭",ControlStatusText.value(c,"climate",off,""));
+    assertEquals("关闭",ControlStatusText.value(c,"air",off,""));
   }
 
   @Test public void vehicleArtIsScopedPerSkinAndMigratesLegacySelection(){

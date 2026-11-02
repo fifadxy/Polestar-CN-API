@@ -76,6 +76,16 @@ public final class ClimateRuntime {
     return estimate == null ? (en ? "Running" : "运行中") : formatTime(estimate,en);
   }
 
+  public static String controlLabel(Context c,VehicleSnapshot s,String vehicleHash) {
+    if(s==null)return "--";
+    if("关闭".equals(s.climate))return AppPreferences.tr(c,"关闭","Off");
+    if(!"开启".equals(s.climate))return AppPreferences.status(c,s.climate);
+    Integer minutes=vehicleRemainingMinutes(s);
+    if(minutes==null)minutes=fallbackMinutes(c,vehicleHash);
+    if(minutes==null)return AppPreferences.tr(c,"开启","On");
+    return minutes>0?minutes+"m":AppPreferences.tr(c,"待确认","Verify");
+  }
+
   public static String label(Context c, VehicleSnapshot s, String vehicleHash) {
     boolean en = AppPreferences.english(c);
     if (s == null) return en ? "Unknown" : "未知";

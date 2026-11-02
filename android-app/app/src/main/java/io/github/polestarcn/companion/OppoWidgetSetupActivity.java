@@ -26,18 +26,14 @@ public final class OppoWidgetSetupActivity extends Activity {
     autoShare=state!=null&&state.getBoolean("autoShare");
     LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
     int p=(int)(16*getResources().getDisplayMetrics().density);column.setPadding(p,p,p,p);
-    TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO CarLink / 我的车辆 / 负一屏插件卡\n\nbeta23 同时推进两条官方系统入口：CarLink 负责‘我的车辆/车钥匙’，Shelf/Seedling 插件卡负责负一屏车辆状态和快捷入口。LSPosed 只做品牌入口、宿主探测和旧固件兼容，不伪造蓝牙数字钥匙。\n\n1. 先启用‘Polestar 系统车辆入口’。\n2. Root/LSPosed 用户确认作用域包含 AssistantScreen、Pantanal 和 CarLink，并重启对应进程。\n3. 打开‘我的车辆’，Polestar 应进入品牌目录；负一屏卡片诊断会同时显示 Shelf/Pantanal 宿主。\n4. 正式 Seedling 插件卡仍需要 OPPO SDK、模板/事件配置与可能的白名单；当前版本已经完成真实车辆数据映射和宿主探测。");column.addView(help);
-    button(column,android.view.View.generateViewId(),"打开 OPPO CarLink「我的车辆」绑定",()->{
-      Bundle launch=OppoOfficialCarLink.launchBind(this);
-      String path=launch.getString("launchPath","");
-      if("local-fallback".equals(path)) {
-        report.setText(diagnostics()+"\nOPPO 官方绑定入口受系统权限保护，已转入 PsAssistant 本地 Polestar 系统车辆入口。请从 OPPO「我的车辆」页面验证 Polestar 品牌行。");
-      } else if("failed".equals(path)) {
-        report.setText(diagnostics()+"\n绑定入口不可用: "+launch.getString("launchReason","unknown"));
-      }
-    });
-    button(column,android.view.View.generateViewId(),"启用 Polestar 系统车辆入口",()->setSystemVehicleEntry(true));
-    button(column,android.view.View.generateViewId(),"关闭 Polestar 系统车辆入口",()->setSystemVehicleEntry(false));
+    TextView help=new TextView(this);help.setTextSize(16);help.setText("OPPO 互联\n\n设备卡、本地车辆入口与官方 CarLink 授权是不同层。此页统一管理接入开关；卡片可见或显示 Connected 不等于官方授权、手表同步或车辆指令已完成。\n\n设备空间需在 LSPosed 中启用当前使用的 PsAssistant 模块，作用域勾选‘我的设备’；本地车辆目录另需负一屏、CarLink。请只启用内置或独立模块中的一种，更新后重启手机。关闭总开关后停止输出和操作。");column.addView(help);
+    android.widget.Switch integration=new android.widget.Switch(this);integration.setText("启用 OPPO 车辆桥接");integration.setChecked(OppoDeviceIntegration.enabled(this));
+    integration.setOnCheckedChangeListener((v,on)->{try{OppoDeviceIntegration.setEnabled(this,on);report.setText(diagnostics());}catch(RuntimeException failure){integration.setChecked(OppoDeviceIntegration.enabled(this));report.setText("切换失败："+failure.getClass().getSimpleName());}});column.addView(integration);
+    android.widget.Switch local=new android.widget.Switch(this);local.setText("向系统提供 Polestar 本地车辆入口");
+    local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));
+    local.setOnCheckedChangeListener((v,on)->{setSystemVehicleEntry(on);local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));});column.addView(local);
+    button(column,android.view.View.generateViewId(),"打开 Polestar 本地车辆面板",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.PolestarOfficialBindActivity")));
+    button(column,android.view.View.generateViewId(),"高级诊断 · 模块／卡片／官方接口",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
     button(column,android.R.id.button1,"打开 OPPO 标准组件列表",()->{
       try {startActivity(standardPickerIntent());}
       catch(RuntimeException failure){report.setText(diagnostics()+"\n标准入口不可用: "+failure.getClass().getSimpleName()+"\n请尝试下方系统桌面添加请求。");}

@@ -48,6 +48,10 @@ final class AssistantScreenNativeVehicleHook {
     Class<?> connectState=loader.loadClass(CONNECT_STATE);
     Class<?> templateType=loader.loadClass(TEMPLATE_TYPE);
     Class<?> switchMenu=loader.loadClass(SWITCH_MENU);
+    Class<?> useState=loader.loadClass("com.oplus.assistantscreen.card.mydevices.domain.model.UseState");
+    Constructor<?> deviceCtor=deviceInfo.getConstructor(String.class,String.class,String.class,deviceType,connectState,templateType,
+        int.class,String.class,String.class,useState,int.class,long.class,boolean.class,boolean.class,ArrayList.class,boolean.class,
+        List.class,ArrayList.class,ArrayList.class,ArrayList.class);
 
     Method load=manager.getDeclaredMethod("c");
     if(Modifier.isStatic(load.getModifiers())||!ArrayList.class.isAssignableFrom(load.getReturnType())
@@ -80,12 +84,13 @@ final class AssistantScreenNativeVehicleHook {
           Application host=currentApplication();
           if(host==null)return raw;
           try {
+            if(!VERSION.equals(host.getPackageManager().getPackageInfo(HOST,0).versionName))return raw;
             Bundle snapshot=BridgeClient.snapshot(host);
             if(!snapshot.getBoolean("available",false)||snapshot.getBoolean("demo",false)
                 ||!snapshot.getBoolean("cardEnabled",true))
               return raw;
 
-            @SuppressWarnings("unchecked") ArrayList<Object> list=(ArrayList<Object>)raw;
+            @SuppressWarnings("unchecked") ArrayList<Object> list=new ArrayList<>((ArrayList<Object>)raw);
             int applied=0;
             for(Object device:list) {
               if(device==null||!deviceInfo.isInstance(device))continue;
@@ -100,10 +105,15 @@ final class AssistantScreenNativeVehicleHook {
               setSwitches.invoke(device,menus(menuCtor,snapshot,commandScheme(host)));
               applied++;
             }
+            if(applied==0) {
+              list.add(newDevice(deviceCtor,snapshot,car,connected,switchTemplate,menus(menuCtor,snapshot,commandScheme(host))));
+              applied=1;
+            }
             if(applied>0) {
               AssistantScreenHostReporter.report(module,"native-switch-menu",true,
                   "applied="+applied+" template=NOISE_CANCELING-switch-holder");
-              module.info("assistant_native_vehicle applied="+applied);
+              module.info("assistant_native_vehicle applied="+applied+" source=local-cache");
+              return list;
             }
           } catch(Throwable failure) {
             module.warn("assistant_native_vehicle fallback="+failure.getClass().getSimpleName());
@@ -112,6 +122,17 @@ final class AssistantScreenNativeVehicleHook {
         });
 
     module.info("assistant_native_vehicle ready=true manager="+load.getName());
+  }
+
+  static Object newDevice(Constructor<?> ctor,Bundle state,Object car,Object connected,Object template,List<Object> switches) throws Exception {
+    ArrayList<Integer> batteries=new ArrayList<>();
+    int soc=state.getInt("batteryPercent",-1);
+    if(state.getBoolean("batteryPercentKnown")&&soc>=0&&soc<=100)batteries.add(soc);
+    String name=state.getString("name","Polestar");
+    String summary=(batteries.isEmpty()?"":soc+"%")+(state.getBoolean("rangeKmKnown")?" · "+state.getInt("rangeKm")+"km":"");
+    return ctor.newInstance("02:50:53:41:00:01","psassistant_shelf_polestar",name+" · 缓存 "+summary,car,connected,template,
+        0,null,VehicleDeviceCardProvider.AUTHORITY,null,0,state.getLong("capturedAt",0),false,false,new ArrayList<>(),
+        true,switches,new ArrayList<>(),batteries,new ArrayList<>());
   }
 
   private static List<Object> menus(Constructor<?> ctor,Bundle state,String scheme) throws Exception {

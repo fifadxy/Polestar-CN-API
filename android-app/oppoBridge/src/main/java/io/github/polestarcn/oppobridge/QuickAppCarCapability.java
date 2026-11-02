@@ -79,9 +79,9 @@ final class QuickAppCarCapability {
             scanned++;
             if(hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi"))
               registry=true;
-            if(windowHas(text,"smartHomeDefault","CAR","kongtiao","chesuo","shanguang","mingdi"))
+            if(hasCarDefaults(text))
               smart=true;
-            if(windowHas(text,"eventSummary","CAR","kongtiao","chesuo","shanguang","mingdi"))
+            if(hasCarEvents(text))
               event=true;
             if(registry&&smart&&event)break;
           }
@@ -98,22 +98,38 @@ final class QuickAppCarCapability {
     }
   }
 
-  private static boolean windowHas(String text,String anchor,String... tokens) {
-    if(text==null||text.isEmpty())return false;
-    int from=0;
-    while(true) {
-      int at=text.indexOf(anchor,from);
-      if(at<0)return false;
-      int start=Math.max(0,at-1800);
-      int end=Math.min(text.length(),at+12000);
-      String window=text.substring(start,end);
-      boolean hasCar=window.contains("CAR")||window.contains("Car");
-      boolean hasId=false;
-      for(String token:tokens)
-        if(!"CAR".equals(token)&&window.contains(token)) {hasId=true;break;}
-      if(hasCar&&hasId)return true;
-      from=at+anchor.length();
+  static boolean hasCarDefaults(String text) {
+    String object=initializer(text,"smartHomeDefault",'{','}');
+    java.util.regex.Matcher key=java.util.regex.Pattern.compile("(?:\\{|,)\\s*(?:CAR|[\"']CAR[\"'])\\s*:").matcher(object);
+    if(!key.find())return false;
+    return allCarIds(initializer("const controls = "+object.substring(key.end()),"controls",'[',']'));
+  }
+  static boolean hasCarEvents(String text) {
+    return allCarIds(initializer(text,"eventSummary",'[',']'));
+  }
+  private static boolean allCarIds(String text) {
+    for(String id:new String[]{"chesuo","kongtiao","mingdi","shanguang"})
+      if(!java.util.regex.Pattern.compile("[\"']"+id+"[\"']").matcher(text).find())return false;
+    return true;
+  }
+  // Skip strings and comments while balancing; imports/export declarations alone are not initializers.
+  static String initializer(String text,String name,char open,char close) {
+    if(text==null)return "";
+    java.util.regex.Matcher match=java.util.regex.Pattern.compile("\\bconst\\s+"+name+"\\s*=[^;\\n]*?"+java.util.regex.Pattern.quote(String.valueOf(open))).matcher(text);
+    if(!match.find())return "";
+    int start=match.end()-1,depth=0;char quote=0;boolean line=false,block=false,escape=false;
+    StringBuilder out=new StringBuilder();
+    for(int i=start;i<text.length();i++) {
+      char c=text.charAt(i),next=i+1<text.length()?text.charAt(i+1):0;
+      if(line){if(c=='\n')line=false;continue;}
+      if(block){if(c=='*'&&next=='/'){block=false;i++;}continue;}
+      if(quote!=0){out.append(c);if(escape)escape=false;else if(c=='\\')escape=true;else if(c==quote)quote=0;continue;}
+      if(c=='/'&&next=='/'){line=true;i++;continue;}
+      if(c=='/'&&next=='*'){block=true;i++;continue;}
+      if(c=='\"'||c=='\''){quote=c;out.append(c);continue;}
+      out.append(c);if(c==open)depth++;else if(c==close&&--depth==0)return out.toString();
     }
+    return "";
   }
 
   private static boolean hasAny(String text,String... values) {

@@ -87,7 +87,7 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&!bounds.isEmpty())airflow.drawLayer(canvas,bounds,VehicleArt.frontAtRight(art),time,density,settings,mode,lowRam?24:120,1,1);
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&settings.windowGlow)windows.draw(canvas,imageBounds,art,time,mode,settings.windowStrength,1f,settings.windowRange,settings.windowPeriod,settings.windowFeather);
     canvas.restore();
-    if(isPressed()){touchGlow.setColor(0x24FFFFFF);canvas.drawRoundRect(0,0,getWidth(),getHeight(),12*density,12*density,touchGlow);backdropText.setTextAlign(android.graphics.Paint.Align.CENTER);backdropText.setColor(PsaDesign.muted(AppPreferences.dark(getContext())));backdropText.setTypeface(PsaDesign.regular());backdropText.setFakeBoldText(false);backdropText.setTextSize(10*density);canvas.drawText(UiDisplayMode.minimal(getContext())?AppPreferences.tr(getContext(),"长按1.1s关闭极简模式","Hold 1.1s for standard mode"):AppPreferences.tr(getContext(),"长按1.1s开启极简模式","Hold 1.1s for minimal mode"),getWidth()/2f,getHeight()-8*density,backdropText);}
+    if(isPressed()){touchGlow.setColor(0x24FFFFFF);canvas.drawRoundRect(0,0,getWidth(),getHeight(),12*density,12*density,touchGlow);backdropText.setTextAlign(android.graphics.Paint.Align.CENTER);backdropText.setColor(PsaDesign.muted(AppPreferences.dark(getContext())));backdropText.setTypeface(PsaDesign.regular());backdropText.setFakeBoldText(false);backdropText.setTextSize(10*density);canvas.drawText(AppPreferences.tr(getContext(),"长按1.5s设置皮肤、车图与极简模式","Hold 1.5s for appearance and minimal mode"),getWidth()/2f,getHeight()-8*density,backdropText);}
   }
   private final Handler touchHandler=new Handler(Looper.getMainLooper());private float downX,downY;private boolean holdFired,moved;private Runnable holdAction;
   void setVehicleHold(Runnable action){holdAction=action;}
@@ -95,7 +95,7 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
   private final Runnable hold=()->{holdFired=true;Haptics.vehicle(getContext());if(holdAction!=null)holdAction.run();};
   @Override public boolean performClick(){return super.performClick();}
   @Override public boolean onTouchEvent(android.view.MotionEvent e){switch(e.getActionMasked()){
-    case android.view.MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();holdFired=false;moved=false;Haptics.vehicle(getContext());invalidate();touchHandler.postDelayed(hold,1100);break;
+    case android.view.MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();holdFired=false;moved=false;Haptics.vehicle(getContext());invalidate();touchHandler.postDelayed(hold,1500);break;
     case android.view.MotionEvent.ACTION_MOVE:float slop=android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();if(Math.abs(e.getX()-downX)>slop||Math.abs(e.getY()-downY)>slop){moved=true;touchHandler.removeCallbacks(hold);}break;
     case android.view.MotionEvent.ACTION_UP:touchHandler.removeCallbacks(hold);setPressed(false);if(!holdFired&&!moved)performClick();return true;
     case android.view.MotionEvent.ACTION_CANCEL:touchHandler.removeCallbacks(hold);setPressed(false);return true;

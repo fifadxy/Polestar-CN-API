@@ -19,10 +19,8 @@ public final class ControlStatusText {
       if("已上锁".equals(raw)||"已锁".equals(raw))return AppPreferences.tr(c,"已锁","Locked");
       if("未锁".equals(raw))return AppPreferences.tr(c,"未锁","Unlocked");
     }
-    if("climate".equals(control)||"air".equals(control)){
-      if("开启".equals(raw))return AppPreferences.tr(c,"运行中","Running");
-      if("关闭".equals(raw))return AppPreferences.tr(c,"未运行","Not running");
-    }
+    if("climate".equals(control))return ClimateRuntime.controlLabel(c,s,AppPreferences.get(c,"vehicle",""));
+    if("air".equals(control))return AirRuntime.label(c,s,AppPreferences.get(c,"vehicle",""));
     if("windows".equals(control)){
       if("全部关闭".equals(raw)||"已关闭".equals(raw))return AppPreferences.tr(c,"已关","Closed");
       if("已打开".equals(raw)||"未关严".equals(raw)||raw.contains("个开启"))

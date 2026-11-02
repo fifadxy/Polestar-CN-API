@@ -1,5 +1,6 @@
 package io.github.polestarcn.companion;
 
+import io.github.polestarcn.companion.auth.SecureVehicleSelection;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -132,7 +133,7 @@ public final class VehicleCoordinator {
     api = new ChinaPolestarApi(c);
     snapshot = VehicleSnapshotStore.loadChina(c);
     signedIn = api.session() != null;
-    if(signedIn&&snapshot!=null&&!snapshot.isDemo){selected=io.github.polestarcn.companion.auth.SecureVehicleSelection.load(c,AppPreferences.get(c,"vehicle",""));if(selected!=null)cars.add(selected);}
+    if(signedIn&&snapshot!=null&&!snapshot.isDemo){selected=SecureVehicleSelection.load(c,AppPreferences.get(c,"vehicle",""));if(selected!=null)cars.add(selected);}
   }
 
   public void listen(Runnable r) {
@@ -179,7 +180,7 @@ public final class VehicleCoordinator {
             api.login(phone, password);
             main.post(
                 () -> {
-                  io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(context);
+                  SecureVehicleSelection.clear(context);
                   signedIn = true;OppoCarLinkModels.account(context,phone);
                   busy = false;exclusive=false;
                   refresh(null);
@@ -238,7 +239,7 @@ public final class VehicleCoordinator {
                   if (discover) vehiclesDiscoveredAt = System.currentTimeMillis();
                   boolean selectionChanged=selected==null||!selected.vin.equals(pick.vin);
                   selected = pick;
-                  if(selectionChanged)io.github.polestarcn.companion.auth.SecureVehicleSelection.save(context,pick);
+                  if(selectionChanged)SecureVehicleSelection.save(context,pick);
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;lastVehicleReadOk=true;
                   protectCamp(pick.vin, live);
@@ -260,7 +261,7 @@ public final class VehicleCoordinator {
   public void choose(ChinaPolestarApi.VehicleInfo car) {
     if (busy || commandPending) return;
     lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
-    io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(context);
+    SecureVehicleSelection.clear(context);
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
     snapshot = null;
@@ -375,7 +376,7 @@ public final class VehicleCoordinator {
     if(!CampModeManager.pendingStop(context))CampModeManager.clear(context);
     else CampModeManager.suspendPendingStopForSignOut(context);
     OppoCarLinkRuntime.get(context).stop();
-    io.github.polestarcn.companion.auth.SecureVehicleSelection.clear(context);
+    SecureVehicleSelection.clear(context);
     context.getSharedPreferences("oppo-carlink-identity",0).edit().clear().apply();
     api.logout();
     selected = null;

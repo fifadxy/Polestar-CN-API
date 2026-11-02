@@ -185,3 +185,39 @@ OPPO 中国区官方已经支持部分品牌无感车钥匙、NFC 车钥匙和�
 - 不宣称车辆或蓝牙钥匙已经绑定。
 
 因此“让系统出现极星选项”与“让车辆接受数字钥匙”已经明确分离。
+
+
+## 官方公开资料交叉验证
+
+### Polestar 2
+
+Polestar 官方 FAQ / Manual 当前明确：
+- Digital Key 是加密数字钥匙，安全存储在用户手机，通过加密 Bluetooth 与车辆通信；
+- Polestar 2 主要使用 Bluetooth + cloud connection；
+- Polestar 2 因技术/硬件架构不同，不能使用 Polestar 3/4 的 Wallet 标准化数字钥匙；
+- Digital Key 需先将 Polestar App 与车辆连接，再在 App 中激活；
+- 首个管理员配对要求所有实体钥匙在车内；guest 配对仍要求至少一把实体钥匙；
+- Digital Key 的能力包括 lock / unlock / vehicle start；
+- 车端 Phone-as-Key 射频位于 2.4 GHz，Polestar 手册将其标为 PAKM/Phone as Key system。
+
+官方参考：
+- https://www.polestar.com/us/support/faq/polestar-2-app-and-digital-key/
+- https://www.polestar.com/us/manual/polestar-2/
+- https://www.polestar.com/en-il/manual/polestar-2/2024/article/dcc960b6c83a3190c0a801517b420846/
+
+### OPPO Watch / 穿戴
+
+OPPO 官方 Watch X2 中国区产品页明确支持：
+- 部分合作品牌“无感车钥匙”；
+- 部分合作品牌 NFC 车钥匙；
+- 多品牌车控 App；
+- BLE / NFC 硬件能力；
+- 全智能/长续航双模式。
+
+OPPO 开放平台穿戴服务也明确：Watch 应用可通过网络或蓝牙与手机、汽车等设备联动，实现数据同步与操作控制。
+
+官方参考：
+- https://store.oppo.com/cn/app/product/index?skuId=32731
+- https://open.oppomobile.com/new/introduction?page_name=wearabledevice
+
+这些资料证明 Watch X2 的硬件与 OPPO 系统可以承载“车钥匙/车控”能力，但能否用于 Polestar 2 取决于真实 OEM 配对协议与系统合作/授权，不能由 LSPosed 的 UI 假绑定替代。

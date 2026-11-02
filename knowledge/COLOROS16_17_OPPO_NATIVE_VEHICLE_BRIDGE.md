@@ -1,6 +1,24 @@
 # PsAssistant × ColorOS 16/17 Native Vehicle Bridge Research
 
-Updated: 2026-10-30
+Updated: 2026-11-02
+
+## 2026-11-02 architecture supersession — official CarLink first
+
+The original document below records the reverse-engineering path that led to MyDevices / Shelf / Pantanal integration. It is retained for compatibility knowledge, but **it is no longer the primary product architecture**.
+
+Current order:
+
+1. **PsAssistant China backend** remains the single source of truth for login, vehicle state and real commands.
+2. **OPPO CarLink / OCS CarControl** is the preferred native ColorOS vehicle integration route for “我的车辆” / Shelf vehicle cards and system remote-control callbacks.
+3. **MyDevices / AssistantScreen / Pantanal / QuickApp hooks** are fallback, diagnostics and old-firmware compatibility only.
+4. Digital key remains a separate trust domain.
+
+The official CarLink route was confirmed from the user-supplied OPPO CarAppDemo / OCS 1.4.0 API contract. Do not copy the demo AUTH_CODE/companyId or bypass OPPO authorization. The public branch may implement data models, host discovery and mappers; the production OCS adapter requires credentials issued for PsAssistant and the production signing identity.
+
+See:
+- `knowledge/OPPO_CARLINK_OFFICIAL_SDK_ROUTE_20261102.md`
+- `knowledge/OPPO_CARLINK_SDK_API_MATRIX_20261102.md`
+
 
 ## Goal
 

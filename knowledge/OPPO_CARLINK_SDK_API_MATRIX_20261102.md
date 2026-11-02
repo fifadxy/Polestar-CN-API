@@ -322,3 +322,32 @@ beta20 已提供该入口，并检测：
 - 不含凭据的接口适配层
 
 取得 OPPO 授权与可合法打包的正式 SDK 后，再将官方 adapter 作为 Release 可选依赖接入。
+
+
+## 15. beta21：CarStatus 适配层落地
+
+beta21 新增不依赖 OPPO 专有 AAR 的公开适配层：
+
+- `OppoCarLinkSnapshotAdapter`：将 PsAssistant `VehicleSnapshot` 转成可检查的 CarLink 状态语义。
+- `oppo-carlink-preview`：通过本地桥接只读查看映射结果。
+- Bridge 诊断页可显示 SOC 比例、续航、里程、充电状态和可上报控制指令。
+- 单测明确验证 59% SOC 必须映射为 `0.59f`，并对异常 SOC 做 0..1 clamp。
+- 缺失续航/里程不会伪造数值。
+- 当前可上报控制指令严格限制为已有 PsAssistant 真实控制能力。
+
+该层的目的，是让“真实车辆数据 -> OPPO CarStatus”在没有 AUTH_CODE/companyId 时也能独立测试。取得 OPPO 正式授权后，只需增加受控的 OCS Adapter，把这些字段写入 `CarStatus` 并调用 `sendCarStatus/List`，不重写车辆后端。
+
+### 官方开放文档目录研究范围
+
+OPPO CarLinkUnit 文档左侧目录已确认包含：
+
+- CarLinkUnit 介绍
+- CarLinkUnit 接入指南
+- CarLinkUnit 接口指导
+- CarLink 云端接入指导
+- CarLinkUnit 版本更新说明
+- CarLinkUnit 常见问题（FAQ）
+- CarLinkUnit 附录
+- 联系我们
+
+网页正文采用登录/动态加载机制，公开抓取不能稳定导出所有正文；接口合同因此以用户提供的官方 Demo、OCS AAR 与公开可验证的车企 SDK 使用说明交叉校验，不猜测不可读取章节内容。

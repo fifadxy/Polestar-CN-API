@@ -135,6 +135,24 @@ public final class BridgeDiagnosticsActivity extends Activity {
             .append(" · CarAppProvider=").append(carLink.getBoolean("providerAvailable",false))
             .append(" · 绑定入口=").append(carLink.getBoolean("bindRouteAvailable",false)).append('\n');
         out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");
+        Bundle carLinkPreview=BridgeClient.call(this,"oppo-carlink-preview",null);
+        out.append("CarStatus 映射预览: ");
+        if(!carLinkPreview.getBoolean("available",false)) {
+          out.append("暂无车辆快照；登录并刷新车辆后可验证官方上报字段。\n\n");
+        } else {
+          if(carLinkPreview.getBoolean("batteryKnown",false))
+            out.append("SOC=").append(Math.round(carLinkPreview.getFloat("batteryLeftRatio",0f)*100f)).append("% / ratio=")
+                .append(carLinkPreview.getFloat("batteryLeftRatio",0f));
+          else out.append("SOC=未知");
+          if(carLinkPreview.getBoolean("batteryRangeKnown",false))
+            out.append(" · 续航=").append(carLinkPreview.getFloat("batteryEnduranceMileage",0f)).append("km");
+          if(carLinkPreview.getBoolean("odometerKnown",false))
+            out.append(" · 里程=").append(carLinkPreview.getFloat("totalMileage",0f)).append("km");
+          out.append(" · charging=").append(carLinkPreview.getBoolean("charging",false)).append('\n');
+          out.append("  可上报指令=").append(Arrays.toString(carLinkPreview.getStringArray("availableInstructions"))).append('\n');
+          out.append("  beta21 只验证 CarStatus 语义映射；未取得 OPPO 授权前不会伪造 OCS 鉴权或车企身份。\n\n");
+        }
+
 
         Bundle oemState=BridgeClient.call(this,"oppo-oem-car-status",null);
         QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(this);

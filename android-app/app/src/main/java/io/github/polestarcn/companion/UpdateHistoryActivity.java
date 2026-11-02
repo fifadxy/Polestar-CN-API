@@ -3,6 +3,7 @@ import android.app.Activity;import android.os.Bundle;import android.widget.*;
 /** Curated feature history only. Does not display source documents or service credentials. */
 public final class UpdateHistoryActivity extends Activity {
  static final String[][] HISTORY={
+ {"v0.9.7-beta21","OPPO 集成改为官方 CarLink 优先：新增系统能力检测、我的车辆绑定入口、官方车控指令映射与 CarStatus 数据预映射；保留设备空间/负一屏 Hook 作为兼容兜底，并强化独立登录 FULL 构建门禁。","OPPO integration now prioritizes official CarLink: system capability discovery, My Vehicle binding entry, official command mapping and CarStatus preview mapping; device-space/Shelf hooks remain compatibility fallbacks, with stronger standalone FULL login build gates."},
  {"v0.9.6","设置搜索、沉浸显示、车况文字自定义、配置备份恢复；统一二级车况菜单，优化长按、门锁确认与同向补发；通知图标独立可选，新增三种充电流光。","Searchable settings, edge-to-edge display, condition text customization, settings backup/restore, secondary condition menus, improved holds, lock verification with one same-direction resend, independent notification icons and three new charging sweeps."},
  {"v0.9","新增能耗历史曲线、车辆图片选择、可调动态效果、分层粒子、轨迹尾迹和自定义背景；持续修复布局和稳定性。","Energy history, vehicle image selection, adjustable effects, depth-layered particles, motion trails and custom backgrounds; layout and stability fixes."},
  {"v0.8","扩展桌面组件尺寸、透明风格、数据与按钮选择；优化地图预览、车况展开方式及刷新规则。","More widget sizes, transparency, selectable data and controls; improved map previews, expandable condition details and refresh rules."},

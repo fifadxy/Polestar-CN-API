@@ -5,7 +5,12 @@ import android.content.Intent;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk=28)
 public class PolestarProviderCatalogShimTest {
   public static final class Provider {
     private String spCode; private String name; private String iconUrl="sample-icon";

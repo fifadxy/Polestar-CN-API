@@ -13,7 +13,7 @@ public class OppoShelfCardSnapshotAdapterTest {
   @Test public void mapsVehicleSnapshotWithoutInventingMilestone() {
     VehicleSnapshot state = new VehicleSnapshot(
         "Polestar 2", "VIN…", 59, 240, 32100, "充电中",
-        "全部关闭", "全部关闭", "已关闭", "已锁", 123456L, "LIVE", false,
+        "全部关闭", "全部关闭", "已关闭", "已锁", System.currentTimeMillis(), "LIVE", false,
         "开启", "关闭");
     Bundle out = OppoShelfCardSnapshotAdapter.preview(state);
     assertTrue(out.getBoolean("available"));

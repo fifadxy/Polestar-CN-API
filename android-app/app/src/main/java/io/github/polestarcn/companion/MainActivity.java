@@ -2152,7 +2152,7 @@ public final class MainActivity extends FragmentActivity {
       widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);note(p,tr("磨砂玻璃说明","Frosted glass"),tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."));
     });
     disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("车控验证方式 · 生物识别 / 确认 / 直接发送","Control authorization · biometrics / confirm / direct"),this::authorizationSettings);setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});
-    disclosure(root,"settings_oppo",tr("OPPO 设备空间与模块","OPPO device space and module"),false,p->{
+    disclosure(root,"settings_oppo",tr("OPPO CarLink / 设备空间","OPPO CarLink / device space"),false,p->{
       Switch card=new Switch(this);card.setTag("oppo_device_card_enabled");
       card.setText(tr("启用 OPPO 设备空间车辆卡片","Enable OPPO vehicle device card"));
       card.setTextColor(ink);card.setMinHeight(dp(52));
@@ -2164,7 +2164,7 @@ public final class MainActivity extends FragmentActivity {
         } catch(RuntimeException failure) { card.setChecked(OppoDeviceIntegration.enabled(this));toast(tr("切换失败，请查看诊断","Could not change setting; check diagnostics")); }
       });p.addView(card);
       p.addView(text(tr("开启后向设备空间提供当前车辆的电量、状态与控制入口。主 APK 已内置模块；如系统不自动发现，请在兼容 API 102 的框架中启用 PsAssistant，并勾选我的设备。关闭后停止卡片输出和操作。","Shares the selected vehicle with device space. The module is included. If not discovered, enable PsAssistant in an API 102 framework and scope My Devices. Turning this off stops card data and actions."),12,muted,false));
-      setting(p,tr("负一屏／桌面组件 · 添加与诊断","Shelf / home widgets · setup and diagnostics"),()->startActivity(new Intent(this,OppoWidgetSetupActivity.class)));
+      setting(p,tr("CarLink 我的车辆／负一屏／组件 · 添加与诊断","CarLink vehicle / shelf / widgets · setup and diagnostics"),()->startActivity(new Intent(this,OppoWidgetSetupActivity.class)));
       setting(p,tr("连接诊断与车辆卡片面板","Connection diagnostics and vehicle card panel"),()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
     });
     disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,p->{residentSettings(p);setting(p,tr("App / Widget 刷新规则","App / Widget refresh rules"),this::refreshRulesDialog);});

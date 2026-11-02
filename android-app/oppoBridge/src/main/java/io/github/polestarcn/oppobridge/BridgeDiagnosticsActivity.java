@@ -31,6 +31,13 @@ public final class BridgeDiagnosticsActivity extends Activity {
     official.setText("打开 Polestar“我的车辆”实验绑定");
     official.setOnClickListener(v -> startActivity(new Intent(this, PolestarOfficialBindActivity.class)));
     column.addView(official);
+    Button officialCarLink = new Button(this);
+    officialCarLink.setText("打开 OPPO CarLink 官方「我的车辆」绑定");
+    officialCarLink.setOnClickListener(v -> {
+      try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("card://carlink.heytap.com/control?operation=bind"))); }
+      catch (RuntimeException unavailable) { status.setText("OPPO CarLink 绑定入口不可用：" + unavailable.getClass().getSimpleName()); }
+    });
+    column.addView(officialCarLink);
     Button oemEnable = new Button(this);
     oemEnable.setText("启用 OEM 4×2 CAR 实验路由");
     oemEnable.setOnClickListener(v -> setOemCarExperiment(true));
@@ -120,6 +127,15 @@ public final class BridgeDiagnosticsActivity extends Activity {
           out.append("  2×2 CAR registry=").append(quick.getBoolean("single2x2CarRegistry",false))
               .append(" · eventSummary允许CAR=").append(quick.getBoolean("single2x2EventSummaryCar",false)).append('\n');
         }
+        Bundle carLink=BridgeClient.call(this,"oppo-carlink-status",null);
+        out.append("OPPO CarLink 官方通道: ")
+            .append(carLink.getBoolean("installed",false)?"已安装":"未检测到")
+            .append(" · ").append(carLink.getString("versionName",""))
+            .append(" · OCS service=").append(carLink.getBoolean("serviceAvailable",false))
+            .append(" · CarAppProvider=").append(carLink.getBoolean("providerAvailable",false))
+            .append(" · 绑定入口=").append(carLink.getBoolean("bindRouteAvailable",false)).append('\n');
+        out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");
+
         Bundle oemState=BridgeClient.call(this,"oppo-oem-car-status",null);
         QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(this);
         out.append("OEM 4×2 CAR 实验: ")
@@ -214,7 +230,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
         out.append("检测失败: ").append(failure.getClass().getSimpleName()).append(": ").append(failure.getMessage()).append('\n');
       }
       out.append("\n安装路径\n新版 PsAssistant: 使用内置桥接接口。\n旧版 PsAssistant: 启用 API 102 模块，勾选 PsAssistant 与我的设备，重启目标应用。运行时桥接要求 Android 14 或更高版本。\n");
-      out.append("\n已实现: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改系统 RPK；1.5.0 会自动检测并报告 converter/RPK 双重过滤与 OEM QuickApp Provider 实际调用状态。\n待真机验证: CAR=COORDINATED 后原生首页控件实际渲染、OEM QuickApp CAR 路由及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景；0.9.0 现已增加 Pantanal serviceId 与 SceneService provider/绑定状态只读探针。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
+      out.append("\n首选路线: OPPO CarLink 官方 SDK/我的车辆；兼容路线: 桥接、直接车控面板、MyDevices 17.4.15 原生首页车辆控件。\nQuickApp: 保留 OEM 数据，不修改系统 RPK；1.5.0 会自动检测并报告 converter/RPK 双重过滤与 OEM QuickApp Provider 实际调用状态。\n待真机验证: CAR=COORDINATED 后原生首页控件实际渲染、OEM QuickApp CAR 路由及车辆读回。\n负一屏静态 car setting 已确认属于车载蓝牙场景；0.9.0 现已增加 Pantanal serviceId 与 SceneService provider/绑定状态只读探针。\n小布、Watch 长续航、官方车企绑定尚未宣称完成。\n\n文字可长按选择复制。");
       runOnUiThread(() -> {
         if (!isFinishing() && !isDestroyed()) status.setText(out.toString());
       });

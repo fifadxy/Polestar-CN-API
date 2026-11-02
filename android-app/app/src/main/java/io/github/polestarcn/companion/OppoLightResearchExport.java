@@ -32,7 +32,7 @@ final class OppoLightResearchExport {
     boolean criticalComplete=true;
     try(ZipOutputStream zip=new ZipOutputStream(new CappedOutput(output))) {
       zip.setLevel(6);
-      for(String pkg:new String[]{"com.coloros.assistantscreen","com.heytap.mydevices","com.heytap.health",
+      for(String pkg:new String[]{"com.heytap.opluscarlink","com.coloros.assistantscreen","com.heytap.mydevices","com.heytap.health",
           "com.heytap.speechassist","com.oplus.ocar","com.android.launcher","com.oplus.pantanal.ums",
           "com.coloros.sceneservice","com.oplus.sceneservice","com.nearme.instant.platform"}) {
         progress.update("轻量收集 "+pkg);

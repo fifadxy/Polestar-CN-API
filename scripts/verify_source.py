@@ -41,7 +41,7 @@ assert 'grpc-okhttp:1.68.2' in gradle
 version = re.search(r"versionName\s+'([^']+)'", gradle)
 assert version, 'missing APK versionName'
 workflow = (root/'.github/workflows/android-apk.yml').read_text()
-assert f'PsAssistant-v{version.group(1)}-debug.apk' in workflow, 'CI artifact version must match APK metadata'
+artifact_version=version.group(1).replace('-standalone','')\nassert f'PsAssistant-v{artifact_version}-VALIDATION-debug.apk' in workflow, 'CI validation artifact version must match APK metadata'
 assert 'VehicleSnapshotStore.saveChina' in all_java
 assert 'secret + canonical + secret' in all_java
 assert 'ProtoWire.stringField(2, vin)' in all_java

@@ -73,7 +73,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return OppoQuickAppRuntimeDiagnostics.record(context,extras);
     }
     if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
-    if("oppo-oem-car-status".equals(method))return OppoOemCarExperimentState.status(context);
+    if("oppo-carlink-status".equals(method))return OppoOfficialCarLink.status(context);\n    if("oppo-oem-car-status".equals(method))return OppoOemCarExperimentState.status(context);
     if("oppo-oem-car-set".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean bridge=false;if(callers!=null)for(String pkg:callers)

@@ -23,7 +23,7 @@ public final class VehicleEffectsActivity extends Activity {
   protected void attachBaseContext(Context c){super.attachBaseContext(UiTypography.wrap(c));}
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
   private String tr(String a,String b){return AppPreferences.tr(this,a,b);}
-  private String[] scenes(){return new String[]{tr("充电粒子","Charging particles"),tr("空调 · 中性气流","Climate · neutral"),tr("制冷 · A1","Cooling · A1"),tr("制热 · A1","Heating · A1"),tr("通风 / 空气净化","Ventilation / air purification"),tr("停止动效","Effects off"),tr("All Good！慢速光效","All Good! sweep"),tr("充电文字框流光","Charging-card sweep"),tr("页面切换光效","Page transition")};}
+  private String[] scenes(){return new String[]{tr("充电粒子","Charging particles"),tr("空调 · 中性气流","Climate · neutral"),tr("制冷 · A1","Cooling · A1"),tr("制热 · A1","Heating · A1"),tr("通风 / 净化","Ventilation / air purification"),tr("停止动效","Effects off"),tr("All Good！慢速光效","All Good! sweep"),tr("充电文字框流光","Charging-card sweep"),tr("页面切换光效","Page transition")};}
   @Override public void onCreate(Bundle state){super.onCreate(state);if(state!=null)scene=Math.max(0,Math.min(8,state.getInt("scene")));ink=PsaDesign.ink(AppPreferences.dark(this));muted=PsaDesign.muted(AppPreferences.dark(this));build();}
   private TextView text(String value,int size){TextView t=new TextView(this);t.setText(value);t.setTextColor(ink);t.setTextSize(size);t.setPadding(dp(8),dp(6),dp(8),dp(6));return t;}
   private Button button(String label,Runnable action){Button b=new Button(this);b.setText(label);b.setTextColor(ink);b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(PsaDesign.surface(AppPreferences.dark(this))));b.setHapticFeedbackEnabled(false);b.setOnClickListener(v->{Haptics.tap(this);action.run();});return b;}
@@ -40,7 +40,7 @@ public final class VehicleEffectsActivity extends Activity {
     choice(tr("测试场景","Test scenario"),"effect_test_scene",scenes(),scene,index->{stopCycle();scene=index;showScene();});
     settingsRoot=controls;section(tr("总开关与独立效果","Master and effect switches"),true);
     toggle("light_effects",tr("界面光效总开关","UI effects master"),true);
-    toggle("fx_air",tr("空调（制冷 / 通风）","Climate (cooling / ventilation)"),true);toggle("fx_heating",tr("制热动态效果","Heating effects"),true);toggle("fx_purification",tr("空气净化动态效果","Air purification effects"),true);
+    toggle("fx_air",tr("空调（制冷 / 通风）","Climate (cooling / ventilation)"),true);toggle("fx_heating",tr("制热动态效果","Heating effects"),true);toggle("fx_purification",tr("净化动态效果","Air purification effects"),true);
     section(tr("充电粒子","Charging particles"),false);toggle("fx_charge",tr("充电粒子","Charging particles"),true);
     choice(tr("粒子风格","Particle style"),"fx_style",new String[]{tr("C1a · 自然星尘","C1a · natural stardust"),tr("C1d · 羽化柔光","C1d · feather glow"),tr("C1+a · 自然聚拢","C1+a · natural convergence"),tr("C1+d · 柔光聚拢","C1+d · soft convergence"),tr("C1+c · 弧线引导","C1+c · guided arcs")},new EffectSettings(this).style,index->{stopCycle();AppPreferences.set(this,"fx_style",EffectSettings.STYLES[index]);showScene();});
     choice(tr("运动方向","Motion direction"),"fx_direction",new String[]{tr("上升","Rising"),tr("吸入充电口","Absorb into charge port")},new EffectSettings(this).absorb?1:0,index->{stopCycle();AppPreferences.set(this,"fx_direction",index==1?"absorb":"up");showScene();});

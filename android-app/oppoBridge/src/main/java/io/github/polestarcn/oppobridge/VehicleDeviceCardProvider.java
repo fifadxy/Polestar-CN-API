@@ -263,7 +263,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "trunk-close" : "trunk-open");
 
     String air = state.getString("air", "");
-    addShortcut(out, "开启".equals(air) ? "关闭净化" : "空气净化",
+    addShortcut(out, "开启".equals(air) ? "关闭净化" : "净化",
         "开启".equals(air) ? "air-stop" : "air-start");
     return out;
   }

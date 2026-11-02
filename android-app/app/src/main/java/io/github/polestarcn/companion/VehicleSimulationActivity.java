@@ -153,7 +153,7 @@ public final class VehicleSimulationActivity extends Activity {
     addToggle(page,"cool","空调制冷","Climate cooling");
     addToggle(page,"heat","空调制热","Climate heating");
     addToggle(page,"vent","车辆通风","Ventilation");
-    addToggle(page,"air","空气净化","Air purification");
+    addToggle(page,"air","净化","Air purification");
     addToggle(page,"lock","车门上锁","Doors locked");
     addToggle(page,"trunk","尾箱开启","Trunk open");
     addToggle(page,"windows","车窗开启","Windows open");

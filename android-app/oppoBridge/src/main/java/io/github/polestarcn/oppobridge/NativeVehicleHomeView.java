@@ -106,7 +106,7 @@ final class NativeVehicleHomeView extends LinearLayout {
     boolean trunk="已打开".equals(data.getString("tailgate"))||"未关严".equals(data.getString("tailgate"));
     actions[0]=locked?"unlock":"lock";controls[0].setText(locked?"解锁":"上锁");
     actions[1]=climate?"climate-stop":"climate-start";controls[1].setText(climate?"关闭空调":"开启空调");
-    actions[2]=air?"air-stop":"air-start";controls[2].setText(air?"关闭净化":"空气净化");
+    actions[2]=air?"air-stop":"air-start";controls[2].setText(air?"关闭净化":"净化");
     actions[3]=trunk?"trunk-close":"trunk-open";controls[3].setText(trunk?"关闭尾门":"开启尾门");
     boolean enabled=data.getBoolean("available")&&!data.getBoolean("demo")&&data.getBoolean("cardEnabled",true);
     for(Button b:controls)b.setEnabled(enabled&&!busy);

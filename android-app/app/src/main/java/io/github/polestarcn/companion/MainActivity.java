@@ -1892,7 +1892,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout panel=scrollBody();((ScrollView)panel.getParent()).setTag("data_scroll");VehicleSnapshot v=model.snapshot;
     panel.addView(text(tr("车辆数据","Vehicle data"),24,ink,false));if(v==null){panel.addView(text(tr("暂无车况，请连接车辆后刷新。","No vehicle snapshot. Connect and refresh first."),14,muted,false));setting(panel,tr("刷新车辆","Refresh vehicle"),()->model.refreshUser(null));return;}
     detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.BATTERY_12V,DisplayMetric.SERVICE_CYCLE);if(v.chargingDetails.targetPercent!=null)metricRows(panel,DisplayMetric.CHARGE_LIMIT);
-    setting(panel,tr("行驶 / 驻车空调能耗","Driving / parked climate energy"),this::energyHistory);
+    setting(panel,tr("行驶 / 空调能耗","Driving / parked climate energy"),this::energyHistory);
     disclosure(panel,"data_health",tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),true,this::healthOverview);
     disclosure(panel,"data_exterior",tr("车门 / 车窗 / 尾箱","Doors / windows / tailgate"),false,this::exteriorContents);
     if(showTires())disclosure(panel,"data_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
@@ -2425,7 +2425,7 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(text(tr("车辆状况","Vehicle condition"),24,ink,true));panel.addView(text(VehicleCondition.summary(this,model.snapshot,showTires()),16,VehicleCondition.problem(model.snapshot,showTires())?accentText():ink,false));
     TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!(model.busy&&!model.quietRefresh)&&model.hasSession());panel.addView(refresh);gap(panel,12);
     healthOverview(panel);
-    disclosure(panel,"status_energy",tr("行驶 / 驻车空调能耗","Driving / parked climate energy"),false,p->{setting(p,tr("能耗记录与曲线","Energy history and charts"),this::energyHistory);});
+    disclosure(panel,"status_energy",tr("行驶 / 空调能耗","Driving / parked climate energy"),false,p->{setting(p,tr("能耗记录与曲线","Energy history and charts"),this::energyHistory);});
     disclosure(panel,"status_service",tr("保养周期与原始上报值","Service cycle and reported values"),false,this::serviceContents);
     disclosure(panel,"status_exterior",tr("车门 / 车窗 / 尾箱位置状态","Doors / windows / tailgate positions")+(model.snapshot!=null&&ExteriorView.hasOpening(model.snapshot)?" !":""),false,this::exteriorContents);
     if(showTires())disclosure(panel,"status_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);

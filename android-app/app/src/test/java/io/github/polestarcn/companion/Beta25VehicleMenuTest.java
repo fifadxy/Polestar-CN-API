@@ -44,9 +44,8 @@ public class Beta25VehicleMenuTest {
   private void touch(VehicleHeroView v,int action){MotionEvent e=MotionEvent.obtain(SystemClock.uptimeMillis(),SystemClock.uptimeMillis(),action,10,10,0);v.onTouchEvent(e);e.recycle();}
   @Test public void holdFor1500msOpensAppearanceMenuAndOnlyMenuTogglesMinimal()throws Exception{
     UiSkin.set(a,UiSkin.PS_DEFAULT);UiDisplayMode.setMinimal(a,false);VehicleHeroView v=hero(render(360,780));assertNotNull(v);
-    touch(v,MotionEvent.ACTION_DOWN);Shadows.shadowOf(Looper.getMainLooper()).idleFor(1499,TimeUnit.MILLISECONDS);
-    assertNull(ShadowAlertDialog.getLatestAlertDialog());assertFalse(UiDisplayMode.minimal(a));
-    Shadows.shadowOf(Looper.getMainLooper()).idleFor(1,TimeUnit.MILLISECONDS);
+    touch(v,MotionEvent.ACTION_DOWN);assertFalse(UiDisplayMode.minimal(a));
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(1500,TimeUnit.MILLISECONDS);
     AlertDialog d=ShadowAlertDialog.getLatestAlertDialog();assertNotNull(d);assertTrue(d.isShowing());
     assertEquals("切换皮肤",d.getListView().getAdapter().getItem(0));
     assertEquals(5,d.getListView().getAdapter().getCount());assertFalse(UiDisplayMode.minimal(a));

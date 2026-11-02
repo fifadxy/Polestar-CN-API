@@ -35,8 +35,8 @@ final class VehicleCommandConfirmation {
     if ("unlock".equals(action)) return "车辆已确认：已解锁";
     if ("climate-start".equals(action)) return "车辆已确认：空调已开启";
     if ("climate-stop".equals(action)) return "车辆已确认：空调已关闭";
-    if ("air-start".equals(action)) return "车辆已确认：空气净化已开启";
-    if ("air-stop".equals(action)) return "车辆已确认：空气净化已关闭";
+    if ("air-start".equals(action)) return "车辆已确认：净化已开启";
+    if ("air-stop".equals(action)) return "车辆已确认：净化已关闭";
     if ("trunk-open".equals(action)) return "车辆已确认：尾门已打开";
     if ("trunk-close".equals(action)) return "车辆已确认：尾门已关闭";
     if ("windows-open".equals(action)) return "车辆已确认：车窗已打开";

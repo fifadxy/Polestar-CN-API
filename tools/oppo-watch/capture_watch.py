@@ -12,7 +12,7 @@ PROPERTIES = ('ro.product.manufacturer', 'ro.product.model', 'ro.product.device'
               'ro.build.version.release', 'ro.build.version.sdk', 'ro.build.version.security_patch',
               'ro.build.display.id', 'ro.build.version.opporom')
 PACKAGE = re.compile(r'^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$')
-RELEVANT = re.compile(r'vehicle|carcontrol|carlink|speechassist|voice|wear|watch|mydevices|pantanal|rtos|lowpower|heytap.health', re.I)
+RELEVANT = re.compile(r'vehicle|carcontrol|carlink|carkey|car.key|cardigitalkey|wallet|speechassist|voice|wear|watch|mydevices|pantanal|rtos|lowpower|heytap.health', re.I)
 VERSION = re.compile(r'\b(versionName|versionCode|minSdk|targetSdk)\s*[=:]\s*([^\s]+)')
 
 
@@ -29,7 +29,7 @@ def package_versions(text):
 
 
 def capture(serial):
-    result = {'androidAdbReachable': False, 'properties': {}, 'packages': []}
+    result = {'androidAdbReachable': False, 'properties': {}, 'packages': [], 'carKeyHints': {}}
     try:
         if adb(serial, 'get-state').strip() != 'device':
             return result
@@ -45,6 +45,10 @@ def capture(serial):
         selected = [p for p in packages if PACKAGE.fullmatch(p) and RELEVANT.search(p)]
         result['matchingPackageCount'] = len(selected)
         result['packageListTruncated'] = len(selected) > 24
+        result['carKeyHints']['oplusCarLinkPresent'] = 'com.heytap.opluscarlink' in packages
+        result['carKeyHints']['oppoWalletPresent'] = any(
+            p in packages for p in ('com.finshell.wallet', 'com.heytap.wallet', 'com.heytap.tas'))
+        result['carKeyHints']['healthWalletPresent'] = 'com.heytap.health.wallet' in packages
         for pkg in selected[:24]:
             item = {'package': pkg}
             try:

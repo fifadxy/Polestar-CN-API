@@ -64,4 +64,10 @@ public class Beta25ControlStateTest {
     UiDisplayMode.setMinimal(c,false);button.feedback("");assertTrue(button.getText().toString().contains("露营"));
   }
 
+  @Test public void missingWindowStateDoesNotCrashMinimalOrStandardFeedback(){
+    VehicleSnapshot unknown=new VehicleSnapshot("Polestar","masked",null,null,null,"未知",null,null,null,null,System.currentTimeMillis(),"LIVE",false,null,null);
+    UiDisplayMode.setMinimal(c,true);assertEquals("",ButtonFeedback.value(c,"windows",unknown,""));
+    UiDisplayMode.setMinimal(c,false);assertNotNull(ControlStatusText.value(c,"windows",unknown,""));
+  }
+
 }

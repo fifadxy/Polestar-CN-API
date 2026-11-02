@@ -23,7 +23,7 @@ public final class ControlStatusText {
     if("air".equals(control))return AirRuntime.label(c,s,AppPreferences.get(c,"vehicle",""));
     if("windows".equals(control)){
       if("全部关闭".equals(raw)||"已关闭".equals(raw))return AppPreferences.tr(c,"已关","Closed");
-      if("已打开".equals(raw)||"未关严".equals(raw)||raw.contains("个开启"))
+      if("已打开".equals(raw)||"未关严".equals(raw)||raw!=null&&raw.contains("个开启"))
         return AppPreferences.tr(c,"未关","Open");
     }
     return AppPreferences.status(c,raw);

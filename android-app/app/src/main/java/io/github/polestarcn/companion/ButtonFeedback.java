@@ -28,6 +28,6 @@ public final class ButtonFeedback {
   if("camp".equals(control))return CampModeManager.active(c)||"STOPPING".equals(CampModeManager.phase(c));
   if(s==null)return false;
   String raw="climate".equals(control)?s.climate:"air".equals(control)?s.air:"lock".equals(control)?s.lock:"trunk".equals(control)?s.tailgate:"windows".equals(control)?s.windows:"";
-  return "开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw)||raw.contains("个开启");
+  return "开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw)||raw!=null&&raw.contains("个开启");
  }
 }

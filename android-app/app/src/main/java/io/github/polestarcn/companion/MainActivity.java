@@ -111,6 +111,7 @@ public final class MainActivity extends FragmentActivity {
   }
   private final Runnable displayTick = new Runnable() {
     public void run() {
+      if(!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))return;
       if(statusDockBinding!=null)statusDockBinding.run();
       if (model != null && page == 0 && dashboardReady)
         for(Runnable binding:new java.util.ArrayList<>(dashboardBindings))binding.run();
@@ -751,7 +752,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void onModelChanged() {
-    if(displayDelay()==1000L){displayHandler.removeCallbacks(displayTick);displayHandler.postDelayed(displayTick,1000L);}
+    if(getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)&&displayDelay()==1000L){displayHandler.removeCallbacks(displayTick);displayHandler.postDelayed(displayTick,1000L);}
     // When signing in after an offline stop, ensure network recovery monitoring starts.
     if(!model.hasSession())lastCampRecoveryElapsed=0;
     if(model.hasSession()&&CampModeManager.needsRecovery(this)
@@ -2125,7 +2126,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"ui_all_bold",tr("所有UI文字加粗","Bold text across all UI"),false,false);
       setting(p,tr("字体大小 · 当前皮肤 / Widget","Font size · current skin / Widget"),this::fontDialog);
       settingToggle(p,"minimal_mode",tr("极简模式 · 隐藏按钮名称并放大图标","Minimal mode · hide button names and enlarge icons"),false,false);
-      note(p,tr("极简模式","Minimal mode"),tr("可在设置切换，也可长按首页车辆图片 1.1 秒切换。按钮状态继续用颜色和精简状态文字表示。","Toggle here or hold the vehicle image for 1.1 seconds. Button state remains visible through color and compact status text."));
+      note(p,tr("极简模式","Minimal mode"),tr("可在此切换，也可长按首页车图1.5秒打开外观菜单后切换。图标居中放大；关闭时隐藏反馈，开启后显示状态或剩余时间，颜色保持原有规则。","Toggle here or hold the vehicle image for 1.5 seconds to open the appearance menu. Larger icons are centered; feedback appears while active, with state colors preserved."));
       setting(p,tr("数字粗细 / 按钮背景透明度","Number weight / button opacity"),this::visualControlsDialog);
       settingToggle(p,"ui_button_bold",tr("按钮文字加粗","Bold button labels"),true,false);
       settingToggle(p,"ui_data_bold",tr("数据文字加粗","Bold data values"),false,false);

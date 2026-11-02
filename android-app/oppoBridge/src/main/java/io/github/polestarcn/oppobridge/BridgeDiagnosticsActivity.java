@@ -34,8 +34,25 @@ public final class BridgeDiagnosticsActivity extends Activity {
     Button officialCarLink = new Button(this);
     officialCarLink.setText("打开 OPPO CarLink 官方「我的车辆」绑定");
     officialCarLink.setOnClickListener(v -> {
-      try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("card://carlink.heytap.com/control?operation=bind"))); }
-      catch (RuntimeException unavailable) { status.setText("OPPO CarLink 绑定入口不可用：" + unavailable.getClass().getSimpleName()); }
+      try {
+        Bundle route=BridgeClient.call(this,"oppo-carlink-status",null);
+        if(route.getBoolean("bindRouteDirectLaunchAllowed",false)) {
+          startActivity(new Intent(Intent.ACTION_VIEW,
+              Uri.parse("card://carlink.heytap.com/control?operation=bind")));
+        } else {
+          startActivity(new Intent(this,PolestarOfficialBindActivity.class));
+          String permission=route.getString("bindActivityPermission","");
+          status.setText("OPPO CarLink 官方绑定 Activity 受系统权限保护，已转入 Polestar 本地系统车辆入口。"
+              +"\n请从 OPPO「我的车辆」页面点击已注入的 Polestar 极星。"
+              +(permission.isEmpty()?"":"\n系统权限: "+permission));
+        }
+      } catch (SecurityException denied) {
+        startActivity(new Intent(this,PolestarOfficialBindActivity.class));
+        status.setText("OPPO CarLink 拒绝第三方直接启动绑定 Activity（SecurityException）。"
+            +"\n已改走 Polestar 本地入口；真正系统绑定请从 OPPO「我的车辆」宿主内发起。");
+      } catch (RuntimeException unavailable) {
+        status.setText("OPPO CarLink 绑定入口不可用：" + unavailable.getClass().getSimpleName());
+      }
     });
     column.addView(officialCarLink);
     Button oemEnable = new Button(this);
@@ -133,7 +150,12 @@ public final class BridgeDiagnosticsActivity extends Activity {
             .append(" · ").append(carLink.getString("versionName",""))
             .append(" · OCS service=").append(carLink.getBoolean("serviceAvailable",false))
             .append(" · CarAppProvider=").append(carLink.getBoolean("providerAvailable",false))
-            .append(" · 绑定入口=").append(carLink.getBoolean("bindRouteAvailable",false)).append('\n');
+            .append(" · 绑定入口=").append(carLink.getBoolean("bindRouteAvailable",false))
+            .append(" · 可直接启动=").append(carLink.getBoolean("bindRouteDirectLaunchAllowed",false))
+            .append(" · protected=").append(carLink.getBoolean("bindRouteProtected",false)).append('\n');
+        String bindPermission=carLink.getString("bindActivityPermission","");
+        if(!bindPermission.isEmpty())out.append("  bind permission=").append(bindPermission)
+            .append(" · granted=").append(carLink.getBoolean("bindActivityPermissionGranted",false)).append('\n');
         out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");
         Bundle carLinkPreview=BridgeClient.call(this,"oppo-carlink-preview",null);
         out.append("CarStatus 映射预览: ");

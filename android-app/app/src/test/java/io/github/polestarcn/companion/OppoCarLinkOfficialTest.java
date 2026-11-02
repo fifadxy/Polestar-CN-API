@@ -2,9 +2,9 @@ package io.github.polestarcn.companion;
 
 import static org.junit.Assert.*;
 import android.content.Intent;
-import org.junit.Test;
+import org.junit.Test;\nimport org.junit.runner.RunWith;\nimport org.robolectric.RobolectricTestRunner;\nimport org.robolectric.annotation.Config;
 
-public class OppoCarLinkOfficialTest {
+@RunWith(RobolectricTestRunner.class)\n@Config(sdk=28)\npublic class OppoCarLinkOfficialTest {
   @Test public void bindRouteMatchesOfficialDemoContract() {
     Intent intent=OppoOfficialCarLink.bindIntent();
     assertEquals(Intent.ACTION_VIEW,intent.getAction());

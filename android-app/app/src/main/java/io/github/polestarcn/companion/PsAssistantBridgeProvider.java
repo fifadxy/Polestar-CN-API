@@ -74,6 +74,12 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     }
     if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
     if("oppo-carlink-status".equals(method))return OppoOfficialCarLink.status(context);
+    if("oppo-carlink-preview".equals(method)) {
+      VehicleCoordinator carLinkCoordinator=VehicleCoordinator.get(context);
+      VehicleSnapshot carLinkSnapshot=carLinkCoordinator.snapshot;
+      if(carLinkSnapshot==null)carLinkSnapshot=VehicleSnapshotStore.loadChina(context);
+      return OppoCarLinkSnapshotAdapter.preview(carLinkSnapshot);
+    }
     if("oppo-oem-car-status".equals(method))return OppoOemCarExperimentState.status(context);
     if("oppo-oem-car-set".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());

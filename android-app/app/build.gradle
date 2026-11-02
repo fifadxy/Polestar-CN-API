@@ -159,8 +159,9 @@ tasks.register("prepareClientConfig") {
         }
     }
 }
-tasks.named("preReleaseBuild").configure { dependsOn("prepareClientConfig") }
-tasks.named("prePreviewBuild").configure { dependsOn("prepareClientConfig") }
+tasks.matching { it.name in ["preReleaseBuild", "prePreviewBuild"] }.configureEach {
+    dependsOn("prepareClientConfig")
+}
 tasks.matching { it.name in ["assembleRelease", "assemblePreview"] }.configureEach {
     doFirst {
         if (!clientAsset.get().asFile.exists() || clientAsset.get().asFile.length() != 48L)

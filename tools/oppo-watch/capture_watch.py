@@ -9,11 +9,13 @@ import subprocess
 import zipfile
 
 PROPERTIES = ('ro.product.manufacturer', 'ro.product.model', 'ro.product.device',
+              'ro.product.cpu.abi', 'ro.product.cpu.abilist', 'ro.hardware', 'ro.hardware.keystore',
               'ro.build.version.release', 'ro.build.version.sdk', 'ro.build.version.security_patch',
               'ro.build.display.id', 'ro.build.version.opporom')
 PACKAGE = re.compile(r'^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+$')
 RELEVANT = re.compile(r'vehicle|carcontrol|carlink|carkey|car.key|cardigitalkey|wallet|speechassist|voice|wear|watch|mydevices|pantanal|rtos|lowpower|heytap.health', re.I)
 VERSION = re.compile(r'\b(versionName|versionCode|minSdk|targetSdk)\s*[=:]\s*([^\s]+)')
+FEATURE_RELEVANT = re.compile(r'bluetooth|nfc|keystore|strongbox|telephony|watch|wear|location', re.I)
 
 
 def adb(serial, *args, timeout=8):
@@ -29,7 +31,7 @@ def package_versions(text):
 
 
 def capture(serial):
-    result = {'androidAdbReachable': False, 'properties': {}, 'packages': [], 'carKeyHints': {}}
+    result = {'androidAdbReachable': False, 'properties': {}, 'packages': [], 'features': [], 'carKeyHints': {}}
     try:
         if adb(serial, 'get-state').strip() != 'device':
             return result
@@ -39,6 +41,12 @@ def capture(serial):
                 result['properties'][prop] = adb(serial, 'shell', 'getprop', prop).strip()[:512]
             except (RuntimeError, subprocess.TimeoutExpired):
                 result['properties'][prop] = 'unavailable'
+        try:
+            feature_text = adb(serial, 'shell', 'pm', 'list', 'features')
+            result['features'] = sorted(line.strip()[:200] for line in feature_text.splitlines()
+                                        if FEATURE_RELEVANT.search(line))[:64]
+        except (RuntimeError, subprocess.TimeoutExpired):
+            result['features'] = ['unavailable']
         text = adb(serial, 'shell', 'pm', 'list', 'packages')
         packages = sorted({line.removeprefix('package:').strip() for line in text.splitlines()
                            if line.startswith('package:')})

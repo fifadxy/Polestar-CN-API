@@ -31,6 +31,9 @@ final class HostProbe {
       case "com.oplus.ocar":
         module.info("host_ready package=com.oplus.ocar role=carplus container=true");
         return;
+      case "com.heytap.opluscarlink":
+        module.info("host_ready package=com.heytap.opluscarlink role=official-carlink key-surface=true");
+        return;
       default:
         module.warn("unexpected_scope package=" + pkg);
     }

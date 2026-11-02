@@ -1,7 +1,7 @@
 package io.github.polestarcn.companion;
 import static org.junit.Assert.*;
 import android.content.Context;
-import org.junit.Test;
+import org.junit.Before;\nimport org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
@@ -9,6 +9,11 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=28)
 public class GalleryTrimTest {
+  @Before public void clear(){
+    Context c=RuntimeEnvironment.getApplication();
+    c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,"theme","light");
+  }
   @Test public void oldColorsKeepViewFamilyAndFollowTheme() {
     for(String key:new String[]{"top_blue","top_silver"}) {
       assertEquals("top_white",VehicleArt.normalizeKey(key,false));
@@ -26,7 +31,7 @@ public class GalleryTrimTest {
     AppPreferences.set(c,VehicleArt.selectionKey(dark),"angled_blue");
     String expected=dark?"angled_black":"angled_white";
     assertEquals(expected,VehicleArt.key(c));
-    assertEquals(expected,AppPreferences.get(c,VehicleArt.selectionKey(dark),"auto"));
+    assertEquals(expected,AppPreferences.get(c,VehicleArt.selectionKey(c,dark),"auto"));
     for(String key:VehicleArt.KEYS)assertFalse(key.endsWith("blue")||key.equals("top_silver")||key.equals("angled_silver"));
   }
   @Test public void defaultsAndOtherViewsRemainAvailable() {

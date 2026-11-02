@@ -2,7 +2,7 @@ package io.github.polestarcn.companion;
 
 import static org.junit.Assert.*;
 import android.content.Context;
-import org.junit.Test;
+import org.junit.Before;\nimport org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
@@ -11,6 +11,11 @@ import org.robolectric.annotation.Config;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=28)
 public class Beta24UiStateTest {
+  @Before public void clear(){
+    Context c=RuntimeEnvironment.getApplication();
+    c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,"language","zh");
+  }
   private Context c(){return RuntimeEnvironment.getApplication();}
   private VehicleSnapshot state(String lock,String windows,String climate,String air){
     return new VehicleSnapshot("Polestar 2","masked",51,210,12000,"空闲","全部关闭",windows,"已关闭",lock,

@@ -221,3 +221,61 @@ OPPO 开放平台穿戴服务也明确：Watch 应用可通过网络或蓝牙与
 - https://open.oppomobile.com/new/introduction?page_name=wearabledevice
 
 这些资料证明 Watch X2 的硬件与 OPPO 系统可以承载“车钥匙/车控”能力，但能否用于 Polestar 2 取决于真实 OEM 配对协议与系统合作/授权，不能由 LSPosed 的 UI 假绑定替代。
+
+
+## Watch Companion 通信协议建议（远程控车，与数字钥匙分离）
+
+OPPO 开放平台公开说明中国版 Watch 基于深度定制 Android，按普通 Android 应用思路开发，不是 Android Wear；同时明确手表应用可通过网络或蓝牙与手机、汽车联动。因此 PsAssistant Watch Companion 不依赖 Google Wear Data Layer。
+
+### 首选：Phone-mediated BLE GATT
+
+手机 PsAssistant：
+- 仅用户主动开启“手表控制”后启动 BLE advertiser/GATT server；
+- 自定义 service UUID，只暴露脱敏状态与 allow-list 命令；
+- 控车最终仍调用 `VehicleCoordinator.command()`，继续使用现有确认/回读；
+- 不把 Polestar token、密码、VIN 或 PAK 材料发给手表。
+
+Watch X2：
+- 只扫描 PsAssistant service UUID；
+- 首次配对需要手机端用户确认；
+- 保存一个独立 Watch pairing key；
+- 显示 SOC/range/charging/lock/climate；
+- 发送 lock/unlock/climate/air/trunk/honk/flash 等有限动作。
+
+安全建议：
+- BLE characteristic 要求 encrypted + MITM/bonding（如果固件支持）；
+- 另加应用层 challenge + HMAC，避免只依赖 BLE MAC；
+- 每条命令包含 nonce、counter、timestamp、action，禁止重放；
+- unlock/trunk 等高风险动作需要 Watch 本地确认/生物识别（若可用）；
+- 手机 Session 失效时 Watch 只显示“需在手机重新登录”，不接收账号凭据；
+- 配对密钥可随时在手机端撤销。
+
+### eSIM / 网络模式
+
+Watch X2 支持独立网络后，可以扩展“Watch -> PsAssistant relay service”的网络模式，但不应直接把手机 refresh token复制到手表。若未来需要真正离手机远程控车，应使用独立设备授权/短期 token 或自建受控 relay，且需要单独安全审计。
+
+### 长续航模式
+
+普通 Android Watch App 不应假定在长续航 RTOS 路径继续运行。只有真机采集证明 OPPO 的系统 CarLink/Wallet/DigitalKey 服务在该模式仍由系统保留并提供受支持接口后，才进入长续航原生车控/钥匙适配。
+
+## 真钥匙 PAK Endpoint 判定门槛
+
+只有同时满足以下条件，才继续“Watch X2 直接作为 Polestar 2 BLE key”实验：
+
+1. Watch 全智能系统 ABI 能运行 Polestar 数字钥匙 native library 或可重新实现其公开协议客户端；
+2. Android Keystore/硬件密钥能力满足设备私钥不可导出要求；
+3. BLE 扫描/连接/后台执行满足 PAKM/TCAM 会话需要；
+4. Polestar 云端和车辆接受 Watch 作为**新的设备 endpoint**；
+5. 配对走正常车辆确认与实体钥匙要求；
+6. Watch 自己生成并保管设备密钥，不从手机复制。
+
+未满足第 4/5 条之前，即使 BLE 广播和 UI 都能模拟，也不能称为数字钥匙完成。
+
+## 现阶段优先级
+
+P0：Watch Companion 手机中转遥控（可实现完整远程控车）
+P0：AssistantScreen / CarLink 显示 Polestar 入口与真实状态
+P1：官方 BluetoothKey/Wallet 对真实已配对钥匙的展示与系统承载
+P1：长续航模式系统组件验证
+P2：Watch 作为独立 PAK endpoint 的合法配对实验
+P3：只有 Polestar/OPPO 官方支持后再评估真正无手机启动体验

@@ -34,7 +34,8 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "com.coloros.assistantscreen",
       "com.oplus.pantanal.ums",
       "com.heytap.speechassist",
-      "com.oplus.ocar"
+      "com.oplus.ocar",
+      "com.heytap.opluscarlink"
   ));
 
   private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
@@ -75,6 +76,14 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
     if("oppo-carlink-status".equals(method))return OppoOfficialCarLink.status(context);
     if("oppo-car-key-status".equals(method))return OppoCarKeyCapability.status(context);
+    if("carlink-host-report".equals(method)) {
+      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean carlink=false;
+      if(callers!=null)for(String pkg:callers)if("com.heytap.opluscarlink".equals(pkg))carlink=true;
+      if(!carlink)throw new SecurityException("Only OPPO CarLink can report host installation");
+      return OppoCarLinkHostDiagnostics.record(context,extras);
+    }
+    if("carlink-host-status".equals(method))return OppoCarLinkHostDiagnostics.status(context);
     if("oppo-carlink-preview".equals(method)) {
       VehicleCoordinator carLinkCoordinator=VehicleCoordinator.get(context);
       VehicleSnapshot carLinkSnapshot=carLinkCoordinator.snapshot;

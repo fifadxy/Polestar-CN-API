@@ -140,6 +140,19 @@ public final class BridgeDiagnosticsActivity extends Activity {
             .append(" · 钱包详情=").append(keySurface.getBoolean("walletDetailSurfaceAvailable",false))
             .append(" · BLE=").append(keySurface.getBoolean("systemBluetoothLe",false)).append('\n');
         out.append("  安全边界: 只有 Polestar/车企钥匙流程真实完成后才可向 OPPO 报绑定；不把 hasCarBinding/isBluetoothKeyExist Hook 为 true。\n\n");
+        Bundle carLinkHost=BridgeClient.call(this,"carlink-host-status",null);
+        long carLinkSeen=carLinkHost.getLong("seenAt",0L);
+        out.append("CarLink LSPosed 宿主: ");
+        if(carLinkSeen<=0) {
+          out.append("尚未观察到 com.heytap.opluscarlink 进程加载模块。\n");
+        } else {
+          out.append(carLinkHost.getBoolean("ready",false)?"已加载":"未就绪")
+              .append(" · host=").append(carLinkHost.getString("hostVersion",""))
+              .append(" · module=").append(carLinkHost.getString("moduleVersion",""))
+              .append(" · process=").append(carLinkHost.getString("process","")).append('\n');
+        }
+        out.append("  该探针只证明模块加载，不修改任何钥匙绑定/认证返回值。\n\n");
+
 
         Bundle carLinkPreview=BridgeClient.call(this,"oppo-carlink-preview",null);
         out.append("CarStatus 映射预览: ");

@@ -1,7 +1,8 @@
 package io.github.polestarcn.companion;
 import static org.junit.Assert.*;
 import android.content.Context;
-import org.junit.Before;\nimport org.junit.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;

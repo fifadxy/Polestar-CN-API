@@ -134,7 +134,13 @@ public final class BridgeDiagnosticsActivity extends Activity {
             .append(" · OCS service=").append(carLink.getBoolean("serviceAvailable",false))
             .append(" · CarAppProvider=").append(carLink.getBoolean("providerAvailable",false))
             .append(" · 绑定入口=").append(carLink.getBoolean("bindRouteAvailable",false)).append('\n');
-        out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");
+        out.append("  官方路线需要 PsAssistant 自己的 OPPO 开发者授权；Hook/OEM CAR 仅作为兼容研究路线。\n\n");        Bundle keySurface=BridgeClient.call(this,"oppo-car-key-status",null);
+        out.append("OPPO 蓝牙车钥匙框架: 绑定入口=")
+            .append(keySurface.getBoolean("bindSurfaceAvailable",false))
+            .append(" · 钱包详情=").append(keySurface.getBoolean("walletDetailSurfaceAvailable",false))
+            .append(" · BLE=").append(keySurface.getBoolean("systemBluetoothLe",false)).append('\n');
+        out.append("  安全边界: 只有 Polestar/车企钥匙流程真实完成后才可向 OPPO 报绑定；不把 hasCarBinding/isBluetoothKeyExist Hook 为 true。\n\n");
+
         Bundle carLinkPreview=BridgeClient.call(this,"oppo-carlink-preview",null);
         out.append("CarStatus 映射预览: ");
         if(!carLinkPreview.getBoolean("available",false)) {

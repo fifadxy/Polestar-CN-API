@@ -37,15 +37,6 @@ final class QuickAppContractProbe {
   private QuickAppContractProbe() {}
 
   static void install(OppoBridgeModule module, ClassLoader loader) throws Exception {
-    Application app = currentApplication();
-    if (app != null) {
-      String version = app.getPackageManager().getPackageInfo("com.heytap.mydevices", 0).versionName;
-      if (!"17.4.15".equals(version)) {
-        module.info("quickapp_probe skipped hostVersion=" + version);
-        return;
-      }
-    }
-
     Class<?> converter = loader.loadClass("com.oplus.mydevices.quickapp.data.QuickCardDeviceDataConverter");
     Method whitelist = findWhitelist(converter);
     Method convert = findConvert(converter);

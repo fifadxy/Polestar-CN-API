@@ -149,7 +149,7 @@ final class BridgeTestOrchestrator {
     Bundle state = safeCall(context, "snapshot");
     Bundle session=safeCall(context,"virtual-session-status");
     return "PsAssistant OPPO Bridge " + BridgeBuild.VERSION_NAME
-        + "\n工作模式：beta31 TestLab Virtual Session + CAR Dispatcher"
+        + "\n工作模式：beta33 TestLab · Official Demo contract + Virtual Session + CAR Dispatcher"
         + "\n模块总开关：" + (settings.getBoolean(BridgeSettings.MASTER, true) ? "开启" : "关闭")
         + "\nPsAssistant桥接：" + (caps.getBoolean("state", false) ? "可用" : "未连接")
         + "\n车辆状态：" + (state.getBoolean("available", false)

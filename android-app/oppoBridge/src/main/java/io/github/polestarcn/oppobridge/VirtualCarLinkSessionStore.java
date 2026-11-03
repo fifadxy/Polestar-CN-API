@@ -16,7 +16,10 @@ final class VirtualCarLinkSessionStore {
     setAny(session,new String[]{"vin","mVin","vehicleVin"},p.getString("testVin",""));setAny(session,new String[]{"carId","mCarId","deviceId","mDeviceId","vehicleId"},p.getString("virtualCarId",""));
     setAny(session,new String[]{"mac","mMac","deviceMac"},p.getString("testMac",""));setAny(session,new String[]{"providerCode","spCode","mProviderCode"},p.getString("providerCode","POLESTAR"));
     setAny(session,new String[]{"brand","brandName","mBrand"},p.getString("brand","Polestar"));setAny(session,new String[]{"modelId","mModelId"},p.getString("modelId","POLESTAR_2"));setAny(session,new String[]{"modelName","mModelName","name"},p.getString("modelName","Polestar 2"));
-    setAnyFlexible(session,new String[]{"connectState","connectionState","mConnectState"},p.getString("connectState","COORDINATED"));setAnyFlexible(session,new String[]{"online","isOnline","mOnline"},p.getBoolean("online",false));
+    setAnyFlexible(session,new String[]{"connectState","connectionState","mConnectState"},p.getString("connectState","COORDINATED"));
+    setAnyFlexible(session,new String[]{"online","isOnline","mOnline"},p.getBoolean("online",false));
+    setAnyFlexible(session,new String[]{"bound","isBound","mBound"},p.getBoolean("active",false));
+    setAnyFlexible(session,new String[]{"bindState","bindingState","mBindState"},p.getBoolean("active",false)?"BOUND":"UNBOUND");
     setAnyFlexible(session,new String[]{"lockState","doorLockState","mLockState"},p.getString("lock",""));setAnyFlexible(session,new String[]{"climateState","airConditionState","mClimateState"},p.getString("climate",""));
     if(p.getBoolean("batteryPercentKnown",false))setAnyFlexible(session,new String[]{"soc","batteryPercent","battery","mSoc"},p.getInt("batteryPercent"));
     if(p.getBoolean("rangeKmKnown",false))setAnyFlexible(session,new String[]{"rangeKm","range","remainingRange","mRange"},p.getInt("rangeKm"));

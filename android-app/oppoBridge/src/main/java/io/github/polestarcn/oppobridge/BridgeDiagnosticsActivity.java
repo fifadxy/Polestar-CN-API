@@ -45,7 +45,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
     column.addView(title);
 
     TextView description = new TextView(this);
-    description.setText("独立LSPosed模块 · 本机原生兼容链路\n模拟测试不发车，也不写入OPPO真实鉴权或绑定数据库。");
+    description.setText("beta31 TestLab · Virtual Session + CAR Dispatcher + PsAssistant协议网关\n模拟测试不发车；真实车控只由主APK在已登录会话中执行。");
     description.setTextSize(14);
     description.setPadding(0, 0, 0, dp(12));
     column.addView(description);
@@ -62,6 +62,10 @@ public final class BridgeDiagnosticsActivity extends Activity {
     assistant = settingSwitch(column, "负一屏 / AssistantScreen", BridgeSettings.ASSISTANT, settings);
     watch = settingSwitch(column, "Watch X2 / 钱包宿主探测", BridgeSettings.WATCH, settings);
     direct = settingSwitch(column, "允许4×2直接控制", BridgeSettings.DIRECT, settings);
+
+    Button oneClick = actionButton("一键诊断 + 模拟测试 + 导出");
+    oneClick.setOnClickListener(v -> runOneClick());
+    column.addView(oneClick);
 
     Button test = actionButton("一键检测全部方案（只读、不发车）");
     test.setOnClickListener(v -> runAllTests());
@@ -89,6 +93,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
     ScrollView scroll = new ScrollView(this);
     scroll.addView(column);
     setContentView(scroll);
+    if(getIntent()!=null&&getIntent().getBooleanExtra("autoOneClick",false))runOneClick();
   }
 
   private Switch settingSwitch(LinearLayout parent, String label, String key, Bundle settings) {
@@ -114,6 +119,25 @@ public final class BridgeDiagnosticsActivity extends Activity {
     lp.topMargin = dp(8);
     button.setLayoutParams(lp);
     return button;
+  }
+
+  private void runOneClick() {
+    status.setText("正在执行 beta31 TestLab 一键诊断：只读检测 → 模拟链路 → 轻量导出……不会发送车辆命令。");
+    worker.execute(() -> {
+      try {
+        BridgeTestOrchestrator.Result test = BridgeTestOrchestrator.run(this);
+        BridgeSimulationSession.Result simulation = BridgeSimulationSession.run(this);
+        File file = OppoResearchExport.create(this);
+        Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".oppoexports", file);
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("application/zip");share.putExtra(Intent.EXTRA_STREAM, uri);share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        String summary = "beta31 TestLab 一键诊断完成\n通过 " + test.passed + " · 待处理 " + test.pending + " · 失败 " + test.failed
+            + "\n模拟链路：" + (simulation.passed ? "通过" : "未通过") + "\n导出：" + file.getName() + " · " + file.length()/1024 + " KB\n\n" + test.text;
+        runOnUiThread(() -> {if(isFinishing()||isDestroyed())return;status.setText(summary);startActivity(Intent.createChooser(share,"分享 beta31 TestLab 诊断包"));});
+      } catch(Throwable failure) {
+        showText("一键诊断失败："+failure.getClass().getSimpleName()+": "+failure.getMessage());
+      }
+    });
   }
 
   private void runAllTests() {
@@ -152,6 +176,10 @@ public final class BridgeDiagnosticsActivity extends Activity {
         out.append(result.getBoolean("accepted", false)
             ? "[通过] 主程序4×2本机路由已启用\n"
             : "[待处理] 主程序未接受4×2设置：" + result.getString("reason", "未连接") + "\n");
+        Bundle session = BridgeClient.call(this,"virtual-session-set",input);
+        out.append(session.getBoolean("accepted",false)
+            ? "[通过] Virtual Vehicle Session 已启用\n"
+            : "[待处理] Session未就绪："+session.getString("reason","未连接")+"\n");
       } catch (Throwable failure) {
         out.append("[待处理] 主程序设置不可用：").append(failure.getClass().getSimpleName()).append('\n');
       }

@@ -46,6 +46,8 @@ final class QuickAppCarDataShim {
             try {
               Bundle state=BridgeClient.call(app,"oppo-oem-car-status",null);
               if(!state.getBoolean("enabled",false))return raw;
+              Bundle session=BridgeClient.virtualSession(app);
+              if(!session.getBoolean("active",false))return raw;
 
               QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(app);
               if(!capability.routeSafe()) {
@@ -61,7 +63,7 @@ final class QuickAppCarDataShim {
               for(int i=0;i<Math.min(list.length(),32);i++) {
                 JSONObject device=list.optJSONObject(i);
                 if(device==null||!isOurDevice(device))continue;
-                normalizeCar(device);
+                normalizeCar(device);applySession(device,session);
                 if(capability.eventSummaryCar) {
                   device.put("shortcuts",oemShortcuts());
                   device.put("shortcutList",oemShortcuts());
@@ -103,6 +105,18 @@ final class QuickAppCarDataShim {
     connection.put("connectState","COORDINATED");
     connection.put("coordinationState","COORDINATED");
     device.put("connection",connection);
+  }
+
+  static void applySession(JSONObject device,Bundle session) throws Exception {
+    String carId=session.getString("virtualCarId","");
+    if(!carId.isEmpty()){device.put("id",carId);device.put("mDeviceId",carId);device.put("deviceId",carId);}
+    device.put("providerCode",session.getString("providerCode","POLESTAR"));device.put("sessionId",session.getString("sessionId",""));
+    device.put("vin",session.getString("testVin",""));device.put("mac",session.getString("testMac",""));device.put("online",session.getBoolean("online",false));
+    device.put("lockState",session.getString("lock",""));device.put("climateState",session.getString("climate",""));
+    if(session.getBoolean("batteryPercentKnown",false))device.put("soc",session.getInt("batteryPercent"));
+    if(session.getBoolean("rangeKmKnown",false))device.put("rangeKm",session.getInt("rangeKm"));
+    if(session.getBoolean("odometerKmKnown",false))device.put("odometerKm",session.getInt("odometerKm"));
+    JSONArray caps=new JSONArray();String[] values=session.getStringArray("capabilities");if(values!=null)for(String cap:values)caps.put(cap);device.put("capabilities",caps);
   }
 
   static JSONArray oemShortcuts() throws Exception {

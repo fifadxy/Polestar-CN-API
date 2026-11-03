@@ -41,6 +41,13 @@ public final class Beta28ExactCarRouteTest {
     assertNull(MyDevicesVehicleHook.shortcutRequest("foreign"));
   }
 
+  @Test public void beta31DispatcherOwnsOnlyPsAssistantCarEvents() {
+    assertTrue(QuickAppCarDispatchShim.shouldIntercept(BridgeIdentity.INTEGRATED_PACKAGE,"CAR","chesuo"));
+    assertTrue(QuickAppCarDispatchShim.shouldIntercept(BridgeIdentity.STANDALONE_PACKAGE,"CAR","kongtiao"));
+    assertFalse(QuickAppCarDispatchShim.shouldIntercept("com.example.foreign","CAR","chesuo"));
+    assertFalse(QuickAppCarDispatchShim.shouldIntercept(BridgeIdentity.INTEGRATED_PACKAGE,"LIGHT","chesuo"));
+  }
+
   @Test public void providerPublishesNativeCarModelFields() throws Exception {
     Bundle state=new Bundle();state.putLong("capturedAt",System.currentTimeMillis());
     state.putString("vehicleKey","sha256-vehicle-fixture");

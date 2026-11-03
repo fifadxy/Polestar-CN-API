@@ -63,7 +63,7 @@ final class QuickAppCarDataShim {
               for(int i=0;i<Math.min(list.length(),32);i++) {
                 JSONObject device=list.optJSONObject(i);
                 if(device==null||!isOurDevice(device))continue;
-                normalizeCar(device);applySession(device,session);
+                normalizeCar(device,session);applySession(device,session);
                 if(capability.eventSummaryCar) {
                   device.put("shortcuts",oemShortcuts());
                   device.put("shortcutList",oemShortcuts());
@@ -91,20 +91,16 @@ final class QuickAppCarDataShim {
     module.info("quickapp_oem_car_data ready=true methods="+hooked);
   }
 
-  static void normalizeCar(JSONObject device) throws Exception {
-    device.put("type","CAR");
-    device.put("mDeviceType","CAR");
-    device.put("deviceType","CAR");
-    device.put("modelId","POLESTAR_2");
-    device.put("modelName","Polestar 2");
-    device.put("brand","Polestar");
-    device.put("manufacturer","Polestar");
-    device.put("mConnectState","COORDINATED");
-    JSONObject connection=device.optJSONObject("connection");
-    if(connection==null)connection=new JSONObject();
-    connection.put("connectState","COORDINATED");
-    connection.put("coordinationState","COORDINATED");
-    device.put("connection",connection);
+  static void normalizeCar(JSONObject device,Bundle session) throws Exception {
+    String type=session.getString("deviceType","CAR"),connect=session.getString("connectState","COORDINATED");
+    device.put("type",type);device.put("mDeviceType",type);device.put("deviceType",type);
+    device.put("modelId",session.getString("modelId","POLESTAR_2"));
+    device.put("modelName",session.getString("modelName","Polestar 2"));
+    device.put("brand",session.getString("brand","Polestar"));
+    device.put("manufacturer",session.getString("manufacturer","Polestar"));
+    device.put("mConnectState",connect);
+    JSONObject connection=device.optJSONObject("connection");if(connection==null)connection=new JSONObject();
+    connection.put("connectState",connect);connection.put("coordinationState",connect);device.put("connection",connection);
   }
 
   static void applySession(JSONObject device,Bundle session) throws Exception {

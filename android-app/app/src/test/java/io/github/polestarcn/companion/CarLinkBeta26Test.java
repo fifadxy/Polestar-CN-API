@@ -22,8 +22,9 @@ public class CarLinkBeta26Test {
     assertFalse(a.getCarId().contains("PRIVATE-FIXTURE"));assertNull(a.getVin());assertEquals(a.getCarId(),OppoCarLinkModels.info(c,conf,state("已上锁","关闭"),"PRIVATE-FIXTURE-VIN").getCarId());
     String first=a.getOpenId();OppoCarLinkModels.account(c,"another-account");assertNotEquals(first,OppoCarLinkModels.info(c,conf,state("已上锁","关闭"),"PRIVATE-FIXTURE-VIN").getOpenId());
   }
-  @Test public void missingOfficialConfigIsExplicitAndNotReplacedWithDemoValues(){
-    assertTrue(OppoCarLinkConfig.load(c).missing().size()>=3);
+  @Test public void missingOfficialConfigIsExplicitAndMockIdentityIsIsolated(){
+    if(BuildConfig.OPPO_SDK_MOCK) assertTrue(OppoCarLinkConfig.load(c).missing().isEmpty());
+    else assertTrue(OppoCarLinkConfig.load(c).missing().size()>=3);
     OppoCarLinkConfig conf=new OppoCarLinkConfig(0,"PSASSISTANT_UNCONFIGURED","","Polestar 2","android.resource://local/car");assertEquals(4,conf.missing().size());
     assertFalse(OppoCarLinkConfig.httpsImage("https://user:secret@example.test/car.png"));
   }

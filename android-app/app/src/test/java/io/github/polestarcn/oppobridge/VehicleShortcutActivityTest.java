@@ -55,6 +55,14 @@ public final class VehicleShortcutActivityTest {
     assertNull(VehicleShortcutActivity.resolveToggle("air-toggle",missing));
   }
 
+  @Test public void beta31TicketExpiresAfterSixtySecondsAndDirectCommandsPass() {
+    long now=System.currentTimeMillis();
+    org.junit.Assert.assertTrue(VehicleShortcutActivity.freshTicket(now-60_000L,now));
+    org.junit.Assert.assertFalse(VehicleShortcutActivity.freshTicket(now-60_001L,now));
+    assertEquals("lock",VehicleShortcutActivity.resolveToggle("lock",state("lock","LOCKED")));
+    assertEquals("climate-start",VehicleShortcutActivity.resolveToggle("climate-start",state("climate","INACTIVE")));
+  }
+
   @Test public void unknownStateNeverGuessesACommand() {
     assertNull(VehicleShortcutActivity.resolveToggle(
         "lock-toggle",state("lock","未知")));

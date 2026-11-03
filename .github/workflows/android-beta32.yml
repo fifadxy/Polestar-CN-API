@@ -1,0 +1,56 @@
+name: Android Beta32 TestLab
+on:
+  push:
+    branches:
+      - feature/oppo-beta32-carlink-session-20261103
+    paths:
+      - 'android-app/**'
+      - 'scripts/**'
+      - '.github/workflows/android-beta32.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Ensure Android API 35
+        run: |
+          test -n "${ANDROID_HOME:-}"
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+            "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+          fi
+      - name: Build beta32
+        working-directory: android-app
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug
+      - name: Package outputs
+        run: |
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta32-testlab-VALIDATION-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v1.18.0-debug.apk
+          test -s PsAssistant-v0.9.7-beta32-testlab-VALIDATION-debug.apk
+          test -s PsAssistant-OPPO-Bridge-v1.18.0-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-v0.9.7-beta32-testlab-VALIDATION-debug
+          path: PsAssistant-v0.9.7-beta32-testlab-VALIDATION-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-OPPO-Bridge-v1.18.0-debug
+          path: PsAssistant-OPPO-Bridge-v1.18.0-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PsAssistant-beta32-checks
+          path: |
+            android-app/app/build/test-results/testDebugUnitTest/
+            android-app/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore

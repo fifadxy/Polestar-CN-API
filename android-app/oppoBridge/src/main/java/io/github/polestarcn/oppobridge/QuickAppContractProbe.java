@@ -52,7 +52,7 @@ final class QuickAppContractProbe {
             Application current=currentApplication();
             if(current!=null&&experimentEnabled(current)) {
               QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(current);
-              if(capability.exactPatchSupported) {
+              if(capability.exactPatchSupported || capability.eventSummaryCar) {
                 LinkedHashSet<Object> copy=new LinkedHashSet<>((Set<?>)result);
                 copy.addAll(OEM_CAR_IDS);result=copy;applied=true;
                 reportApplied(current,module,capability);

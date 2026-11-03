@@ -151,15 +151,13 @@ final class MyDevicesVehicleHook {
           return null;
         }
         try {
-          String scheme=BridgeIdentity.commandScheme(app);
-          Intent route=new Intent(Intent.ACTION_VIEW,Uri.parse(scheme+"://command?action="+Uri.encode(command)))
-              .setPackage(BridgeIdentity.packageName(app)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-          app.startActivity(route);
-          reportRuntime(app,"controller-click",shortcutId,true);
-          module.info("mydevices_shortcut routed=true id="+shortcutId+" request="+command);
+          Bundle routed=BridgeClient.command(app,command);
+          boolean accepted=routed.getBoolean("accepted",false);
+          reportRuntime(app,"controller-click",shortcutId,accepted);
+          module.info("mydevices_shortcut routed="+accepted+" id="+shortcutId+" request="+command);
         } catch (RuntimeException failure) {
           reportRuntime(app,"controller-click",shortcutId,false);
-          module.warn("mydevices_shortcut_rejected activity-unavailable");
+          module.warn("mydevices_shortcut_rejected bridge-unavailable");
         }
         return null;
       }
@@ -200,6 +198,7 @@ final class MyDevicesVehicleHook {
       in.putString("moduleVersion",BridgeBuild.VERSION_NAME);
       if("controller-match".equals(phase)) {
         in.putBoolean("controllerMatched",success);in.putLong("controllerMatchedAt",System.currentTimeMillis());
+        in.putBoolean("carTypeGatePassed",success);in.putLong("carTypeGatePassedAt",System.currentTimeMillis());
         in.putInt("controllerMatchCount",previous.getInt("controllerMatchCount",0)+1);
       } else {
         in.putString("lastClickShortcut",shortcut);in.putBoolean("controllerMatched",true);

@@ -15,10 +15,6 @@ final class VirtualVehicleSessionManager {
   private static final String PREF="oppo-virtual-vehicle-session-v1";
   private static final String KEY_ENABLED="enabled";
   private static final long STALE_MS=10*60_000L;
-  private static final String[] CAPS={
-      "LOCK","UNLOCK","CLIMATE_START","CLIMATE_STOP","FLASH","HORN",
-      "SOC","RANGE","ODOMETER","LOCK_STATE","CLIMATE_STATE"
-  };
 
   private VirtualVehicleSessionManager() {}
 
@@ -46,15 +42,14 @@ final class VirtualVehicleSessionManager {
     long age=state==null||state.timestampMillis<=0?Long.MAX_VALUE:Math.max(0L,now-state.timestampMillis);
     String lifecycle=!requested?"DISABLED":!signedIn?"DISCOVERED":!selected?"BOUND":!live?"READY":age>STALE_MS?"STALE":"ACTIVE";
 
-    Bundle out=new Bundle();
+    Bundle profile=OppoVehicleProfileSettings.snapshot(context);
+    Bundle out=new Bundle(profile);
     out.putBoolean("requested",requested);out.putBoolean("active",active);out.putString("lifecycle",lifecycle);
     out.putString("mode","MIRROR_REAL");out.putString("sessionId",sessionId);
-    out.putString("providerCode","POLESTAR");out.putString("deviceType","CAR");
-    out.putString("modelId","POLESTAR_2");
-    out.putString("modelName",state!=null&&state.name!=null&&!state.name.isEmpty()?state.name:"Polestar 2");
+    out.putString("providerCode",OppoVehicleProfileSettings.PROVIDER_CODE);out.putString("deviceType",OppoVehicleProfileSettings.DEVICE_TYPE);
     out.putString("vehicleKey",vehicleKey);out.putString("virtualCarId",carId);
-    out.putString("testVin",testVin(vehicleKey));out.putString("testMac",testMac(vehicleKey));
-    out.putStringArray("capabilities",CAPS.clone());out.putLong("snapshotAt",state==null?0L:state.timestampMillis);
+    out.putString("testVin",testVin(vehicleKey,profile.getString(OppoVehicleProfileSettings.VIN_PREFIX,"TST0")));out.putString("testMac",testMac(vehicleKey));
+    out.putLong("snapshotAt",state==null?0L:state.timestampMillis);
     out.putLong("snapshotAgeMs",age==Long.MAX_VALUE?-1L:age);
     out.putBoolean("syntheticIdentifiers",true);out.putBoolean("rawVinExposed",false);
     out.putBoolean("hardwareMacExposed",false);out.putBoolean("online",active&&age<=STALE_MS);
@@ -68,10 +63,13 @@ final class VirtualVehicleSessionManager {
     return out;
   }
 
-  private static String testVin(String vehicleKey) {
+  private static String testVin(String vehicleKey,String prefix) {
     if(vehicleKey==null||vehicleKey.isEmpty())return "";
+    String safePrefix=(prefix==null?"TST0":prefix.toUpperCase(Locale.US).replaceAll("[^A-Z0-9]",""));
+    if(safePrefix.isEmpty())safePrefix="TST0";
+    safePrefix=safePrefix.substring(0,Math.min(6,safePrefix.length()));
     String upper=vehicleKey.toUpperCase(Locale.US).replaceAll("[^A-F0-9]","");
-    return "TST0"+(upper+"0000000000000").substring(0,13);
+    return (safePrefix+upper+"00000000000000000").substring(0,17);
   }
 
   private static String testMac(String vehicleKey) {

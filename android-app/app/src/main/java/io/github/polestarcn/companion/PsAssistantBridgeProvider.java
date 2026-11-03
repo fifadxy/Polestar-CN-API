@@ -1,7 +1,9 @@
 package io.github.polestarcn.companion;
 
+import android.app.PendingIntent;
 import android.content.ContentProvider;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -55,6 +57,13 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "climate-start", "climate-stop",
       "air-start", "air-stop",
       "windows-open", "windows-close",
+      "honk", "flash", "honk-flash"
+  ));
+
+  private static final Set<String> ALLOWED_SHORTCUT_REQUESTS = new HashSet<>(Arrays.asList(
+      "lock-toggle", "climate-toggle", "air-toggle", "trunk-toggle",
+      "lock", "unlock", "trunk-open", "trunk-close",
+      "climate-start", "climate-stop", "air-start", "air-stop",
       "honk", "flash", "honk-flash"
   ));
 
@@ -165,6 +174,44 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     if("discovery-baseline-clear".equals(method))return OppoDiscoveryBaseline.clear(context);
     if("oppo-official-bind-status".equals(method))
       return OppoOfficialVehicleBindState.status(context,VehicleCoordinator.get(context));
+    if("virtual-session-status".equals(method)||"virtual-session-profile".equals(method))
+      return VirtualVehicleSessionManager.status(context,VehicleCoordinator.get(context));
+    if("virtual-session-set".equals(method)) {
+      if(Binder.getCallingUid()!=Process.myUid()) {
+        String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+        boolean bridge=false;if(callers!=null)for(String pkg:callers)if("io.github.polestarcn.oppobridge".equals(pkg))bridge=true;
+        if(!bridge)throw new SecurityException("Only PsAssistant or its Bridge can change virtual session state");
+      }
+      return VirtualVehicleSessionManager.setEnabled(context,VehicleCoordinator.get(context),extras!=null&&extras.getBoolean("enabled",false));
+    }
+    if("gateway-resolve".equals(method))
+      return VehicleProtocolGateway.resolve(context,VehicleCoordinator.get(context),extras==null?null:extras.getString("action"));
+    if("command-intent".equals(method)) {
+      String action=extras==null?null:extras.getString("action");
+      if(action==null||!ALLOWED_SHORTCUT_REQUESTS.contains(action)) {
+        out.putBoolean("accepted",false);out.putString("reason","unsupported-shortcut-request");return out;
+      }
+      Bundle gateway=VehicleProtocolGateway.resolve(context,VehicleCoordinator.get(context),action);
+      if(!gateway.getBoolean("accepted",false))return gateway;
+      String resolved=gateway.getString("command","");
+      Intent intent=new Intent().setClassName(context.getPackageName(),
+          "io.github.polestarcn.oppobridge.VehicleShortcutActivity")
+          .putExtra("action",resolved).putExtra("request",action)
+          .putExtra("sessionId",gateway.getString("sessionId",""))
+          .putExtra("vehicleId",gateway.getString("virtualCarId",""))
+          .putExtra("commandId",gateway.getString("commandId",""))
+          .putExtra("issuedAt",System.currentTimeMillis());
+      int requestCode=(int)(android.os.SystemClock.elapsedRealtime()&0x7fffffff)^action.hashCode();
+      PendingIntent commandIntent=PendingIntent.getActivity(context,requestCode,intent,
+          PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_ONE_SHOT|PendingIntent.FLAG_IMMUTABLE);
+      out.putParcelable("commandIntent",commandIntent);out.putAll(gateway);
+      out.putBoolean("accepted",true);out.putString("reason","pending-intent-ready");
+      Bundle diagnostic=new Bundle();diagnostic.putBoolean("ready",true);
+      diagnostic.putString("phase","command-intent-created");diagnostic.putBoolean("commandIntentCreated",true);
+      diagnostic.putLong("commandIntentCreatedAt",System.currentTimeMillis());diagnostic.putString("lastCommandAction",action);
+      OppoQuickAppRuntimeDiagnostics.record(context,diagnostic);
+      return out;
+    }
     if("oppo-official-bind-set".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean bridge=false;if(callers!=null)for(String pkg:callers)
@@ -184,8 +231,9 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
 
     if ("capabilities".equals(method)) {
       out.putStringArray("commands", ALLOWED_COMMANDS.toArray(new String[0]));
-      out.putBoolean("state", true);
-      out.putBoolean("refresh", true);
+      out.putBoolean("state", true);out.putBoolean("refresh", true);
+      out.putBoolean("virtualVehicleSession", true);out.putBoolean("protocolGateway", true);
+      out.putBoolean("commandPendingIntent", true);out.putInt("virtualSessionSchema",1);
       return out;
     }
 
@@ -315,7 +363,9 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
 
   private static boolean reporterMethodAllowed(String method,boolean myDevices) {
     if("quickapp-runtime-report".equals(method)||"quickapp-runtime-status".equals(method)
-        ||"oppo-oem-car-status".equals(method))return true;
+        ||"oppo-oem-car-status".equals(method)||"virtual-session-status".equals(method)
+        ||"virtual-session-profile".equals(method)||"gateway-resolve".equals(method)
+        ||"command-intent".equals(method))return true;
     // The exact MyDevices native fallback renders only the already-published cache. It cannot
     // issue a command or trigger a cloud refresh under the host UID.
     if(myDevices&&("host-report".equals(method)||"host-status".equals(method)

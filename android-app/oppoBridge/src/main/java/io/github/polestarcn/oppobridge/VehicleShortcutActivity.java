@@ -13,12 +13,22 @@ public final class VehicleShortcutActivity extends Activity {
 
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    String requested=getIntent()!=null&&getIntent().getData()!=null
-        ?getIntent().getData().getQueryParameter("action"):null;
+    String requested=requestedAction(getIntent());
+    long issuedAt=getIntent()==null?0L:getIntent().getLongExtra("issuedAt",0L);
+    String expectedSession=getIntent()==null?"":getIntent().getStringExtra("sessionId");
+    String expectedVehicle=getIntent()==null?"":getIntent().getStringExtra("vehicleId");
     if(requested==null||requested.isEmpty()) { finish();return; }
+    if(issuedAt>0L&&!freshTicket(issuedAt,System.currentTimeMillis())) {Toast.makeText(this,"车控请求已过期，请重新点击卡片",Toast.LENGTH_SHORT).show();finish();return;}
 
     worker.execute(()->{
       try {
+        if(expectedSession!=null&&!expectedSession.isEmpty()) {
+          Bundle session=BridgeClient.virtualSession(this);
+          if(!session.getBoolean("active",false)||!expectedSession.equals(session.getString("sessionId",""))
+              ||(expectedVehicle!=null&&!expectedVehicle.isEmpty()&&!expectedVehicle.equals(session.getString("virtualCarId","")))) {
+            toast("虚拟车辆会话已变化，请重新点击卡片");finishSafely();return;
+          }
+        }
         Bundle state=BridgeClient.snapshot(this);
         if(state.getBoolean("available",false)
             && !fresh(state.getLong("capturedAt",0L),System.currentTimeMillis())) {
@@ -55,11 +65,21 @@ public final class VehicleShortcutActivity extends Activity {
     }
   }
 
+  static String requestedAction(android.content.Intent intent) {
+    if(intent==null)return null;String direct=intent.getStringExtra("action");
+    if(direct!=null&&!direct.trim().isEmpty())return direct.trim();
+    return intent.getData()==null?null:intent.getData().getQueryParameter("action");
+  }
+
+  static boolean freshTicket(long issuedAt,long now) {return issuedAt>0L&&issuedAt<=now+30_000L&&now-issuedAt<=60_000L;}
+
   static String resolveToggle(String requested,Bundle state) {
     if(state==null||!state.getBoolean("available",false)||state.getBoolean("demo",false)
         ||!state.getBoolean("cardEnabled",true)
         ||!fresh(state.getLong("capturedAt",0L),System.currentTimeMillis()))return null;
-    if("flash".equals(requested)||"honk".equals(requested)||"honk-flash".equals(requested))return requested;
+    if("flash".equals(requested)||"honk".equals(requested)||"honk-flash".equals(requested)
+        ||"lock".equals(requested)||"unlock".equals(requested)||"climate-start".equals(requested)||"climate-stop".equals(requested)
+        ||"air-start".equals(requested)||"air-stop".equals(requested)||"trunk-open".equals(requested)||"trunk-close".equals(requested))return requested;
     if("lock-toggle".equals(requested)) {
       String value=upper(state.getString("lock"));
       if(any(value,"已上锁","已锁","LOCKED"))return "unlock";

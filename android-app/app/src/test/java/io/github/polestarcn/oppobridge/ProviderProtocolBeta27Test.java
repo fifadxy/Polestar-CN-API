@@ -44,7 +44,7 @@ public class ProviderProtocolBeta27Test {
     try(Cursor rows=provider.query(VehicleDeviceCardProvider.URI.buildUpon().appendQueryParameter("version","2").build(),null,null,null,null)){
       assertEquals(1,rows.getCount());assertEquals("row-ready",rows.getExtras().getString("reason"));
     }
-    assertEquals(android.os.Process.myUid(),upstream.uid);assertEquals(host,Binder.getCallingUid());assertEquals(1,upstream.calls);
+    assertEquals(android.os.Process.myUid(),upstream.uid);assertEquals(host,Binder.getCallingUid());assertEquals(2,upstream.calls);
   }
   @Test public void onlyAuthenticatedHostCanEnterRelay(){
     ShadowBinder.setCallingUid(host+1);

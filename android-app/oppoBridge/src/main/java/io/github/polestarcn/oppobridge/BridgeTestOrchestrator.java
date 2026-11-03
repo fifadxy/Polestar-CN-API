@@ -55,7 +55,8 @@ final class BridgeTestOrchestrator {
         realState ? snapshot.getString("name", "Polestar") : snapshot.getString("reason", "尚未登录/刷新"));
     Bundle session=safeCall(context,"virtual-session-status");
     stage(out,counter,session.getBoolean("active",false)?1:0,"Virtual Vehicle Session",
-        session.getString("lifecycle","")+" · "+session.getString("virtualCarId","")+" · "+session.getString("testMac",""));
+        session.getString("lifecycle","")+" · commandReady="+session.getBoolean("commandReady",false)
+            +" · age="+session.getLong("snapshotAgeMs",-1L)/1000L+"s · "+session.getString("virtualCarId",""));
 
     Bundle host = safeCall(context, "host-status");
     boolean mainHook = recent(host.getLong("main_seenAt", 0L));
@@ -68,8 +69,8 @@ final class BridgeTestOrchestrator {
         hostDetail(host, "cards_"));
 
     QuickAppCarCapability.Result route = QuickAppCarCapability.detect(context);
-    stage(out, counter, route.routeSafe() ? 1 : -1, "17.4.15精确RPK门禁",
-        route.mode() + " · " + route.reason);
+    stage(out, counter, route.routeSafe() ? 1 : -1, "MyDevices CAR RPK结构门禁",
+        "host="+route.hostVersion+" · "+route.mode()+" · "+route.reason);
     Bundle quick = safeCall(context, "quickapp-runtime-status");
     boolean exact = quick.getBoolean("rpkPatchApplied", false)
         && quick.getBoolean("converterWhitelistApplied", false);
@@ -91,6 +92,17 @@ final class BridgeTestOrchestrator {
         "accepted="+quick.getBoolean("lastCommandAccepted",false)+" action="+quick.getString("lastCommandAction","")+" reason="+quick.getString("lastCommandReason",""));
     stage(out,counter,quick.getBoolean("lastCommandSent",false)?1:0,"车辆命令入队",
         "sent="+quick.getBoolean("lastCommandSent",false));
+
+    Bundle carlinkHost=safeCall(context,"carlink-host-status");
+    String contract=carlinkHost.getString("contract","");
+    boolean officialContract=contract.contains("CarControl.registerCallback")
+        &&contract.contains("CarControl.sendCarInfo")
+        &&contract.contains("CarControl.sendCarStatus")
+        &&contract.contains("ICarControlCallback.inquireCarInfo")
+        &&contract.contains("ICarControlCallback.inquireCarStatus")
+        &&contract.contains("ICarControlCallback.onControl");
+    stage(out,counter,officialContract?1:0,"CarLink 17.x官方Demo接口契约",
+        "host="+carlinkHost.getString("hostVersion","")+" · "+(officialContract?"核心接口完整":contract));
 
     Bundle assistant = safeCall(context, "assistant-host-status");
     boolean assistantRecent = recent(assistant.getLong("seenAt", 0L));
@@ -142,8 +154,8 @@ final class BridgeTestOrchestrator {
         + "\nPsAssistant桥接：" + (caps.getBoolean("state", false) ? "可用" : "未连接")
         + "\n车辆状态：" + (state.getBoolean("available", false)
             ? state.getString("name", "Polestar") : "尚未读取")
-        + "\nVirtual Session：" + (session.getBoolean("active",false)?"ACTIVE":"未就绪")
-            + " · " + session.getString("lifecycle","")
+        + "\nVirtual Session：" + (session.getBoolean("active",false)?"ACTIVE":session.getString("lifecycle","未就绪"))
+            + " · commandReady=" + session.getBoolean("commandReady",false)
         + "\n说明：模拟测试不发车；真实命令只由主APK已登录车辆会话执行。";
   }
 

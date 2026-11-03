@@ -48,10 +48,11 @@ final class QuickAppContractProbe {
         .intercept(chain -> {
           Object result = chain.proceed();
           boolean applied=false;
+          QuickAppCarCapability.Result capability=null;
           if(result instanceof Set<?>) {
             Application current=currentApplication();
             if(current!=null&&experimentEnabled(current)) {
-              QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(current);
+              capability=QuickAppCarCapability.detect(current);
               if(capability.exactPatchSupported || capability.eventSummaryCar) {
                 LinkedHashSet<Object> copy=new LinkedHashSet<>((Set<?>)result);
                 copy.addAll(OEM_CAR_IDS);result=copy;applied=true;
@@ -72,7 +73,7 @@ final class QuickAppContractProbe {
                 + " size=" + set.size()
                 + " converterCarRoute="+(applied?"enabled":"unchanged")
                 + " rpkEventSummaryOwn=blocked rpkEventSummaryOemCar="
-                +(capability.eventSummaryCar?"native-event-summary":capability.exactPatchSupported?"legacy-exact-patch":"blocked")
+                +(capability==null?"unobserved":capability.eventSummaryCar?"native-event-summary":capability.exactPatchSupported?"legacy-exact-patch":"blocked")
                 + " nativeHomeFallback="+(!applied);
             module.info("quickapp_gate " + reason);
             HostReporter.report("com.heytap.mydevices", "com.heytap.mydevices:cards",

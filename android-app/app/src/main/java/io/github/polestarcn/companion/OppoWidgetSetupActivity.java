@@ -41,10 +41,19 @@ public final class OppoWidgetSetupActivity extends Activity {
         report.setText("4×2实验切换失败："+failure.getClass().getSimpleName());
       }
     });column.addView(oemCar);
+    button(column,android.view.View.generateViewId(),"一键启用 beta31 TestLab 车辆闭环",()->{
+      try {OppoDeviceIntegration.setEnabled(this,true);OppoOemCarExperimentState.set(this,true);
+        Bundle session=VirtualVehicleSessionManager.setEnabled(this,VehicleCoordinator.get(this),true);
+        integration.setChecked(true);oemCar.setChecked(true);
+        if(session.getBoolean("accepted",false)){OppoDeviceIntegration.restoreCard(this);report.setText(diagnostics()+"\nTestLab Session 已启用；请重载 MyDevices/负一屏 后测试四个 CAR 控制。");}
+        else report.setText(diagnostics()+"\nSession 未就绪：请先完成中国区登录并刷新真实车辆。");
+      }catch(RuntimeException failure){report.setText("TestLab Session 启用失败："+failure.getClass().getSimpleName());}
+    });
     android.widget.Switch local=new android.widget.Switch(this);local.setText("向系统提供 Polestar 本地车辆入口");
     local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));
     local.setOnCheckedChangeListener((v,on)->{setSystemVehicleEntry(on);local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));});column.addView(local);
     button(column,android.view.View.generateViewId(),"打开 Polestar 本地车辆面板",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.PolestarOfficialBindActivity")));
+    button(column,android.view.View.generateViewId(),"一键诊断 + 模拟测试 + 导出",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity").putExtra("autoOneClick",true)));
     button(column,android.view.View.generateViewId(),"高级诊断 · 模块／卡片／官方接口",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
     button(column,android.view.View.generateViewId(),"修复 Provider 注册并恢复设备卡",()->{try{OppoDeviceIntegration.restoreCard(this);report.setText(diagnostics()+(OppoDeviceIntegration.enabled(this)?"\nProvider注册及本卡可见性已恢复；没有刷新车辆，请重新进入设备空间。":"\n桥接总开关关闭，Provider保持停用；开启后再恢复。"));}catch(RuntimeException e){report.setText("Provider修复失败："+e.getClass().getSimpleName());}});
     button(column,android.R.id.button1,"打开 OPPO 标准组件列表",()->{
@@ -149,12 +158,21 @@ public final class OppoWidgetSetupActivity extends Activity {
     out.append("CarLink: ").append(system.getString("carLinkVersion",""))
         .append(" · service=").append(system.getBoolean("carLinkServiceAvailable",false))
         .append(" · Hook=").append(system.getBoolean("carLinkHostHookSeen",false)).append('\n');
+    Bundle virtualSession=VirtualVehicleSessionManager.status(this,VehicleCoordinator.get(this));
+    out.append("TestLab Session: ").append(virtualSession.getBoolean("active",false)?"ACTIVE":"未就绪")
+        .append(" · ").append(virtualSession.getString("lifecycle",""))
+        .append(" · ").append(virtualSession.getString("virtualCarId",""))
+        .append(" · ").append(virtualSession.getString("testMac","")).append('\n');
     Bundle quick=OppoQuickAppRuntimeDiagnostics.status(this);
     out.append("MyDevices 4×2实测链路: RPK放行=").append(quick.getBoolean("rpkPatchApplied",false))
         .append(" · Converter=").append(quick.getBoolean("converterWhitelistApplied",false))
         .append(" · shortcuts=").append(quick.getInt("selectedShortcutCount",0))
         .append(" · click=").append(quick.getBoolean("oemClickSeen",false))
+        .append(" · carEvent=").append(quick.getBoolean("carEventReceived",false))
+        .append(" · typeGate=").append(quick.getBoolean("carTypeGatePassed",false))
+        .append(" · dispatcher=").append(quick.getBoolean("carDispatchIntercepted",false))
         .append(" · controller=").append(quick.getBoolean("controllerMatched",false))
+        .append(" · intent=").append(quick.getBoolean("commandIntentCreated",false)).append("/").append(quick.getBoolean("pendingIntentSent",false))
         .append(" · accepted=").append(quick.getBoolean("lastCommandAccepted",false))
         .append(" · sent=").append(quick.getBoolean("lastCommandSent",false)).append('\n');
     out.append("BLE 车钥匙框架: ").append(system.getBoolean("oppoBluetoothKeySupported",false)?"入口可见":"未发现")

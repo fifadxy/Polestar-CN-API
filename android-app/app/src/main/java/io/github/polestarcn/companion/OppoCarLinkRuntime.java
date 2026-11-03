@@ -65,16 +65,22 @@ final class OppoCarLinkRuntime {
     try {
       java.lang.reflect.Method method=CarControl.class.getMethod("sendCarInfoList",java.util.List.class);
       method.invoke(null,java.util.Collections.singletonList(info));infoPublishMode="list";return;
-    } catch(Throwable unavailable) {}
-    CarControl.sendCarInfo(info);infoPublishMode="single";
+    } catch(NoSuchMethodException unavailable) {
+      CarControl.sendCarInfo(info);infoPublishMode="single";return;
+    } catch(java.lang.reflect.InvocationTargetException failure) {
+      Throwable cause=failure.getCause();throw new RuntimeException(cause==null?failure:cause);
+    } catch(IllegalAccessException failure) {throw new RuntimeException(failure);}
   }
 
   private void publishStatus(CarStatus status) {
     try {
       java.lang.reflect.Method method=CarControl.class.getMethod("sendCarStatusList",java.util.List.class);
       method.invoke(null,java.util.Collections.singletonList(status));statusPublishMode="list";return;
-    } catch(Throwable unavailable) {}
-    CarControl.sendCarStatus(status);statusPublishMode="single";
+    } catch(NoSuchMethodException unavailable) {
+      CarControl.sendCarStatus(status);statusPublishMode="single";return;
+    } catch(java.lang.reflect.InvocationTargetException failure) {
+      Throwable cause=failure.getCause();throw new RuntimeException(cause==null?failure:cause);
+    } catch(IllegalAccessException failure) {throw new RuntimeException(failure);}
   }
 
   private String officialBindingView() {

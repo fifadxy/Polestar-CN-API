@@ -20,7 +20,10 @@ public final class QuickAppCarDataShimTest {
     device.put("mConnectState","CONNECTED");
     device.put("connection",new JSONObject().put("connectState","CONNECTED"));
 
-    QuickAppCarDataShim.normalizeCar(device);
+    android.os.Bundle profile=new android.os.Bundle();
+    profile.putString("deviceType","CAR");profile.putString("modelId","POLESTAR_2");profile.putString("modelName","Polestar 2");
+    profile.putString("brand","Polestar");profile.putString("manufacturer","Polestar");profile.putString("connectState","COORDINATED");
+    QuickAppCarDataShim.normalizeCar(device,profile);
 
     assertEquals("CAR",device.getString("type"));
     assertEquals("CAR",device.getString("mDeviceType"));

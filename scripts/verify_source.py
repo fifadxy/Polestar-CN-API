@@ -40,7 +40,7 @@ assert 'ChinaLiveActivity' in manifest
 assert 'grpc-okhttp:1.68.2' in gradle
 version = re.search(r"versionName\s+'([^']+)'", gradle)
 assert version, 'missing APK versionName'
-workflow = (root/'.github/workflows/android-apk.yml').read_text()
+workflow = '\n'.join(p.read_text() for p in (root/'.github/workflows').glob('android*.yml'))
 artifact_version=version.group(1).replace('-standalone','')
 assert f'PsAssistant-v{artifact_version}-VALIDATION-debug.apk' in workflow, 'CI validation artifact version must match APK metadata'
 assert 'VehicleSnapshotStore.saveChina' in all_java

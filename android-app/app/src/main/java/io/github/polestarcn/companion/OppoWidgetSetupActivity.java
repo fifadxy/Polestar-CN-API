@@ -52,6 +52,19 @@ public final class OppoWidgetSetupActivity extends Activity {
     android.widget.Switch local=new android.widget.Switch(this);local.setText("向系统提供 Polestar 本地车辆入口");
     local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));
     local.setOnCheckedChangeListener((v,on)->{setSystemVehicleEntry(on);local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));});column.addView(local);
+    button(column,android.view.View.generateViewId(),"车型接入参数（已预填）",()->startActivity(new Intent(this,OppoVehicleAccessSettingsActivity.class)));
+    button(column,android.view.View.generateViewId(),"一键恢复默认配置并启用",()->{
+      try {
+        OppoVehicleProfileSettings.restoreDefaults(this);restoreBridgeRecommendedDefaults();
+        OppoDeviceIntegration.setEnabled(this,true);OppoOemCarExperimentState.set(this,true);
+        Bundle session=VirtualVehicleSessionManager.setEnabled(this,VehicleCoordinator.get(this),true);
+        try{OppoOfficialVehicleBindState.set(this,VehicleCoordinator.get(this),true);}catch(RuntimeException ignored){}
+        try{OppoDeviceIntegration.restoreCard(this);}catch(RuntimeException ignored){}
+        integration.setChecked(true);oemCar.setChecked(true);
+        local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));
+        report.setText(diagnostics()+"\n已恢复 beta32 默认：车型参数、LSPosed 推荐开关、设备卡、TestLab Session。"+(session.getBoolean("active",false)?" Session=ACTIVE":" 请先完成中国区登录并刷新车辆。"));
+      } catch(RuntimeException failure) {report.setText("恢复默认失败："+failure.getClass().getSimpleName());}
+    });
     button(column,android.view.View.generateViewId(),"打开 Polestar 本地车辆面板",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.PolestarOfficialBindActivity")));
     button(column,android.view.View.generateViewId(),"一键诊断 + 模拟测试 + 导出",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity").putExtra("autoOneClick",true)));
     button(column,android.view.View.generateViewId(),"高级诊断 · 模块／卡片／官方接口",()->startActivity(new Intent().setClassName(this,"io.github.polestarcn.oppobridge.BridgeDiagnosticsActivity")));
@@ -158,6 +171,11 @@ public final class OppoWidgetSetupActivity extends Activity {
     out.append("CarLink: ").append(system.getString("carLinkVersion",""))
         .append(" · service=").append(system.getBoolean("carLinkServiceAvailable",false))
         .append(" · Hook=").append(system.getBoolean("carLinkHostHookSeen",false)).append('\n');
+    Bundle profile=OppoVehicleProfileSettings.snapshot(this);
+    out.append("车型接入: ").append(profile.getString("providerCode","POLESTAR")).append(" / ").append(profile.getString("deviceType","CAR")).append(" / ")
+        .append(profile.getString("modelId","POLESTAR_2")).append(" / ").append(profile.getString("modelName","Polestar 2")).append('\n');
+    out.append("CarLink类: ").append(profile.getString(OppoVehicleProfileSettings.CAR_CONTROL_CLASS,"")).append(" · SessionManager=")
+        .append(profile.getString(OppoVehicleProfileSettings.SESSION_MANAGER_CLASS,"")).append('\n');
     Bundle virtualSession=VirtualVehicleSessionManager.status(this,VehicleCoordinator.get(this));
     out.append("TestLab Session: ").append(virtualSession.getBoolean("active",false)?"ACTIVE":"未就绪")
         .append(" · ").append(virtualSession.getString("lifecycle",""))
@@ -195,6 +213,14 @@ public final class OppoWidgetSetupActivity extends Activity {
     } else out.append("卡片数据预览: 暂无车辆快照\n");
     out.append("Widget 实例数量不证明位于负一屏。此页面不刷新车辆。\n");return out.toString();
   }
+  private void restoreBridgeRecommendedDefaults() {
+    android.net.Uri uri=android.net.Uri.parse("content://io.github.polestarcn.companion.bridge-settings");
+    for(String key:new String[]{"masterEnabled","myDevicesEnabled","assistantScreenEnabled","watchEnabled","directControlEnabled","carLinkProbeEnabled"}) {
+      Bundle in=new Bundle();in.putString("key",key);in.putBoolean("value",true);
+      getContentResolver().call(uri,"update",null,in);
+    }
+  }
+
   private void setSystemVehicleEntry(boolean enabled) {
     try {
       Bundle state=OppoOfficialVehicleBindState.set(this,VehicleCoordinator.get(this),enabled);

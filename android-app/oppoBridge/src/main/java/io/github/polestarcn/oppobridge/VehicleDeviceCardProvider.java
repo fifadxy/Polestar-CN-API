@@ -103,11 +103,13 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     if (context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
         .getBoolean("hidden", false)) return observed(cursor,"hidden-by-user",caller);
 
-    String id = deviceId(state);
-    String pseudoMac = "02:50:53:41:00:01";
+    Bundle session;
+    try {session=BridgeClient.virtualSession(context());}catch(RuntimeException unavailable){session=Bundle.EMPTY;}
+    String id=session.getString("virtualCarId","");if(id.isEmpty())id=deviceId(state);
+    String pseudoMac=session.getString("testMac","");if(pseudoMac.isEmpty())pseudoMac="02:50:53:41:00:01";
     if (!matchesSelection(selection,selectionArgs,id,pseudoMac)) return observed(cursor,"selection-miss",caller);
 
-    JSONObject data = deviceData(state, id, pseudoMac, context());
+    JSONObject data = deviceData(state, id, pseudoMac, context(),session);
     MatrixCursor.RowBuilder row = cursor.newRow();
     for (String column : columns) {
       switch (column) {
@@ -226,6 +228,12 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   }
 
   static JSONObject deviceData(Bundle state, String id, String pseudoMac, Context context) {
+    Bundle session=Bundle.EMPTY;
+    if(context!=null)try{session=BridgeClient.virtualSession(context);}catch(RuntimeException ignored){}
+    return deviceData(state,id,pseudoMac,context,session);
+  }
+
+  static JSONObject deviceData(Bundle state, String id, String pseudoMac, Context context,Bundle session) {
     try {
       int soc = state.getBoolean("batteryPercentKnown", false) ? state.getInt("batteryPercent") : -1;
       JSONArray batteries = new JSONArray();
@@ -241,22 +249,22 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
           .put("mDeviceId", id)
           .put("mDeviceName", cardDisplayName(state))
           .put("mMacAddress", pseudoMac)
-          .put("modelId", "POLESTAR_2")
-          .put("modelName", "Polestar 2")
-          .put("brand", "Polestar")
-          .put("manufacturer", "Polestar")
+          .put("modelId", session.getString("modelId","POLESTAR_2"))
+          .put("modelName", session.getString("modelName","Polestar 2"))
+          .put("brand", session.getString("brand","Polestar"))
+          .put("manufacturer", session.getString("manufacturer","Polestar"))
           .put("vehicleKey", state.getString("vehicleKey", id))
-          .put("mDeviceType", "CAR")
+          .put("mDeviceType", session.getString("deviceType","CAR"))
           .put("iconUrl", BridgeIdentity.iconUri(context))
           .put("mIconUrl", BridgeIdentity.iconUri(context))
           .put("mBatteryInfoList", batteries)
           .put("mBatteryList", levels)
           .put("connection", new JSONObject()
-              .put("connectState", "COORDINATED")
-              .put("coordinationState", "COORDINATED")
+              .put("connectState", session.getString("connectState","COORDINATED"))
+              .put("coordinationState", session.getString("connectState","COORDINATED"))
               .put("lastConnectTime", now)
               .put("lastDisconnectTime", 0))
-          .put("mConnectState", "COORDINATED")
+          .put("mConnectState", session.getString("connectState","COORDINATED"))
           .put("mAuthority", BridgeIdentity.authority(context))
           .put("packageName", BridgeIdentity.packageName(context))
           .put("deviceAppPackage", BridgeIdentity.packageName(context))

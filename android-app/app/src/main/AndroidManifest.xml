@@ -76,7 +76,7 @@
             android:grantUriPermissions="false" />
 <activity android:name=".UpdateHistoryActivity" android:exported="false" />
 <activity android:name=".BackgroundCropActivity" android:exported="false" />
-        <activity android:name=".OppoWidgetSetupActivity" android:exported="false"/>
+        <activity android:name=".OppoWidgetSetupActivity" android:exported="false"/>\n        <activity android:name=".OppoVehicleAccessSettingsActivity" android:exported="false"/>
         <activity android:name=".VehicleSimulationActivity" android:exported="false"/>
         <activity android:name=".EnergyActivity" android:exported="false"/>
         <activity android:name=".VehicleEffectsActivity" android:exported="false"/>

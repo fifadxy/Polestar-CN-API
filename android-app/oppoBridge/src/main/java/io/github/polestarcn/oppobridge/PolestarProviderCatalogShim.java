@@ -169,7 +169,7 @@ final class PolestarProviderCatalogShim {
     long now=android.os.SystemClock.elapsedRealtime();if(lastCatalogReport>=0&&now-lastCatalogReport<2000)return;
     Application app=currentApplication();if(app==null)return;
     ArrayList<String> rows=new ArrayList<>();
-    for(Object item:list){String code=providerCode(item),name=providerName(item);if(code.isEmpty()&&"io.github.polestarcn.companion".equals(providerPackage(item)))code=PROVIDER_CODE;
+    for(Object item:list){String code=providerCode(item),name=providerName(item);if(code.isEmpty()&&BridgeIdentity.isBridgePackage(providerPackage(item)))code=PROVIDER_CODE;
       if(!code.isEmpty()&&rows.size()<64)rows.add(code.replaceAll("[^A-Za-z0-9_-]","")+"="+name.replace('|',' ').replace('=',' '));}
     lastCatalogReport=now;SceneAccountBindProbe.reportCatalog(app,String.join("|",rows),"injected");
   }
@@ -254,13 +254,13 @@ final class PolestarProviderCatalogShim {
     return copy;
   }
 
-  private static boolean enabled(){Application app=currentApplication();return app!=null&&app.getPackageManager().resolveContentProvider(VehicleDeviceCardProvider.AUTHORITY,0)!=null;}
+  private static boolean enabled(){Application app=currentApplication();return app!=null&&app.getPackageManager().resolveContentProvider(BridgeIdentity.authority(app),0)!=null;}
 
   static boolean hasCode(List<?> list,String code) {
     for(Object item:list) {
       if(item==null)continue;
       if(code.equalsIgnoreCase(providerCode(item)))return true;
-      if("io.github.polestarcn.companion".equalsIgnoreCase(providerPackage(item)))return true;
+      if(BridgeIdentity.isBridgePackage(providerPackage(item)))return true;
       String name=providerName(item).toLowerCase(Locale.ROOT);
       if(name.contains("polestar")||name.contains("极星"))return true;
     }
@@ -303,7 +303,7 @@ final class PolestarProviderCatalogShim {
       int mask=(1<<dataCount)-1;
       args[1+nameIndex]=DISPLAY_NAME;mask&=~(1<<nameIndex);
       if(codeIndex>=0){args[1+codeIndex]=PROVIDER_CODE;mask&=~(1<<codeIndex);}
-      if(packageIndex>=0){args[1+packageIndex]="io.github.polestarcn.companion";mask&=~(1<<packageIndex);}
+      if(packageIndex>=0){args[1+packageIndex]=bridgePackage();mask&=~(1<<packageIndex);}
       args[1+dataCount]=mask;
       Object result=copyDefault.invoke(null,args);
       return verify(result)?result:null;
@@ -332,7 +332,7 @@ final class PolestarProviderCatalogShim {
       // Exact 17.14.60 ProviderInfo has a three-String constructor and no empty constructor.
       if(type.getMethod("getSpCode").getReturnType()==String.class&&type.getMethod("getName").getReturnType()==String.class&&type.getMethod("getIconUrl").getReturnType()==String.class){
         Constructor<?> ctor=type.getDeclaredConstructor(String.class,String.class,String.class);ctor.setAccessible(true);
-        Object value=ctor.newInstance(PROVIDER_CODE,DISPLAY_NAME,"android.resource://io.github.polestarcn.companion/drawable/ic_vehicle_card");
+        Object value=ctor.newInstance(PROVIDER_CODE,DISPLAY_NAME,BridgeIdentity.iconUri(currentApplication()));
         if(verify(value))return value;
       }
     }catch(ReflectiveOperationException ignored){}
@@ -340,7 +340,7 @@ final class PolestarProviderCatalogShim {
       Constructor<?> ctor=type.getDeclaredConstructor();ctor.setAccessible(true);Object out=ctor.newInstance();
       setAny(out,new String[]{"spCode","providerCode","brandCode","code"},PROVIDER_CODE);
       setAny(out,new String[]{"name","providerName","brandName","appName","label"},DISPLAY_NAME);
-      setAny(out,new String[]{"packageName","pkgName","appPackage","package"},"io.github.polestarcn.companion");
+      setAny(out,new String[]{"packageName","pkgName","appPackage","package"},bridgePackage());
       return verify(out)?out:null;
     } catch(Throwable ignored) {return null;}
   }
@@ -381,8 +381,10 @@ final class PolestarProviderCatalogShim {
     String name=providerName(value).toLowerCase(Locale.ROOT);
     if(!(name.contains("polestar")||name.contains("极星")))return false;
     String code=providerCode(value),pkg=providerPackage(value);
-    return PROVIDER_CODE.equalsIgnoreCase(code)||"io.github.polestarcn.companion".equalsIgnoreCase(pkg)||(!code.isEmpty()&&name.contains("polestar"));
+    return PROVIDER_CODE.equalsIgnoreCase(code)||BridgeIdentity.isBridgePackage(pkg)||(!code.isEmpty()&&name.contains("polestar"));
   }
+
+  private static String bridgePackage(){return BridgeIdentity.packageName(currentApplication());}
 
   private static Object defaultValue(Class<?> type) {
     if(!type.isPrimitive())return null;

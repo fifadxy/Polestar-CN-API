@@ -36,7 +36,7 @@ public class Beta25NativeRouteTest {
     Bundle s=new Bundle();s.putString("name","Polestar 2");ArrayList<Object> menus=new ArrayList<>();menus.add("fixture-switch");
     java.lang.reflect.Constructor<?> ctor=DeviceFixture.class.getConstructors()[0];
     DeviceFixture row=(DeviceFixture)AssistantScreenNativeVehicleHook.newDevice(ctor,s,"CAR","CONNECTED","NOISE_CANCELING",menus);
-    assertEquals("psassistant_shelf_polestar",row.id);assertEquals(VehicleDeviceCardProvider.AUTHORITY,row.authority);
+    assertEquals("psassistant_shelf_polestar",row.id);assertTrue(BridgeIdentity.isDeviceAuthority(row.authority));
     assertSame(menus,row.switches);assertTrue(row.batteries.isEmpty());
     s.putInt("batteryPercent",64);s.putBoolean("batteryPercentKnown",true);
     row=(DeviceFixture)AssistantScreenNativeVehicleHook.newDevice(ctor,s,"CAR","CONNECTED","NOISE_CANCELING",menus);

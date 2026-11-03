@@ -156,3 +156,5 @@ Health/GetHealth 修正为 SERVER_STREAMING，首条返回后取消订阅，4 �
 2026-11-02 beta26后续核对：保留远端`8bae900`、`32e8913`、`79960a5`修正；补齐隐式CarLink服务绑定观察、断线清除旧授权和`activateCar`按需连接回调。按需读取默认关闭、服从长停省电，当前车辆5分钟最多一次，无轮询。代码与官方授权/车型配置、手机和手表真机验收仍分阶段记录。见[完整研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。
 
 2026-11-02 beta27/141，Bridge1.13.0/25：修复设备卡Provider转发/查询、空Provider目录构造、不可变列表参数替换及跨入口验证策略；新增本机Provider修复与≤2MB诊断。代码/单测与真机验收分开，见[完整记录](OPPO_PROVIDER_BETA27_20261102.md)。
+
+2026-11-03 beta28/142，Bridge1.14.0/26：MyDevices 17.4.15的4×2 RPK已静态确认包含`kongtiao/chesuo/shanguang/mingdi`，但不在`eventSummary`主页集合。新增版本、入口、大小和SHA-256四重门禁的只读内存补丁、转换器精确白名单、双Provider身份和四按钮自有控制器。Root扫描扩展到base及split APK；不改系统磁盘、不伪造OPPO应用身份/PAK。见[完整记录](OPPO_CAR_DIRECT_BETA28_20261103.md)。

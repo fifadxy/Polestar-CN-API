@@ -1,6 +1,7 @@
 package io.github.polestarcn.oppobridge;
 
 import android.os.Bundle;
+import android.app.Application;
 import io.github.libxposed.api.XposedInterface;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -77,6 +78,16 @@ final class QuickAppProviderProbe {
                 HostReporter.report("com.heytap.mydevices",
                     processName(),
                     "quickapp-provider", true, reason);
+                Application app=currentApplication();
+                if(app!=null) {
+                  Bundle previous=BridgeClient.call(app,"quickapp-runtime-status",null);
+                  Bundle report=new Bundle();report.putBoolean("ready",true);
+                  report.putString("phase","oem-click");report.putString("moduleVersion","1.14.0");
+                  report.putBoolean("oemClickSeen",true);report.putLong("oemClickAt",System.currentTimeMillis());
+                  report.putInt("oemClickCount",previous.getInt("oemClickCount",0)+1);
+                  report.putString("lastClickShortcut",bounded(shortcutId));
+                  BridgeClient.call(app,"quickapp-runtime-report",report);
+                }
               }
             }
           } catch (Throwable failure) {
@@ -96,6 +107,12 @@ final class QuickAppProviderProbe {
     } catch (Throwable ignored) {
       return "com.heytap.mydevices";
     }
+  }
+
+  private static Application currentApplication() {
+    try {return (Application)Class.forName("android.app.ActivityThread")
+        .getMethod("currentApplication").invoke(null);}
+    catch(Throwable ignored){return null;}
   }
 
   private static String bounded(String value) {

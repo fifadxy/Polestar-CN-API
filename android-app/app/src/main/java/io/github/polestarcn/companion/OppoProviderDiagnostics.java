@@ -36,7 +36,9 @@ final class OppoProviderDiagnostics {
       out.put("signedIn",model.hasSession()).put("selectedVehiclePresent",model.selected!=null)
           .put("snapshotAvailable",model.snapshot!=null).put("snapshotDemo",model.snapshot!=null&&model.snapshot.isDemo);
       Bundle runtime=enabled?c.getContentResolver().call(OppoDeviceIntegration.CARD_URI,"ps_vehicle_diagnostics",null,null):null;
-      if(runtime!=null)for(String key:new String[]{"lastQueryAt","lastQueryReason","lastRows","hidden"})out.put(key,runtime.get(key));
+      if(runtime!=null)for(String key:new String[]{"lastQueryAt","lastQueryReason","lastRows","hidden",
+          "lastHostQueryAt","lastHostQueryPackage","hostQueryCount","hostQueryObserved",
+          "lastHostCallAt","lastHostCallPackage","lastHostCallMethod","hostCallCount","lastSelfTestAt"})out.put(key,runtime.get(key));
     } catch(Exception error) {try{out.put("error",error.getClass().getSimpleName());}catch(Exception ignored){}}
     return out;
   }

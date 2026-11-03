@@ -44,7 +44,7 @@ final class PolestarBindIntentShim {
                   ?(android.content.Context)caller:null;
               if(context==null)return chain.proceed();
               Intent local=new Intent()
-                  .setClassName("io.github.polestarcn.oppobridge",
+                  .setClassName(BridgeIdentity.packageName(context),
                       "io.github.polestarcn.oppobridge.PolestarOfficialBindActivity")
                   .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                   .putExtra("sourceAction",safe(intent.getAction(),120))

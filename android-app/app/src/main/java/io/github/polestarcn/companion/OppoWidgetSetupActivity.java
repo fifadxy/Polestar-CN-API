@@ -30,6 +30,17 @@ public final class OppoWidgetSetupActivity extends Activity {
     button(column,android.view.View.generateViewId(),"CarLink接入与Root定向诊断",()->startActivity(new Intent(this,OppoCarLinkSetupActivity.class)));
     android.widget.Switch integration=new android.widget.Switch(this);integration.setText("启用 OPPO 车辆桥接");integration.setChecked(OppoDeviceIntegration.enabled(this));
     integration.setOnCheckedChangeListener((v,on)->{try{OppoDeviceIntegration.setEnabled(this,on);report.setText(diagnostics());}catch(RuntimeException failure){integration.setChecked(OppoDeviceIntegration.enabled(this));report.setText("切换失败："+failure.getClass().getSimpleName());}});column.addView(integration);
+    android.widget.Switch oemCar=new android.widget.Switch(this);oemCar.setText("启用 MyDevices 17.4.15 · 4×2 车辆直控实验");
+    oemCar.setChecked(OppoOemCarExperimentState.status(this).getBoolean("enabled",false));
+    oemCar.setOnCheckedChangeListener((v,on)->{
+      try {
+        OppoOemCarExperimentState.set(this,on);
+        report.setText(diagnostics()+"\n4×2车辆直控实验已"+(on?"启用":"关闭")+"；请Root重载或重启MyDevices后重新打开卡片。");
+      } catch(RuntimeException failure) {
+        oemCar.setEnabled(false);
+        report.setText("4×2实验切换失败："+failure.getClass().getSimpleName());
+      }
+    });column.addView(oemCar);
     android.widget.Switch local=new android.widget.Switch(this);local.setText("向系统提供 Polestar 本地车辆入口");
     local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));
     local.setOnCheckedChangeListener((v,on)->{setSystemVehicleEntry(on);local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));});column.addView(local);
@@ -138,6 +149,14 @@ public final class OppoWidgetSetupActivity extends Activity {
     out.append("CarLink: ").append(system.getString("carLinkVersion",""))
         .append(" · service=").append(system.getBoolean("carLinkServiceAvailable",false))
         .append(" · Hook=").append(system.getBoolean("carLinkHostHookSeen",false)).append('\n');
+    Bundle quick=OppoQuickAppRuntimeDiagnostics.status(this);
+    out.append("MyDevices 4×2实测链路: RPK放行=").append(quick.getBoolean("rpkPatchApplied",false))
+        .append(" · Converter=").append(quick.getBoolean("converterWhitelistApplied",false))
+        .append(" · shortcuts=").append(quick.getInt("selectedShortcutCount",0))
+        .append(" · click=").append(quick.getBoolean("oemClickSeen",false))
+        .append(" · controller=").append(quick.getBoolean("controllerMatched",false))
+        .append(" · accepted=").append(quick.getBoolean("lastCommandAccepted",false))
+        .append(" · sent=").append(quick.getBoolean("lastCommandSent",false)).append('\n');
     out.append("BLE 车钥匙框架: ").append(system.getBoolean("oppoBluetoothKeySupported",false)?"入口可见":"未发现")
         .append(" · PAK 配对状态未知，不会伪造为已绑定。\n");
     Bundle shelfCard=OppoShelfCardCapability.status(this);

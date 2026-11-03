@@ -31,7 +31,8 @@ import org.json.JSONObject;
  * PsAssistantBridgeProvider.</p>
  */
 public final class VehicleDeviceCardProvider extends ContentProvider {
-  public static final String AUTHORITY = "io.github.polestarcn.oppobridge.devices";
+  public static final String AUTHORITY = BridgeIdentity.STANDALONE_AUTHORITY;
+  public static final String INTEGRATED_AUTHORITY = BridgeIdentity.INTEGRATED_AUTHORITY;
   public static final Uri URI = Uri.parse("content://" + AUTHORITY + "/device_info_table_new");
   public static final String METHOD_COMMAND = "ps_vehicle_command";
   public static final String METHOD_REFRESH = "ps_vehicle_refresh";
@@ -48,6 +49,14 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   private static volatile long lastQueryAt;
   private static volatile String lastQueryReason="not-queried";
   private static volatile int lastRows;
+  private static volatile long lastHostQueryAt;
+  private static volatile String lastHostQueryPackage="";
+  private static volatile int hostQueryCount;
+  private static volatile long lastHostCallAt;
+  private static volatile String lastHostCallPackage="";
+  private static volatile String lastHostCallMethod="";
+  private static volatile int hostCallCount;
+  private static volatile long lastSelfTestAt;
   private ContentObserver upstream;
 
   @Override public boolean onCreate() {
@@ -55,7 +64,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     if (context != null) {
       upstream = new ContentObserver(new Handler(Looper.getMainLooper())) {
         @Override public void onChange(boolean selfChange) {
-          context.getContentResolver().notifyChange(URI, null);
+          context.getContentResolver().notifyChange(BridgeIdentity.deviceUri(context), null);
         }
       };
       try {
@@ -69,51 +78,51 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
 
   @Override public Cursor query(Uri uri, String[] projection, String selection,
       String[] selectionArgs, String sortOrder) {
-    requireHost();
+    Caller caller=requireHost();
     long identity=Binder.clearCallingIdentity();
-    try { return queryLocal(uri,projection,selection,selectionArgs,sortOrder); }
+    try { return queryLocal(uri,projection,selection,selectionArgs,sortOrder,caller); }
     finally { Binder.restoreCallingIdentity(identity); }
   }
 
-  private Cursor queryLocal(Uri uri,String[] projection,String selection,String[] selectionArgs,String sortOrder) {
+  private Cursor queryLocal(Uri uri,String[] projection,String selection,String[] selectionArgs,String sortOrder,Caller caller) {
     requireUri(uri);
     if(projection!=null&&projection.length>32)throw new IllegalArgumentException("Projection limit");
     String[] columns = projection == null ? COLUMNS : projection.clone();
     MatrixCursor cursor = new MatrixCursor(columns, 1);
-    cursor.setNotificationUri(context().getContentResolver(), URI);
+    cursor.setNotificationUri(context().getContentResolver(), BridgeIdentity.deviceUri(context()));
 
     Bundle state;
     try {
       state = BridgeClient.snapshot(context());
     } catch (RuntimeException unavailable) {
-      return observed(cursor,"upstream-unavailable");
+      return observed(cursor,"upstream-unavailable",caller);
     }
-    if (!state.getBoolean("cardEnabled", false)) return observed(cursor,"integration-disabled-or-upstream-unavailable");
-    if (!state.getBoolean("available", false)) return observed(cursor,"no-snapshot");
-    if (state.getBoolean("demo", false)) return observed(cursor,"demo-excluded");
+    if (!state.getBoolean("cardEnabled", false)) return observed(cursor,"integration-disabled-or-upstream-unavailable",caller);
+    if (!state.getBoolean("available", false)) return observed(cursor,"no-snapshot",caller);
+    if (state.getBoolean("demo", false)) return observed(cursor,"demo-excluded",caller);
     if (context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
-        .getBoolean("hidden", false)) return observed(cursor,"hidden-by-user");
+        .getBoolean("hidden", false)) return observed(cursor,"hidden-by-user",caller);
 
     String id = deviceId(state);
     String pseudoMac = "02:50:53:41:00:01";
-    if (!matchesSelection(selection,selectionArgs,id,pseudoMac)) return observed(cursor,"selection-miss");
+    if (!matchesSelection(selection,selectionArgs,id,pseudoMac)) return observed(cursor,"selection-miss",caller);
 
-    JSONObject data = deviceData(state, id, pseudoMac);
+    JSONObject data = deviceData(state, id, pseudoMac, context());
     MatrixCursor.RowBuilder row = cursor.newRow();
     for (String column : columns) {
       switch (column) {
         case "device_id": row.add(id); break;
         case "device_mac": row.add(pseudoMac); break;
         case "device_data": row.add(data.toString()); break;
-        case "authority": row.add(AUTHORITY); break;
+        case "authority": row.add(BridgeIdentity.authority(context())); break;
         default: row.add(null);
       }
     }
-    return observed(cursor,"row-ready");
+    return observed(cursor,"row-ready",caller);
   }
 
   static void requireUri(Uri uri) {
-    if(uri==null||!"content".equals(uri.getScheme())||!AUTHORITY.equals(uri.getAuthority())
+    if(uri==null||!"content".equals(uri.getScheme())||!BridgeIdentity.isDeviceAuthority(uri.getAuthority())
         ||uri.getFragment()!=null||!uri.getPathSegments().equals(java.util.Collections.singletonList("device_info_table_new")))
       throw new IllegalArgumentException("Unsupported vehicle card URI");
   }
@@ -126,21 +135,31 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     String key=selection.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT);
     if("device_id=?".equals(key))return id.equals(args[0]);
     if("device_mac=?".equals(key))return mac.equals(args[0]);
-    if("authority=?".equals(key))return AUTHORITY.equals(args[0]);
+    if("authority=?".equals(key))return BridgeIdentity.isDeviceAuthority(args[0]);
     throw new IllegalArgumentException("Unsupported vehicle selection");
   }
-  private static Cursor observed(MatrixCursor cursor,String reason) {
+  private static Cursor observed(MatrixCursor cursor,String reason,Caller caller) {
     lastQueryAt=System.currentTimeMillis();lastQueryReason=reason;lastRows=cursor.getCount();
+    if(caller.host) {
+      lastHostQueryAt=lastQueryAt;lastHostQueryPackage=caller.packageName;hostQueryCount++;
+    } else lastSelfTestAt=lastQueryAt;
     Bundle status=new Bundle();status.putString("reason",reason);status.putInt("rows",lastRows);cursor.setExtras(status);return cursor;
   }
   static Bundle runtimeStatus(Context context) {
-    Bundle b=new Bundle();b.putString("authority",AUTHORITY);b.putString("lastQueryReason",lastQueryReason);
+    Bundle b=new Bundle();b.putString("authority",BridgeIdentity.authority(context));b.putString("lastQueryReason",lastQueryReason);
     b.putLong("lastQueryAt",lastQueryAt);b.putInt("lastRows",lastRows);
+    b.putLong("lastHostQueryAt",lastHostQueryAt);b.putString("lastHostQueryPackage",lastHostQueryPackage);
+    b.putInt("hostQueryCount",hostQueryCount);b.putBoolean("hostQueryObserved",hostQueryCount>0);
+    b.putLong("lastHostCallAt",lastHostCallAt);b.putString("lastHostCallPackage",lastHostCallPackage);
+    b.putString("lastHostCallMethod",lastHostCallMethod);b.putInt("hostCallCount",hostCallCount);
+    b.putLong("lastSelfTestAt",lastSelfTestAt);
     b.putBoolean("hidden",context.getSharedPreferences("vehicle-card",Context.MODE_PRIVATE).getBoolean("hidden",false));return b;
   }
 
   @Override public Bundle call(String method, String arg, Bundle extras) {
-    requireHost();
+    Caller caller=requireHost();
+    if(caller.host){lastHostCallAt=System.currentTimeMillis();lastHostCallPackage=caller.packageName;
+      lastHostCallMethod=method==null?"":method;hostCallCount++;}
     long identity=Binder.clearCallingIdentity();
     try { return callLocal(method,arg,extras); }
     finally { Binder.restoreCallingIdentity(identity); }
@@ -179,11 +198,11 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
       } else if ("delete_device".equals(method)) {
         context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
             .edit().putBoolean("hidden", true).apply();
-        context().getContentResolver().notifyChange(URI, null);
+        context().getContentResolver().notifyChange(BridgeIdentity.deviceUri(context()), null);
       } else if ("connect".equals(method) || "card_show".equals(method)) {
         context().getSharedPreferences("vehicle-card", Context.MODE_PRIVATE)
             .edit().remove("hidden").apply();
-        context().getContentResolver().notifyChange(URI,null);
+        context().getContentResolver().notifyChange(BridgeIdentity.deviceUri(context()),null);
         result.putString("reason","cached-card-only");
       } else if ("disconnect".equals(method) || "card_hide".equals(method)) {
         result.putString("reason","host-event-acknowledged");
@@ -203,6 +222,10 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   }
 
   static JSONObject deviceData(Bundle state, String id, String pseudoMac) {
+    return deviceData(state,id,pseudoMac,null);
+  }
+
+  static JSONObject deviceData(Bundle state, String id, String pseudoMac, Context context) {
     try {
       int soc = state.getBoolean("batteryPercentKnown", false) ? state.getInt("batteryPercent") : -1;
       JSONArray batteries = new JSONArray();
@@ -213,15 +236,19 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         levels.put(soc);
       }
       long now = Math.max(0L, state.getLong("capturedAt", 0L));
-      JSONArray shortcuts = shortcuts(state);
+      JSONArray shortcuts = shortcuts(state,context);
       return new JSONObject()
           .put("mDeviceId", id)
           .put("mDeviceName", cardDisplayName(state))
           .put("mMacAddress", pseudoMac)
-          .put("modelId", "POLESTAR")
+          .put("modelId", "POLESTAR_2")
+          .put("modelName", "Polestar 2")
+          .put("brand", "Polestar")
+          .put("manufacturer", "Polestar")
+          .put("vehicleKey", state.getString("vehicleKey", id))
           .put("mDeviceType", "CAR")
-          .put("iconUrl", "android.resource://io.github.polestarcn.oppobridge/drawable/ic_vehicle_card")
-          .put("mIconUrl", "android.resource://io.github.polestarcn.oppobridge/drawable/ic_vehicle_card")
+          .put("iconUrl", BridgeIdentity.iconUri(context))
+          .put("mIconUrl", BridgeIdentity.iconUri(context))
           .put("mBatteryInfoList", batteries)
           .put("mBatteryList", levels)
           .put("connection", new JSONObject()
@@ -230,7 +257,9 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
               .put("lastConnectTime", now)
               .put("lastDisconnectTime", 0))
           .put("mConnectState", "COORDINATED")
-          .put("mAuthority", AUTHORITY)
+          .put("mAuthority", BridgeIdentity.authority(context))
+          .put("packageName", BridgeIdentity.packageName(context))
+          .put("deviceAppPackage", BridgeIdentity.packageName(context))
           .put("isActive", true)
           .put("cardStyle", 1)
           .put("timestamp", now)
@@ -293,30 +322,30 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
         .toString();
   }
 
-  private static JSONArray shortcuts(Bundle state) throws Exception {
+  private static JSONArray shortcuts(Bundle state,Context context) throws Exception {
     JSONArray out = new JSONArray();
     if(!VehicleShortcutActivity.fresh(state.getLong("capturedAt",0L),System.currentTimeMillis()))return out;
     String lock = state.getString("lock", "");
     if("已上锁".equals(lock)||"已锁".equals(lock)||"未锁".equals(lock))addShortcut(out, ("已上锁".equals(lock) || "已锁".equals(lock)) ? "解锁" : "上锁",
-        ("已上锁".equals(lock) || "已锁".equals(lock)) ? "unlock" : "lock");
+        ("已上锁".equals(lock) || "已锁".equals(lock)) ? "unlock" : "lock",context);
 
     String climate = state.getString("climate", "");
     if("开启".equals(climate)||"关闭".equals(climate))addShortcut(out, "开启".equals(climate) ? "关闭空调" : "开启空调",
-        "开启".equals(climate) ? "climate-stop" : "climate-start");
+        "开启".equals(climate) ? "climate-stop" : "climate-start",context);
 
     String tailgate = state.getString("tailgate", "");
     if("已打开".equals(tailgate)||"未关严".equals(tailgate)||"已关闭".equals(tailgate))addShortcut(out, ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "关闭尾门" : "开启尾门",
-        ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "trunk-close" : "trunk-open");
+        ("已打开".equals(tailgate) || "未关严".equals(tailgate)) ? "trunk-close" : "trunk-open",context);
 
     String air = state.getString("air", "");
     if("开启".equals(air)||"关闭".equals(air))addShortcut(out, "开启".equals(air) ? "关闭净化" : "净化",
-        "开启".equals(air) ? "air-stop" : "air-start");
+        "开启".equals(air) ? "air-stop" : "air-start",context);
     return out;
   }
 
-  private static void addShortcut(JSONArray out, String label, String action) throws Exception {
+  private static void addShortcut(JSONArray out, String label, String action,Context context) throws Exception {
     JSONObject extra = new JSONObject()
-        .put("authority", AUTHORITY)
+        .put("authority", BridgeIdentity.authority(context))
         .put("method", METHOD_COMMAND)
         .put("extra", action);
     out.put(new JSONObject()
@@ -333,7 +362,8 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   }
 
   private static String deviceId(Bundle state) {
-    String seed = state.getString("name", "Polestar") + "|" + state.getInt("protocolVersion", 1);
+    String seed = state.getString("vehicleKey", "");
+    if(seed.isEmpty())seed=state.getString("name", "Polestar") + "|" + state.getInt("protocolVersion", 1);
     try {
       byte[] digest = MessageDigest.getInstance("SHA-256").digest(seed.getBytes(java.nio.charset.StandardCharsets.UTF_8));
       StringBuilder out = new StringBuilder("psassistant_");
@@ -365,12 +395,18 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     }
   }
 
-  private void requireHost() {
+  private Caller requireHost() {
     int uid = Binder.getCallingUid();
-    if (uid == Process.myUid() || uid == 0 || uid == Process.SHELL_UID) return;
+    if (uid == Process.myUid()) return new Caller(false,context().getPackageName());
+    if (uid == 0 || uid == Process.SHELL_UID) return new Caller(false,uid==0?"root":"shell");
     String[] packages = context().getPackageManager().getPackagesForUid(uid);
-    if (packages != null) for (String pkg : packages) if (HOSTS.contains(pkg)) return;
+    if (packages != null) for (String pkg : packages) if (HOSTS.contains(pkg)) return new Caller(true,pkg);
     throw new SecurityException("Not a ColorOS vehicle-card host");
+  }
+
+  private static final class Caller {
+    final boolean host;final String packageName;
+    Caller(boolean host,String packageName){this.host=host;this.packageName=packageName==null?"":packageName;}
   }
 
   private Context context() {
@@ -385,7 +421,7 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   }
   @Override public String getType(Uri uri) {
     requireUri(uri);
-    return "vnd.android.cursor.dir/vnd." + AUTHORITY + ".device_info";
+    return "vnd.android.cursor.dir/vnd." + BridgeIdentity.authority(context()) + ".device_info";
   }
   @Override public Uri insert(Uri uri, ContentValues values) { return null; }
   @Override public int delete(Uri uri, String selection, String[] selectionArgs) { return 0; }

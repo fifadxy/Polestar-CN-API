@@ -25,7 +25,7 @@ public class VehicleCardNativeContractTest {
       assertEquals(8, shortcut.getInt("style") & 8);
       assertEquals(2, shortcut.getInt("componentType"));
       JSONObject target = new JSONObject(shortcut.getString("componentExtra"));
-      assertEquals(VehicleDeviceCardProvider.AUTHORITY, target.getString("authority"));
+      assertTrue(BridgeIdentity.isDeviceAuthority(target.getString("authority")));
       assertEquals(VehicleDeviceCardProvider.METHOD_COMMAND, target.getString("method"));
     }
     assertEquals("unlock", new JSONObject(shortcuts.getJSONObject(0).getString("componentExtra")).getString("extra"));

@@ -102,11 +102,11 @@ final class AssistantScreenNativeVehicleHook {
               setConnect.invoke(device,connected);
               setTemplate.invoke(device,switchTemplate);
               setTemplateList.invoke(device,new ArrayList<>());
-              setSwitches.invoke(device,menus(menuCtor,snapshot,commandScheme(host)));
+              setSwitches.invoke(device,menus(menuCtor,snapshot,BridgeIdentity.commandScheme(host)));
               applied++;
             }
             if(applied==0) {
-              list.add(newDevice(deviceCtor,snapshot,car,connected,switchTemplate,menus(menuCtor,snapshot,commandScheme(host))));
+              list.add(newDevice(deviceCtor,snapshot,car,connected,switchTemplate,menus(menuCtor,snapshot,BridgeIdentity.commandScheme(host)),host));
               applied=1;
             }
             if(applied>0) {
@@ -125,13 +125,17 @@ final class AssistantScreenNativeVehicleHook {
   }
 
   static Object newDevice(Constructor<?> ctor,Bundle state,Object car,Object connected,Object template,List<Object> switches) throws Exception {
+    return newDevice(ctor,state,car,connected,template,switches,null);
+  }
+
+  static Object newDevice(Constructor<?> ctor,Bundle state,Object car,Object connected,Object template,List<Object> switches,Application app) throws Exception {
     ArrayList<Integer> batteries=new ArrayList<>();
     int soc=state.getInt("batteryPercent",-1);
     if(state.getBoolean("batteryPercentKnown")&&soc>=0&&soc<=100)batteries.add(soc);
     String name=state.getString("name","Polestar");
     String summary=(batteries.isEmpty()?"":soc+"%")+(state.getBoolean("rangeKmKnown")?" · "+state.getInt("rangeKm")+"km":"");
     return ctor.newInstance("02:50:53:41:00:01","psassistant_shelf_polestar",name+" · 缓存 "+summary,car,connected,template,
-        0,null,VehicleDeviceCardProvider.AUTHORITY,null,0,state.getLong("capturedAt",0),false,false,new ArrayList<>(),
+        0,null,BridgeIdentity.authority(app),null,0,state.getLong("capturedAt",0),false,false,new ArrayList<>(),
         true,switches,new ArrayList<>(),batteries,new ArrayList<>());
   }
 
@@ -155,19 +159,7 @@ final class AssistantScreenNativeVehicleHook {
 
   private static boolean isOurDevice(String id,String authority) {
     return id.startsWith("psassistant_")
-        ||"io.github.polestarcn.oppobridge.devices".equals(authority)
-        ||"io.github.polestarcn.companion.devices".equals(authority);
-  }
-
-  private static String commandScheme(Application app) {
-    // The standalone LSPosed bridge is preferred when installed. The integrated PsAssistant build
-    // uses a separate scheme so installing both packages never creates an ACTION_VIEW chooser.
-    try {
-      app.getPackageManager().getApplicationInfo("io.github.polestarcn."+"oppobridge",0);
-      return "psassistant-oppo-bridge";
-    } catch(Throwable ignored) {
-      return "psassistant-companion";
-    }
+        ||BridgeIdentity.isDeviceAuthority(authority);
   }
 
   @SuppressWarnings({"rawtypes","unchecked"})

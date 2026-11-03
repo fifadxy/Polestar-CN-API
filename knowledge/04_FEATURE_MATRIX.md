@@ -133,3 +133,5 @@ v094已实现充电5×2/气流原生显示、独立17项循环测试、容量设
 2026-11-02 beta26后续核对：保留远端`8bae900`、`32e8913`、`79960a5`修正；补齐隐式CarLink服务绑定观察、断线清除旧授权和`activateCar`按需连接回调。按需读取默认关闭、服从长停省电，当前车辆5分钟最多一次，无轮询。代码与官方授权/车型配置、手机和手表真机验收仍分阶段记录。见[完整研究](OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。
 
 2026-11-02 beta27/141，Bridge1.13.0/25：修复设备卡Provider转发/查询、空Provider目录构造、不可变列表参数替换及跨入口验证策略；新增本机Provider修复与≤2MB诊断。代码/单测与真机验收分开，见[完整记录](OPPO_PROVIDER_BETA27_20261102.md)。
+
+2026-11-03 beta28/142，Bridge1.14.0/26：`IMPLEMENTED_NEEDS_DEVICE_VERIFICATION`新增MyDevices 17.4.15 4×2主页锁车/空调/闪灯/鸣笛入口；精确RPK哈希不匹配时默认关闭。命令进入PsAssistant队列与真实车辆执行分开记录，只有新鲜状态回读可升级为`PROJECT_DEVICE_VERIFIED`。OPPO官方CarLink身份、车型云配置和Watch PAK仍为`MAPPING_REQUIRED`。见[完整记录](OPPO_CAR_DIRECT_BETA28_20261103.md)。

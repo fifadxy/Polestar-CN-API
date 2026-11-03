@@ -75,6 +75,12 @@ public class ProviderProtocolBeta27Test {
       try{provider.query(Uri.parse(path),null,null,null,null);fail();}catch(IllegalArgumentException expected){}
     assertEquals(host,Binder.getCallingUid());assertEquals(0,upstream.calls);
   }
+  @Test public void bothPackagedAuthoritiesUseTheSameStrictTablePath(){
+    VehicleDeviceCardProvider.requireUri(Uri.parse("content://"+BridgeIdentity.STANDALONE_AUTHORITY+"/device_info_table_new"));
+    VehicleDeviceCardProvider.requireUri(Uri.parse("content://"+BridgeIdentity.INTEGRATED_AUTHORITY+"/device_info_table_new"));
+    try{VehicleDeviceCardProvider.requireUri(Uri.parse("content://"+BridgeIdentity.INTEGRATED_AUTHORITY+"/other"));fail();}
+    catch(IllegalArgumentException expected){}
+  }
   @Test public void staleOrUnknownStateDoesNotPublishGuessingShortcuts()throws Exception {
     Bundle state=new Bundle();state.putLong("capturedAt",System.currentTimeMillis());state.putString("lock","未知");
     assertEquals(0,VehicleDeviceCardProvider.deviceData(state,"id","mac").getJSONArray("shortcuts").length());

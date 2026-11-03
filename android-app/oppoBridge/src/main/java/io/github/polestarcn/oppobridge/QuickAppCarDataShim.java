@@ -93,6 +93,10 @@ final class QuickAppCarDataShim {
     device.put("type","CAR");
     device.put("mDeviceType","CAR");
     device.put("deviceType","CAR");
+    device.put("modelId","POLESTAR_2");
+    device.put("modelName","Polestar 2");
+    device.put("brand","Polestar");
+    device.put("manufacturer","Polestar");
     device.put("mConnectState","COORDINATED");
     JSONObject connection=device.optJSONObject("connection");
     if(connection==null)connection=new JSONObject();
@@ -122,7 +126,7 @@ final class QuickAppCarDataShim {
   private static boolean isOurDevice(JSONObject item) {
     String id=first(item,"id","mDeviceId","deviceId");
     String pkg=first(item,"packageName","deviceAppPackage","mDeviceAppPackage");
-    return id.startsWith("psassistant_")||BRIDGE_PACKAGE.equals(pkg)||PSASSISTANT_PACKAGE.equals(pkg);
+    return id.startsWith("psassistant_")||BridgeIdentity.isBridgePackage(pkg);
   }
 
   private static String first(JSONObject item,String... keys) {
@@ -141,13 +145,15 @@ final class QuickAppCarDataShim {
       Bundle in=new Bundle();
       in.putBoolean("ready",true);
       in.putString("phase","oem-car-data-shim");
-      in.putString("moduleVersion","1.13.0");
+      in.putString("moduleVersion","1.14.0");
       in.putString("hostVersion",capability.hostVersion);
       in.putBoolean("oemShimApplied",applied);
       in.putBoolean("oemCarRegistry",capability.carRegistry);
       in.putBoolean("oemSmartHomeDefaultCar",capability.smartHomeDefaultCar);
       in.putBoolean("oemEventSummaryCar",capability.eventSummaryCar);
       in.putString("oemShimMode",capability.mode());
+      in.putString("rpkEntrySha256",capability.indexSha256);
+      if(applied)in.putInt("selectedShortcutCount",4);
       in.putString("reason",reason);
       app.getContentResolver().call(BridgeClient.URI,"quickapp-runtime-report",null,in);
       module.info("quickapp_oem_car_data applied="+applied+" mode="+capability.mode());

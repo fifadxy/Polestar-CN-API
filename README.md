@@ -1,4 +1,6 @@
-当前分支 **v0.9.7-beta27 /141 · Bridge1.13.0 /25**：[设备卡及车辆目录Provider修复](knowledge/OPPO_PROVIDER_BETA27_20261102.md)。增加本机修复按钮、查询原因和统一控车验证；官方身份及真机验收仍独立核对。以下为历史记录。 [FULL交付验证与使用方法](docs/PSASSISTANT_BETA27_FULL_VERIFICATION_20261102.md)：9.57MB，固定签名，最终CI通过。
+当前分支 **v0.9.7-beta28 /142 · Bridge1.14.0 /26**：[MyDevices 17.4.15精确4×2车辆直控链路](knowledge/OPPO_CAR_DIRECT_BETA28_20261103.md)。增加双Provider身份、固定哈希内存放行、四个OEM车辆按钮接管及逐层运行诊断；不伪造OPPO云端身份或数字钥匙绑定，真车状态回读仍需用户设备验收。交付验证见[beta28 FULL验证与使用方法](docs/PSASSISTANT_BETA28_FULL_VERIFICATION_20261103.md)。以下为历史记录。
+
+历史分支 **v0.9.7-beta27 /141 · Bridge1.13.0 /25**：[设备卡及车辆目录Provider修复](knowledge/OPPO_PROVIDER_BETA27_20261102.md)。增加本机修复按钮、查询原因和统一控车验证；官方身份及真机验收仍独立核对。 [FULL交付验证与使用方法](docs/PSASSISTANT_BETA27_FULL_VERIFICATION_20261102.md)：9.57MB，固定签名，最终CI通过。
 
 当前分支 **v0.9.7-beta26 /140 · Bridge1.12.0 /24**：[CarLink SDK、Root定向诊断与协议纠错](knowledge/OPPO_CARLINK_PRIORITY_BETA26_20261102.md)。正式SDK鉴权和车型后台配置仍需本应用身份，不能把编译/本地绑定当作实机打通。 [FULL交付验证与使用方法](docs/PSASSISTANT_BETA26_FULL_VERIFICATION_20261102.md)：9.56MB，固定签名，真实SDK构建已通过。以下为历史记录。
 

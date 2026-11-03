@@ -59,6 +59,7 @@ public final class VehicleShortcutActivity extends Activity {
     if(state==null||!state.getBoolean("available",false)||state.getBoolean("demo",false)
         ||!state.getBoolean("cardEnabled",true)
         ||!fresh(state.getLong("capturedAt",0L),System.currentTimeMillis()))return null;
+    if("flash".equals(requested)||"honk".equals(requested)||"honk-flash".equals(requested))return requested;
     if("lock-toggle".equals(requested)) {
       String value=upper(state.getString("lock"));
       if(any(value,"已上锁","已锁","LOCKED"))return "unlock";

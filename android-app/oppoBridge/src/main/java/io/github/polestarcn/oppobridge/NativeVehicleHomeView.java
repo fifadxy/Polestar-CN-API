@@ -69,7 +69,7 @@ final class NativeVehicleHomeView extends LinearLayout {
     // package/type normalization. Treat it as the primary identity so a transformed CAR type
     // cannot silently fall back to the generic "View device" card.
     if(id!=null&&id.startsWith("psassistant_"))return true;
-    return ("io.github.polestarcn.oppobridge".equals(pkg)||"io.github.polestarcn.companion".equals(pkg))
+    return BridgeIdentity.isBridgePackage(pkg)
         &&type!=null&&"CAR".equalsIgnoreCase(type);
   }
   private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}

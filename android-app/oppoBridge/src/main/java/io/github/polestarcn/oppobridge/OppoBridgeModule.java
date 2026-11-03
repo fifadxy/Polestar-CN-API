@@ -27,6 +27,11 @@ public final class OppoBridgeModule extends XposedModule {
       VehicleSurfaceProbe.install(this,pkg,process,param.getClassLoader());
       ShelfCardHostProbe.install(this,pkg,process);
 
+      if("com.heytap.mydevices".equals(pkg)||"com.oplus.smartengine".equals(pkg)
+          ||"com.oplus.cardservice".equals(pkg)||"com.nearme.instant.platform".equals(pkg)) {
+        try{QuickAppRpkPatch.install(this);}catch(Throwable x){warn("quickapp_rpk_patch unavailable="+x.getClass().getSimpleName());}
+      }
+
       if(("com.coloros.assistantscreen".equals(pkg)||"com.oplus.assistantscreen".equals(pkg))&&pkg.equals(process)) {
         if("com.coloros.assistantscreen".equals(pkg)) {
           AssistantScreenHostReporter.report(this,"hooks-entered",true,"");

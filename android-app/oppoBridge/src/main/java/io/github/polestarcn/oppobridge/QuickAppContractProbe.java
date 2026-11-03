@@ -1,6 +1,7 @@
 package io.github.polestarcn.oppobridge;
 
 import android.app.Application;
+import android.os.Bundle;
 import io.github.libxposed.api.XposedInterface;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -12,12 +13,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Read-only diagnostics for the exact MyDevices 17.4.15 QuickApp path.
+ * Exact-gated diagnostics and CAR shortcut allow-list adapter for MyDevices 17.4.15.
  *
  * <p>The host has two independent shortcut gates: QuickCardDeviceDataConverter first filters
  * DeviceShortcut IDs through assets/support/card_short_cut.json, and the bundled 2x2/4x2 RPK
- * filters the resulting list again through config.eventSummary. This probe never widens either
- * allow-list; beta9+ uses NativeHomeCardHook for our own CAR row instead.</p>
+ * filters the resulting list again through config.eventSummary. The adapter widens the first gate
+ * only for the four CAR IDs already present in the verified RPK; QuickAppRpkPatch widens the second
+ * gate in memory. Unknown builds remain unchanged.</p>
  */
 final class QuickAppContractProbe {
   private static final String PACKAGE = "io.github.polestarcn.oppobridge";
@@ -30,6 +32,7 @@ final class QuickAppContractProbe {
   ));
   private static final AtomicBoolean whitelistReported = new AtomicBoolean();
   private static final AtomicBoolean conversionReported = new AtomicBoolean();
+  private static final AtomicBoolean appliedReported = new AtomicBoolean();
 
   private QuickAppContractProbe() {}
 
@@ -53,6 +56,18 @@ final class QuickAppContractProbe {
         .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
         .intercept(chain -> {
           Object result = chain.proceed();
+          boolean applied=false;
+          if(result instanceof Set<?>) {
+            Application current=currentApplication();
+            if(current!=null&&experimentEnabled(current)) {
+              QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(current);
+              if(capability.exactPatchSupported) {
+                LinkedHashSet<Object> copy=new LinkedHashSet<>((Set<?>)result);
+                copy.addAll(OEM_CAR_IDS);result=copy;applied=true;
+                reportApplied(current,module,capability);
+              }
+            }
+          }
           if (result instanceof Set<?> && whitelistReported.compareAndSet(false, true)) {
             Set<?> set = (Set<?>) result;
             List<String> missing = new ArrayList<>();
@@ -64,7 +79,9 @@ final class QuickAppContractProbe {
                 + " converterWhitelistOemCar=" + (missingOem.isEmpty() ? "all" : "blocked")
                 + " oemMissing=" + missingOem.size()
                 + " size=" + set.size()
-                + " rpkEventSummaryOwn=blocked rpkEventSummaryOemCar=blocked nativeHomeFallback=true";
+                + " exactConverterPatch="+applied
+                + " rpkEventSummaryOwn=blocked rpkEventSummaryOemCar="+(applied?"memory-patch":"blocked")
+                + " nativeHomeFallback="+(!applied);
             module.info("quickapp_gate " + reason);
             HostReporter.report("com.heytap.mydevices", "com.heytap.mydevices:cards",
                 "quickapp-gates", true, reason);
@@ -88,6 +105,14 @@ final class QuickAppContractProbe {
               module.info("quickapp_conversion " + reason);
               HostReporter.report("com.heytap.mydevices", "com.heytap.mydevices:cards",
                   "quickapp-converted", true, reason);
+              Application runtimeApp=currentApplication();
+              if(runtimeApp!=null) {
+                Bundle report=new Bundle();report.putBoolean("ready",true);
+                report.putString("phase","quickapp-converted");report.putString("moduleVersion","1.14.0");
+                report.putInt("selectedShortcutCount",ids.size());
+                report.putString("selectedShortcutIds",ids.toString());
+                BridgeClient.call(runtimeApp,"quickapp-runtime-report",report);
+              }
             }
           } catch (Throwable failure) {
             module.warn("quickapp_conversion_probe_failed " + failure.getClass().getSimpleName());
@@ -97,6 +122,25 @@ final class QuickAppContractProbe {
 
     module.info("quickapp_contract_probe ready=true whitelist=" + whitelist.getName()
         + " convert=" + convert.getName());
+  }
+
+  private static boolean experimentEnabled(Application app) {
+    try{return BridgeClient.call(app,"oppo-oem-car-status",null).getBoolean("enabled",false);}
+    catch(Throwable ignored){return false;}
+  }
+
+  private static void reportApplied(Application app,OppoBridgeModule module,
+      QuickAppCarCapability.Result capability) {
+    if(!appliedReported.compareAndSet(false,true))return;
+    try {
+      Bundle in=new Bundle();in.putBoolean("ready",true);
+      in.putString("phase","converter-whitelist");in.putString("moduleVersion","1.14.0");
+      in.putString("hostVersion",capability.hostVersion);in.putBoolean("converterWhitelistApplied",true);
+      in.putLong("converterWhitelistAt",System.currentTimeMillis());
+      in.putString("rpkEntrySha256",capability.indexSha256);
+      BridgeClient.call(app,"quickapp-runtime-report",in);
+      module.info("quickapp_converter_whitelist applied=true ids="+OEM_CAR_IDS);
+    } catch(Throwable ignored) {}
   }
 
   private static Method findWhitelist(Class<?> type) {

@@ -81,7 +81,7 @@ public final class VehicleCardDetailActivity extends Activity {
       try {
         if("__restore_card".equals(action)) {
           getSharedPreferences("vehicle-card",MODE_PRIVATE).edit().remove("hidden").apply();
-          getContentResolver().notifyChange(VehicleDeviceCardProvider.URI,null);message="设备卡已恢复";
+          getContentResolver().notifyChange(BridgeIdentity.deviceUri(this),null);message="设备卡已恢复";
         } else {
           Bundle result=action==null?BridgeClient.refresh(this):BridgeClient.command(this,action);
           if(!result.getBoolean("accepted",false)) {

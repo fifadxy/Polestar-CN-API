@@ -39,6 +39,14 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "com.finshell.wallet",
       "com.heytap.health.wallet",
       "com.oplus.cardigitalkey"
+      ,"com.oplus.smartengine"
+      ,"com.oplus.cardservice"
+      ,"com.nearme.instant.platform"
+  ));
+
+  private static final Set<String> QUICKAPP_REPORTERS = new HashSet<>(Arrays.asList(
+      "com.heytap.mydevices", "com.oplus.smartengine", "com.oplus.cardservice",
+      "com.nearme.instant.platform"
   ));
 
   private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
@@ -64,6 +72,10 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
     out.putInt("authorizationPolicyVersion",1);
+    boolean quickReporter=callerIn(context,QUICKAPP_REPORTERS);
+    boolean myDevices=callerIs(context,"com.heytap.mydevices");
+    if(quickReporter && !reporterMethodAllowed(method,myDevices))
+      throw new SecurityException("QuickApp hosts are limited to diagnostics and cached state");
     if("host-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean host=false;if(callers!=null)for(String pkg:callers)if("com.heytap.mydevices".equals(pkg))host=true;
@@ -72,9 +84,8 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     }
     if("host-status".equals(method))return OppoHostDiagnostics.status(context);
     if("quickapp-runtime-report".equals(method)) {
-      String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
-      boolean host=false;if(callers!=null)for(String pkg:callers)if("com.heytap.mydevices".equals(pkg))host=true;
-      if(!host)throw new SecurityException("Only MyDevices can report QuickApp runtime metadata");
+      if(!quickReporter&&Binder.getCallingUid()!=Process.myUid())
+        throw new SecurityException("Only scoped QuickApp hosts can report runtime metadata");
       return OppoQuickAppRuntimeDiagnostics.record(context,extras);
     }
     if("quickapp-runtime-status".equals(method))return OppoQuickAppRuntimeDiagnostics.status(context);
@@ -183,7 +194,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     if ("snapshot".equals(method)) {
       VehicleSnapshot state = coordinator.snapshot;
       if (state == null) state = VehicleSnapshotStore.loadChina(context);
-      writeSnapshot(out, state);
+      writeSnapshot(out, state, coordinator.selected == null ? null : coordinator.selected.vin);
       return out;
     }
 
@@ -211,18 +222,22 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       if (action == null || !ALLOWED_COMMANDS.contains(action)) {
         out.putBoolean("accepted", false);
         out.putString("reason", "unsupported-command");
+        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,false,false,"unsupported-command");
         return out;
       }
       if(!FirstUseConsent.accepted(context)||!commandStateReady(coordinator.snapshot,System.currentTimeMillis())) {
-        out.putBoolean("accepted",false);out.putString("reason","fresh-consented-vehicle-state-required");return out;
+        out.putBoolean("accepted",false);out.putString("reason","fresh-consented-vehicle-state-required");
+        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,false,false,"fresh-consented-vehicle-state-required");return out;
       }
       if (!coordinator.canCommand(action)) {
         out.putBoolean("accepted", false);
         out.putString("reason", coordinator.hasSession() ? "vehicle-not-ready-or-busy" : "not-signed-in");
+        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,false,false,out.getString("reason"));
         return out;
       }
       if(!"direct".equals(ControlAuthorization.mode(context,action))) {
-        out.putAll(BridgeCommandRequests.request(context,action,coordinator));return out;
+        out.putAll(BridgeCommandRequests.request(context,action,coordinator));
+        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,out.getBoolean("accepted"),false,out.getString("reason",""));return out;
       }
       final String vehicle=VehicleCoordinator.identity(coordinator.selected.vin);
       main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.canCommand(action)
@@ -230,8 +245,10 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
           &&commandStateReady(coordinator.snapshot,System.currentTimeMillis())
           &&"direct".equals(ControlAuthorization.mode(context,action)))coordinator.command(action);});
       out.putBoolean("accepted", true);
+      out.putBoolean("commandSent", true);
       out.putString("reason", "queued");
       out.putString("action", action);
+      OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,true,true,"queued");
       return out;
     }
 
@@ -241,7 +258,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     return state!=null&&!state.isDemo&&state.timestampMillis>0&&state.timestampMillis<=now+30_000L&&now-state.timestampMillis<=5*60_000L;
   }
 
-  private static void writeSnapshot(Bundle out, VehicleSnapshot state) {
+  private static void writeSnapshot(Bundle out, VehicleSnapshot state,String vin) {
     if (state == null) {
       out.putBoolean("available", false);
       return;
@@ -250,6 +267,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     out.putString("name", state.name);
     out.putString("source", state.source);
     out.putBoolean("demo", state.isDemo);
+    if(vin!=null&&!vin.isEmpty())out.putString("vehicleKey",VehicleCoordinator.identity(vin));
     putInt(out, "batteryPercent", state.batteryPercent);
     putInt(out, "rangeKm", state.rangeKm);
     putInt(out, "odometerKm", state.odometerKm);
@@ -293,6 +311,30 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       if (ALLOWED_CALLERS.contains(pkg)) return;
     }
     throw new SecurityException("Bridge caller is not allowed");
+  }
+
+  private static boolean reporterMethodAllowed(String method,boolean myDevices) {
+    if("quickapp-runtime-report".equals(method)||"quickapp-runtime-status".equals(method)
+        ||"oppo-oem-car-status".equals(method))return true;
+    // The exact MyDevices native fallback renders only the already-published cache. It cannot
+    // issue a command or trigger a cloud refresh under the host UID.
+    if(myDevices&&("host-report".equals(method)||"host-status".equals(method)
+        ||"capabilities".equals(method)||"snapshot".equals(method)))return true;
+    return false;
+  }
+
+  private static boolean callerIn(Context context,Set<String> allowed) {
+    if(Binder.getCallingUid()==Process.myUid())return false;
+    String[] packages=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+    if(packages!=null)for(String value:packages)if(allowed.contains(value))return true;
+    return false;
+  }
+
+  private static boolean callerIs(Context context,String expected) {
+    if(Binder.getCallingUid()==Process.myUid())return false;
+    String[] packages=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+    if(packages!=null)for(String value:packages)if(expected.equals(value))return true;
+    return false;
   }
 
   @Override public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) { return null; }

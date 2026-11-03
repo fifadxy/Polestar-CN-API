@@ -3,6 +3,8 @@ package io.github.polestarcn.oppobridge;
 import android.app.Application;
 import android.database.ContentObserver;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
@@ -143,27 +145,21 @@ final class MyDevicesVehicleHook {
         Application app = currentApplication();
         if (app == null) { module.warn("mydevices_shortcut_rejected no-application"); return null; }
         String shortcutId = String.valueOf(args[1]);
-        String command;
-        try {
-          android.os.Bundle snapshot = CardShortcutCommand.isOemCarId(shortcutId)
-              ? BridgeClient.snapshot(app) : null;
-          command = CardShortcutCommand.fromId(shortcutId, snapshot);
-        } catch (RuntimeException unavailable) {
-          command = null;
-        }
+        String command=shortcutRequest(shortcutId);
         if (command == null) {
           module.warn("mydevices_shortcut_rejected unsupported-or-unknown-state id=" + shortcutId);
           return null;
         }
-        // Commands use the existing session, integration and busy gates. The OEM QuickApp
-        // valueInt/valueBoolean is deliberately not trusted for lock/climate semantics.
         try {
-          android.os.Bundle response = BridgeClient.command(app, command);
-          module.info("mydevices_shortcut id=" + shortcutId + " command=" + command
-              + " accepted=" + response.getBoolean("accepted", false)
-              + " reason=" + response.getString("reason", "") + " vehicleConfirmed=false");
+          String scheme=BridgeIdentity.commandScheme(app);
+          Intent route=new Intent(Intent.ACTION_VIEW,Uri.parse(scheme+"://command?action="+Uri.encode(command)))
+              .setPackage(BridgeIdentity.packageName(app)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          app.startActivity(route);
+          reportRuntime(app,"controller-click",shortcutId,true);
+          module.info("mydevices_shortcut routed=true id="+shortcutId+" request="+command);
         } catch (RuntimeException failure) {
-          module.warn("mydevices_shortcut_rejected bridge-unavailable");
+          reportRuntime(app,"controller-click",shortcutId,false);
+          module.warn("mydevices_shortcut_rejected activity-unavailable");
         }
         return null;
       }
@@ -177,11 +173,39 @@ final class MyDevicesVehicleHook {
 
     for (Method lookup : lookups) {
       after(module, lookup, "mydevices_card_lookup_" + lookup.getName(), (args, result) -> {
-        if (result == null && PACKAGE.equals(args.get(0))) return controller;
+        if (args!=null&&args.size()>=2&&BridgeIdentity.isBridgePackage(String.valueOf(args.get(0)))
+            &&"CAR".equalsIgnoreCase(String.valueOf(args.get(1)))) {
+          Application app=currentApplication();if(app!=null)reportRuntime(app,"controller-match","",true);
+          return controller;
+        }
         return result;
       });
     }
     module.info("mydevices_card_router ready=true lookups=" + lookups.size());
+  }
+
+  static String shortcutRequest(String id) {
+    if("chesuo".equals(id))return "lock-toggle";
+    if("kongtiao".equals(id))return "climate-toggle";
+    if("shanguang".equals(id))return "flash";
+    if("mingdi".equals(id))return "honk";
+    String action=CardShortcutCommand.fromId(id);
+    return action;
+  }
+
+  private static void reportRuntime(Application app,String phase,String shortcut,boolean success) {
+    try {
+      Bundle previous=BridgeClient.call(app,"quickapp-runtime-status",null);
+      Bundle in=new Bundle();in.putBoolean("ready",true);in.putString("phase",phase);
+      in.putString("moduleVersion","1.14.0");
+      if("controller-match".equals(phase)) {
+        in.putBoolean("controllerMatched",success);in.putLong("controllerMatchedAt",System.currentTimeMillis());
+        in.putInt("controllerMatchCount",previous.getInt("controllerMatchCount",0)+1);
+      } else {
+        in.putString("lastClickShortcut",shortcut);in.putBoolean("controllerMatched",true);
+      }
+      BridgeClient.call(app,"quickapp-runtime-report",in);
+    } catch(Throwable ignored) {}
   }
 
   private static void openPanel(Object device, OppoBridgeModule module) {
@@ -283,7 +307,7 @@ final class MyDevicesVehicleHook {
 
   private static boolean providerEnabled() {
     Application app=currentApplication();
-    return app!=null&&app.getPackageManager().resolveContentProvider(VehicleDeviceCardProvider.AUTHORITY,0)!=null;
+    return app!=null&&app.getPackageManager().resolveContentProvider(BridgeIdentity.authority(app),0)!=null;
   }
 
   private static Application currentApplication() {
@@ -322,7 +346,7 @@ final class MyDevicesVehicleHook {
           String id = null;
           long revision = Long.MIN_VALUE;
           try (android.database.Cursor c = app.getContentResolver().query(
-              VehicleDeviceCardProvider.URI,
+              BridgeIdentity.deviceUri(app),
               new String[]{"device_id", "device_data"}, null, null, null)) {
             if (c != null && c.moveToFirst()) {
               id = c.getString(0);
@@ -358,7 +382,7 @@ final class MyDevicesVehicleHook {
       };
       thread = t;
       observer = o;
-      try {app.getContentResolver().registerContentObserver(VehicleDeviceCardProvider.URI, false, o);}
+      try {app.getContentResolver().registerContentObserver(BridgeIdentity.deviceUri(app), false, o);}
       catch(RuntimeException failure) {detach();throw failure;}
       handler.post(refresh);
       module.info("mydevices_card_observer attached=true");

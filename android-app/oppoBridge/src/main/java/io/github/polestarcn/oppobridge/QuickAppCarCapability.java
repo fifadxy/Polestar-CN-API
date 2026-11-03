@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -11,32 +13,53 @@ import java.util.zip.ZipInputStream;
 
 /** Static exact-build capability detection for dormant MyDevices 17.4.15 CAR QuickApp routes. */
 final class QuickAppCarCapability {
+  static final String HOST_VERSION="17.4.15";
+  static final String RPK_ASSET="assets/com.heytap.mydevices.quickapp.kdRpk.rpk";
+  static final String INDEX_ENTRY="cards/SingleDeviceCard4x2/index.js";
+  static final int INDEX_SIZE=1_405_170;
+  static final String INDEX_SHA256="69bdfacad2cd7ad7a65da678b9435eaa54fa7011debb7381164e1d699cfb86e2";
+  static final String PATCH_ANCHOR="'sportData', 'healthData'];";
+  private static final String PATCH_REPLACEMENT="'sportData', 'healthData',\n"
+      + "// PsAssistant exact-gated CAR controls\n"
+      + "'chesuo', 'kongtiao', 'shanguang', 'mingdi'];";
+
   static final class Result {
     final String hostVersion;
     final boolean rpkPresent;
     final boolean carRegistry;
     final boolean smartHomeDefaultCar;
     final boolean eventSummaryCar;
+    final boolean exactPatchSupported;
+    final String indexSha256;
     final String reason;
 
     Result(String hostVersion,boolean rpkPresent,boolean carRegistry,
-        boolean smartHomeDefaultCar,boolean eventSummaryCar,String reason) {
+        boolean smartHomeDefaultCar,boolean eventSummaryCar,boolean exactPatchSupported,
+        String indexSha256,String reason) {
       this.hostVersion=hostVersion;
       this.rpkPresent=rpkPresent;
       this.carRegistry=carRegistry;
       this.smartHomeDefaultCar=smartHomeDefaultCar;
       this.eventSummaryCar=eventSummaryCar;
+      this.exactPatchSupported=exactPatchSupported;
+      this.indexSha256=indexSha256;
       this.reason=reason;
     }
 
+    Result(String hostVersion,boolean rpkPresent,boolean carRegistry,
+        boolean smartHomeDefaultCar,boolean eventSummaryCar,String reason) {
+      this(hostVersion,rpkPresent,carRegistry,smartHomeDefaultCar,eventSummaryCar,false,"",reason);
+    }
+
     boolean routeSafe() {
-      return "17.4.15".equals(hostVersion) && rpkPresent && carRegistry
-          && (smartHomeDefaultCar || eventSummaryCar);
+      return HOST_VERSION.equals(hostVersion) && rpkPresent && carRegistry
+          && (eventSummaryCar || exactPatchSupported);
     }
 
     String mode() {
       if(!routeSafe())return "fallback-native-home";
-      return eventSummaryCar ? "event-summary-oem-shortcuts" : "smart-home-default";
+      return eventSummaryCar ? "event-summary-oem-shortcuts"
+          : exactPatchSupported ? "exact-rpk-memory-patch" : "fallback-native-home";
     }
   }
 
@@ -59,43 +82,66 @@ final class QuickAppCarCapability {
     String version="";
     try {
       version=context.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName;
-      if(!"17.4.15".equals(version))
-        return new Result(version,false,false,false,false,"host-version-mismatch");
+      if(!HOST_VERSION.equals(version))
+        return new Result(version,false,false,false,false,false,"","host-version-mismatch");
       ApplicationInfo info=context.getPackageManager().getApplicationInfo("com.heytap.mydevices",0);
       try(ZipFile apk=new ZipFile(info.sourceDir)) {
-        ZipEntry rpk=apk.getEntry("assets/com.heytap.mydevices.quickapp.kdRpk.rpk");
-        if(rpk==null)return new Result(version,false,false,false,false,"rpk-missing");
-        boolean registry=false,smart=false,event=false;
+        ZipEntry rpk=apk.getEntry(RPK_ASSET);
+        if(rpk==null)return new Result(version,false,false,false,false,false,"","rpk-missing");
+        byte[] index=null;
         try(ZipInputStream nested=new ZipInputStream(apk.getInputStream(rpk))) {
           ZipEntry entry;
-          int scanned=0;
-          while((entry=nested.getNextEntry())!=null&&scanned<240) {
-            if(entry.isDirectory())continue;
-            String name=entry.getName()==null?"":entry.getName();
-            String lower=name.toLowerCase(Locale.ROOT);
-            if(!(lower.endsWith(".js")||lower.endsWith(".json")||lower.endsWith(".ux")))continue;
-            byte[] data=readBounded(nested,900_000);
-            String text=new String(data,java.nio.charset.StandardCharsets.UTF_8);
-            scanned++;
-            if(hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi"))
-              registry=true;
-            if(hasCarDefaults(text))
-              smart=true;
-            if(hasCarEvents(text))
-              event=true;
-            if(registry&&smart&&event)break;
+          while((entry=nested.getNextEntry())!=null) {
+            if(!entry.isDirectory()&&INDEX_ENTRY.equals(entry.getName())) {
+              index=readBounded(nested,INDEX_SIZE+1);break;
+            }
           }
         }
-        String reason=(registry?"registry ":"")
-            +(smart?"smartHomeDefault ":"")
-            +(event?"eventSummary ":"");
-        if(reason.isEmpty())reason="car-route-not-confirmed";
-        return new Result(version,true,registry,smart,event,reason.trim());
+        if(index==null)return new Result(version,true,false,false,false,false,"","4x2-index-missing");
+        String text=new String(index,StandardCharsets.UTF_8);
+        boolean registry=hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi");
+        boolean smart=hasCarDefaults(text),event=hasCarEvents(text);
+        String sha=sha256(index);
+        boolean exact=INDEX_SIZE==index.length&&INDEX_SHA256.equals(sha)
+            &&occurrences(text,PATCH_ANCHOR)==1&&!event;
+        String reason="indexSize="+index.length+" sha="+sha+" registry="+registry
+            +" smartHomeDefault="+smart+" eventSummary="+event+" exactPatch="+exact;
+        return new Result(version,true,registry,smart,event,exact,sha,reason);
       }
     } catch(Throwable failure) {
-      return new Result(version,false,false,false,false,
+      return new Result(version,false,false,false,false,false,"",
           "scan-"+failure.getClass().getSimpleName());
     }
+  }
+
+  static byte[] patchExact(byte[] source) {
+    if(source==null||source.length!=INDEX_SIZE||!INDEX_SHA256.equals(sha256(source)))return null;
+    String text=new String(source,StandardCharsets.UTF_8);
+    String patched=patchVerifiedText(text);
+    if(patched==null)return null;
+    return patched.getBytes(StandardCharsets.UTF_8);
+  }
+
+  static String patchVerifiedText(String text) {
+    if(occurrences(text,PATCH_ANCHOR)!=1||hasCarEvents(text))return null;
+    String patched=text.replace(PATCH_ANCHOR,PATCH_REPLACEMENT);
+    return hasCarEvents(patched)?patched:null;
+  }
+
+  static int occurrences(String text,String needle) {
+    if(text==null||needle==null||needle.isEmpty())return 0;
+    int count=0,at=0;
+    while((at=text.indexOf(needle,at))>=0){count++;at+=needle.length();}
+    return count;
+  }
+
+  static String sha256(byte[] bytes) {
+    try {
+      byte[] digest=MessageDigest.getInstance("SHA-256").digest(bytes);
+      StringBuilder out=new StringBuilder(64);
+      for(byte value:digest)out.append(String.format(Locale.US,"%02x",value&255));
+      return out.toString();
+    } catch(Exception impossible) {throw new IllegalStateException(impossible);}
   }
 
   static boolean hasCarDefaults(String text) {

@@ -11,8 +11,8 @@ android {
         minSdk 26
         targetSdk 34
         buildConfigField 'boolean', 'OPPO_SDK_PACKAGED', privateOppoSdk.toString()
-        versionCode 141
-        versionName '0.9.7-beta27-standalone'
+        versionCode 142
+        versionName '0.9.7-beta28-standalone'
         def oppoCompany = System.getenv('PSA_OPPO_COMPANY_ID') ?: '0'
         def oppoAuth = System.getenv('PSA_OPPO_AUTH_CODE') ?: 'PSASSISTANT_UNCONFIGURED'
         if (!(oppoCompany ==~ /[0-9]{1,9}/) || !(oppoAuth ==~ /[A-Za-z0-9_+\/=.-]{1,4096}/))
@@ -199,10 +199,16 @@ tasks.register("prepareIntegratedOppoBridge") {
             if (input.isFile() && input.name.endsWith(".java")) {
                 def output = new File(target, source.toPath().relativize(input.toPath()).toString())
                 output.parentFile.mkdirs()
-                output.setText(input.getText("UTF-8")
-                    .replace('"io.github.polestarcn.oppobridge"', '"io.github.polestarcn.companion"')
-                    .replace('io.github.polestarcn.oppobridge.devices', 'io.github.polestarcn.companion.devices')
-                    .replace('android.resource://io.github.polestarcn.oppobridge/', 'android.resource://io.github.polestarcn.companion/'), "UTF-8")
+                def text = input.getText("UTF-8")
+                // BridgeIdentity deliberately retains both package identities. Replacing its
+                // constants made an integrated build unable to recognise a standalone provider.
+                if (input.name != 'BridgeIdentity.java') {
+                    text = text
+                        .replace('"io.github.polestarcn.oppobridge"', '"io.github.polestarcn.companion"')
+                        .replace('io.github.polestarcn.oppobridge.devices', 'io.github.polestarcn.companion.devices')
+                        .replace('android.resource://io.github.polestarcn.oppobridge/', 'android.resource://io.github.polestarcn.companion/')
+                }
+                output.setText(text, "UTF-8")
             }
         }
     }

@@ -11,8 +11,8 @@ android {
         minSdk 26
         targetSdk 34
         buildConfigField 'boolean', 'OPPO_SDK_PACKAGED', privateOppoSdk.toString()
-        versionCode 142
-        versionName '0.9.7-beta28-standalone'
+        versionCode 143
+        versionName '0.9.7-beta29-standalone'
         def oppoCompany = System.getenv('PSA_OPPO_COMPANY_ID') ?: '0'
         def oppoAuth = System.getenv('PSA_OPPO_AUTH_CODE') ?: 'PSASSISTANT_UNCONFIGURED'
         if (!(oppoCompany ==~ /[0-9]{1,9}/) || !(oppoAuth ==~ /[A-Za-z0-9_+\/=.-]{1,4096}/))

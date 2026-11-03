@@ -43,6 +43,9 @@
             <intent-filter><action android:name="oplus.devicecards.action.DEVICE_INFO"/></intent-filter>
             <meta-data android:name="oplus.devicecards.provider" android:resource="@xml/device_card"/>
         </provider>
+        <provider android:name="io.github.polestarcn.oppobridge.BridgeSettingsProvider"
+            android:authorities="io.github.polestarcn.companion.bridge-settings"
+            android:exported="true" android:grantUriPermissions="false"/>
         <activity android:name="io.github.polestarcn.oppobridge.VehicleCardDetailActivity"
             android:exported="true" android:excludeFromRecents="true">
             <intent-filter>

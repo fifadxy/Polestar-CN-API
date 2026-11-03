@@ -40,6 +40,12 @@ final class OppoResearchExport {
       "com.nearme.instant.platform",
       "com.heytap.speechassist",
       "com.oplus.ocar",
+      "com.heytap.opluscarlink",
+      "com.oplus.smartengine",
+      "com.oplus.cardservice",
+      "com.finshell.wallet",
+      "com.heytap.health.wallet",
+      "com.oplus.cardigitalkey",
       "com.coloros.sceneservice",
       "com.oplus.sceneservice"
   };
@@ -59,8 +65,12 @@ final class OppoResearchExport {
     try (ZipOutputStream zip = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(out)))) {
       putText(zip, rawBudget, "README.txt",
           "PsAssistant OPPO lightweight research bundle\n"
-          + "Credential-free by design: no phone/password/token/VIN/raw account payload.\n"
+          + "Credential-free by design: no phone/password/token/AUTH_CODE/VIN/raw account payload.\n"
           + "Target: MyDevices/AssistantScreen/Pantanal/SceneService integration.\n");
+      putText(zip, rawBudget, "unified-summary.txt", copySummary(context));
+      putText(zip, rawBudget, "module-settings.txt", BridgeSettings.describe(context));
+      putText(zip, rawBudget, "last-all-path-test.txt", BridgeTestOrchestrator.lastReport(context));
+      putText(zip, rawBudget, "last-simulation-test.txt", BridgeSimulationSession.lastReport(context));
       putText(zip, rawBudget, "system.txt", systemSummary(context));
       putText(zip, rawBudget, "bridge-status.txt", bridgeSummary(context));
       putText(zip, rawBudget, "packages.txt", packageSummary(context));
@@ -68,6 +78,7 @@ final class OppoResearchExport {
       putText(zip, rawBudget, "oem-car-capability.txt", oemCarCapabilitySummary(context));
       extractAssistantScreenAssets(context, zip, rawBudget);
       putText(zip, rawBudget, "scene-provider.txt", sceneProviderSummary(context));
+      putText(zip, rawBudget, "carlink-database-schema.txt", CarLinkDatabaseInventory.capture());
       String hookLog = rootHookLog();
       if (!hookLog.isEmpty()) putText(zip, rawBudget, "root-hook-log.txt", hookLog);
     }
@@ -76,6 +87,24 @@ final class OppoResearchExport {
       throw new IOException("Export exceeded 9 MB safety limit");
     }
     return out;
+  }
+
+  /** Single copyable report using the same sanitized sources as the ZIP exporter. */
+  static String copySummary(Context context) {
+    StringBuilder out = new StringBuilder();
+    out.append("PsAssistant OPPO Bridge ").append(BridgeBuild.VERSION_NAME)
+        .append(" unified diagnostics\n\n[settings]\n")
+        .append(BridgeSettings.describe(context))
+        .append("\n[last-all-path-test]\n").append(BridgeTestOrchestrator.lastReport(context))
+        .append("\n[last-simulation-test]\n").append(BridgeSimulationSession.lastReport(context))
+        .append("\n[system]\n").append(systemSummary(context))
+        .append("\n[packages]\n").append(packageSummary(context))
+        .append("\n[bridge]\n").append(bridgeSummary(context))
+        .append("\n[oem-car-capability]\n").append(oemCarCapabilitySummary(context))
+        .append("\n[carlink-database-schema]\n").append(CarLinkDatabaseInventory.capture());
+    int max = 60_000;
+    if (out.length() > max) return out.substring(0, max) + "\n[truncated=true]\n";
+    return out.toString();
   }
 
   private static String systemSummary(Context context) {
@@ -109,7 +138,9 @@ final class OppoResearchExport {
     for (String key : keys) {
       String lower = key.toLowerCase(Locale.ROOT);
       if (lower.contains("token") || lower.contains("password") || lower.contains("vin")
-          || lower.contains("accountid") || lower.contains("url")) continue;
+          || lower.contains("accountid") || lower.contains("url") || lower.contains("authcode")
+          || lower.contains("authorizationcode") || lower.contains("serversecret")
+          || lower.contains("cookie") || lower.contains("sessionid")) continue;
       Object value = bundle.get(key);
       if (value instanceof String[] && ((String[]) value).length < 64)
         out.append(key).append('=').append(Arrays.toString((String[]) value)).append('\n');

@@ -23,6 +23,11 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false">
         <provider
+            android:name=".BridgeSettingsProvider"
+            android:authorities="io.github.polestarcn.oppobridge.settings"
+            android:exported="true"
+            android:grantUriPermissions="false"/>
+        <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.oppoexports"
             android:exported="false"

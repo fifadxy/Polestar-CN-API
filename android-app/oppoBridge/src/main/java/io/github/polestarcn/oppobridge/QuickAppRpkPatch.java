@@ -81,7 +81,7 @@ final class QuickAppRpkPatch {
     try {
       Bundle in=new Bundle();
       in.putBoolean("ready",true);in.putString("phase","rpk-memory-patch");
-      in.putString("moduleVersion","1.14.0");in.putString("hostVersion",QuickAppCarCapability.HOST_VERSION);
+      in.putString("moduleVersion",BridgeBuild.VERSION_NAME);in.putString("hostVersion",QuickAppCarCapability.HOST_VERSION);
       in.putBoolean("rpkPatchApplied",applied);in.putInt("rpkPatchCount",applied?1:0);
       in.putLong("rpkPatchAt",System.currentTimeMillis());in.putString("rpkPatchReason",reason);
       in.putString("rpkEntrySha256",sha);

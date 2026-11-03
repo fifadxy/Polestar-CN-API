@@ -145,7 +145,7 @@ final class QuickAppCarDataShim {
       Bundle in=new Bundle();
       in.putBoolean("ready",true);
       in.putString("phase","oem-car-data-shim");
-      in.putString("moduleVersion","1.14.0");
+      in.putString("moduleVersion",BridgeBuild.VERSION_NAME);
       in.putString("hostVersion",capability.hostVersion);
       in.putBoolean("oemShimApplied",applied);
       in.putBoolean("oemCarRegistry",capability.carRegistry);

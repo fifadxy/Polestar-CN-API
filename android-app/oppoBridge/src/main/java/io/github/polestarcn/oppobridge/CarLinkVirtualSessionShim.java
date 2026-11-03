@@ -58,6 +58,7 @@ final class CarLinkVirtualSessionShim {
   private static final Object UNSET=new Object();
   private static String sessionKey(String name){
     if("getVin".equals(name))return "testVin";if("getCarId".equals(name)||"getDeviceId".equals(name)||"getVehicleId".equals(name))return "virtualCarId";
+    if("isBound".equals(name)||"getBound".equals(name))return "bound";if("getBindState".equals(name)||"getBindingState".equals(name))return "bindState";
     if("getConnectState".equals(name))return "connectState";if("getLockState".equals(name)||"getDoorLockState".equals(name))return "lock";
     if("getClimateState".equals(name)||"getAirConditionState".equals(name))return "climate";if("getSoc".equals(name)||"getBatteryPercent".equals(name))return "batteryPercent";
     if("getRangeKm".equals(name)||"getRange".equals(name))return "rangeKm";if("getOdometerKm".equals(name)||"getOdometer".equals(name))return "odometerKm";
@@ -65,6 +66,8 @@ final class CarLinkVirtualSessionShim {
   }
   private static Object valueForGetter(String key,Class<?> type,Bundle p){
     if("connectState".equals(key)){Object v=VirtualCarLinkSessionStore.connectedValue(type,p.getString(key,"COORDINATED"));return v==null?UNSET:v;}
+    if("bound".equals(key)){if(type==boolean.class||type==Boolean.class)return p.getBoolean("active",false);if(type==String.class)return p.getBoolean("active",false)?"BOUND":"UNBOUND";return UNSET;}
+    if("bindState".equals(key)){Object v=VirtualCarLinkSessionStore.connectedValue(type,p.getBoolean("active",false)?"BOUND":"UNBOUND");return v==null?UNSET:v;}
     if("capabilities".equals(key)){String[] values=p.getStringArray("capabilities");if(values==null)return UNSET;if(type.isArray()&&type.getComponentType()==String.class)return values.clone();if(java.util.List.class.isAssignableFrom(type))return new java.util.ArrayList<>(java.util.Arrays.asList(values));if(java.util.Set.class.isAssignableFrom(type))return new java.util.LinkedHashSet<>(java.util.Arrays.asList(values));if(type==String.class)return String.join(",",values);return UNSET;}
     if("batteryPercent".equals(key)||"rangeKm".equals(key)||"odometerKm".equals(key)){if(!p.getBoolean(key+"Known",false))return UNSET;int value=p.getInt(key);if(type==int.class||type==Integer.class)return value;if(type==long.class||type==Long.class)return (long)value;if(type==String.class)return String.valueOf(value);return UNSET;}
     String value=p.getString(key,"");if(type==String.class)return value;return UNSET;

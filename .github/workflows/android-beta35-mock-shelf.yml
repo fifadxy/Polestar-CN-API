@@ -35,7 +35,17 @@ jobs:
         run: gradle --no-daemon --stacktrace :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug :carlinkMockSdk:assembleRelease
       - name: Unit tests beta35
         working-directory: android-app
-        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest
+        run: |
+          gradle --no-daemon --stacktrace :app:testDebugUnitTest
+          mkdir -p ../verification/beta35
+          cp -a app/build/test-results/testDebugUnitTest ../verification/beta35/mock-test-results
+      - name: Verify official-mode command authorization
+        working-directory: android-app
+        env:
+          PSA_OPPO_MOCK_SDK: 'false'
+        run: |
+          gradle --no-daemon --stacktrace :app:testDebugUnitTest --tests io.github.polestarcn.companion.BridgeAuthorizationBeta27Test
+          cp -a app/build/test-results/testDebugUnitTest ../verification/beta35/official-authorization-results
       - name: Package outputs
         run: |
           cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta35-mock-shelf-VALIDATION-debug.apk
@@ -60,6 +70,7 @@ jobs:
         with:
           name: PsAssistant-beta35-mock-checks
           path: |
+            verification/beta35/
             android-app/app/build/test-results/testDebugUnitTest/
             android-app/app/build/reports/lint-results-debug.html
           if-no-files-found: ignore

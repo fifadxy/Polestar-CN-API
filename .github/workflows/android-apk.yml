@@ -7,6 +7,7 @@ on:
       - android-polestar-assistant-main
       - hotfix/android-v095-beta2-20261029
       - feature/oppo-native-vehicle-bridge-c17-20261030
+      - feature/oppo-bridge-beta29-standalone-20261103
       - android-polestar-assistant-v093-work
     paths:
       - 'android-app/**'

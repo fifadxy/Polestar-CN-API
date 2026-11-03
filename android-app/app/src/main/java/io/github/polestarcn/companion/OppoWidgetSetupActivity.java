@@ -177,11 +177,16 @@ public final class OppoWidgetSetupActivity extends Activity {
     out.append("CarLink类: ").append(profile.getString(OppoVehicleProfileSettings.CAR_CONTROL_CLASS,"")).append(" · SessionManager=")
         .append(profile.getString(OppoVehicleProfileSettings.SESSION_MANAGER_CLASS,"")).append('\n');
     Bundle virtualSession=VirtualVehicleSessionManager.status(this,VehicleCoordinator.get(this));
-    out.append("TestLab Session: ").append(virtualSession.getBoolean("active",false)?"ACTIVE":"未就绪")
-        .append(" · ").append(virtualSession.getString("lifecycle",""))
+    out.append("TestLab Session: ").append(virtualSession.getBoolean("active",false)?"ACTIVE":virtualSession.getString("lifecycle","未就绪"))
+        .append(" · commandReady=").append(virtualSession.getBoolean("commandReady",false))
+        .append(" · age=").append(virtualSession.getLong("snapshotAgeMs",-1L)/1000L).append("s")
         .append(" · ").append(virtualSession.getString("virtualCarId",""))
         .append(" · ").append(virtualSession.getString("testMac","")).append('\n');
     Bundle quick=OppoQuickAppRuntimeDiagnostics.status(this);
+    String currentMyDevices="";try{currentMyDevices=getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName;}catch(Exception ignored){}
+    out.append("MyDevices诊断: current=").append(currentMyDevices)
+        .append(" · observed=").append(quick.getString("hostVersion",""))
+        .append(" · seenAt=").append(quick.getLong("seenAt",0L)).append('\n');
     out.append("MyDevices 4×2实测链路: RPK放行=").append(quick.getBoolean("rpkPatchApplied",false))
         .append(" · Converter=").append(quick.getBoolean("converterWhitelistApplied",false))
         .append(" · shortcuts=").append(quick.getInt("selectedShortcutCount",0))

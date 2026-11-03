@@ -197,7 +197,7 @@ final class MyDevicesVehicleHook {
     try {
       Bundle previous=BridgeClient.call(app,"quickapp-runtime-status",null);
       Bundle in=new Bundle();in.putBoolean("ready",true);in.putString("phase",phase);
-      in.putString("moduleVersion","1.14.0");
+      in.putString("moduleVersion",BridgeBuild.VERSION_NAME);
       if("controller-match".equals(phase)) {
         in.putBoolean("controllerMatched",success);in.putLong("controllerMatchedAt",System.currentTimeMillis());
         in.putInt("controllerMatchCount",previous.getInt("controllerMatchCount",0)+1);

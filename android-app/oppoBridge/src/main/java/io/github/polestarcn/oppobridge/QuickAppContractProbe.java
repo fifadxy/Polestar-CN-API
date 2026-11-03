@@ -108,7 +108,7 @@ final class QuickAppContractProbe {
               Application runtimeApp=currentApplication();
               if(runtimeApp!=null) {
                 Bundle report=new Bundle();report.putBoolean("ready",true);
-                report.putString("phase","quickapp-converted");report.putString("moduleVersion","1.14.0");
+                report.putString("phase","quickapp-converted");report.putString("moduleVersion",BridgeBuild.VERSION_NAME);
                 report.putInt("selectedShortcutCount",ids.size());
                 report.putString("selectedShortcutIds",ids.toString());
                 BridgeClient.call(runtimeApp,"quickapp-runtime-report",report);
@@ -134,7 +134,7 @@ final class QuickAppContractProbe {
     if(!appliedReported.compareAndSet(false,true))return;
     try {
       Bundle in=new Bundle();in.putBoolean("ready",true);
-      in.putString("phase","converter-whitelist");in.putString("moduleVersion","1.14.0");
+      in.putString("phase","converter-whitelist");in.putString("moduleVersion",BridgeBuild.VERSION_NAME);
       in.putString("hostVersion",capability.hostVersion);in.putBoolean("converterWhitelistApplied",true);
       in.putLong("converterWhitelistAt",System.currentTimeMillis());
       in.putString("rpkEntrySha256",capability.indexSha256);

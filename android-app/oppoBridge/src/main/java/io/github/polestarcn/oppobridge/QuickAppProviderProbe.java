@@ -82,7 +82,7 @@ final class QuickAppProviderProbe {
                 if(app!=null) {
                   Bundle previous=BridgeClient.call(app,"quickapp-runtime-status",null);
                   Bundle report=new Bundle();report.putBoolean("ready",true);
-                  report.putString("phase","oem-click");report.putString("moduleVersion","1.14.0");
+                  report.putString("phase","oem-click");report.putString("moduleVersion",BridgeBuild.VERSION_NAME);
                   report.putBoolean("oemClickSeen",true);report.putLong("oemClickAt",System.currentTimeMillis());
                   report.putInt("oemClickCount",previous.getInt("oemClickCount",0)+1);
                   report.putString("lastClickShortcut",bounded(shortcutId));

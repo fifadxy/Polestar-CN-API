@@ -1,4 +1,6 @@
-当前增量：[beta28 MyDevices 17.4.15精确4×2车辆直控链路](OPPO_CAR_DIRECT_BETA28_20261103.md)，主APK142、Bridge1.14.0/26。内存补丁采用版本、入口、大小、SHA-256四重门禁；本地注入不等于OPPO官方云端绑定或真车执行。以下保留历史阶段。
+独立模块增量：[Bridge 1.15.0 standalone /27](OPPO_BRIDGE_BETA29_STANDALONE_20261103.md)，统一设置、全路径只读检测、隔离模拟、POLESTAR本地目录入口和单一诊断导出；尚未合并主APK。
+
+当前主APK增量：[beta28 MyDevices 17.4.15精确4×2车辆直控链路](OPPO_CAR_DIRECT_BETA28_20261103.md)，主APK142、内置Bridge1.14.0/26。内存补丁采用版本、入口、大小、SHA-256四重门禁；本地注入不等于OPPO官方云端绑定或真车执行。以下保留历史阶段。
 
 历史增量：[beta27 Provider完整修复](OPPO_PROVIDER_BETA27_20261102.md)，主APK141、Bridge1.13.0/25。
 

@@ -99,7 +99,7 @@ final class SceneAccountBindProbe {
       in.putString("providerCatalog", catalog == null ? "" : catalog);
       in.putString("catalogSource",source);
       in.putString("hostVersion", hostVersion(app));
-      in.putString("moduleVersion", "1.14.0");
+      in.putString("moduleVersion", BridgeBuild.VERSION_NAME);
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}
   }
@@ -119,7 +119,7 @@ final class SceneAccountBindProbe {
       in.putString("bindActivity", bindActivity);
       in.putString("dialogActivity", dialogActivity);
       in.putString("hostVersion", hostVersion==null?"":hostVersion);
-      in.putString("moduleVersion", "1.14.0");
+      in.putString("moduleVersion", BridgeBuild.VERSION_NAME);
       BridgeClient.call(app, "account-bind-report", in);
     } catch (Throwable ignored) {}
   }

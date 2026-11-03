@@ -19,6 +19,8 @@ final class OppoQuickAppRuntimeDiagnostics {
       "isAuth","isBind","hasDevice","oemShimApplied","oemCarRegistry",
       "oemSmartHomeDefaultCar","oemEventSummaryCar","rpkPatchApplied",
       "converterWhitelistApplied","oemClickSeen","controllerMatched",
+      "carEventReceived","carTypeGatePassed","carDispatchIntercepted",
+      "commandIntentCreated","pendingIntentSent",
       "lastCommandAccepted","lastCommandSent"
   };
   private static final String[] INTS={
@@ -26,7 +28,9 @@ final class OppoQuickAppRuntimeDiagnostics {
       "oemClickCount","controllerMatchCount","commandAttemptCount"
   };
   private static final String[] LONGS={
-      "rpkPatchAt","converterWhitelistAt","oemClickAt","controllerMatchedAt","lastCommandAt"
+      "rpkPatchAt","converterWhitelistAt","oemClickAt","controllerMatchedAt",
+      "carEventReceivedAt","carTypeGatePassedAt","carDispatchInterceptedAt",
+      "commandIntentCreatedAt","pendingIntentSentAt","lastCommandAt"
   };
 
   private OppoQuickAppRuntimeDiagnostics() {}

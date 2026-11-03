@@ -34,17 +34,20 @@ final class VirtualVehicleSessionManager {
     boolean signedIn=coordinator!=null&&coordinator.hasSession();
     boolean selected=coordinator!=null&&coordinator.selected!=null&&coordinator.selected.vin!=null&&!coordinator.selected.vin.isEmpty();
     boolean live=state!=null&&!state.isDemo&&state.timestampMillis>0;
-    boolean active=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected&&live;
     long now=System.currentTimeMillis();
     String vehicleKey=selected?VehicleCoordinator.identity(coordinator.selected.vin):"";
     String sessionId=vehicleKey.isEmpty()?"":"psa-session-"+vehicleKey.substring(0,Math.min(16,vehicleKey.length()));
     String carId=vehicleKey.isEmpty()?"":"psassistant_"+vehicleKey.substring(0,Math.min(20,vehicleKey.length()));
     long age=state==null||state.timestampMillis<=0?Long.MAX_VALUE:Math.max(0L,now-state.timestampMillis);
+    boolean present=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected&&live;
+    boolean active=present&&age<=STALE_MS;
+    boolean commandReady=present&&PsAssistantBridgeProvider.commandStateReady(state,now);
     String lifecycle=!requested?"DISABLED":!signedIn?"DISCOVERED":!selected?"BOUND":!live?"READY":age>STALE_MS?"STALE":"ACTIVE";
 
     Bundle profile=OppoVehicleProfileSettings.snapshot(context);
     Bundle out=new Bundle(profile);
-    out.putBoolean("requested",requested);out.putBoolean("active",active);out.putString("lifecycle",lifecycle);
+    out.putBoolean("requested",requested);out.putBoolean("present",present);out.putBoolean("active",active);
+    out.putBoolean("commandReady",commandReady);out.putString("lifecycle",lifecycle);
     out.putString("mode","MIRROR_REAL");out.putString("sessionId",sessionId);
     out.putString("providerCode",OppoVehicleProfileSettings.PROVIDER_CODE);out.putString("deviceType",OppoVehicleProfileSettings.DEVICE_TYPE);
     out.putString("vehicleKey",vehicleKey);out.putString("virtualCarId",carId);
@@ -52,7 +55,7 @@ final class VirtualVehicleSessionManager {
     out.putLong("snapshotAt",state==null?0L:state.timestampMillis);
     out.putLong("snapshotAgeMs",age==Long.MAX_VALUE?-1L:age);
     out.putBoolean("syntheticIdentifiers",true);out.putBoolean("rawVinExposed",false);
-    out.putBoolean("hardwareMacExposed",false);out.putBoolean("online",active&&age<=STALE_MS);
+    out.putBoolean("hardwareMacExposed",false);out.putBoolean("online",active);
     if(state!=null){
       if(state.batteryPercent!=null){out.putBoolean("batteryPercentKnown",true);out.putInt("batteryPercent",state.batteryPercent);}
       if(state.rangeKm!=null){out.putBoolean("rangeKmKnown",true);out.putInt("rangeKm",state.rangeKm);}

@@ -166,7 +166,7 @@ final class QuickAppReplacementProbe {
   private static boolean isOurDevice(JSONObject item) {
     String id=first(item,"id","mDeviceId","deviceId");
     String pkg=first(item,"packageName","deviceAppPackage","mDeviceAppPackage");
-    return id.startsWith("psassistant_")||BRIDGE_PACKAGE.equals(pkg)||PSASSISTANT_PACKAGE.equals(pkg);
+    return id.startsWith("psassistant_")||id.startsWith("psa_")||BRIDGE_PACKAGE.equals(pkg)||PSASSISTANT_PACKAGE.equals(pkg);
   }
 
   private static String first(JSONObject item,String... keys) {

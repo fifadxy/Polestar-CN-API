@@ -95,7 +95,7 @@ final class QuickAppCarDispatchShim {
   private static void inspectString(String raw,Match out) {
     if(raw==null)return;String value=raw.trim();
     if(CardShortcutCommand.isOemCarId(value))out.eventId=value;
-    if(BridgeIdentity.isBridgePackage(value)||value.startsWith("psassistant_"))out.ours=true;
+    if(BridgeIdentity.isBridgePackage(value)||value.startsWith("psassistant_")||value.startsWith("psa_"))out.ours=true;
     if("CAR".equalsIgnoreCase(value))out.car=true;
   }
 

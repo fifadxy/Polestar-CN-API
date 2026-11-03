@@ -17,6 +17,7 @@ final class QuickAppCarCapability {
   static final String RPK_ASSET="assets/com.heytap.mydevices.quickapp.kdRpk.rpk";
   static final String INDEX_ENTRY="cards/SingleDeviceCard4x2/index.js";
   static final int INDEX_SIZE=1_405_170;
+  static final int MAX_INDEX_SIZE=4*1024*1024;
   static final String INDEX_SHA256="69bdfacad2cd7ad7a65da678b9435eaa54fa7011debb7381164e1d699cfb86e2";
   static final String PATCH_ANCHOR="'sportData', 'healthData'];";
   private static final String PATCH_REPLACEMENT="'sportData', 'healthData',\n"
@@ -88,23 +89,26 @@ final class QuickAppCarCapability {
       try(ZipFile apk=new ZipFile(info.sourceDir)) {
         ZipEntry rpk=apk.getEntry(RPK_ASSET);
         if(rpk==null)return new Result(version,false,false,false,false,false,"","rpk-missing");
-        byte[] index=null;
+        byte[] index=null;String indexEntry="";
         try(ZipInputStream nested=new ZipInputStream(apk.getInputStream(rpk))) {
           ZipEntry entry;
           while((entry=nested.getNextEntry())!=null) {
-            if(!entry.isDirectory()&&INDEX_ENTRY.equals(entry.getName())) {
-              index=readBounded(nested,INDEX_SIZE+1);break;
+            String name=entry.getName();
+            if(!entry.isDirectory()&&(INDEX_ENTRY.equals(name)||name.endsWith("/SingleDeviceCard4x2/index.js"))) {
+              indexEntry=name;index=readBounded(nested,MAX_INDEX_SIZE+1);break;
             }
           }
         }
         if(index==null)return new Result(version,true,false,false,false,false,"","4x2-index-missing");
+        if(index.length>MAX_INDEX_SIZE)return new Result(version,true,false,false,false,false,"","4x2-index-too-large");
         String text=new String(index,StandardCharsets.UTF_8);
         boolean registry=hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi");
         boolean smart=hasCarDefaults(text),event=hasCarEvents(text);
         String sha=sha256(index);
-        boolean exact=HOST_VERSION.equals(version)&&INDEX_SIZE==index.length&&INDEX_SHA256.equals(sha)
+        boolean exact=HOST_VERSION.equals(version)&&INDEX_ENTRY.equals(indexEntry)
+            &&INDEX_SIZE==index.length&&INDEX_SHA256.equals(sha)
             &&occurrences(text,PATCH_ANCHOR)==1&&!event;
-        String reason="indexSize="+index.length+" sha="+sha+" registry="+registry
+        String reason="entry="+indexEntry+" indexSize="+index.length+" sha="+sha+" registry="+registry
             +" smartHomeDefault="+smart+" eventSummary="+event+" exactPatch="+exact;
         return new Result(version,true,registry,smart,event,exact,sha,reason);
       }

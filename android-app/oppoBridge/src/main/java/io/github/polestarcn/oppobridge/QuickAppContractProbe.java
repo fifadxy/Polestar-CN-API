@@ -70,8 +70,9 @@ final class QuickAppContractProbe {
                 + " converterWhitelistOemCar=" + (missingOem.isEmpty() ? "all" : "blocked")
                 + " oemMissing=" + missingOem.size()
                 + " size=" + set.size()
-                + " exactConverterPatch="+applied
-                + " rpkEventSummaryOwn=blocked rpkEventSummaryOemCar="+(applied?"memory-patch":"blocked")
+                + " converterCarRoute="+(applied?"enabled":"unchanged")
+                + " rpkEventSummaryOwn=blocked rpkEventSummaryOemCar="
+                +(capability.eventSummaryCar?"native-event-summary":capability.exactPatchSupported?"legacy-exact-patch":"blocked")
                 + " nativeHomeFallback="+(!applied);
             module.info("quickapp_gate " + reason);
             HostReporter.report("com.heytap.mydevices", "com.heytap.mydevices:cards",

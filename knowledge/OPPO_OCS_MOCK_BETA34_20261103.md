@@ -35,3 +35,20 @@ LOCK-CAR, CAR-DOOR, AC-TEMP, CAR-BOOT, ALL-WINDOW, CAR-HORN, DOUBLE-FLASH, CAR-H
 ## Safety boundary
 
 Mock mode never grants OEM permissions, edits OPPO databases, changes PMS authorization, generates OPPO-valid tokens, or claims official OPPO binding. Production OCS remains a separate build path.
+
+
+## Final verified build
+
+GitHub Actions run: `41608167739` — SUCCESS.
+
+- PsAssistant: `0.9.7-beta34-mock-ocs / 148`
+- Integrated OPPO Bridge: `1.19.0 / 31`
+- Mock OCS AAR: `PsAssistant-OCS-Mock-1.4.0-TestLab.aar`
+
+Verified deliverables:
+
+- Standalone APK SHA256: `9f83cb6a6d335749d14604c62ec6e0cd79f635842057d257d15f87aed573f7b0`
+- Mock OCS AAR SHA256: `770b017da3761b71539d66b8d3d21d1740eecff32fac2650fcee3133dd84a53f`
+- OPPO Bridge APK SHA256: `7ae54a9cfa35a14d4677195baf52e37cf863104c236c19403d2e0a5e1419f24a`
+
+The standalone APK keeps the existing PsAssistant test signing certificate and the same 48-byte standalone login asset used by beta33.

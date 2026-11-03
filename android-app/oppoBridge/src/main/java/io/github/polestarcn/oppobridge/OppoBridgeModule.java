@@ -72,6 +72,7 @@ public final class OppoBridgeModule extends XposedModule {
           HostReporter.report(pkg,process,"hooks-installed",true,"");
         } else if("com.heytap.mydevices:cards".equals(process)) {
           if(directControl)MyDevicesVehicleHook.installCardProcess(this,param.getClassLoader());
+          if(directControl)try{QuickAppCarDispatchShim.install(this,param.getClassLoader());}catch(Throwable x){warn("quickapp_car_dispatch unavailable="+x.getClass().getSimpleName());}
           try{QuickAppContractProbe.install(this,param.getClassLoader());}catch(Throwable x){warn("quickapp_contract_probe unavailable="+x.getClass().getSimpleName());}
           try{QuickAppReplacementProbe.install(this,param.getClassLoader());}catch(Throwable x){warn("quickapp_replacement_probe unavailable="+x.getClass().getSimpleName());}
           if(directControl)

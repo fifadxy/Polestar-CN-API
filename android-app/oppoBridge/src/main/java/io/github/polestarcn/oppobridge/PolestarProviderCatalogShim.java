@@ -254,7 +254,7 @@ final class PolestarProviderCatalogShim {
     return copy;
   }
 
-  private static boolean enabled(){Application app=currentApplication();return app!=null&&app.getPackageManager().resolveContentProvider(BridgeIdentity.authority(app),0)!=null;}
+  private static boolean enabled(){Application app=currentApplication();if(app==null||app.getPackageManager().resolveContentProvider(BridgeIdentity.authority(app),0)==null)return false;try{return BridgeClient.virtualSession(app).getBoolean("active",false);}catch(Throwable ignored){return false;}}
 
   static boolean hasCode(List<?> list,String code) {
     for(Object item:list) {

@@ -37,7 +37,10 @@ final class OppoQuickAppRuntimeDiagnostics {
 
   static Bundle record(Context context, Bundle in) {
     if(in==null)throw new IllegalArgumentException("Missing QuickApp runtime report");
-    SharedPreferences.Editor e=context.getSharedPreferences(PREF,0).edit();
+    SharedPreferences prefs=context.getSharedPreferences(PREF,0);
+    String incomingHost=in.getString("hostVersion",""),previousHost=prefs.getString("hostVersion","");
+    SharedPreferences.Editor e=prefs.edit();
+    if(!incomingHost.isEmpty()&&!previousHost.isEmpty()&&!incomingHost.equals(previousHost))e.clear();
     e.putLong("seenAt",System.currentTimeMillis());
     e.putBoolean("ready",in.getBoolean("ready",false));
     for(String key:STRINGS) {

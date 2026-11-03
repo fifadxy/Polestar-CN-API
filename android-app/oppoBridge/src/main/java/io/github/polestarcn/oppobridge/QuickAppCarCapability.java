@@ -52,8 +52,10 @@ final class QuickAppCarCapability {
     }
 
     boolean routeSafe() {
-      return HOST_VERSION.equals(hostVersion) && rpkPresent && carRegistry
-          && (eventSummaryCar || exactPatchSupported);
+      // Newer hosts may expose the CAR path natively. Unknown builds are accepted only when the
+      // inspected RPK itself proves that all four CAR event IDs are present. Memory patching stays
+      // restricted to the legacy exact SHA below.
+      return rpkPresent && carRegistry && (eventSummaryCar || exactPatchSupported);
     }
 
     String mode() {
@@ -82,8 +84,6 @@ final class QuickAppCarCapability {
     String version="";
     try {
       version=context.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName;
-      if(!HOST_VERSION.equals(version))
-        return new Result(version,false,false,false,false,false,"","host-version-mismatch");
       ApplicationInfo info=context.getPackageManager().getApplicationInfo("com.heytap.mydevices",0);
       try(ZipFile apk=new ZipFile(info.sourceDir)) {
         ZipEntry rpk=apk.getEntry(RPK_ASSET);
@@ -102,7 +102,7 @@ final class QuickAppCarCapability {
         boolean registry=hasAny(text,"carEventIconName","kongtiao","chesuo","shanguang","mingdi");
         boolean smart=hasCarDefaults(text),event=hasCarEvents(text);
         String sha=sha256(index);
-        boolean exact=INDEX_SIZE==index.length&&INDEX_SHA256.equals(sha)
+        boolean exact=HOST_VERSION.equals(version)&&INDEX_SIZE==index.length&&INDEX_SHA256.equals(sha)
             &&occurrences(text,PATCH_ANCHOR)==1&&!event;
         String reason="indexSize="+index.length+" sha="+sha+" registry="+registry
             +" smartHomeDefault="+smart+" eventSummary="+event+" exactPatch="+exact;

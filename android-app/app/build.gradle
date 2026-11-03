@@ -1,7 +1,8 @@
 plugins {
     id 'com.android.application'
 }
-def privateOppoSdk = file('libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar').isFile() && file('libs/com.oplus.ocs.base-release-1.0.9.aar').isFile()
+def mockOppoSdk = (System.getenv('PSA_OPPO_MOCK_SDK') ?: 'false').toBoolean()
+def privateOppoSdk = !mockOppoSdk && file('libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar').isFile() && file('libs/com.oplus.ocs.base-release-1.0.9.aar').isFile()
 android {
     namespace 'io.github.polestarcn.companion'
     compileSdk 35
@@ -10,11 +11,12 @@ android {
         applicationId 'io.github.polestarcn.companion'
         minSdk 26
         targetSdk 34
-        buildConfigField 'boolean', 'OPPO_SDK_PACKAGED', privateOppoSdk.toString()
-        versionCode 147
-        versionName '0.9.7-beta33-testlab'
-        def oppoCompany = System.getenv('PSA_OPPO_COMPANY_ID') ?: '0'
-        def oppoAuth = System.getenv('PSA_OPPO_AUTH_CODE') ?: 'PSASSISTANT_UNCONFIGURED'
+        buildConfigField 'boolean', 'OPPO_SDK_PACKAGED', (privateOppoSdk || mockOppoSdk).toString()
+        buildConfigField 'boolean', 'OPPO_SDK_MOCK', mockOppoSdk.toString()
+        versionCode 148
+        versionName '0.9.7-beta34-mock-ocs'
+        def oppoCompany = System.getenv('PSA_OPPO_COMPANY_ID') ?: (mockOppoSdk ? '990001' : '0')
+        def oppoAuth = System.getenv('PSA_OPPO_AUTH_CODE') ?: (mockOppoSdk ? 'TESTLAB_MOCK_AUTH_20261103' : 'PSASSISTANT_UNCONFIGURED')
         if (!(oppoCompany ==~ /[0-9]{1,9}/) || !(oppoAuth ==~ /[A-Za-z0-9_+\/=.-]{1,4096}/))
             throw new GradleException('Invalid private OPPO manifest configuration')
         manifestPlaceholders.oppoCarLinkCompanyId = oppoCompany
@@ -64,7 +66,8 @@ android {
 }
 
 dependencies {
-    if (privateOppoSdk) implementation files('libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar', 'libs/com.oplus.ocs.base-release-1.0.9.aar')
+    if (mockOppoSdk) implementation project(':carlinkMockSdk')
+    else if (privateOppoSdk) implementation files('libs/com.oplus.ocs.carlink-release-1.4.0-SNAPSHOT.aar', 'libs/com.oplus.ocs.base-release-1.0.9.aar')
     else implementation project(':carlinkApiStubs')
     implementation 'com.google.code.gson:gson:2.10.1'
     testImplementation 'junit:junit:4.13.2'

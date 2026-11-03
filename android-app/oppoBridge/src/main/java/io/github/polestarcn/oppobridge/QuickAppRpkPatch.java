@@ -46,7 +46,7 @@ final class QuickAppRpkPatch {
             source=readExact(input,QuickAppCarCapability.INDEX_SIZE);
           } catch(Throwable failure) {
             module.warn("quickapp_rpk_patch read="+failure.getClass().getSimpleName());
-            return raw;
+            return chain.proceed(); // Reopen the original entry; raw has already been closed.
           }
           byte[] patched=QuickAppCarCapability.patchExact(source);
           if(patched==null) {

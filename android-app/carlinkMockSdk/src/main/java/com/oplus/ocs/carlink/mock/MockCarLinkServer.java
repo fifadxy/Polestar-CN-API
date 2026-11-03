@@ -25,7 +25,7 @@ public final class MockCarLinkServer {
   private static String currentCar="";
   private static String lastEvent="reset";
   private static int lastControlCode=-1;
-  private static String lastControlMessage="";
+  private static String lastControlMessage="",lastTaskId="";
   private static final LinkedHashMap<String,CarInfo> cars=new LinkedHashMap<>();
   private static final LinkedHashMap<String,CarStatus> statuses=new LinkedHashMap<>();
   private static final ArrayList<ControlMessage> controlMessages=new ArrayList<>();
@@ -116,6 +116,7 @@ public final class MockCarLinkServer {
     controlMessages.add(message);
     while(controlMessages.size()>32)controlMessages.remove(0);
     lastControlCode=message.getCode();lastControlMessage=message.getMessage();
+    if(message.getData() instanceof ControlMessage.ControlData)lastTaskId=((ControlMessage.ControlData)message.getData()).taskId;
     lastEvent="control-message-"+message.getCode();
   }
 
@@ -147,14 +148,14 @@ public final class MockCarLinkServer {
     out.putInt("companyId",COMPANY_ID);out.putString("authCodeLabel","TESTLAB_MOCK_ONLY");
     out.putString("typeCode",TYPE_CODE);out.putString("currentCar",currentCar);
     out.putInt("carCount",cars.size());out.putInt("statusCount",statuses.size());
-    out.putString("lastEvent",lastEvent);out.putInt("lastControlCode",lastControlCode);
+    out.putString("lastTaskId",lastTaskId);out.putString("lastEvent",lastEvent);out.putInt("lastControlCode",lastControlCode);
     out.putString("lastControlMessage",lastControlMessage==null?"":lastControlMessage);
     return out;
   }
 
   public static synchronized void reset() {
     resetTransportOnly();cars.clear();statuses.clear();controlMessages.clear();currentCar="";
-    callback=null;initCallback=null;lastControlCode=-1;lastControlMessage="";lastEvent="reset";
+    callback=null;initCallback=null;lastControlCode=-1;lastControlMessage="";lastTaskId="";lastEvent="reset";
   }
 
   private static void resetTransportOnly() {

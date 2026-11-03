@@ -64,16 +64,8 @@ final class QuickAppCarDataShim {
                 JSONObject device=list.optJSONObject(i);
                 if(device==null||!isOurDevice(device))continue;
                 normalizeCar(device,session);applySession(device,session);
-                if(capability.eventSummaryCar) {
-                  device.put("shortcuts",oemShortcuts());
-                  device.put("shortcutList",oemShortcuts());
-                } else if(capability.smartHomeDefaultCar) {
-                  // Force the exact RPK's built-in CAR default shortcut path instead of feeding
-                  // filtered ps_* IDs back into the converter.
-                  device.remove("shortcuts");
-                  device.remove("shortcutList");
-                  device.remove("shortCutList");
-                }
+                device.put("shortcuts",oemShortcuts(session));
+                device.put("shortcutList",oemShortcuts(session));
                 changed=true;
               }
               if(!changed)return raw;
@@ -98,7 +90,7 @@ final class QuickAppCarDataShim {
     device.put("modelName",session.getString("modelName","Polestar 2"));
     device.put("brand",session.getString("brand","Polestar"));
     device.put("manufacturer",session.getString("manufacturer","Polestar"));
-    device.put("mConnectState",connect);
+    device.put("mConnectState",connect);device.put("connectState",connect);
     JSONObject connection=device.optJSONObject("connection");if(connection==null)connection=new JSONObject();
     connection.put("connectState",connect);connection.put("coordinationState",connect);device.put("connection",connection);
   }
@@ -115,22 +107,26 @@ final class QuickAppCarDataShim {
     JSONArray caps=new JSONArray();String[] values=session.getStringArray("capabilities");if(values!=null)for(String cap:values)caps.put(cap);device.put("capabilities",caps);
   }
 
-  static JSONArray oemShortcuts() throws Exception {
+  static JSONArray oemShortcuts() throws Exception { return oemShortcuts(Bundle.EMPTY); }
+
+  static JSONArray oemShortcuts(Bundle session) throws Exception {
     JSONArray out=new JSONArray();
-    add(out,"chesuo","车锁");
-    add(out,"kongtiao","空调");
-    add(out,"shanguang","闪灯");
-    add(out,"mingdi","鸣笛");
+    add(out,"chesuo","车锁",active(session.getString("lock",""),"已锁","已上锁","LOCKED"));
+    add(out,"kongtiao","空调",active(session.getString("climate",""),"开启","ACTIVE","ON","RUNNING"));
+    add(out,"shanguang","闪灯",0);
+    add(out,"mingdi","鸣笛",0);
     return out;
   }
 
-  private static void add(JSONArray out,String id,String name) throws Exception {
+  private static int active(String value,String... expected){for(String e:expected)if(e.equalsIgnoreCase(value))return 1;return 0;}
+
+  private static void add(JSONArray out,String id,String name,int state) throws Exception {
     out.put(new JSONObject()
         .put("id",id)
         .put("shortcutId",id)
         .put("shortcutName",name)
         .put("style",8)
-        .put("state",0));
+        .put("state",state));
   }
 
   private static boolean isOurDevice(JSONObject item) {

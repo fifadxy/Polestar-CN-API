@@ -23,7 +23,7 @@ import java.util.Locale;
  */
 final class PolestarProviderCatalogShim {
   static final String PROVIDER_CODE="POLESTAR";
-  static final String DEFAULT_displayName()="Polestar 极星";
+  static final String DEFAULT_DISPLAY_NAME="Polestar 极星";
   private static final String COROUTINE=
       "com.oplus.advice.settings.ui.viewmodel.AdviceSettingCompatViewModel$queryProviderInfoListFromDB$1";
   private static final String VIEW_MODEL=
@@ -396,11 +396,10 @@ final class PolestarProviderCatalogShim {
   private static String safeId(String name) {return name.replaceAll("[^A-Za-z0-9_]","_");}
 
   private static String displayName() {
-    Application app=currentApplication();if(app==null)return DEFAULT_displayName();
+    Application app=currentApplication();if(app==null)return DEFAULT_DISPLAY_NAME;
     try {String name=BridgeClient.virtualSession(app).getString("displayName","Polestar 极星");return name==null||name.trim().isEmpty()?"Polestar 极星":name;}
     catch(Throwable ignored){return "Polestar 极星";}
   }
-  private static String DEFAULT_displayName(){return "Polestar 极星";}
 
   private static Application currentApplication() {
     try{return (Application)Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null);}

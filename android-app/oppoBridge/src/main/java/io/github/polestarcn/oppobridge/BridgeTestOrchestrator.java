@@ -53,6 +53,9 @@ final class BridgeTestOrchestrator {
     boolean realState = snapshot.getBoolean("available", false) && !snapshot.getBoolean("demo", false);
     stage(out, counter, realState ? 1 : 0, "真实车辆只读状态",
         realState ? snapshot.getString("name", "Polestar") : snapshot.getString("reason", "尚未登录/刷新"));
+    Bundle session=safeCall(context,"virtual-session-status");
+    stage(out,counter,session.getBoolean("active",false)?1:0,"Virtual Vehicle Session",
+        session.getString("lifecycle","")+" · "+session.getString("virtualCarId","")+" · "+session.getString("testMac",""));
 
     Bundle host = safeCall(context, "host-status");
     boolean mainHook = recent(host.getLong("main_seenAt", 0L));
@@ -70,10 +73,24 @@ final class BridgeTestOrchestrator {
     Bundle quick = safeCall(context, "quickapp-runtime-status");
     boolean exact = quick.getBoolean("rpkPatchApplied", false)
         && quick.getBoolean("converterWhitelistApplied", false);
-    stage(out, counter, exact ? 1 : 0, "4×2直接控制运行链路",
+    stage(out, counter, exact ? 1 : 0, "4×2静态放行链路",
         "RPK=" + quick.getBoolean("rpkPatchApplied", false)
             + " Converter=" + quick.getBoolean("converterWhitelistApplied", false)
             + " shortcuts=" + quick.getInt("selectedShortcutCount", 0));
+    stage(out,counter,quick.getBoolean("carEventReceived",false)?1:0,"CAR事件到达",
+        "seen="+quick.getBoolean("carEventReceived",false)+" id="+quick.getString("lastClickShortcut",""));
+    stage(out,counter,quick.getBoolean("carTypeGatePassed",false)?1:0,"CAR类型门禁",
+        "passed="+quick.getBoolean("carTypeGatePassed",false));
+    stage(out,counter,quick.getBoolean("carDispatchIntercepted",false)?1:0,"CAR Dispatcher",
+        "intercepted="+quick.getBoolean("carDispatchIntercepted",false));
+    stage(out,counter,quick.getBoolean("commandIntentCreated",false)?1:0,"主APK安全命令票据",
+        "created="+quick.getBoolean("commandIntentCreated",false));
+    stage(out,counter,quick.getBoolean("pendingIntentSent",false)?1:0,"PendingIntent发送",
+        "sent="+quick.getBoolean("pendingIntentSent",false));
+    stage(out,counter,quick.getBoolean("lastCommandAccepted",false)?1:0,"主APK命令受理",
+        "accepted="+quick.getBoolean("lastCommandAccepted",false)+" action="+quick.getString("lastCommandAction","")+" reason="+quick.getString("lastCommandReason",""));
+    stage(out,counter,quick.getBoolean("lastCommandSent",false)?1:0,"车辆命令入队",
+        "sent="+quick.getBoolean("lastCommandSent",false));
 
     Bundle assistant = safeCall(context, "assistant-host-status");
     boolean assistantRecent = recent(assistant.getLong("seenAt", 0L));
@@ -118,13 +135,16 @@ final class BridgeTestOrchestrator {
     Bundle settings = BridgeSettings.localSnapshot(context);
     Bundle caps = safeCall(context, "capabilities");
     Bundle state = safeCall(context, "snapshot");
+    Bundle session=safeCall(context,"virtual-session-status");
     return "PsAssistant OPPO Bridge " + BridgeBuild.VERSION_NAME
-        + "\n工作模式：本机原生兼容链路"
+        + "\n工作模式：beta31 TestLab Virtual Session + CAR Dispatcher"
         + "\n模块总开关：" + (settings.getBoolean(BridgeSettings.MASTER, true) ? "开启" : "关闭")
         + "\nPsAssistant桥接：" + (caps.getBoolean("state", false) ? "可用" : "未连接")
         + "\n车辆状态：" + (state.getBoolean("available", false)
             ? state.getString("name", "Polestar") : "尚未读取")
-        + "\n说明：模拟测试不会写入OPPO真实鉴权或发送车辆命令。";
+        + "\nVirtual Session：" + (session.getBoolean("active",false)?"ACTIVE":"未就绪")
+            + " · " + session.getString("lifecycle","")
+        + "\n说明：模拟测试不发车；真实命令只由主APK已登录车辆会话执行。";
   }
 
   private static void packageStage(StringBuilder out, Counter counter, PackageManager pm,

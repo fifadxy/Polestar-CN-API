@@ -22,20 +22,35 @@ final class BridgeClient {
     return call(context, "refresh", null);
   }
 
+  static Bundle virtualSession(Context context) { return call(context,"virtual-session-profile",null); }
+  static Bundle resolveGateway(Context context,String action) { Bundle in=new Bundle();in.putString("action",action);return call(context,"gateway-resolve",in); }
+
   static Bundle command(Context context, String action) {
     if(capabilities(context).getInt("authorizationPolicyVersion",0)!=1)return failure("main-app-update-required");
-    Bundle in = new Bundle();
-    in.putString("action", action);
+    Bundle in=new Bundle();in.putString("action",action);
+    if(!BridgeIdentity.isBridgePackage(context.getPackageName())) {
+      Bundle ticket=call(context,"command-intent",in);
+      android.app.PendingIntent commandIntent=ticket.getParcelable("commandIntent");
+      if(commandIntent==null)return ticket;
+      if(sendPendingIntent(context,commandIntent)) {
+        ticket.putBoolean("accepted",true);ticket.putBoolean("pendingIntentSent",true);ticket.putString("reason","pending-intent-dispatched");
+        try {Bundle report=new Bundle();report.putBoolean("ready",true);report.putString("phase","pending-intent-sent");
+          report.putBoolean("pendingIntentSent",true);report.putLong("pendingIntentSentAt",System.currentTimeMillis());
+          report.putString("lastCommandAction",action);call(context,"quickapp-runtime-report",report);}catch(Throwable ignored){}
+      } else {ticket.putBoolean("accepted",false);ticket.putString("reason","pending-intent-unavailable");}
+      return ticket;
+    }
     Bundle result=call(context,"command",in);
     android.app.PendingIntent approval=result.getParcelable("authorizationIntent");
-    if(approval!=null)try {
-      android.app.ActivityOptions options=android.app.ActivityOptions.makeBasic();
-      if(android.os.Build.VERSION.SDK_INT>=34)options.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-      approval.send(context,0,null,null,null,null,options.toBundle());
-    }catch(android.app.PendingIntent.CanceledException|RuntimeException unavailable){
-      result.putBoolean("accepted",false);result.putString("reason","open-main-app-for-authorization");
-    }
+    if(approval!=null&&!sendPendingIntent(context,approval)) {result.putBoolean("accepted",false);result.putString("reason","open-main-app-for-authorization");}
     return result;
+  }
+
+  private static boolean sendPendingIntent(Context context,android.app.PendingIntent intent) {
+    try {android.app.ActivityOptions options=android.app.ActivityOptions.makeBasic();
+      if(android.os.Build.VERSION.SDK_INT>=34)options.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+      intent.send(context,0,null,null,null,null,options.toBundle());return true;
+    } catch(android.app.PendingIntent.CanceledException|RuntimeException unavailable){return false;}
   }
 
   static Bundle call(Context context, String method, Bundle extras) {

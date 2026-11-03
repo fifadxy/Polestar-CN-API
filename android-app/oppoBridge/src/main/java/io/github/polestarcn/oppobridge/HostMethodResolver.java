@@ -5,16 +5,27 @@ import java.util.List;
 /** Resolve stable names first; ambiguous obfuscated shapes are never guessed. */
 final class HostMethodResolver {
   static Method cardClick(Class<?> type) {
-    Method found=null;
+    Method named=null,legacy=null;
     for(Method method:type.getDeclaredMethods()) {
+      if(Modifier.isStatic(method.getModifiers())||method.getReturnType()!=void.class)continue;
       Class<?>[] p=method.getParameterTypes();
-      if(Modifier.isStatic(method.getModifiers())||method.getReturnType()!=void.class
-          ||p.length!=3||!p[0].isInterface()||p[1]!=String.class||p[2]!=Object.class)continue;
-      if(found!=null)throw new IllegalStateException("Card click callback ambiguous");
-      found=method;
+      String lower=method.getName().toLowerCase(java.util.Locale.ROOT);
+      boolean semantic=(lower.contains("click")||lower.contains("shortcut")||lower.contains("action")
+          ||lower.contains("control")||lower.contains("execute")||lower.contains("handle"));
+      boolean hasString=false;
+      for(Class<?> value:p)if(value==String.class)hasString=true;
+      if(semantic&&hasString&&p.length>=2&&p.length<=4) {
+        if(named!=null)throw new IllegalStateException("Card click callback ambiguous");
+        named=method;
+      }
+      if(p.length==3&&p[0].isInterface()&&p[1]==String.class&&p[2]==Object.class) {
+        if(legacy!=null)throw new IllegalStateException("Card click callback ambiguous");
+        legacy=method;
+      }
     }
-    if(found==null)throw new IllegalStateException("Card click callback missing");
-    return found;
+    if(named!=null)return named;
+    if(legacy!=null)return legacy;
+    throw new IllegalStateException("Card click callback missing");
   }
   static Method register(Class<?> type) { return resolve(type,"addDeviceObserver",true); }
   static Method unregister(Class<?> type) { return resolve(type,"removeDeviceObserver",false); }

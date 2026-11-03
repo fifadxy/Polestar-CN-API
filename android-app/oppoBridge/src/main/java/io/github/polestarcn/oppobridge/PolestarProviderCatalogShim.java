@@ -23,7 +23,7 @@ import java.util.Locale;
  */
 final class PolestarProviderCatalogShim {
   static final String PROVIDER_CODE="POLESTAR";
-  static final String DISPLAY_NAME="Polestar 极星";
+  static final String DEFAULT_displayName()="Polestar 极星";
   private static final String COROUTINE=
       "com.oplus.advice.settings.ui.viewmodel.AdviceSettingCompatViewModel$queryProviderInfoListFromDB$1";
   private static final String VIEW_MODEL=
@@ -301,7 +301,7 @@ final class PolestarProviderCatalogShim {
       if(nameIndex<0)return constructFallback(type);
       Object[] args=copyArgs(copyDefault,sample,dataCount);
       int mask=(1<<dataCount)-1;
-      args[1+nameIndex]=DISPLAY_NAME;mask&=~(1<<nameIndex);
+      args[1+nameIndex]=displayName();mask&=~(1<<nameIndex);
       if(codeIndex>=0){args[1+codeIndex]=PROVIDER_CODE;mask&=~(1<<codeIndex);}
       if(packageIndex>=0){args[1+packageIndex]=bridgePackage();mask&=~(1<<packageIndex);}
       args[1+dataCount]=mask;
@@ -332,14 +332,14 @@ final class PolestarProviderCatalogShim {
       // Exact 17.14.60 ProviderInfo has a three-String constructor and no empty constructor.
       if(type.getMethod("getSpCode").getReturnType()==String.class&&type.getMethod("getName").getReturnType()==String.class&&type.getMethod("getIconUrl").getReturnType()==String.class){
         Constructor<?> ctor=type.getDeclaredConstructor(String.class,String.class,String.class);ctor.setAccessible(true);
-        Object value=ctor.newInstance(PROVIDER_CODE,DISPLAY_NAME,BridgeIdentity.iconUri(currentApplication()));
+        Object value=ctor.newInstance(PROVIDER_CODE,displayName(),BridgeIdentity.iconUri(currentApplication()));
         if(verify(value))return value;
       }
     }catch(ReflectiveOperationException ignored){}
     try {
       Constructor<?> ctor=type.getDeclaredConstructor();ctor.setAccessible(true);Object out=ctor.newInstance();
       setAny(out,new String[]{"spCode","providerCode","brandCode","code"},PROVIDER_CODE);
-      setAny(out,new String[]{"name","providerName","brandName","appName","label"},DISPLAY_NAME);
+      setAny(out,new String[]{"name","providerName","brandName","appName","label"},displayName());
       setAny(out,new String[]{"packageName","pkgName","appPackage","package"},bridgePackage());
       return verify(out)?out:null;
     } catch(Throwable ignored) {return null;}
@@ -394,6 +394,13 @@ final class PolestarProviderCatalogShim {
   }
 
   private static String safeId(String name) {return name.replaceAll("[^A-Za-z0-9_]","_");}
+
+  private static String displayName() {
+    Application app=currentApplication();if(app==null)return DEFAULT_displayName();
+    try {String name=BridgeClient.virtualSession(app).getString("displayName","Polestar 极星");return name==null||name.trim().isEmpty()?"Polestar 极星":name;}
+    catch(Throwable ignored){return "Polestar 极星";}
+  }
+  private static String DEFAULT_displayName(){return "Polestar 极星";}
 
   private static Application currentApplication() {
     try{return (Application)Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null);}

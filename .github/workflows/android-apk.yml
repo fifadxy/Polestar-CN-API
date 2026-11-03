@@ -9,6 +9,7 @@ on:
       - feature/oppo-native-vehicle-bridge-c17-20261030
       - feature/oppo-bridge-beta29-standalone-20261103
       - feature/oppo-beta31-testlab-20261103
+      - feature/oppo-beta32-carlink-session-20261103
       - android-polestar-assistant-v093-work
     paths:
       - 'android-app/**'

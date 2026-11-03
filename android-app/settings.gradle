@@ -17,3 +17,5 @@ include ':app'
 include ':oppoBridge'
 
 include ':carlinkApiStubs'
+
+include ':carlinkMockSdk'

@@ -53,14 +53,16 @@ public final class OppoBridgeModule extends XposedModule {
             try{AssistantScreenNativeVehicleHook.install(this,param.getClassLoader());}catch(Throwable x){warn("assistant_native_vehicle unavailable="+x.getClass().getSimpleName());}
         }
         try{PolestarProviderCatalogShim.install(this,param.getClassLoader());}catch(Throwable x){warn("polestar_provider_catalog unavailable="+x.getClass().getSimpleName());}
+        try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 
       if("com.heytap.opluscarlink".equals(pkg)) {
         CarLinkHostReporter.report(this,process,"hooks-entered",true,"",param.getClassLoader());
         try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}
-        // The official host may launch a synthetic provider/account row. Redirect only a payload
-        // explicitly marked POLESTAR; do not alter key/auth results.
+        try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
+        try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_virtual_session unavailable="+x.getClass().getSimpleName());}
+        // TestLab provider/account row is local-only; official cloud authorization remains separate.
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("carlink_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 

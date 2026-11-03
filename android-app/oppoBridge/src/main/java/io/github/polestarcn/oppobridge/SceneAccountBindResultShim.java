@@ -36,8 +36,8 @@ final class SceneAccountBindResultShim {
           try {
             Application app=currentApplication();
             if(app==null)return raw;
-            Bundle state=BridgeClient.call(app,"oppo-official-bind-status",null);
-            if(!state.getBoolean("enabled",false))return raw;
+            Bundle state=BridgeClient.virtualSession(app);
+            if(!state.getBoolean("active",false))return raw;
             Bundle out=new Bundle((Bundle)raw);
             ArrayList<String> list=out.getStringArrayList("accountBindList");
             if(list==null)list=new ArrayList<>();

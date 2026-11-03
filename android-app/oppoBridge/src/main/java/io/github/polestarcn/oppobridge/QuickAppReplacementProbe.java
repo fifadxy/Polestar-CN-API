@@ -29,15 +29,6 @@ final class QuickAppReplacementProbe {
   private QuickAppReplacementProbe() {}
 
   static void install(OppoBridgeModule module, ClassLoader loader) throws Exception {
-    Application app=currentApplication();
-    if(app!=null) {
-      String version=app.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName;
-      if(!"17.4.15".equals(version)) {
-        module.info("quickapp_replacement_probe skipped hostVersion="+version);
-        return;
-      }
-    }
-
     Class<?> type=loader.loadClass(PROVIDER);
     int hooked=0;
     for(Method method:type.getDeclaredMethods()) {
@@ -94,10 +85,15 @@ final class QuickAppReplacementProbe {
     try {in.putString("hostVersion",app.getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName);}
     catch(Throwable ignored){in.putString("hostVersion","");}
 
-    in.putBoolean("single4x2CarRegistry",true);
-    in.putBoolean("single2x2CarRegistry",false);
-    in.putBoolean("single4x2EventSummaryCar",false);
-    in.putBoolean("single2x2EventSummaryCar",false);
+    try {
+      QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(app);
+      in.putBoolean("single4x2CarRegistry",capability.carRegistry);
+      in.putBoolean("single2x2CarRegistry",false);
+      in.putBoolean("single4x2EventSummaryCar",capability.eventSummaryCar);
+      in.putBoolean("single2x2EventSummaryCar",false);
+      in.putString("rpkEntrySha256",capability.indexSha256);
+      in.putString("rpkPatchReason",capability.reason);
+    } catch(Throwable ignored) {}
 
     Bundle data=result!=null?result:extras;
     in.putString("resultKeys",bundleKeys(data));

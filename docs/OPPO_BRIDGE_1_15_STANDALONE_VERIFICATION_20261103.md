@@ -1,6 +1,6 @@
-# OPPO Bridge 1.15.0 standalone验证
+# OPPO Bridge 1.15.0 standalone验证（历史独立包）
 
-日期：2026-11-03。该包是beta29阶段一的独立LSPosed模块，尚未合并到PsAssistant主APK。
+历史记录：该包用于beta29阶段一独立模块验证，现已整合到PsAssistant beta29主APK。新安装推荐使用主APK，不要与内置模块同时启用；本页步骤只用于回溯独立包测试。
 
 ## APK
 

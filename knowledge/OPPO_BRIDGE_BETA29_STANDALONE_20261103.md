@@ -1,6 +1,6 @@
-# OPPO Bridge 1.15.0 standalone（beta29阶段一）
+# OPPO Bridge 1.15.0 standalone（beta29阶段一，已并入主程序）
 
-日期：2026-11-03。范围仅为独立 `oppoBridge` LSPosed模块；主APK仍为beta28，待真机验证后再合并。
+历史记录：2026-11-03阶段一先以独立 `oppoBridge` LSPosed模块交付；随后已合并至PsAssistant `0.9.7-beta29 /143`主APK。当前主程序说明以[beta29集成记录](OPPO_BRIDGE_BETA29_INTEGRATION_20261103.md)为准；本页仅保留独立APK时期的测试方法和设计边界。
 
 ## 本轮目标
 

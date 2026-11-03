@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config;
 public final class Beta32CarLinkCompatibilityTest {
   public static final class FakeSession {
     public String vin;public String carId;public String connectState;public List<String> supportFeatures;
-    public String lockState;public String climateState;public int soc;public int rangeKm;public long lastUpdateTime;
+    public String lockState;public String climateState;public int soc;public int rangeKm;public long lastUpdateTime;public boolean bound;public String bindState;
   }
   @After public void cleanup(){VirtualCarLinkSessionStore.clear();}
 
@@ -29,12 +29,12 @@ public final class Beta32CarLinkCompatibilityTest {
 
   @Test public void reflectedSessionIsStableAndDynamicallyUpdated() throws Exception {
     Bundle p=new Bundle();p.putString("testVin","TST0123456789ABCD");p.putString("virtualCarId","psassistant_1");p.putString("connectState","COORDINATED");
-    p.putString("lock","LOCKED");p.putString("climate","INACTIVE");p.putBoolean("batteryPercentKnown",true);p.putInt("batteryPercent",55);
+    p.putString("lock","LOCKED");p.putString("climate","INACTIVE");p.putBoolean("active",true);p.putBoolean("batteryPercentKnown",true);p.putInt("batteryPercent",55);
     p.putBoolean("rangeKmKnown",true);p.putInt("rangeKm",230);p.putStringArray("capabilities",new String[]{"LOCK","UNLOCK","SOC"});
     Object first=VirtualCarLinkSessionStore.getOrCreate(getClass().getClassLoader(),FakeSession.class,p);
     Object second=VirtualCarLinkSessionStore.getOrCreate(getClass().getClassLoader(),FakeSession.class,p);
     assertSame(first,second);FakeSession session=(FakeSession)first;
-    assertEquals("TST0123456789ABCD",session.vin);assertEquals("COORDINATED",session.connectState);assertEquals(55,session.soc);assertTrue(session.supportFeatures.contains("LOCK"));
+    assertEquals("TST0123456789ABCD",session.vin);assertEquals("COORDINATED",session.connectState);assertTrue(session.bound);assertEquals("BOUND",session.bindState);assertEquals(55,session.soc);assertTrue(session.supportFeatures.contains("LOCK"));
     VirtualCarLinkSessionStore.updateVehicleState("UNLOCKED","ACTIVE");assertEquals("UNLOCKED",session.lockState);assertEquals("ACTIVE",session.climateState);
   }
 }

@@ -38,6 +38,8 @@ final class OppoCarLinkMockFixture {
     updatedAt=System.currentTimeMillis();
   }
 
+  static synchronized void touch(){updatedAt=System.currentTimeMillis();}
+
   static synchronized void reset(){
     lock="已锁";climate="关闭";tailgate="已关闭";windows="全部关闭";updatedAt=System.currentTimeMillis();
   }

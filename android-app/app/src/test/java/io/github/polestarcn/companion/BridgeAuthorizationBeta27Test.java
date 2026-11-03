@@ -25,8 +25,16 @@ public class BridgeAuthorizationBeta27Test {
   @Test public void providerDefaultsToApprovalWithoutSendingVehicleCommand(){
     PsAssistantBridgeProvider provider=new PsAssistantBridgeProvider();ProviderInfo info=new ProviderInfo();info.authority=PsAssistantBridgeProvider.AUTHORITY;provider.attachInfo(c,info);
     Bundle args=new Bundle();args.putString("action","unlock");Bundle result=provider.call("command",null,args);
-    assertTrue(result.getBoolean("accepted"));assertFalse(result.getBoolean("commandSent"));assertFalse(model.commandPending);
-    assertEquals("awaiting-authorization",result.getString("reason"));assertEquals("unlock",BridgeCommandRequests.action(token(result)));
+    assertFalse(result.getBoolean("commandSent"));assertFalse(model.commandPending);
+    if(BuildConfig.OPPO_SDK_MOCK){
+      // A real login/snapshot must not redirect a Mock system-card request to the real backend.
+      assertFalse(result.getBoolean("accepted"));assertTrue(result.getBoolean("mock"));
+      assertEquals("mock-not-ready-run-initialization",result.getString("reason"));
+      assertNull(result.getParcelable("authorizationIntent"));
+    }else{
+      assertTrue(result.getBoolean("accepted"));
+      assertEquals("awaiting-authorization",result.getString("reason"));assertEquals("unlock",BridgeCommandRequests.action(token(result)));
+    }
   }
   @Test public void switchingVehicleConsumesOldApprovalWithoutSending(){
     String id=token(BridgeCommandRequests.request(c,"unlock",model));model.selected.vin="OTHER-VEHICLE";

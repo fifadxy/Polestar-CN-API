@@ -1,3 +1,6 @@
+- [beta35 实测包交付验证（11月4日）](../docs/PSASSISTANT_BETA35_MOCK_VERIFICATION_20261104.md)
+- [beta35 Mock / 负一屏实测流程](OPPO_MOCK_SHELF_BETA35_20261103.md)
+
 当前增量：[Bridge 1.15.0合并主程序 beta29 /143](OPPO_BRIDGE_BETA29_INTEGRATION_20261103.md)，统一设置、全路径只读检测、隔离模拟、一键修复及单一诊断导出。
 
 上一主APK增量：[beta28 MyDevices 17.4.15精确4×2车辆直控链路](OPPO_CAR_DIRECT_BETA28_20261103.md)，versionCode142、内置Bridge1.14.0/26。内存补丁采用版本、入口、大小、SHA-256四重门禁；本地注入不等于OPPO官方云端绑定或真车执行。以下保留历史阶段。

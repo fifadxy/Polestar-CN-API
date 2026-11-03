@@ -39,6 +39,7 @@ final class OppoCarLinkRuntime {
     if(requested)return;authResult=null;subscribeResult=null;authInFlight=false;errorCode=0;requested=true;
     try {
       phase="SDK鉴权／服务绑定中";
+      if(!registered){CarControl.registerCallback(callback);registered=true;}
       CarLink.init(context,CarLink.FLAG_CAR_CONTROL,new ICallback(){
         public void onCarControlSdkInitComplete(){main.post(()->initialized());}
         @Override public void onServiceConnected(){main.post(()->{phase="服务已连接，等待车控初始化";if(CarLink.isCarControlInitComplete())initialized();});}
@@ -107,7 +108,7 @@ final class OppoCarLinkRuntime {
       return value instanceof Boolean?(Boolean)value:null;
     } catch(Throwable unavailable) {return null;}
   }
-  void stop(){if(Looper.myLooper()!=Looper.getMainLooper()){main.post(this::stop);return;}requested=false;cancelAll("桥接关闭或账号退出");
+  void stop(){if(Looper.myLooper()!=Looper.getMainLooper()){main.post(this::stop);return;}requested=false;cancelAll("桥接关闭或账号退出");commandWindow.clear();
     if(registered){try{if(CarLink.isCarControlInitComplete())CarControl.accountExpired();CarControl.unregisterCallback(callback);}catch(RuntimeException ignored){}}
     registered=false;requested=false;authRequested=false;authInFlight=false;authResult=null;subscribeResult=null;publishedAt=-1;publishedCar="";phase="已停止输出";
   }
@@ -116,7 +117,7 @@ final class OppoCarLinkRuntime {
     @Override public void onComplete(){main.post(()->initialized());}
     @Override public void inquireCarInfo(){main.post(()->publish(true));}
     @Override public void inquireCarStatus(){main.post(()->publish(true,false));}
-    @Override public void onShowCard(){main.post(()->{phase="系统车辆卡片已显示";publish(true,false);});}
+    @Override public void onShowCard(){main.post(()->{phase=mock()?"Mock显示卡片回调已收到（宿主显示待实测）":"收到显示卡片回调";publish(true,false);});}
     @Override public void onHideCard(){main.post(()->phase="系统车辆卡片已隐藏");}
     @Override public void onAuthResult(int code){main.post(()->{if(!requested)return;authResult=code;authInFlight=false;authRequested=false;phase="授权回调 code="+code+(code==1?"（成功）":"（未成功）");});}
     @Override public void onSubscribeResult(int code){main.post(()->{if(!requested)return;subscribeResult=code;phase="订阅回调 code="+code+(code==1?"（成功）":"（未成功）");});}
@@ -175,7 +176,11 @@ final class OppoCarLinkRuntime {
     if(!commandWindow.admit(t.car+"|"+t.action,SystemClock.elapsedRealtime())){finish(id,OperationState.FAILED,"重复指令冷却中，未发送");return;}
     t.sent=true;message(id,ControlMessage.CONTROL_EXECUTING,mock()?"Mock执行中":"执行中");
     if(mock()){
-      main.postDelayed(()->{OppoCarLinkMockFixture.apply(t.action);finish(id,OperationState.VEHICLE_CONFIRMED,"Mock车辆状态已确认");},180L);
+      main.postDelayed(()->{
+        if(tasks.get(id)!=t||!requested||!authorized())return;
+        OppoCarLinkMockFixture.apply(t.action);finish(id,OperationState.VEHICLE_CONFIRMED,"Mock车辆状态已确认");
+        context.getContentResolver().notifyChange(PsAssistantBridgeProvider.URI,null);
+      },180L);
       return;
     }
     model().command(t.action,result->finish(id,result,result==OperationState.VEHICLE_CONFIRMED?"车辆状态已确认":"已发送但车辆结果未确认"));

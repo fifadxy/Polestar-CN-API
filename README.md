@@ -1,3 +1,5 @@
+当前测试分支 **PsAssistant 0.9.7-beta35-mock-shelf /149，内置 OPPO Bridge 1.20.0 /32**：[Mock 与负一屏实测方法](knowledge/OPPO_MOCK_SHELF_BETA35_20261103.md)。本版让 Mock SDK、设备卡、虚拟会话和控车网关共用模拟车辆，修复已确认的 MyDevices 点击入口签名与 17.4.15 CAR 脚本调用缺失。编译和本机协议测试不代表 OPPO 官方绑定或真实车辆已响应；宿主点击需要手机验收。[已验证安装包与步骤](docs/PSASSISTANT_BETA35_MOCK_VERIFICATION_20261104.md)：9.53 MB，495 项 Mock 回归与 6 项非 Mock 授权回归通过。以下为历史记录。
+
 当前主程序 **PsAssistant 0.9.7-beta29 /143，内置 OPPO Bridge 1.15.0 /27**：[主程序集成说明](knowledge/OPPO_BRIDGE_BETA29_INTEGRATION_20261103.md)。主程序设置现已合并统一总开关、全路径检测、隔离模拟、一键修复和统一导出；设备空间及负一屏适配仍需目标手机验证。
 
 上一主APK **v0.9.7-beta28 /142 · 内置Bridge1.14.0 /26**：[MyDevices 17.4.15精确4×2车辆直控链路](knowledge/OPPO_CAR_DIRECT_BETA28_20261103.md)。增加双Provider身份、固定哈希内存放行、四个OEM车辆按钮接管及逐层运行诊断；不伪造OPPO云端身份或数字钥匙绑定，真车状态回读仍需用户设备验收。交付验证见[beta28 FULL验证与使用方法](docs/PSASSISTANT_BETA28_FULL_VERIFICATION_20261103.md)。以下为历史记录。

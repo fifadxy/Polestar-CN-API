@@ -121,7 +121,7 @@ final class QuickAppCarCapability {
   static byte[] patchExact(byte[] source) {
     if(source==null||source.length!=INDEX_SIZE||!INDEX_SHA256.equals(sha256(source)))return null;
     String text=new String(source,StandardCharsets.UTF_8);
-    String patched=patchVerifiedText(text);
+    String patched=bindCarClick(patchVerifiedText(text));
     if(patched==null)return null;
     return patched.getBytes(StandardCharsets.UTF_8);
   }
@@ -130,6 +130,21 @@ final class QuickAppCarCapability {
     if(occurrences(text,PATCH_ANCHOR)!=1||hasCarEvents(text))return null;
     String patched=text.replace(PATCH_ANCHOR,PATCH_REPLACEMENT);
     return hasCarEvents(patched)?patched:null;
+  }
+
+  // The verified 17.4.15 CAR module calls a free clickEvent without importing public/api.js.
+  // Resolve it inside that one module; do not rewrite other devices' controls.
+  static String bindCarClick(String text) {
+    if(text==null)return null;
+    String marker="carEventIconName: _config.carEventIconName,";
+    if(occurrences(text,marker)!=1)return null;
+    int car=text.indexOf(marker),start=text.lastIndexOf("var _default = exports.default = {",car);
+    if(start<0)return null;
+    int call=text.indexOf("clickEvent(this.deviceInfo.id, item.id, Number(!item.state));",car);
+    int next=text.indexOf("/***/ }),",car);
+    if(call<0||next<0||call>next)return null;
+    String binding="var clickEvent = __webpack_require__(\"./src/cards/public/api.js\").clickEvent;\n";
+    return text.substring(0,start)+binding+text.substring(start);
   }
 
   static int occurrences(String text,String needle) {

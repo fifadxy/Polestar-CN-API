@@ -240,13 +240,19 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     VehicleCoordinator coordinator = VehicleCoordinator.get(context);
 
     if ("snapshot".equals(method)) {
-      VehicleSnapshot state = coordinator.snapshot;
+      VehicleSnapshot state = BuildConfig.OPPO_SDK_MOCK?OppoCarLinkMockFixture.snapshot():coordinator.snapshot;
       if (state == null) state = VehicleSnapshotStore.loadChina(context);
-      writeSnapshot(out, state, coordinator.selected == null ? null : coordinator.selected.vin);
+      writeSnapshot(out, state, BuildConfig.OPPO_SDK_MOCK?OppoCarLinkMockFixture.VIN:(coordinator.selected == null ? null : coordinator.selected.vin));
+      out.putBoolean("mock",BuildConfig.OPPO_SDK_MOCK);
       return out;
     }
 
     if ("refresh".equals(method)) {
+      if(BuildConfig.OPPO_SDK_MOCK){
+        OppoCarLinkMockFixture.touch();main.post(()->OppoCarLinkRuntime.get(context).changed());
+        context.getContentResolver().notifyChange(URI,null);
+        out.putBoolean("accepted",true);out.putBoolean("mock",true);out.putString("reason","mock-cache-refreshed");return out;
+      }
       if (!coordinator.hasSession()) {
         out.putBoolean("accepted", false);
         out.putString("reason", "not-signed-in");
@@ -272,6 +278,11 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
         out.putString("reason", "unsupported-command");
         OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,false,false,"unsupported-command");
         return out;
+      }
+      if(BuildConfig.OPPO_SDK_MOCK){
+        Bundle result=OppoCarLinkMockHarness.submit(context,action);
+        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,result.getBoolean("accepted",false),false,result.getString("reason",""));
+        return result;
       }
       if(!FirstUseConsent.accepted(context)||!commandStateReady(coordinator.snapshot,System.currentTimeMillis())) {
         out.putBoolean("accepted",false);out.putString("reason","fresh-consented-vehicle-state-required");

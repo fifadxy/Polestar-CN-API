@@ -55,7 +55,7 @@ public final class VehicleShortcutActivity extends Activity {
     try {
       Bundle result=BridgeClient.command(this,action);
       if(result.getBoolean("accepted",false))
-        toast("请求已受理，等待车辆状态回读");
+        toast(result.getBoolean("mock",false)?"Mock指令已受理，未操作真实车辆":"请求已受理，等待车辆状态回读");
       else
         toast("未受理："+result.getString("reason","unknown"));
     } catch(Throwable failure) {

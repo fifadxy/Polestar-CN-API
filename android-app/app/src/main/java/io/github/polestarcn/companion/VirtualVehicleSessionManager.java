@@ -29,15 +29,17 @@ final class VirtualVehicleSessionManager {
   static Bundle status(Context context, VehicleCoordinator coordinator) {
     SharedPreferences p=context.getSharedPreferences(PREF,Context.MODE_PRIVATE);
     boolean requested=p.contains(KEY_ENABLED)?p.getBoolean(KEY_ENABLED,false):true;
-    VehicleSnapshot state=coordinator==null?null:coordinator.snapshot;
+    boolean mock=BuildConfig.OPPO_SDK_MOCK;
+    VehicleSnapshot state=mock?OppoCarLinkMockFixture.snapshot():(coordinator==null?null:coordinator.snapshot);
     if(state==null)state=VehicleSnapshotStore.loadChina(context);
-    boolean signedIn=coordinator!=null&&coordinator.hasSession();
-    boolean selected=coordinator!=null&&coordinator.selected!=null&&coordinator.selected.vin!=null&&!coordinator.selected.vin.isEmpty();
+    boolean signedIn=mock?OppoCarLinkMockHarness.status().getBoolean("bound",false):coordinator!=null&&coordinator.hasSession();
+    boolean selected=mock||coordinator!=null&&coordinator.selected!=null&&coordinator.selected.vin!=null&&!coordinator.selected.vin.isEmpty();
+    String vin=mock?OppoCarLinkMockFixture.VIN:(selected?coordinator.selected.vin:"");
     boolean live=state!=null&&!state.isDemo&&state.timestampMillis>0;
     long now=System.currentTimeMillis();
-    String vehicleKey=selected?VehicleCoordinator.identity(coordinator.selected.vin):"";
+    String vehicleKey=selected?VehicleCoordinator.identity(vin):"";
     String sessionId=vehicleKey.isEmpty()?"":"psa-session-"+vehicleKey.substring(0,Math.min(16,vehicleKey.length()));
-    String carId=selected?OppoCarLinkModels.carId(coordinator.selected.vin):"";
+    String carId=selected?OppoCarLinkModels.carId(vin):"";
     long age=state==null||state.timestampMillis<=0?Long.MAX_VALUE:Math.max(0L,now-state.timestampMillis);
     boolean present=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected&&live;
     boolean active=present&&age<=STALE_MS;
@@ -48,7 +50,7 @@ final class VirtualVehicleSessionManager {
     Bundle out=new Bundle(profile);
     out.putBoolean("requested",requested);out.putBoolean("present",present);out.putBoolean("active",active);
     out.putBoolean("commandReady",commandReady);out.putString("lifecycle",lifecycle);
-    out.putString("mode","MIRROR_REAL");out.putString("sessionId",sessionId);
+    out.putBoolean("mock",mock);out.putString("mode",mock?"MOCK_TESTLAB":"MIRROR_REAL");out.putString("sessionId",sessionId);
     out.putString("providerCode",OppoVehicleProfileSettings.PROVIDER_CODE);out.putString("deviceType",OppoVehicleProfileSettings.DEVICE_TYPE);
     out.putString("vehicleKey",vehicleKey);out.putString("virtualCarId",carId);
     out.putString("testVin",testVin(vehicleKey,profile.getString(OppoVehicleProfileSettings.VIN_PREFIX,"TST0")));out.putString("testMac",testMac(vehicleKey));

@@ -13,6 +13,11 @@ public class HostMethodResolverTest {
     void a(Observer device,String shortcut,Object value);
     void b(Observer device,String shortcut,Object value);
   }
+  interface NewController {
+    java.util.Map<Object,Object> registry();
+    void onShortcutAction(Observer device,String shortcut);
+    void openDetail(Observer device);
+  }
   static class Named {
     public void a(String p,Observer o){} public void b(String p,Observer o){}
     public void addDeviceObserver(String p,Observer o){}
@@ -29,6 +34,7 @@ public class HostMethodResolverTest {
   @Test(expected=IllegalStateException.class) public void ambiguousLegacyShapeIsRejected(){HostMethodResolver.register(Ambiguous.class);}
   @Test public void legacyUnregisterIgnoresFinalLookalike(){assertEquals("d",HostMethodResolver.unregister(Legacy.class).getName());}
   @Test public void clickCallbackIsNotDetailNavigation(){assertEquals("b",HostMethodResolver.cardClick(CardController.class).getName());}
+  @Test public void semanticNewerCallbackTakesPriority(){assertEquals("onShortcutAction",HostMethodResolver.cardClick(NewController.class).getName());}
   @Test(expected=IllegalStateException.class) public void ambiguousClickCallbackIsRejected(){HostMethodResolver.cardClick(AmbiguousController.class);}
   @Test public void onlyOurExplicitShortcutIdsCanDispatchCommands(){
     assertEquals("unlock",CardShortcutCommand.fromId("ps_unlock"));

@@ -37,7 +37,7 @@ final class VirtualVehicleSessionManager {
     long now=System.currentTimeMillis();
     String vehicleKey=selected?VehicleCoordinator.identity(coordinator.selected.vin):"";
     String sessionId=vehicleKey.isEmpty()?"":"psa-session-"+vehicleKey.substring(0,Math.min(16,vehicleKey.length()));
-    String carId=vehicleKey.isEmpty()?"":"psassistant_"+vehicleKey.substring(0,Math.min(20,vehicleKey.length()));
+    String carId=selected?OppoCarLinkModels.carId(coordinator.selected.vin):"";
     long age=state==null||state.timestampMillis<=0?Long.MAX_VALUE:Math.max(0L,now-state.timestampMillis);
     boolean present=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected&&live;
     boolean active=present&&age<=STALE_MS;

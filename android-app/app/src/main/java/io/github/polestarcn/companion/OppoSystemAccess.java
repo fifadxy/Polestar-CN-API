@@ -13,7 +13,7 @@ final class OppoSystemAccess {
     io.github.polestarcn.oppobridge.BridgeSettings.setUnified(c,on);
     OppoOemCarExperimentState.set(c,on);
     VirtualVehicleSessionManager.setEnabled(c,VehicleCoordinator.get(c),on);
-    OppoOfficialVehicleBindState.set(c,VehicleCoordinator.get(c),on);
+    OppoOfficialVehicleBindState.request(c,on);
     if(on)OppoDeviceIntegration.restoreCard(c);
   }
   static Bundle recordPanel(Context c,Bundle input){

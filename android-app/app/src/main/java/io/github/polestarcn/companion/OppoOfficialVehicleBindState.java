@@ -36,6 +36,11 @@ final class OppoOfficialVehicleBindState {
     return out;
   }
 
+  static void request(Context context,boolean enabled){
+    // Store the user's single-switch intent; status still requires real login and a vehicle.
+    context.getSharedPreferences(PREF,0).edit().putBoolean(KEY,enabled).apply();
+  }
+
   static Bundle set(Context context, VehicleCoordinator coordinator, boolean enable) {
     Bundle current=status(context,coordinator);
     if(enable&&(!current.getBoolean("signedIn")||!current.getBoolean("vehicleAvailable"))) {

@@ -18,6 +18,9 @@ public class Beta36SystemAccessTest {
   assertNotNull(module);assertTrue(module.getBoolean("masterEnabled"));assertTrue(module.getBoolean("directControlEnabled"));
   OppoSystemAccess.setEnabled(c,false);assertFalse(OppoDeviceIntegration.enabled(c));assertFalse(OppoOemCarExperimentState.status(c).getBoolean("enabled"));
   assertFalse(VirtualVehicleSessionManager.status(c,VehicleCoordinator.get(c)).getBoolean("requested"));
+  OppoSystemAccess.setEnabled(c,true);
+  assertTrue(OppoOfficialVehicleBindState.status(c,VehicleCoordinator.get(c)).getBoolean("requested"));
+  assertFalse(OppoOfficialVehicleBindState.status(c,VehicleCoordinator.get(c)).getBoolean("enabled"));
  }
  @Test public void rootLaunchUsesExplicitMarkerAndVerifiedComponent(){
   Bundle route=new Bundle();route.putString("bindActivityPackage",OppoOfficialCarLink.PACKAGE);route.putString("bindActivityName",OppoOfficialCarLink.PACKAGE+".carcontrol.view.ControlRouterActivity");

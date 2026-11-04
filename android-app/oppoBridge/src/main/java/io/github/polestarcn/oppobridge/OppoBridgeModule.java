@@ -5,7 +5,6 @@ import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
 
 public final class OppoBridgeModule extends XposedModule {
-  static boolean isCarLinkHost(String pkg){return "com.heytap.opluscarlink".equals(pkg)||"com.oplus.carlink".equals(pkg)||"com.oppo.carlink".equals(pkg);}
   private static final String TAG="PsOppoBridge";
   private volatile String processName="unknown";
 

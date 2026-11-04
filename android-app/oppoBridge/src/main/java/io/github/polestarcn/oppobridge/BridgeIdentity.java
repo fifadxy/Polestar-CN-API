@@ -48,6 +48,12 @@ final class BridgeIdentity {
     return STANDALONE_PACKAGE.equals(value) || INTEGRATED_PACKAGE.equals(value);
   }
 
+  static boolean isCarLinkHost(String value) {
+    return "com.heytap.opluscarlink".equals(value)
+        || "com.oplus.carlink".equals(value)
+        || "com.oppo.carlink".equals(value);
+  }
+
   static boolean isDeviceAuthority(String value) {
     return STANDALONE_AUTHORITY.equals(value) || INTEGRATED_AUTHORITY.equals(value);
   }

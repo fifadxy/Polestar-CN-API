@@ -59,7 +59,7 @@ final class PsAssistantVehicleHostHook {
     try{type=Class.forName(className,false,loader);}catch(Throwable missing){return 0;}
     int hooks=0;
     for(Method method:type.getDeclaredMethods()){
-      if(Modifier.isStatic(method.getModifiers())||method.getParameterCount()>4)continue;
+      if(method.getParameterCount()>4)continue;
       String n=method.getName();
       if(!("hasCarBinding".equals(n)||"checkCarBind".equals(n)||"isCarBound".equals(n)
           ||"getCarBindState".equals(n)||"getBindingState".equals(n)||"isBound".equals(n)))continue;
@@ -86,7 +86,7 @@ final class PsAssistantVehicleHostHook {
     try{type=Class.forName(className,false,loader);}catch(Throwable missing){return 0;}
     int hooks=0;
     for(Method method:type.getDeclaredMethods()){
-      if(Modifier.isStatic(method.getModifiers())||method.getParameterCount()==0||method.getParameterCount()>8)continue;
+      if(method.getParameterCount()==0||method.getParameterCount()>8)continue;
       String n=method.getName().toLowerCase(Locale.ROOT);
       if(!(n.contains("dispatch")||n.contains("executecommand")||n.contains("performcaraction")
           ||n.contains("sendcar")||n.equals("control")||n.contains("carcommand")))continue;
@@ -97,9 +97,11 @@ final class PsAssistantVehicleHostHook {
         Bundle profile=profile();
         if(!profile.getBoolean("active",false))return chain.proceed();
         List<Object> args=chain.getArgs();
-        if(args==null||args.isEmpty()||!matchesTarget(args,profile))return chain.proceed();
+        if(args==null||args.isEmpty())return chain.proceed();
         String action=extractAction(args,profile);
         if(action==null)return chain.proceed();
+        boolean explicitTarget=matchesTarget(args,profile);
+        if(!explicitTarget&&hasConflictingIdentity(args,profile))return chain.proceed();
         Application app=currentApplication();if(app==null)return chain.proceed();
 
         Bundle gateway=BridgeClient.resolveGateway(app,action);
@@ -111,7 +113,7 @@ final class PsAssistantVehicleHostHook {
         Bundle result=BridgeClient.command(app,action);
         boolean accepted=result.getBoolean("accepted",false);
         String reason=result.getString("reason",accepted?"queued":"rejected");
-        module.info("psassistant_car_dispatch action="+action+" accepted="+accepted+" reason="+reason);
+        module.info("psassistant_car_dispatch action="+action+" accepted="+accepted+" target="+(explicitTarget?"explicit":"active-current")+" reason="+reason);
         return commandResult(method.getReturnType(),accepted,reason,action);
       });
       hooks++;
@@ -156,41 +158,80 @@ final class PsAssistantVehicleHostHook {
 
   static boolean matchesTarget(List<Object> args,Bundle profile){
     String car=profile==null?"":profile.getString("virtualCarId","");
-    for(Object arg:args)if(hasTargetMarker(arg,car,0))return true;
+    String testVin=profile==null?"":profile.getString("testVin","");
+    for(Object arg:args)if(hasTargetMarker(arg,car,testVin,0))return true;
     return false;
   }
 
-  private static boolean hasTargetMarker(Object value,String car,int depth){
+  static boolean hasConflictingIdentity(List<Object> args,Bundle profile){
+    String car=profile==null?"":profile.getString("virtualCarId","");
+    String testVin=profile==null?"":profile.getString("testVin","");
+    for(Object arg:args)if(conflictingIdentity(arg,car,testVin,0))return true;
+    return false;
+  }
+
+  private static boolean hasTargetMarker(Object value,String car,String testVin,int depth){
     if(value==null||depth>2)return false;
-    if(value instanceof String)return marker((String)value,car);
+    if(value instanceof String)return marker((String)value,car,testVin);
     if(value instanceof Bundle){
       Bundle b=(Bundle)value;
-      for(String key:b.keySet())try{if(hasTargetMarker(b.get(key),car,depth+1))return true;}catch(Throwable ignored){}
+      for(String key:b.keySet())try{if(hasTargetMarker(b.get(key),car,testVin,depth+1))return true;}catch(Throwable ignored){}
       return false;
     }
     if(value instanceof Map<?,?>){
       for(Map.Entry<?,?> e:((Map<?,?>)value).entrySet()){
-        if(marker(String.valueOf(e.getKey()),car)&&hasTargetMarker(e.getValue(),car,depth+1))return true;
-        if(hasTargetMarker(e.getValue(),car,depth+1))return true;
+        if(marker(String.valueOf(e.getKey()),car,testVin)&&hasTargetMarker(e.getValue(),car,testVin,depth+1))return true;
+        if(hasTargetMarker(e.getValue(),car,testVin,depth+1))return true;
       }
       return false;
     }
     for(String getter:new String[]{"getPackageName","getPkgName","getProviderCode","getSpCode","getBrand","getBrandName",
         "getCarId","getVehicleId","getDeviceId","getName","getVehicleName"}){
-      try{Method m=value.getClass().getMethod(getter);if(m.getParameterCount()==0&&hasTargetMarker(m.invoke(value),car,depth+1))return true;}catch(Throwable ignored){}
+      try{Method m=value.getClass().getMethod(getter);if(m.getParameterCount()==0&&hasTargetMarker(m.invoke(value),car,testVin,depth+1))return true;}catch(Throwable ignored){}
     }
     for(String field:new String[]{"packageName","pkgName","providerCode","spCode","brand","brandName","carId","vehicleId","deviceId","name"}){
-      for(Class<?> c=value.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(field);f.setAccessible(true);if(hasTargetMarker(f.get(value),car,depth+1))return true;break;}catch(Throwable ignored){}
+      for(Class<?> c=value.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(field);f.setAccessible(true);if(hasTargetMarker(f.get(value),car,testVin,depth+1))return true;break;}catch(Throwable ignored){}
     }
     return false;
   }
 
-  private static boolean marker(String raw,String car){
+  private static boolean marker(String raw,String car,String testVin){
     String text=raw==null?"":raw.trim();
     if(text.isEmpty())return false;
     String upper=text.toUpperCase(Locale.ROOT);
-    return PSA.equals(text)||upper.contains("POLESTAR")||text.contains("极星")||(!car.isEmpty()&&text.equals(car));
+    return PSA.equals(text)||upper.contains("POLESTAR")||text.contains("极星")
+        ||(!car.isEmpty()&&text.equals(car))||(!testVin.isEmpty()&&text.equalsIgnoreCase(testVin));
   }
+
+  private static boolean conflictingIdentity(Object value,String car,String testVin,int depth){
+    if(value==null||depth>2)return false;
+    if(value instanceof Bundle){
+      Bundle b=(Bundle)value;
+      for(String key:b.keySet())if(identityKey(key))try{
+        Object v=b.get(key);if(nonEmpty(v)&&!marker(String.valueOf(v),car,testVin))return true;
+      }catch(Throwable ignored){}
+      return false;
+    }
+    if(value instanceof Map<?,?>){
+      for(Map.Entry<?,?> e:((Map<?,?>)value).entrySet())if(identityKey(String.valueOf(e.getKey()))){
+        Object v=e.getValue();if(nonEmpty(v)&&!marker(String.valueOf(v),car,testVin))return true;
+      }
+      return false;
+    }
+    for(String getter:new String[]{"getPackageName","getPkgName","getProviderCode","getSpCode","getBrand","getBrandName",
+        "getCarId","getVehicleId","getDeviceId","getVin"}){
+      try{Method m=value.getClass().getMethod(getter);if(m.getParameterCount()==0){Object v=m.invoke(value);if(nonEmpty(v)&&!marker(String.valueOf(v),car,testVin))return true;}}catch(Throwable ignored){}
+    }
+    return false;
+  }
+
+  private static boolean identityKey(String raw){
+    String key=raw==null?"":raw.toLowerCase(Locale.ROOT).replace("_","").replace("-","");
+    return key.equals("packagename")||key.equals("pkg")||key.equals("pkgname")
+        ||key.equals("providercode")||key.equals("spcode")||key.equals("brand")||key.equals("brandname")
+        ||key.equals("carid")||key.equals("vehicleid")||key.equals("deviceid")||key.equals("vin");
+  }
+  private static boolean nonEmpty(Object value){return value!=null&&!String.valueOf(value).trim().isEmpty();}
 
   static String mapInstruction(String instruction,String rawValue,Bundle state){
     if(instruction==null||instruction.trim().isEmpty())return null;

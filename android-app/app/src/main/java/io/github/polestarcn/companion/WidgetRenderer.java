@@ -445,4 +445,96 @@ public final class WidgetRenderer {
     String value=metricValue(c,metric,snapshot,true,english);float sp=Math.max(8,Math.min(36,plan.rowHeightDp/(1.5f*plan.typeScale)));float scale=c.getResources().getDisplayMetrics().scaledDensity*font;
     android.text.TextPaint paint=new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);paint.setTypeface(android.graphics.Typeface.create("sans-serif",AppPreferences.visible(c,"widget_bold",false)?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL));
     float width=plan.cellWidthDp*c.getResources().getDisplayMetrics().density;paint.setTextSize(sp*scale);while(sp>4.5f&&paint.measureText(value)>width){sp-=.5f;paint.setTextSize(sp*scale);}
-    android.text.SpannableStri
+    android.text.SpannableString text=new android.text.SpannableString(value);text.setSpan(new android.text.style.RelativeSizeSpan(sp/10f),0,text.length(),0);return text;
+  }
+  public static String selectionKey(Context c,Size size){return VoLikeWidgetRenderer.PSEU.equals(VoLikeWidgetRenderer.style(c))?"pseu_"+metricKey(size):metricKey(size);}
+  public static String selectionDefaults(Context c,Size size){return VoLikeWidgetRenderer.PSEU.equals(VoLikeWidgetRenderer.style(c))?(size==Size.MINI?"battery,range":size==Size.DATA?"battery,range,vehicle_status,odometer,service_km_left,ta_distance,tm_distance":"battery,range,vehicle_status"):defaults(size);}
+
+  private static String compactLabel(DisplayMetric metric, boolean en) {
+    switch (metric) {
+      case BATTERY: case RANGE: return "";
+      case ODOMETER: return "ODO";
+      case TA_DISTANCE: return "TA";
+      case TM_DISTANCE: return "TM";
+      case TA_SPEED: return "TA v";
+      case TM_SPEED: return "TM v";
+      case TA_CONSUMPTION: return "TA e";
+      case TM_CONSUMPTION: return "TM e";
+      case TEMPERATURE: return en ? "Cabin" : "车内";
+      case TARGET_TEMPERATURE: return en ? "Tgt" : "目标";
+      case AQI: return "AQI";
+      case PM25: return "PM2.5";
+      case CHARGE_POWER: return "kW";
+      case CHARGE_CURRENT: return "A";
+      case SERVICE_DAYS_LEFT: return en ? "S d" : "保养天";
+      case SERVICE_KM_LEFT: return "S km";
+      case SERVICE_TIME_PERCENT: case SERVICE_KM_PERCENT: return "S %";
+      case VEHICLE_STATUS: return en ? "Vehicle" : "车况";
+      case TIRE_STATUS: return en ? "Tires" : "胎压";
+      default: return metric.shortLabel(en);
+    }
+  }
+
+  public static int capacity(Size size) {
+    return size == Size.DATA ? 8 : size == Size.LARGE ? 8 : size == Size.SQUARE ? 4
+        : size == Size.WIDE||size==Size.EXTRA_WIDE ? 4 : 2;
+  }
+  public static String metricKey(Size size) { return "widget_metrics_" + size.name(); }
+  public static String defaults(Size size) {
+    if (size == Size.MINI) return "battery,range";
+    if (size == Size.WIDE||size==Size.EXTRA_WIDE) return "battery,range,vehicle_status,service_km_left";
+    if (size == Size.SQUARE) return "battery,range,vehicle_status,service_days_left";
+    return size == Size.DATA ? "battery,range,vehicle_status,service_days_left,service_km_left,service_time_percent,service_km_percent,odometer"
+        : "battery,range,vehicle_status,service_days_left,service_km_left,ta_distance,tm_distance,odometer";
+  }
+
+  static PendingIntent pending(Context c, int id, Size size, String action) {
+    Intent i = new Intent(c, MainActivity.class);
+    i.setAction("io.github.polestarcn.companion.WIDGET");
+    i.setData(Uri.parse("psassistant://widget/" + id + "/" + size + "/" + action));
+    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP
+        | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    if (!"open".equals(action)) i.putExtra("widget_action", action);
+    return PendingIntent.getActivity(c, 0, i,
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+  }
+
+  /** Rounded background and simulated frosting; actual launcher-wallpaper blur is not available. */
+  private static final android.util.LruCache<String, Bitmap> BACKGROUNDS = new android.util.LruCache<String, Bitmap>(2 * 1024 * 1024) {
+    @Override protected int sizeOf(String key, Bitmap value) { return value.getByteCount(); }
+  };
+  static synchronized Bitmap background(Context c, Size size) {return background(c,size,defaultWidth(size),defaultHeight(size),VoLikeWidgetRenderer.CLASSIC);}
+  static synchronized Bitmap background(Context c,Size size,int width,int height,String design){
+    boolean dark = AppPreferences.dark(c);
+    boolean nio = UiSkin.nioLayout(c);
+    boolean nioColors = UiSkin.nioColors(c);
+    boolean opaque = "opaque".equals(AppPreferences.get(c, "widget_style", "transparent"));
+    int opacity = opaque ? 100 : AppPreferences.slider(c, "widget_opacity", 58);
+    int frost = AppPreferences.slider(c, "widget_frost", 28);
+    String cacheKey = width+"x"+height+":"+design+":"+size + ":" + dark + ":" + nioColors + ":" + opaque + ":" + opacity + ":" + frost+":"+WidgetColors.border(c);
+    Bitmap cached = BACKGROUNDS.get(cacheKey);
+    if (cached != null) return cached;
+    int w=Math.max(1,Math.min(920,width)),h=Math.max(1,Math.min(720,height));
+    Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(bitmap);
+    Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    int alpha = (int) Math.round(opacity * 2.55);
+    int base = VoLikeWidgetRenderer.PSEU.equals(design)?(dark?Color.rgb(15,16,17):Color.WHITE):!VoLikeWidgetRenderer.CLASSIC.equals(design)?(dark?0xFF1D1F21:VoLikeWidgetRenderer.POLESTAR.equals(design)?0xFFF4F4F2:0xFFF9F7F4):nioColors ? Color.parseColor(dark ? "#181D25" : "#F5F0F0") : PsaDesign.surface(dark);
+    p.setColor(Color.argb(alpha, Color.red(base), Color.green(base), Color.blue(base)));
+    canvas.drawRoundRect(1, 1, w - 1, h - 1, Math.min(24,Math.min(w,h)/5f), Math.min(24,Math.min(w,h)/5f), p);
+    if (!opaque && opacity > 0 && frost > 0) {
+      int shimmer = (int) (frost * opacity / 100.0 * 0.85);
+      int top = dark ? Color.argb(shimmer, 210,210,210) : Color.argb(shimmer,255,255,255);
+      p.setShader(new LinearGradient(0, 0, w, h, top, Color.TRANSPARENT, Shader.TileMode.CLAMP));
+      canvas.drawRoundRect(1, 1, w - 1, h - 1, Math.min(24,Math.min(w,h)/5f), Math.min(24,Math.min(w,h)/5f), p);
+      p.setShader(null);
+    }
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(2f);
+    int border=WidgetColors.border(c);p.setColor(Color.argb(Math.min(180,Math.max(80,alpha)),Color.red(border),Color.green(border),Color.blue(border)));
+    canvas.drawRoundRect(2, 2, w - 2, h - 2, Math.min(23,Math.min(w,h)/5f), Math.min(23,Math.min(w,h)/5f), p);
+    BACKGROUNDS.put(cacheKey, bitmap);
+    return bitmap;
+  }
+}
+

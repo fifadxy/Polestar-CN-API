@@ -75,6 +75,7 @@ public final class OppoBridgeModule extends XposedModule {
           &&pkg.equals(process)){
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("scene_vehicle_catalog unavailable="+x.getClass().getSimpleName());}
         try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_virtual_session unavailable="+x.getClass().getSimpleName());}
+        try{CarLinkBoundStateShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_bound_state unavailable="+x.getClass().getSimpleName());}
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("scene_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 
@@ -84,7 +85,9 @@ public final class OppoBridgeModule extends XposedModule {
         try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
         try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_virtual_session unavailable="+x.getClass().getSimpleName());}
-        // TestLab provider/account row is local-only; official cloud authorization remains separate.
+        try{CarLinkBoundStateShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_bound_state unavailable="+x.getClass().getSimpleName());}
+        try{SceneAccountBindResultShim.install(this);}catch(Throwable x){warn("carlink_scene_bind_result unavailable="+x.getClass().getSimpleName());}
+        // Local TestLab provider/account row is projected as bound only while PsAssistant has an active vehicle session.
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("carlink_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 

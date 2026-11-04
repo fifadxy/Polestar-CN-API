@@ -227,8 +227,12 @@ public class OppoCarLinkBridgeModule {
         String[] whitelistClasses = new String[]{
                 "com.oppo.carlink.utils.WhitelistManager",
                 "com.oplus.carlink.utils.WhitelistManager",
+                "com.heytap.opluscarlink.utils.WhitelistManager",
                 "com.coloros.sceneservice.car.CarAppWhitelistManager",
-                "com.oppo.carlink.config.CarSupportConfigManager"
+                "com.oplus.sceneservice.car.CarAppWhitelistManager",
+                "com.oppo.carlink.config.CarSupportConfigManager",
+                "com.oplus.carlink.config.CarSupportConfigManager",
+                "com.heytap.opluscarlink.config.CarSupportConfigManager"
         };
         for (String clsName : whitelistClasses) {
             Class<?> cls = XposedHelpers.findClassIfExists(clsName, lpparam.classLoader);
@@ -239,9 +243,16 @@ public class OppoCarLinkBridgeModule {
                     XposedBridge.hookMethod(m, new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) {
-                            if (param.args != null && param.args.length > 0
-                                    && CarLinkDexContract.HOST_PACKAGE.equals(String.valueOf(param.args[0]))) {
-                                param.setResult(true);
+                            if (param.args != null) {
+                                for (Object arg : param.args) {
+                                    String value=String.valueOf(arg);
+                                    if (CarLinkDexContract.HOST_PACKAGE.equals(value)
+                                            || value.toUpperCase(java.util.Locale.ROOT).contains("POLESTAR")
+                                            || value.contains("极星")) {
+                                        param.setResult(true);
+                                        return;
+                                    }
+                                }
                             }
                         }
                     });

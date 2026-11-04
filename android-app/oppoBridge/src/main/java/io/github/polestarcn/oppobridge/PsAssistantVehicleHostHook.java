@@ -30,7 +30,14 @@ final class PsAssistantVehicleHostHook {
       "com.oplus.sceneservice.car.CarBindHelper",
       "com.coloros.sceneservice.car.CarBindHelper",
       "com.oplus.sceneservice.car.CarDataRepository",
-      "com.coloros.sceneservice.car.CarDataRepository"
+      "com.coloros.sceneservice.car.CarDataRepository",
+      "com.oppo.carlink.session.CarSessionManager",
+      "com.oplus.carlink.session.CarSessionManager",
+      "com.heytap.opluscarlink.session.CarSessionManager",
+      "com.oplus.carlink.session.SessionManager",
+      "com.heytap.opluscarlink.session.SessionManager",
+      "com.oplus.sceneservice.car.CarSessionController",
+      "com.coloros.sceneservice.car.CarSessionController"
   };
 
   private static final String[] DISPATCH_CLASSES={
@@ -61,8 +68,7 @@ final class PsAssistantVehicleHostHook {
     for(Method method:type.getDeclaredMethods()){
       if(method.getParameterCount()>4)continue;
       String n=method.getName();
-      if(!("hasCarBinding".equals(n)||"checkCarBind".equals(n)||"isCarBound".equals(n)
-          ||"getCarBindState".equals(n)||"getBindingState".equals(n)||"isBound".equals(n)))continue;
+      if(!bindingReadMethod(n))continue;
       if(!supportedBindReturn(method.getReturnType()))continue;
       method.setAccessible(true);
       final String id="psassistant_local_bind_"+safe(type.getSimpleName())+"_"+safe(n)+"_"+method.getParameterCount();
@@ -291,8 +297,16 @@ final class PsAssistantVehicleHostHook {
     return null;
   }
 
+  static boolean bindingReadMethod(String name){
+    if(name==null)return false;
+    String n=name.toLowerCase(Locale.ROOT);
+    boolean read=n.startsWith("is")||n.startsWith("has")||n.startsWith("get")||n.startsWith("check")||n.startsWith("query");
+    return read&&(n.contains("bind")||n.contains("bound"));
+  }
+
   private static boolean supportedBindReturn(Class<?> type){
-    return type==boolean.class||type==Boolean.class||type==int.class||type==Integer.class||type==String.class||type.isEnum();
+    return type==boolean.class||type==Boolean.class||type==int.class||type==Integer.class
+        ||type==long.class||type==Long.class||type==String.class||type.isEnum();
   }
   private static boolean supportedCommandReturn(Class<?> type){
     return type==void.class||type==boolean.class||type==Boolean.class||type==int.class||type==Integer.class
@@ -303,6 +317,7 @@ final class PsAssistantVehicleHostHook {
   private static Object boundValue(Class<?> type){
     if(type==boolean.class||type==Boolean.class)return Boolean.TRUE;
     if(type==int.class||type==Integer.class)return 1;
+    if(type==long.class||type==Long.class)return 1L;
     if(type==String.class)return "BOUND";
     if(type.isEnum()){
       Object[] constants=type.getEnumConstants();

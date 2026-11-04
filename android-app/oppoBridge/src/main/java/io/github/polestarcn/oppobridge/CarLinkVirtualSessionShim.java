@@ -8,9 +8,14 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 final class CarLinkVirtualSessionShim {
-  private static final String[] MANAGER_FALLBACKS={"com.oplus.carlink.session.SessionManager","com.heytap.opluscarlink.session.SessionManager","com.oplus.ocs.carlink.session.SessionManager","com.heytap.opluscarlink.service.SessionManager"};
+  private static final String[] MANAGER_FALLBACKS={
+      "com.oppo.carlink.session.CarSessionManager","com.oplus.carlink.session.CarSessionManager","com.heytap.opluscarlink.session.CarSessionManager",
+      "com.oplus.carlink.session.SessionManager","com.heytap.opluscarlink.session.SessionManager",
+      "com.oplus.ocs.carlink.session.SessionManager","com.heytap.opluscarlink.service.SessionManager",
+      "com.oplus.sceneservice.car.CarSessionController","com.coloros.sceneservice.car.CarSessionController"};
   private static final Set<String> SESSION_GETTERS=new LinkedHashSet<>();
-  static{SESSION_GETTERS.add("getCurrentSession");SESSION_GETTERS.add("getCurrentCarSession");SESSION_GETTERS.add("currentSession");}
+  static{SESSION_GETTERS.add("getCurrentSession");SESSION_GETTERS.add("getCurrentCarSession");SESSION_GETTERS.add("currentSession");
+    SESSION_GETTERS.add("getActiveCarDevice");SESSION_GETTERS.add("getCurrentCarDevice");}
   private CarLinkVirtualSessionShim(){}
 
   static void install(OppoBridgeModule module,ClassLoader loader){
@@ -33,7 +38,7 @@ final class CarLinkVirtualSessionShim {
           catch(Throwable failure){module.warn("virtual_session fallback="+failure.getClass().getSimpleName());}
           return chain.proceed();
         });hooks++;
-      } else if("getConnectState".equals(name)&&method.getParameterCount()==0){
+      } else if(("getConnectState".equals(name)||"getSessionState".equals(name)||"getConnectionState".equals(name))&&method.getParameterCount()==0){
         method.setAccessible(true);Class<?> returnType=method.getReturnType();
         module.hook(method).setId("psassistant_virtual_connect_state_"+safe(manager.getSimpleName())).setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain->{
           Bundle p=profile(currentApplication());if(!p.getBoolean("active",false))return chain.proceed();Object value=VirtualCarLinkSessionStore.connectedValue(returnType,p.getString("connectState","COORDINATED"));return value==null?chain.proceed():value;

@@ -38,8 +38,8 @@ public final class WidgetButtons {
   int[] icons={R.id.widget_lock_icon,R.id.widget_climate_icon,R.id.volike_widget_charge_icon,R.id.volike_widget_location_icon,R.id.widget_extra4_icon,R.id.widget_extra5_icon};
   int[] labels={R.id.widget_lock_label,R.id.widget_climate_label,R.id.widget_extra2_label,R.id.widget_extra3_label,R.id.widget_extra4_label,R.id.widget_extra5_label};
   v.setViewVisibility(R.id.widget_action_row,count==0?View.GONE:View.VISIBLE);
-  for(int i=0;i<roots.length;i++){v.setViewVisibility(wrappers[i],i<count?View.VISIBLE:View.GONE);if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int color=on?Color.BLACK:ink;
-   v.setInt(roots[i],"setBackgroundResource",WidgetColors.borderDrawable(c,on));v.setImageViewResource(icons[i],icon(c,id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
+  for(int i=0;i<roots.length;i++){v.setViewVisibility(wrappers[i],i<count?View.VISIBLE:View.GONE);if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int fill=WidgetAppearance.button(c);int color=on&&Color.alpha(fill)>160&&Color.luminance(fill)>.43?Color.BLACK:ink;
+   v.setInt(roots[i],"setBackgroundResource",0);v.setImageViewBitmap(new int[]{R.id.widget_button_bg_0,R.id.widget_button_bg_1,R.id.widget_button_bg_2,R.id.widget_button_bg_3,R.id.widget_button_bg_4,R.id.widget_button_bg_5}[i],WidgetAppearance.buttonBackground(c,on));v.setImageViewResource(icons[i],icon(c,id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
    String name=label(c,id),state=state(c,id,s);String visible=(id.equals("lock")||id.equals("air"))?state:name;if(id.equals("air"))visible=AirRuntime.label(c,s,AppPreferences.get(c,"vehicle",""));
    if(id.startsWith("climate")){
     String action=id.equals("climate-start")?AppPreferences.widgetTr(c,"开启","Start"):id.equals("climate-stop")?AppPreferences.widgetTr(c,"停止","Stop"):name;
@@ -51,7 +51,7 @@ public final class WidgetButtons {
     }else visible=action;
    }
    android.text.SpannableString text=new android.text.SpannableString(visible);if(AppPreferences.visible(c,"widget_bold",false))text.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),0,text.length(),0);
-   v.setTextViewText(labels[i],text);v.setTextColor(labels[i],color);v.setTextViewTextSize(labels[i],android.util.TypedValue.COMPLEX_UNIT_SP,9*UiTypography.widgetScale(c));
+   v.setTextViewText(labels[i],WidgetAppearance.weight(c,text));v.setTextColor(labels[i],color);v.setTextViewTextSize(labels[i],android.util.TypedValue.COMPLEX_UNIT_SP,9*UiTypography.widgetScale(c));
    v.setContentDescription(roots[i],name+" · "+state+AppPreferences.widgetTr(c," · 点击操作，远控需生物验证"," · Tap to act; remote control requires biometrics"));
    v.setOnClickPendingIntent(roots[i],WidgetRenderer.pending(c,widget,size,intentAction(id)));v.setOnClickPendingIntent(wrappers[i],WidgetRenderer.pending(c,widget,size,intentAction(id)));
   }

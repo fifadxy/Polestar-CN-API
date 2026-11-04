@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<resources>
-    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:fontFamily">sans-serif</item>
-        <item name="android:colorAccent">#E88445</item>
-        <item name="android:windowLightStatusBar">false</item>
-    </style>
-</resources>

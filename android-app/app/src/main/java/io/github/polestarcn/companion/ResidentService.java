@@ -15,7 +15,7 @@ public final class ResidentService extends Service {
   private static ResidentService active;
   private final Handler timerHandler=new Handler(Looper.getMainLooper());
   private final Runnable timerTick=()->{if(!running)return;NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);nm.notify(ID,notification(this));WidgetRenderer.refreshAll(this);scheduleTimerTick();};
-  private void scheduleTimerTick(){timerHandler.removeCallbacks(timerTick);VehicleSnapshot v=VehicleSnapshotStore.loadChina(this);String vehicle=AppPreferences.get(this,"vehicle","");long now=System.currentTimeMillis();Long air=AirRuntime.remaining(this,v,vehicle,now);Integer climate=ClimateRuntime.remainingMinutes(v,now);boolean ticking=(air!=null&&air>0)||(climate!=null&&climate>0)||(v!=null&&"开启".equals(v.climate)&&climate==null&&ClimateRuntime.estimatedRemaining(this,vehicle,now)>0);if(ticking)timerHandler.postDelayed(timerTick,60_000L);}
+  private void scheduleTimerTick(){timerHandler.removeCallbacks(timerTick);VehicleSnapshot v=VehicleSnapshotStore.loadChina(this);String vehicle=AppPreferences.get(this,"vehicle","");long now=System.currentTimeMillis();Long air=AirRuntime.remaining(this,v,vehicle,now);Integer climate=ClimateRuntime.remainingMinutes(v,now);boolean ticking=CampModeManager.active(this)||(climate!=null&&climate>0)||(v!=null&&"开启".equals(v.climate)&&climate==null&&ClimateRuntime.estimatedRemaining(this,vehicle,now)>0);if(ticking)timerHandler.postDelayed(timerTick,60_000L);}
 
   public static void apply(Context c) {
     if (AppPreferences.enabled(c)) {
@@ -73,25 +73,28 @@ public final class ResidentService extends Service {
     ch.setShowBadge(false);
     nm.createNotificationChannel(ch);
     VehicleSnapshot v = VehicleSnapshotStore.loadChina(c);
-    String title =
-        v == null
-            ? tr(c, "PsAssistant · 未连接", "PsAssistant · Offline")
-            : VehicleSnapshot.metric(v.batteryPercent, "%")
-                + " · "
-                + AppPreferences.status(c, v.charging);
-    String detail =
-        v == null
-            ? tr(c, "点击连接车辆", "Tap to connect")
-            : tr(c, "空调 ", "Climate ")
-                + ClimateRuntime.label(c, v, AppPreferences.get(c, "vehicle", ""))
-                + " · "
-                + tr(c, "净化 ", "Air ")
-                + AirRuntime.label(c, v, AppPreferences.get(c,"vehicle",""))
-                + " · " + tr(c,"门锁 ","Lock ") + AppPreferences.status(c,v.lock)
-                + " · " + tr(c,"尾门 ","Trunk ") + AppPreferences.status(c,v.tailgate)
-                + " · " + tr(c,"车窗 ","Windows ") + AppPreferences.status(c,v.windows);
-    String timestamps = tr(c, "数据更新 ", "Data updated ")
-        + (v == null ? "—" : time(v.timestampMillis));
+    boolean camping=CampModeManager.active(c),pending=CampModeManager.pendingStop(c);
+    String title=v==null?tr(c,"PsAssistant · 未连接","PsAssistant · Offline")
+        :VehicleSnapshot.metric(v.batteryPercent,"%")+" · "+tr(c,"续航 ","Range ")+VehicleSnapshot.metric(v.rangeKm,"km");
+    String climate=v==null?tr(c,"未知","Unknown"):
+        "开启".equals(v.climate)?tr(c,"运行中","Running"):"关闭".equals(v.climate)?tr(c,"关闭","Off"):tr(c,"待确认","Unconfirmed");
+    String vehicle=AppPreferences.get(c,"vehicle","");
+    StringBuilder detail=new StringBuilder(tr(c,"空调 ","Climate ")).append(climate);
+    if(v!=null&&"开启".equals(v.climate)){
+      Integer remaining=ClimateRuntime.remainingMinutes(v,System.currentTimeMillis());
+      if(remaining==null){long estimate=ClimateRuntime.estimatedRemaining(c,vehicle,System.currentTimeMillis());
+        if(estimate>0)remaining=(int)((estimate+59999L)/60000L);}
+      if(remaining!=null&&remaining>0)detail.append(tr(c," · 剩余 "," · left ")).append(remaining).append("m");
+    }
+    if(camping){
+      CampSession session=CampModeManager.session(c);
+      if(session!=null){long remaining=Math.max(0,session.endsAt-System.currentTimeMillis());
+        detail.append(tr(c," · 托管剩余 "," · camping left ")).append((remaining+59999L)/60000L).append("m");}
+    }
+    if(pending)detail.append(tr(c," · 提示：托管停止待核实"," · Notice: camping stop unconfirmed"));
+    else if(v!=null&&VehicleCondition.problem(v,true))
+      detail.append(tr(c," · 提示：请检查车辆"," · Notice: check vehicle"));
+    String timestamps=tr(c,"数据更新 ","Updated ")+(v==null?"—":time(v.timestampMillis));
     PendingIntent open =
         PendingIntent.getActivity(
             c,
@@ -101,8 +104,8 @@ public final class ResidentService extends Service {
     return new Notification.Builder(c, channel)
         .setSmallIcon(AppIcons.notificationSmall(c))
         .setContentTitle(title)
-        .setContentText(detail + " · " + timestamps)
-        .setStyle(new Notification.BigTextStyle().bigText(detail + "\n" + timestamps))
+        .setContentText(detail.toString() + " · " + timestamps)
+        .setStyle(new Notification.BigTextStyle().bigText(detail.toString() + "\n" + timestamps))
         .setContentIntent(open)
         .setOngoing(true)
         .setOnlyAlertOnce(true)

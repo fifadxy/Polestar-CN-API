@@ -281,7 +281,7 @@ public final class WidgetRenderer {
   private static void widgetText(RemoteViews views,Context c,int id,CharSequence value){
     android.text.SpannableStringBuilder text=new android.text.SpannableStringBuilder(value==null?"":value);
     if(AppPreferences.visible(c,"widget_bold",false)&&text.length()>0)text.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),0,text.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    views.setTextViewText(id,text);
+    views.setTextViewText(id,WidgetAppearance.weight(c,text));
   }
 
   private static float widgetFont(Context c,Size size,int height) {
@@ -511,7 +511,7 @@ public final class WidgetRenderer {
     boolean opaque = "opaque".equals(AppPreferences.get(c, "widget_style", "transparent"));
     int opacity = opaque ? 100 : AppPreferences.slider(c, "widget_opacity", 58);
     int frost = AppPreferences.slider(c, "widget_frost", 28);
-    String cacheKey = width+"x"+height+":"+design+":"+size + ":" + dark + ":" + nioColors + ":" + opaque + ":" + opacity + ":" + frost+":"+WidgetColors.border(c);
+    String cacheKey = width+"x"+height+":"+design+":"+size + ":" + dark + ":" + nioColors + ":" + opaque + ":" + opacity + ":" + frost+":"+WidgetColors.border(c)+":"+WidgetAppearance.width(c,"widget_border_width",2);
     Bitmap cached = BACKGROUNDS.get(cacheKey);
     if (cached != null) return cached;
     int w=Math.max(1,Math.min(920,width)),h=Math.max(1,Math.min(720,height));
@@ -531,8 +531,10 @@ public final class WidgetRenderer {
     }
     p.setStyle(Paint.Style.STROKE);
     p.setStrokeWidth(2f);
-    int border=WidgetColors.border(c);p.setColor(Color.argb(Math.min(180,Math.max(80,alpha)),Color.red(border),Color.green(border),Color.blue(border)));
-    canvas.drawRoundRect(2, 2, w - 2, h - 2, Math.min(23,Math.min(w,h)/5f), Math.min(23,Math.min(w,h)/5f), p);
+    int border=WidgetColors.border(c);p.setColor(border);
+    int thickness=WidgetAppearance.width(c,"widget_border_width",2);
+    if(thickness>0&&Color.alpha(border)>0){p.setStrokeWidth(thickness);float inset=Math.max(2f,thickness/2f+1f);
+      canvas.drawRoundRect(inset,inset,w-inset,h-inset,Math.min(23,Math.min(w,h)/5f),Math.min(23,Math.min(w,h)/5f),p);}
     BACKGROUNDS.put(cacheKey, bitmap);
     return bitmap;
   }

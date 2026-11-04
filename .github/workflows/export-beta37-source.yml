@@ -1,0 +1,28 @@
+name: Export Beta37 Source
+on:
+  push:
+    branches:
+      - export/beta37-source-20261104
+  workflow_dispatch:
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bbe49c1bc38f0b2cd524f22868d923068a10e961
+          fetch-depth: 1
+      - name: Archive exact Beta37 source
+        run: |
+          git archive --format=zip --prefix=PsAssistant-beta37-source/ -o PsAssistant-beta37-source-bbe49c1.zip HEAD
+          printf '%s  %s\n' "bbe49c1bc38f0b2cd524f22868d923068a10e961" "SOURCE_COMMIT" > SOURCE_COMMIT.txt
+          sha256sum PsAssistant-beta37-source-bbe49c1.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-beta37-source-bbe49c1
+          path: |
+            PsAssistant-beta37-source-bbe49c1.zip
+            SOURCE_COMMIT.txt
+            SHA256SUMS.txt

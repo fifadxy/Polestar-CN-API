@@ -32,3 +32,12 @@ for name in ['hookSystemServerPermissionGrant','hookLocalIotPermissionAndSignatu
  assert body(blocks['OppoCarLinkBridgeModule'],name)==body(module,name),name
  count+=1
 print('PASS:',count,'uploaded business methods unchanged; namespace, typed access and hook API transport are the explicit adapters')
+
+import xml.etree.ElementTree as ET
+ns="{http://schemas.android.com/apk/res/android}"
+application=ET.parse(root/"android-app/app/src/main/AndroidManifest.xml").getroot().find("application")
+service=next(x for x in application.findall("service") if x.get(ns+"name")==".uploadedcarlink.OppoOfficialCarLink")
+receiver=next(x for x in application.findall("receiver") if x.get(ns+"name")==".OppoCarLinkCommandReceiver")
+assert {a.get(ns+"name") for a in service.findall("intent-filter/action")}=={"com.oppo.carlink.action.CAR_CONTROL_SERVICE","com.oplus.carlink.action.CAR_CONTROL_SERVICE","com.coloros.sceneservice.action.CAR_CONTROL","io.github.polestarcn.companion.action.CARLINK_SERVICE"}
+assert {a.get(ns+"name") for a in receiver.findall("intent-filter/action")}=={"io.github.polestarcn.companion.action.CARLINK_COMMAND","com.oppo.carlink.action.CAR_CONTROL_SERVICE","com.oplus.carlink.action.CAR_CONTROL_SERVICE","android.intent.action.BOOT_COMPLETED"}
+print("PASS: uploaded service and broadcast action sets preserved without a duplicate command receiver")

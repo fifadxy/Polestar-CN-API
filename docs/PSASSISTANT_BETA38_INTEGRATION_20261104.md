@@ -11,7 +11,7 @@
 | OppoOfficialVehicleBindState | 复用真实登录、选车和已缓存车辆判断；本机绑定与 OCS 官方授权分别报告 |
 | VirtualVehicleSessionManager | 复用真实缓存和稳定合成标识，未知数值不补造 82%/415km，不乐观覆盖已确认车况 |
 | VehicleProtocolGateway | 保留类型明确的 VehicleCoordinator，统一现有鉴权与有界回读；不反射猜方法，不以失败兜底成功 |
-| PsAssistantBridgeProvider | 新增三个 call 别名、绑定 Cursor 查询、列投影和变更通知，保留已有所有入口及调用方限制 |
+| PsAssistantBridgeProvider | 新增三个 call 别名、根 URI 车辆 Cursor 与绑定 Cursor 查询、列投影和变更通知，保留已有所有入口及调用方限制 |
 | OppoOfficialCarLink | 保留现有 OCS 发现、初始化入口；新 `OppoCarLinkBridgeService` 实现明确定义的 Messenger 协议，未冒充未知 AIDL |
 | OppoCarLinkInitReceiver | 原有受保护 OCS 初始化接收器不覆盖；另增受 IOT 权限保护的显式命令接收器 |
 | OppoCarLinkBridgeModule | 不并装旧 IXposedHookLoadPackage；适配当前 libxposed API102，由现有模块/BridgeClient 调用共享协议，四类指令实际接入 |

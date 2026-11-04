@@ -19,7 +19,7 @@ final class OppoCarLinkProtocol {
  }
  private OppoCarLinkProtocol(){}
  static boolean supports(Uri uri){return uri!=null&&CarLinkBridgeContract.AUTHORITY.equals(uri.getAuthority())
-   &&("/"+CarLinkBridgeContract.BIND_PATH).equals(uri.getPath());}
+   &&(uri.getPath()==null||uri.getPath().isEmpty()||"/".equals(uri.getPath())||("/"+CarLinkBridgeContract.BIND_PATH).equals(uri.getPath()));}
  static Bundle read(Context c,String method){
   VehicleCoordinator model=VehicleCoordinator.get(c);Bundle b=VirtualVehicleSessionManager.status(c,model);
   b.putInt("bridgeProtocolVersion",CarLinkBridgeContract.VERSION);
@@ -54,6 +54,8 @@ final class OppoCarLinkProtocol {
  static Cursor query(Context c,Uri uri,String[] projection){
   if(!supports(uri))throw new IllegalArgumentException("Unsupported bridge URI");
   Bundle b=read(c,CarLinkBridgeContract.BIND_PATH);
+  boolean bind=("/"+CarLinkBridgeContract.BIND_PATH).equals(uri.getPath());
+  if(!bind)return vehicleCursor(c,b,projection);
   String[] columns=projection==null?new String[]{"hasCarBinding","has_car_binding","is_bound","vin","brand","vehicle_name","code","bindingScope"}:projection.clone();
   Set<String> allowed=new HashSet<>(Arrays.asList("hasCarBinding","has_car_binding","is_bound","vin","brand","vehicle_name","code","bindingScope"));
   for(String column:columns)if(!allowed.contains(column))throw new IllegalArgumentException("Unknown bridge column");
@@ -64,6 +66,20 @@ final class OppoCarLinkProtocol {
    case "vehicle_name":values[i]=b.getString("vehicle_name");break;case "code":values[i]=0;break;default:values[i]="local-bridge";
   }
   out.addRow(values);out.setNotificationUri(c.getContentResolver(),Uri.parse("content://"+CarLinkBridgeContract.AUTHORITY));return out;
+ }
+ private static Cursor vehicleCursor(Context c,Bundle b,String[] projection){
+  String[] defaults={"package_name","brand_name","vehicle_name","vin","hasCarBinding","has_binding","connect_state","capability_mask","is_locked","is_climate_active","is_window_closed","soc","range_km","synthetic_identifiers"};
+  String[] columns=projection==null?defaults:projection.clone();Set<String> allowed=new HashSet<>(Arrays.asList(defaults));
+  for(String key:columns)if(!allowed.contains(key))throw new IllegalArgumentException("Unknown vehicle column");
+  MatrixCursor out=new MatrixCursor(columns,1);Object[] row=new Object[columns.length];
+  for(int i=0;i<columns.length;i++){String key=columns[i];switch(key){
+   case "package_name":row[i]=c.getPackageName();break;case "brand_name":row[i]="Polestar";break;case "vehicle_name":row[i]=b.getString(key);break;
+   case "vin":row[i]=b.getString("vehicle_vin","");break;case "hasCarBinding":case "has_binding":row[i]=b.getBoolean("hasCarBinding")?1:0;break;
+   case "connect_state":case "capability_mask":row[i]=b.getInt(key);break;case "synthetic_identifiers":row[i]=1;break;
+   case "soc":row[i]=b.getBoolean("soc_percent_known")?b.getInt("soc_percent"):null;break;
+   case "range_km":row[i]=b.getBoolean("range_km_known")?b.getInt(key):null;break;
+   default:row[i]=b.getBoolean(key+"_known")?(b.getBoolean(key)?1:0):null;
+  }}out.addRow(row);out.setNotificationUri(c.getContentResolver(),PsAssistantBridgeProvider.URI);return out;
  }
  static Bundle dispatch(Context c,Bundle input){
   Bundle in=input==null?new Bundle():new Bundle(input);

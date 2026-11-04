@@ -81,6 +81,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
     out.putInt("authorizationPolicyVersion",1);
+    out.putInt("bridgeProtocolVersion",io.github.polestarcn.bridge.CarLinkBridgeContract.VERSION);
     if(io.github.polestarcn.bridge.CarLinkBridgeContract.readMethod(method))return OppoCarLinkProtocol.read(context,method);
     boolean quickReporter=callerIn(context,QUICKAPP_REPORTERS);
     boolean myDevices=callerIs(context,"com.heytap.mydevices");

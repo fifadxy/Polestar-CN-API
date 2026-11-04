@@ -15,6 +15,7 @@ public class PsAssistantVehicleHostHookTest {
     Bundle b=new Bundle();
     b.putBoolean("active",true);
     b.putString("virtualCarId","psa_car_123");
+    b.putString("testVin","TST01234567890123");
     b.putString("lock","已锁");
     b.putString("climate","关闭");
     return b;
@@ -47,6 +48,17 @@ public class PsAssistantVehicleHostHookTest {
     Bundle s=state();
     assertEquals("unlock",PsAssistantVehicleHostHook.mapDirect("chesuo",s));
     assertEquals("climate-start",PsAssistantVehicleHostHook.mapDirect("kongtiao",s));
+  }
+
+  @Test public void implicitCurrentTargetRejectsExplicitForeignVehicle(){
+    Bundle s=state();
+    assertFalse(PsAssistantVehicleHostHook.matchesTarget(Arrays.asList("CAR-DOOR","OPEN"),s));
+    assertFalse(PsAssistantVehicleHostHook.hasConflictingIdentity(Arrays.asList("CAR-DOOR","OPEN"),s));
+    Bundle other=new Bundle();other.putString("deviceId","other_vehicle");other.putString("instruction","CAR-DOOR");
+    assertTrue(PsAssistantVehicleHostHook.hasConflictingIdentity(Arrays.asList(other),s));
+    Bundle ours=new Bundle();ours.putString("vin","TST01234567890123");ours.putString("instruction","AC-TEMP");
+    assertTrue(PsAssistantVehicleHostHook.matchesTarget(Arrays.asList(ours),s));
+    assertFalse(PsAssistantVehicleHostHook.hasConflictingIdentity(Arrays.asList(ours),s));
   }
 
   @Test public void bundleRequestExtractsTargetAndAction(){

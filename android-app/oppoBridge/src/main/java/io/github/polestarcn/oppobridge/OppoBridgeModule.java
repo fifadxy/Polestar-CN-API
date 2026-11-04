@@ -5,6 +5,7 @@ import io.github.libxposed.api.XposedModule;
 import io.github.libxposed.api.XposedModuleInterface;
 
 public final class OppoBridgeModule extends XposedModule {
+  static boolean isCarLinkHost(String pkg){return "com.heytap.opluscarlink".equals(pkg)||"com.oplus.carlink".equals(pkg)||"com.oppo.carlink".equals(pkg);}
   private static final String TAG="PsOppoBridge";
   private volatile String processName="unknown";
 
@@ -30,10 +31,10 @@ public final class OppoBridgeModule extends XposedModule {
       boolean directControl=BridgeSettings.directControlForCurrentHost();
 
       HostProbe.install(this,pkg,param.getClassLoader());
-      if(directControl&&"com.heytap.opluscarlink".equals(pkg))
+      if(directControl&&isCarLinkHost(pkg))
         io.github.polestarcn.oppobridge.uploaded.OppoCarLinkBridgeModule.install(this,pkg,param.getClassLoader());
 
-      boolean vehicleHost="com.heytap.opluscarlink".equals(pkg)
+      boolean vehicleHost=isCarLinkHost(pkg)
           ||"com.coloros.assistantscreen".equals(pkg)||"com.oplus.assistantscreen".equals(pkg)
           ||"com.oplus.sceneservice".equals(pkg)||"com.coloros.sceneservice".equals(pkg)
           ||"com.oplus.smartengine".equals(pkg)||"com.oplus.cardservice".equals(pkg)
@@ -79,7 +80,7 @@ public final class OppoBridgeModule extends XposedModule {
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("scene_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 
-      if("com.heytap.opluscarlink".equals(pkg)) {
+      if(isCarLinkHost(pkg)) {
         CarLinkHostReporter.report(this,process,"hooks-entered",true,"",param.getClassLoader());
         try{CarLinkLocalPanelHook.install(this);}catch(Throwable x){warn("carlink_local_panel unavailable="+x.getClass().getSimpleName());}
         try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}

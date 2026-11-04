@@ -99,7 +99,7 @@ public final class BridgeSettings {
         || "com.heytap.health.wallet".equals(packageName)
         || "com.oplus.cardigitalkey".equals(packageName))
       return settings.getBoolean(WATCH, true);
-    if ("com.heytap.opluscarlink".equals(packageName))
+    if (OppoBridgeModule.isCarLinkHost(packageName))
       return settings.getBoolean(CARLINK_PROBE, true);
     return true;
   }

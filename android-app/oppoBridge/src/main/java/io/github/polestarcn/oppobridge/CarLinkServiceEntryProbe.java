@@ -5,7 +5,7 @@ import java.lang.reflect.*;
 import java.util.*;
 /** Observe the actual host service entry, independent of obfuscated OEM class names. */
 final class CarLinkServiceEntryProbe {
-  private static final String HOST="com.heytap.opluscarlink";
+  private static boolean host(String pkg){return "com.heytap.opluscarlink".equals(pkg)||"com.oplus.carlink".equals(pkg)||"com.oppo.carlink".equals(pkg);}
   private static final Set<String> seen=Collections.synchronizedSet(new HashSet<>());
   static void install(OppoBridgeModule module,ClassLoader loader,String process)throws Exception{
     Class<?> thread=loader.loadClass("android.app.ActivityThread");Method target=null;
@@ -31,7 +31,7 @@ final class CarLinkServiceEntryProbe {
   static boolean accepts(Intent request){
     if(request==null)return false;
     return request.getComponent()!=null
-        ?HOST.equals(request.getComponent().getPackageName()):HOST.equals(request.getPackage());
+        ?host(request.getComponent().getPackageName()):host(request.getPackage());
   }
   static String serviceName(Intent request,Object thread,Object data){
     if(!accepts(request))return "unrelated";

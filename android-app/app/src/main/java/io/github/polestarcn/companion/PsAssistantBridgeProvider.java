@@ -38,6 +38,8 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "com.heytap.speechassist",
       "com.oplus.ocar",
       "com.heytap.opluscarlink",
+      "com.oplus.carlink",
+      "com.oppo.carlink",
       "com.finshell.wallet",
       "com.heytap.health.wallet",
       "com.oplus.cardigitalkey"
@@ -115,7 +117,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     if("oppo-car-key-status".equals(method))return OppoCarKeyCapability.status(context);
     if("carlink-host-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
-      boolean carlink=false;if(callers!=null)for(String pkg:callers)if("com.heytap.opluscarlink".equals(pkg))carlink=true;
+      boolean carlink=false;if(callers!=null)for(String pkg:callers)if(isCarLinkCaller(pkg))carlink=true;
       if(!carlink)throw new SecurityException("Only OPPO CarLink can report host installation");
       return OppoCarLinkHostDiagnostics.record(context,extras);
     }
@@ -325,6 +327,8 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     if(OppoDeviceIntegration.enabled(context))return UploadedCarLinkEndpoint.call(context,method,arg,extras);
     throw new IllegalArgumentException("Unknown bridge method: " + method);
   }
+  private static boolean isCarLinkCaller(String pkg){return "com.heytap.opluscarlink".equals(pkg)||"com.oplus.carlink".equals(pkg)||"com.oppo.carlink".equals(pkg);}
+
   static boolean commandStateReady(VehicleSnapshot state,long now) {
     return state!=null&&!state.isDemo&&state.timestampMillis>0&&state.timestampMillis<=now+30_000L&&now-state.timestampMillis<=5*60_000L;
   }

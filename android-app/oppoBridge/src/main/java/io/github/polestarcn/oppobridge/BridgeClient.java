@@ -28,7 +28,7 @@ final class BridgeClient {
   static Bundle command(Context context, String action) {
     Bundle features=capabilities(context);
     if(features.getInt("authorizationPolicyVersion",0)!=1)return failure("main-app-update-required");
-    if(features.getInt("bridgeProtocolVersion",0)>=1&&(BridgeIdentity.isBridgePackage(context.getPackageName())||"com.heytap.opluscarlink".equals(context.getPackageName()))&&CarLinkProtocolClient.supports(action))return CarLinkProtocolClient.command(context,action);
+    if(features.getInt("bridgeProtocolVersion",0)>=1&&(BridgeIdentity.isBridgePackage(context.getPackageName())||OppoBridgeModule.isCarLinkHost(context.getPackageName()))&&CarLinkProtocolClient.supports(action))return CarLinkProtocolClient.command(context,action);
     Bundle in=new Bundle();in.putString("action",action);
     if(!BridgeIdentity.isBridgePackage(context.getPackageName())) {
       Bundle ticket=call(context,"command-intent",in);

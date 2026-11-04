@@ -44,4 +44,14 @@
 
 ## 构建交付
 
-构建、测试、APK大小、签名及GitHub提交在完成后追加。
+2026-11-04：Actions [41783426060](https://github.com/fifadxy/Polestar-CN-API/actions/runs/41783426060) 成功；编译源码 `c0f5bb009aee5ee49c88855cda1defbdf693ea3d`。
+
+- 主程序及独立模块编译、Lint通过，529项回归，0失败/错误/跳过。
+- 24个上传业务方法逐段一致；Service/广播Action集合验证通过；原文SHA-256：`b367300418c2cadd06495e494ffb9c04a3668706001204619db6ab501bbd193c`。
+- FULL APK：`PsAssistant-v0.9.7-beta38-FULL.apk`，9,566,196字节（9.57MB，小于10MB）。
+- APK SHA-256：`da8a7fe29ca72e68e44213acd49c40fd48ee5790f347539ead3c575b3b7d208d`。
+- APK v2签名与内容摘要验证通过，沿用固定测试升级证书 `d4cd1b06701f9a8829c5ecc5bbee1398a0f8a655703b6cc356398efa30218a7e`。
+- 独立登录配置验证通过；上传的8个主程序类、模块类和API102适配层均已核对存在于最终DEX；Xposed入口元数据保留。
+- 为可调试测试构建；没有连接手机，未执行真机安装、OEM全部Hook触发或实车命令验证。`exec_success`兼容回执不被写成真机验证成功。
+
+完整证据见 `knowledge/evidence/beta38-uploaded-logic-verification.json`。

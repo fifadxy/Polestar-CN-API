@@ -14,7 +14,7 @@ public final class OppoSystemAccessActivity extends Activity {
   private TextView status;private Switch master;
   private final OppoResearchExportJob.Listener exportListener=s->{if(!isFinishing()&&!isDestroyed())show(s.message);};
   @Override public void onCreate(Bundle b){super.onCreate(b);setTitle("系统车辆接入 · 2.0");
-    LinearLayout page=new LinearLayout(this);page.setOrientation(1);int p=(int)(18*getResources().getDisplayMetrics().density);page.setPadding(p,p,p,p);
+    LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);int p=(int)(18*getResources().getDisplayMetrics().density);page.setPadding(p,p,p,p);
     TextView title=new TextView(this);title.setText("OPPO 系统车辆接入");title.setTextSize(24);page.addView(title);
     TextView intro=new TextView(this);intro.setText("本版使用真实登录会话和车辆接口。先登录、选车并刷新一次，再测试负一屏或 CarLink 本机面板。检查和读卡不会发送车辆命令。");page.addView(intro);
     master=new Switch(this);master.setText("启用系统车辆接入");master.setChecked(OppoDeviceIntegration.enabled(this));page.addView(master);

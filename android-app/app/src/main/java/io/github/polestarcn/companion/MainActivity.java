@@ -30,6 +30,7 @@ public final class MainActivity extends FragmentActivity {
   private Typeface regular, bold;
   private SettingsSearch settingsSearch;private boolean indexSettings;private String settingsGroup="";
   private AlertDialog parkingDialog,carDialog;
+  private PopupWindow settingsFloat;
   private String parkingVin;
   private LocationSnapshot parkingPoint;
   private SwitchCompat mapLocationSwitch;
@@ -428,6 +429,7 @@ public final class MainActivity extends FragmentActivity {
   private void captureScrolls(){View root=findViewById(android.R.id.content);if(root==null)return;View v=root.findViewWithTag("status_scroll");if(v instanceof ScrollView)statusScrollY=((ScrollView)v).getScrollY();v=root.findViewWithTag("settings_scroll");if(v instanceof ScrollView)settingsScrollY=((ScrollView)v).getScrollY();v=root.findViewWithTag("data_scroll");if(v instanceof ScrollView)dataScrollY=((ScrollView)v).getScrollY();}
 
   private void render() {
+    dismissSettingsFloat();
     captureScrolls();
     if (isFinishing() || isDestroyed()) return;
     if (phone != null) {
@@ -2068,6 +2070,56 @@ public final class MainActivity extends FragmentActivity {
     dialog[0].show();
   }
 
+  private void showSettingsFloat(){
+    if(page!=2||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))return;
+    dismissSettingsFloat();
+    settingsFloat=new PopupWindow(new SettingsPreviewView(this),dp(224),-2,false);
+    settingsFloat.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+    settingsFloat.setElevation(dp(12));settingsFloat.setOutsideTouchable(false);settingsFloat.setTouchable(false);
+    View root=findViewById(android.R.id.content);
+    if(root!=null)settingsFloat.showAtLocation(root,Gravity.TOP|Gravity.RIGHT,dp(12),dp(82));
+  }
+  private void dismissSettingsFloat(){if(settingsFloat!=null){settingsFloat.dismiss();settingsFloat=null;}}
+  private void widgetStyleColor(String kind){
+    String key="text".equals(kind)?"widget_ink":"border".equals(kind)?"widget_border":"widget_button_color";
+    String custom="text".equals(kind)?"widget_ink_custom":"border".equals(kind)?"widget_border_custom":"widget_button_custom";
+    String title="text".equals(kind)?tr("Widget 文字颜色","Widget text color"):"border".equals(kind)?tr("Widget 边框颜色","Widget border color"):tr("Widget 按钮颜色","Widget button color");
+    String[] values=WidgetAppearance.PALETTE,labels=new String[values.length];
+    for(int i=0;i<values.length;i++)labels[i]=WidgetAppearance.label(this,values[i]);
+    new HapticDialogBuilder(this).setTitle(title).setItems(labels,(dialog,i)->{
+      dialog.dismiss();
+      if(!"custom".equals(values[i])){AppPreferences.set(this,key,values[i]);WidgetRenderer.refreshAll(this);showSettingsFloat();return;}
+      EditText input=new EditText(this);input.setSingleLine(true);input.setText(AppPreferences.get(this,custom,"#FF6B00"));
+      new HapticDialogBuilder(this).setTitle(title).setView(input)
+        .setPositiveButton(tr("应用","Apply"),(dd,w)->{
+          String value=input.getText().toString().trim().toUpperCase(java.util.Locale.ROOT);
+          if(!WidgetAppearance.validHex(value)){toast(tr("请输入 #RRGGBB","Enter #RRGGBB"));return;}
+          AppPreferences.set(this,custom,value);AppPreferences.set(this,key,"custom");
+          WidgetRenderer.refreshAll(this);showSettingsFloat();
+        }).setNegativeButton(tr("取消","Cancel"),null).show();
+    }).show();
+  }
+  private void widgetAppearanceDialog(){
+    LinearLayout panel=detailPanel();
+    setting(panel,tr("文字颜色","Text color"),()->widgetStyleColor("text"));
+    setting(panel,tr("边框颜色","Border color"),()->widgetStyleColor("border"));
+    setting(panel,tr("按钮颜色","Button color"),()->widgetStyleColor("button"));
+    setting(panel,tr("文字粗细","Text weight"),()->choice(tr("Widget 文字粗细","Widget text weight"),"widget_text_weight",
+      new String[]{"regular","medium","bold"},new String[]{tr("常规","Regular"),tr("中等","Medium"),tr("粗体","Bold")},"regular",()->{WidgetRenderer.refreshAll(this);showSettingsFloat();}));
+    setting(panel,tr("边框线宽 0–6 dp","Border stroke 0–6 dp"),()->widgetStroke("widget_border_width",2));
+    setting(panel,tr("按钮描边 0–6 dp","Button stroke 0–6 dp"),()->widgetStroke("widget_button_width",1));
+    widgetSlider(panel,tr("文字透明度","Text opacity"),"widget_text_opacity",100);
+    widgetSlider(panel,tr("边框透明度","Border opacity"),"widget_border_opacity",100);
+    widgetSlider(panel,tr("按钮透明度","Button opacity"),"widget_button_opacity",100);
+    new HapticDialogBuilder(this).setTitle(tr("Widget 外观","Widget appearance"))
+      .setView(panel).setNegativeButton(tr("完成","Done"),null).show();
+  }
+  private void widgetStroke(String key,int fallback){
+    String[] labels=new String[7],values=new String[7];
+    for(int i=0;i<7;i++){labels[i]=i==0?tr("隐藏","Hidden"):i+" dp";values[i]=""+i;}
+    choice(tr("描边粗细","Stroke width"),key,values,labels,""+fallback,
+      ()->{WidgetRenderer.refreshAll(this);showSettingsFloat();});
+  }
   private void widgetColorDialog(){
     String[] keys=WidgetColors.KEYS, names=new String[keys.length];
     for(int i=0;i<keys.length;i++)names[i]=WidgetColors.label(this,keys[i]);
@@ -2122,7 +2174,8 @@ public final class MainActivity extends FragmentActivity {
   }
   boolean showingSettings(){return page==2;}
   private void settings(){
-    LinearLayout root=scrollBody();((ScrollView)root.getParent()).setTag("settings_scroll");root.addView(text(tr("设置","Settings"),24,ink,false));root.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立版本","Standalone version"),12,muted,false));gap(root,8);root.addView(new SettingsPreviewView(this));gap(root,8);final ScrollView settingsScroll=(ScrollView)root.getParent();settingsSearch=new SettingsSearch(this,root);LinearLayout groups=column();root.addView(groups);root=groups;indexSettings=true;
+    dismissSettingsFloat();
+    LinearLayout root=scrollBody();((ScrollView)root.getParent()).setTag("settings_scroll");root.addView(text(tr("设置","Settings"),24,ink,false));root.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立版本","Standalone version"),12,muted,false));gap(root,8);final ScrollView settingsScroll=(ScrollView)root.getParent();settingsSearch=new SettingsSearch(this,root);LinearLayout groups=column();root.addView(groups);root=groups;indexSettings=true;
     disclosure(root,"settings_appearance",tr("外观与交互","Appearance and interaction"),true,p->{
       setting(p,tr("界面皮肤 · ","UI skin · ")+currentSkinLabel(),this::skinDialog);
       setting(p,tr("日夜模式 · 跟随系统 / 浅色 / 深色","Day/night · system / light / dark"),this::themeChoice);setting(p,tr("地图背景 · 试验性 / 模糊与外扩","Map backdrop · experimental / blur and spread"),this::mapBackdropDialog);
@@ -2178,8 +2231,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("Widget 语言 · 中文 / English","Widget language · 中文 / English"),this::widgetLanguageDialog);
       setting(p,tr("Widget 车辆图片 / 透明程序图标","Widget vehicle / transparent icon"),this::widgetVisualDialog);
       setting(p,tr("背景样式 · 不透明 / 透明","Background · opaque / transparent"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 背景","Widget background")).setItems(new String[]{tr("不透明","Opaque"),tr("透明","Transparent")},(d,w)->{AppPreferences.set(this,"widget_style",w==0?"opaque":"transparent");WidgetRenderer.refreshAll(this);}).show());
-      setting(p,tr("Widget 文字颜色 · 预设 / 自定义","Widget text color · presets / custom"),this::widgetColorDialog);
-      setting(p,tr("Widget 边框颜色 · 白色 / 橙色 / 黑色","Widget borders · white / orange / black"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 边框颜色","Widget border color")).setItems(new String[]{tr("白色（默认）","White (default)"),tr("VI 橙色","VI orange"),tr("黑色","Black")},(d,w)->{AppPreferences.set(this,"widget_border",new String[]{"white","orange","black"}[w]);WidgetRenderer.refreshAll(this);}).show());
+      setting(p,tr("Widget 文字/边框/按钮 · 分别设置颜色透明度粗细","Widget text/border/buttons · independent style"),this::widgetAppearanceDialog);
       widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);note(p,tr("磨砂玻璃说明","Frosted glass"),tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."));
     });
     disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("车控验证方式 · 生物识别 / 确认 / 直接发送","Control authorization · biometrics / confirm / direct"),this::authorizationSettings);setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});
@@ -2576,10 +2628,11 @@ public final class MainActivity extends FragmentActivity {
         caption.setText(getString(R.string.ui_text_parts_4, String.valueOf(label), String.valueOf(" · "), String.valueOf(value), String.valueOf("%")));
         if (user) {
           AppPreferences.set(MainActivity.this, key, Integer.toString(value));
+          showSettingsFloat();
         }
       }
       @Override public void onStartTrackingTouch(SeekBar seek) {}
-      @Override public void onStopTrackingTouch(SeekBar seek) { Haptics.tap(MainActivity.this); WidgetRenderer.refreshAll(MainActivity.this); }
+      @Override public void onStopTrackingTouch(SeekBar seek) { Haptics.tap(MainActivity.this); WidgetRenderer.refreshAll(MainActivity.this); dismissSettingsFloat(); }
     });
     parent.addView(bar);
   }

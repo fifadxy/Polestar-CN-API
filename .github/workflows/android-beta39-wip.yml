@@ -2,10 +2,10 @@ name: Android Beta39 WIP
 on:
   push:
     branches:
-      - feature/oppo-beta39-wip-20261104
+      - feature/oppo-beta39-widget-ui-20261104
     paths:
       - 'android-app/**'
-      - '.github/workflows/android-beta38-protocol.yml'
+      - '.github/workflows/android-beta39-protocol.yml'
   workflow_dispatch:
 jobs:
   build:
@@ -32,24 +32,24 @@ jobs:
           fi
       - name: Verify uploaded business logic
         run: python3 scripts/verify_uploaded_carlink.py
-      - name: Compile lint and assemble beta38
+      - name: Compile lint and assemble beta39
         working-directory: android-app
         run: gradle --no-daemon --stacktrace :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug
-      - name: Unit tests beta38
+      - name: Unit tests beta39
         working-directory: android-app
         run: |
           gradle --no-daemon --stacktrace :app:testDebugUnitTest
-          mkdir -p ../verification/beta38
-          cp -a app/build/test-results/testDebugUnitTest ../verification/beta38/device-test-results
+          mkdir -p ../verification/beta39
+          cp -a app/build/test-results/testDebugUnitTest ../verification/beta39/device-test-results
       - name: Package outputs
         run: |
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta38-protocol-VALIDATION-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta39-widget-ui-VALIDATION-debug.apk
           cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v2.1.0-debug.apk
-          test -s PsAssistant-v0.9.7-beta38-protocol-VALIDATION-debug.apk
+          test -s PsAssistant-v0.9.7-beta39-widget-ui-VALIDATION-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.9.7-beta38-protocol-VALIDATION-debug
-          path: PsAssistant-v0.9.7-beta38-protocol-VALIDATION-debug.apk
+          name: PsAssistant-v0.9.7-beta39-widget-ui-VALIDATION-debug
+          path: PsAssistant-v0.9.7-beta39-widget-ui-VALIDATION-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: PsAssistant-OPPO-Bridge-v2.1.0-debug
@@ -57,9 +57,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-beta38-protocol-checks
+          name: PsAssistant-beta39-widget-ui-checks
           path: |
-            verification/beta38/
+            verification/beta39/
             android-app/app/build/test-results/testDebugUnitTest/
             android-app/app/build/reports/lint-results-debug.html
             android-app/app/build/reports/previews/beta37/

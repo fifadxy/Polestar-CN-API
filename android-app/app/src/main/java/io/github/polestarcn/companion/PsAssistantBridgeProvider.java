@@ -43,6 +43,9 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "com.oplus.cardigitalkey"
       ,"com.oplus.smartengine"
       ,"com.oplus.cardservice"
+      ,"com.oplus.assistantscreen"
+      ,"com.oplus.sceneservice"
+      ,"com.coloros.sceneservice"
       ,"com.nearme.instant.platform"
   ));
 

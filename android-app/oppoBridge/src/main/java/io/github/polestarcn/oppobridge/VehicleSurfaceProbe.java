@@ -23,6 +23,13 @@ final class VehicleSurfaceProbe {
     HOSTS.add("com.finshell.wallet");
     HOSTS.add("com.heytap.health.wallet");
     HOSTS.add("com.oplus.cardigitalkey");
+    HOSTS.add("com.oplus.smartengine");
+    HOSTS.add("com.oplus.cardservice");
+    HOSTS.add("com.oplus.ocar");
+    HOSTS.add("com.coloros.assistantscreen");
+    HOSTS.add("com.oplus.assistantscreen");
+    HOSTS.add("com.oplus.sceneservice");
+    HOSTS.add("com.coloros.sceneservice");
   }
   private static final String[] CARLINK_CLASSES={
       "com.oplus.ocs.carlink.CarLink",

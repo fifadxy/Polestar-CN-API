@@ -30,8 +30,20 @@ public final class OppoBridgeModule extends XposedModule {
       boolean directControl=BridgeSettings.directControlForCurrentHost();
 
       HostProbe.install(this,pkg,param.getClassLoader());
-      if(directControl&&(pkg.contains("carlink")||pkg.contains("assistantscreen")||pkg.contains("digitalkey")))
+      if(directControl&&"com.heytap.opluscarlink".equals(pkg))
         io.github.polestarcn.oppobridge.uploaded.OppoCarLinkBridgeModule.install(this,pkg,param.getClassLoader());
+
+      boolean vehicleHost="com.heytap.opluscarlink".equals(pkg)
+          ||"com.coloros.assistantscreen".equals(pkg)||"com.oplus.assistantscreen".equals(pkg)
+          ||"com.oplus.sceneservice".equals(pkg)||"com.coloros.sceneservice".equals(pkg)
+          ||"com.oplus.smartengine".equals(pkg)||"com.oplus.cardservice".equals(pkg)
+          ||"com.oplus.ocar".equals(pkg);
+      if(vehicleHost){
+        try{PsAssistantCarAppCatalogHook.install(this,pkg,param.getClassLoader());}
+        catch(Throwable x){warn("psassistant_car_app_catalog unavailable="+x.getClass().getSimpleName());}
+        if(directControl)try{PsAssistantVehicleHostHook.install(this,pkg,param.getClassLoader());}
+        catch(Throwable x){warn("psassistant_vehicle_host unavailable="+x.getClass().getSimpleName());}
+      }
       VehicleSurfaceProbe.install(this,pkg,process,param.getClassLoader());
       ShelfCardHostProbe.install(this,pkg,process);
 
@@ -57,6 +69,13 @@ public final class OppoBridgeModule extends XposedModule {
         try{PolestarProviderCatalogShim.install(this,param.getClassLoader());}catch(Throwable x){warn("polestar_provider_catalog unavailable="+x.getClass().getSimpleName());}
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
+      }
+
+      if(("com.oplus.sceneservice".equals(pkg)||"com.coloros.sceneservice".equals(pkg))
+          &&pkg.equals(process)){
+        try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("scene_vehicle_catalog unavailable="+x.getClass().getSimpleName());}
+        try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_virtual_session unavailable="+x.getClass().getSimpleName());}
+        try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("scene_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 
       if("com.heytap.opluscarlink".equals(pkg)) {

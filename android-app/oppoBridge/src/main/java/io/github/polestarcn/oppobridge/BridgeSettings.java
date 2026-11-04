@@ -91,7 +91,9 @@ public final class BridgeSettings {
         || "com.oplus.assistantscreen".equals(packageName)
         || "com.oplus.pantanal.ums".equals(packageName)
         || "com.heytap.speechassist".equals(packageName)
-        || "com.oplus.ocar".equals(packageName))
+        || "com.oplus.ocar".equals(packageName)
+        || "com.oplus.sceneservice".equals(packageName)
+        || "com.coloros.sceneservice".equals(packageName))
       return settings.getBoolean(ASSISTANT, true);
     if ("com.finshell.wallet".equals(packageName)
         || "com.heytap.health.wallet".equals(packageName)

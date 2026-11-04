@@ -63,9 +63,8 @@ public class OppoCarLinkBridgeModule {
             XposedBridge.log(TAG + "Initializing Path A + Path B hooks in process: " + pkg);
             hookLocalIotPermissionAndSignatures(lpparam);
             hookOfficialDatabaseAndWhitelist(lpparam);
-            hookHasCarBindingCheck(lpparam);
-            hookVirtualVehicleSession(lpparam);
-            hookFourCarControlEvents(lpparam);
+            // Binding/session/command dispatch are handled by the modern package-scoped hooks.
+            // Keeping one owner avoids duplicate writes and prevents broad command interception.
         }
     }
 
@@ -129,12 +128,11 @@ public class OppoCarLinkBridgeModule {
                 protected void beforeHookedMethod(MethodHookParam param) {
                     if (param.args.length > 0 && param.args[0] instanceof String) {
                         String perm = (String) param.args[0];
-                        if (isOppoIotPermission(perm)) {
+                        if (isOppoIotPermission(perm) && isPsAssistantPermissionRequest(param.args)) {
                             if (param.method instanceof Method
                                     && ((Method) param.method).getReturnType() == int.class) {
                                 param.setResult(PackageManager.PERMISSION_GRANTED);
                             } else {
-                                // enforce* 方法返回 void，直接阻断异常抛出
                                 param.setResult(null);
                             }
                         }
@@ -164,6 +162,28 @@ public class OppoCarLinkBridgeModule {
                 }
             });
         }
+    }
+
+    private boolean isPsAssistantPermissionRequest(Object[] args) {
+        Context context = AndroidAppHelper.currentApplication();
+        if (context == null) return false;
+        if (args != null) {
+            for (int i = 1; i < args.length; i++) {
+                if (args[i] instanceof Integer && uidOwnsPsAssistant(context, (Integer) args[i])) return true;
+            }
+        }
+        try { return uidOwnsPsAssistant(context, android.os.Binder.getCallingUid()); }
+        catch (Throwable ignored) { return false; }
+    }
+
+    private boolean uidOwnsPsAssistant(Context context, int uid) {
+        if (uid < 0) return false;
+        try {
+            String[] packages = context.getPackageManager().getPackagesForUid(uid);
+            if (packages != null) for (String pkg : packages)
+                if (CarLinkDexContract.HOST_PACKAGE.equals(pkg)) return true;
+        } catch (RuntimeException ignored) {}
+        return false;
     }
 
     private boolean isOppoIotPermission(String perm) {
@@ -228,6 +248,8 @@ public class OppoCarLinkBridgeModule {
                     XposedBridge.hookMethod(m, new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
+                            Bundle session = syncSessionFromPsAssistant();
+                            if (session == null || !session.getBoolean("active", false)) return;
                             Object col = param.getResult();
                             if (col instanceof List) {
                                 @SuppressWarnings("unchecked")
@@ -283,7 +305,8 @@ public class OppoCarLinkBridgeModule {
             if (cols == null || cols.length == 0) return null;
 
             Bundle session = syncSessionFromPsAssistant();
-            String vin = session.getString(CarLinkDexContract.KEY_VIN, "LPSVSEDEENL000001");
+            if (session == null || !session.getBoolean("active", false)) return null;
+            String vin = session.getString(CarLinkDexContract.KEY_VIN, "");
 
             MatrixCursor extra = new MatrixCursor(cols);
             Object[] row = new Object[cols.length];

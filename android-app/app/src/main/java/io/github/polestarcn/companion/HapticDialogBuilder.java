@@ -19,7 +19,7 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
     return super.setView(view);
   }
   @Override public AlertDialog create() {
-    if(!previewAdded&&context instanceof MainActivity&&((MainActivity)context).showingSettings()){android.widget.LinearLayout header=new android.widget.LinearLayout(context);header.setOrientation(1);int pad=(int)(16*context.getResources().getDisplayMetrics().density);header.setPadding(pad,pad,pad,0);android.widget.TextView title=new android.widget.TextView(context);title.setText(heading);title.setTextSize(17);title.setTextColor(AppPreferences.dark(context)?android.graphics.Color.WHITE:android.graphics.Color.BLACK);header.addView(title);header.addView(new SettingsPreviewView(context));super.setCustomTitle(header);}
+    if(!previewAdded&&context instanceof MainActivity&&((MainActivity)context).showingSettings()){android.widget.LinearLayout header=new android.widget.LinearLayout(context);header.setOrientation(android.widget.LinearLayout.VERTICAL);int pad=(int)(16*context.getResources().getDisplayMetrics().density);header.setPadding(pad,pad,pad,0);android.widget.TextView title=new android.widget.TextView(context);title.setText(heading);title.setTextSize(17);title.setTextColor(AppPreferences.dark(context)?android.graphics.Color.WHITE:android.graphics.Color.BLACK);header.addView(title);header.addView(new SettingsPreviewView(context));super.setCustomTitle(header);}
     AlertDialog dialog = super.create();
     dialog.setOnShowListener(ignored -> {
       android.view.Window window=dialog.getWindow();boolean dark=AppPreferences.dark(context);

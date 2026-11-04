@@ -2450,7 +2450,7 @@ public final class MainActivity extends FragmentActivity {
 
   private void tireDialog(){openStatusSection("status_tyres");}
   private void maintenancePopup(){
-    LinearLayout panel=detailPanel();
+    LinearLayout panel=detailPanel();panel.setTag("maintenance_popup");
     serviceContents(panel);
     disclosure(panel,"maintenance_checks",tr("车辆检查项目","Vehicle checks"),true,this::healthOverview);
     new HapticDialogBuilder(this).setTitle(tr("保养","Service")).setView(panel).setNegativeButton(tr("关闭","Close"),null).show();

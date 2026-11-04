@@ -16,7 +16,7 @@ public final class BridgeDiagnosticsActivity extends Activity {
     if(!BridgeIdentity.INTEGRATED_PACKAGE.equals(getPackageName()))settings.setClassName(BridgeIdentity.INTEGRATED_PACKAGE,"io.github.polestarcn.companion.MainActivity");
     if(BridgeIdentity.INTEGRATED_PACKAGE.equals(getPackageName())){startActivity(settings);finish();return;}
     LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);
-    TextView note=new TextView(this);note.setText("OPPO Bridge 2.0\n设置已统一到 PsAssistant 的‘系统车辆接入’。只启用内置或独立模块中的一种。\n\n"+BridgeSettings.describe(this));page.addView(note);
+    TextView note=new TextView(this);note.setText("OPPO Bridge "+BridgeBuild.VERSION_NAME+"\n设置已统一到 PsAssistant 的‘系统车辆接入’。只启用内置或独立模块中的一种。\n\n"+BridgeSettings.describe(this));page.addView(note);
     Button open=new Button(this);open.setText("打开主程序接入设置");open.setOnClickListener(v->{try{startActivity(settings);}catch(RuntimeException missing){note.setText("请安装支持系统接入设置的 PsAssistant 主程序");}});page.addView(open);setContentView(page);
   }
 }

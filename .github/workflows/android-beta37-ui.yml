@@ -60,4 +60,5 @@ jobs:
             verification/beta37/
             android-app/app/build/test-results/testDebugUnitTest/
             android-app/app/build/reports/lint-results-debug.html
+            android-app/app/build/reports/previews/beta37/
           if-no-files-found: ignore

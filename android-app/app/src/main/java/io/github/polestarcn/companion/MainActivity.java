@@ -196,7 +196,7 @@ public final class MainActivity extends FragmentActivity {
     String request = i.getStringExtra("widget_action");
     i.removeExtra("widget_action");
     if ("refresh".equals(request)) { Haptics.tap(this); page = 0; render(); model.refreshUser(null); return; }
-    if("service".equals(request)){page=0;render();if(model.hasSession())maintenanceDialog();return;}
+    if("service".equals(request)){page=0;render();if(model.hasSession())maintenancePopup();return;}
     if("status".equals(request)){if(model.hasSession()){statusReturnPage=0;page=3;}else page=0;render();return;}
     if ("location".equals(request)) { page=0; render(); if(model.hasSession()&&model.selected!=null)
       locationDialog();else toast(tr("请先连接车辆","Connect vehicle first"));return; }
@@ -666,7 +666,7 @@ public final class MainActivity extends FragmentActivity {
     ImageView icon=new ImageView(this);icon.setTag("control_icon_"+control);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setPadding(dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8));icon.setBackground(bg(viSoft(),12));tile.addView(icon,new LinearLayout.LayoutParams(dp(minimal?40:38),dp(minimal?40:38)));
     TextView state=feedbackText(control,false);
     if(minimal)tile.addView(state,new LinearLayout.LayoutParams(-1,-2));
-    else {LinearLayout words=column();words.setPadding(dp(9),0,0,0);TextView title=text(label,13,ink,true);fitSingleLine(title,13);words.addView(title);state.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);words.addView(state);tile.addView(words,new LinearLayout.LayoutParams(0,-2,1));}
+    else {LinearLayout words=column();words.setPadding(dp(9),0,0,0);TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);fitSingleLine(title,13);words.addView(title);state.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);words.addView(state);tile.addView(words,new LinearLayout.LayoutParams(0,-2,1));}
     bindDashboard(()->{String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);icon.setColorFilter(active?orange:ink);tile.setEnabled(model.canControl(control));tile.setAlpha(tile.isEnabled()?1f:.5f);});
     click(tile,()->{if("signal".equals(control))signalMenu();else directControl(control);});installLockHold(tile,control);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(7);parent.addView(tile,lp);
   }
@@ -1420,7 +1420,7 @@ public final class MainActivity extends FragmentActivity {
     button.setConditionIcon(R.drawable.ic_service_reference);button.setGravity(Gravity.CENTER);
     button.setSingleLine(true);button.setEllipsize(android.text.TextUtils.TruncateAt.END);
     GradientDrawable frame=bg(surface,nioSkin()?12:8);frame.setStroke(dp(1),line);button.setBackground(frame);
-    button.setTag("exterior_button");click(button,this::maintenanceDialog);button.refreshService();return button;
+    button.setTag("exterior_button");click(button,this::maintenancePopup);button.refreshService();return button;
   }
 
   private void addNioActions(LinearLayout parent) {
@@ -1464,7 +1464,7 @@ public final class MainActivity extends FragmentActivity {
   private void addNioShortcut(LinearLayout parent,String kind,int drawable,String title,Runnable action) {
     LinearLayout card=column();card.setGravity(Gravity.CENTER);card.setBackground(bg(surface,16));
     card.setTag(kind.equals("windows")?"windows_control_button":"signal_control_button");
-    ImageView image=new ImageView(this);image.setImageResource(drawable);image.setColorFilter(ink);addNioOrb(card,image);
+    ImageView image=new ImageView(this);image.setTag("control_icon_"+kind);image.setImageResource(drawable);image.setColorFilter(ink);addNioOrb(card,image);
     TextView label=text(title,10,ink,false);label.setTag("shortcut_label");label.setGravity(Gravity.CENTER);
     TextView feedback=text("",ButtonFeedback.sp(this),muted,false);feedback.setTag("shortcut_feedback");feedback.setGravity(Gravity.CENTER);feedback.setTypeface(ButtonFeedback.typeface(this));fitSingleLine(feedback,ButtonFeedback.sp(this));label.setTypeface(buttonTypeface());fitSingleLine(label,10);
     label.setSingleLine(true);feedback.setSingleLine(true);
@@ -1488,7 +1488,7 @@ public final class MainActivity extends FragmentActivity {
     String[] kinds = {"windows", "body", "camp", "signal"};
     for (String kind : kinds) {
       Runnable action = kind.equals("windows") ? () -> directControl("windows")
-          : kind.equals("body") ? this::maintenanceDialog : kind.equals("health") ? this::maintenanceDialog
+          : kind.equals("body") ? this::maintenancePopup : kind.equals("health") ? this::maintenancePopup
           : kind.equals("camp") ? this::campDialog : this::signalMenu;
       String initialLabel = kind.equals("windows") ? tr("车窗", "Windows") : kind.equals("body") ? tr("保养", "Service")
           : kind.equals("health") ? tr("车况", "Health") : kind.equals("camp") ? tr("露营", "Camp") : tr("寻车", "Find car");
@@ -2449,7 +2449,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void tireDialog(){openStatusSection("status_tyres");}
-  private void maintenanceDialog(){
+  private void maintenancePopup(){
     LinearLayout panel=detailPanel();
     serviceContents(panel);
     disclosure(panel,"maintenance_checks",tr("车辆检查项目","Vehicle checks"),true,this::healthOverview);

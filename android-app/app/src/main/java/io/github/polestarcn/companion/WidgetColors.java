@@ -29,7 +29,7 @@ public final class WidgetColors {
     return WidgetAppearance.alpha(base,WidgetAppearance.percent(c,"widget_text_opacity",100));
   }
   public static int secondary(Context c,int primary) {
-    if(!explicit(c))return PsaDesign.muted(AppPreferences.dark(c));
+    if(!explicit(c))return WidgetAppearance.alpha(PsaDesign.muted(AppPreferences.dark(c)),WidgetAppearance.percent(c,"widget_text_opacity",100));
     return WidgetAppearance.alpha(Color.argb(218,Color.red(primary),Color.green(primary),Color.blue(primary)),WidgetAppearance.percent(c,"widget_text_opacity",100));
   }
   public static boolean validHex(String text){return text!=null&&text.toUpperCase(Locale.ROOT).matches("#[0-9A-F]{6}");}

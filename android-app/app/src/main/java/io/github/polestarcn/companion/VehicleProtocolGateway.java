@@ -29,7 +29,7 @@ final class VehicleProtocolGateway {
     if(request==null)return null;
     switch(request) {
       case "lock":case "unlock":case "climate-start":case "climate-stop":case "flash":case "honk":
-      case "trunk-open":case "trunk-close":case "air-start":case "air-stop":case "honk-flash":return request;
+      case "windows-open":case "windows-close":case "trunk-open":case "trunk-close":case "air-start":case "air-stop":case "honk-flash":return request;
       case "lock-toggle":
         String lock=norm(state==null?null:state.lock);
         if(lock.equals("LOCKED")||lock.equals("已锁")||lock.equals("已上锁"))return "unlock";

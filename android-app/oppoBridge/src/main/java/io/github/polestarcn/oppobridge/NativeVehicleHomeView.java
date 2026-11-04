@@ -59,7 +59,7 @@ final class NativeVehicleHomeView extends LinearLayout {
   }
   private void openDetails(){
     try{
-      android.content.Intent intent=new android.content.Intent(getContext(),VehicleCardDetailActivity.class)
+      android.content.Intent intent=new android.content.Intent().setClassName(BridgeIdentity.packageName(getContext()),VehicleCardDetailActivity.class.getName())
           .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
       getContext().startActivity(intent);
     }catch(RuntimeException failure){feedback.setText("无法打开完整控制面板");}

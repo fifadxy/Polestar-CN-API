@@ -64,7 +64,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       "lock-toggle", "climate-toggle", "air-toggle", "trunk-toggle",
       "lock", "unlock", "trunk-open", "trunk-close",
       "climate-start", "climate-stop", "air-start", "air-stop",
-      "honk", "flash", "honk-flash"
+      "honk", "flash", "honk-flash", "windows-open", "windows-close"
   ));
 
   private Handler main;
@@ -111,6 +111,10 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       boolean carlink=false;if(callers!=null)for(String pkg:callers)if("com.heytap.opluscarlink".equals(pkg))carlink=true;
       if(!carlink)throw new SecurityException("Only OPPO CarLink can report host installation");
       return OppoCarLinkHostDiagnostics.record(context,extras);
+    }
+    if("carlink-local-panel-report".equals(method)){
+      if(!callerIs(context,"com.heytap.opluscarlink"))throw new SecurityException("CarLink host required");
+      return OppoSystemAccess.recordPanel(context,extras);
     }
     if("carlink-host-status".equals(method))return OppoCarLinkHostDiagnostics.status(context);
     if("vehicle-surface-report".equals(method)) {

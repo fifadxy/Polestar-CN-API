@@ -278,7 +278,7 @@ public final class VehicleCoordinator {
     final ChinaPolestarApi.VehicleInfo vehicle=selected;
     final Float target="climate-start".equals(action)&&ClimateTarget.enabled(context)?ClimateTarget.request(context):null;
     final PendingCommand ticket=new PendingCommand(action,vehicle,System.currentTimeMillis(),target);ticket.completion=completion;ticket.allowLockRetry=allowLockRetry;
-    pendingCommands.put(ticket.group,ticket);syncCommandStatus();
+    pendingCommands.put(ticket.group,ticket);syncCommandStatus();OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,"SENDING");
     message=tr("发送中","Sending");
     if(pendingCommands.size()==1){main.removeCallbacks(progressTick);main.post(progressTick);}
     changed();
@@ -301,7 +301,7 @@ public final class VehicleCoordinator {
           default:throw new IllegalArgumentException("Unsupported action");
         }
         main.post(()->{if(pendingCommands.get(ticket.group)!=ticket)return;
-          ticket.accepted=true;ticket.state=OperationState.SERVER_ACCEPTED;
+          ticket.accepted=true;ticket.state=OperationState.SERVER_ACCEPTED;OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,"SERVER_ACCEPTED");
           message=tr("执行中","In progress");
           syncCommandStatus();changed();confirmCommand(ticket);
         });
@@ -354,7 +354,7 @@ public final class VehicleCoordinator {
     ticket.readback.start(ticket.action);
   }
 
-  private static void complete(PendingCommand ticket,OperationState result){java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}}
+  private void complete(PendingCommand ticket,OperationState result){OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,result.name());java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}}
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
     if(updated==null||selected==null||!vehicle.vin.equals(selected.vin))return;
     // A delayed callback cannot overwrite a newer refresh / another family's readback.

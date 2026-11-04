@@ -1,3 +1,5 @@
+当前真机测试分支 **PsAssistant 0.9.7-beta36-device /150 · Bridge 2.0.0 /33**。系统控车使用真实极星中国区会话，设置合并为一个总开关；负一屏、设备卡与显式 Root CarLink 本机面板均转交主程序实际命令及回读路径。官方 OCS 云端身份、主程序 IOT 权限和手表支持仍按实际观测显示，不能由本机面板推定。参见 [真机测试步骤](knowledge/OPPO_DEVICE_BETA36_20261104.md)。
+
 当前测试分支 **PsAssistant 0.9.7-beta35-mock-shelf /149，内置 OPPO Bridge 1.20.0 /32**：[Mock 与负一屏实测方法](knowledge/OPPO_MOCK_SHELF_BETA35_20261103.md)。本版让 Mock SDK、设备卡、虚拟会话和控车网关共用模拟车辆，修复已确认的 MyDevices 点击入口签名与 17.4.15 CAR 脚本调用缺失。编译和本机协议测试不代表 OPPO 官方绑定或真实车辆已响应；宿主点击需要手机验收。[已验证安装包与步骤](docs/PSASSISTANT_BETA35_MOCK_VERIFICATION_20261104.md)：9.53 MB，495 项 Mock 回归与 6 项非 Mock 授权回归通过。以下为历史记录。
 
 当前主程序 **PsAssistant 0.9.7-beta29 /143，内置 OPPO Bridge 1.15.0 /27**：[主程序集成说明](knowledge/OPPO_BRIDGE_BETA29_INTEGRATION_20261103.md)。主程序设置现已合并统一总开关、全路径检测、隔离模拟、一键修复和统一导出；设备空间及负一屏适配仍需目标手机验证。

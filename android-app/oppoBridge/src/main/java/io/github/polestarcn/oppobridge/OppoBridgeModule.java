@@ -59,6 +59,7 @@ public final class OppoBridgeModule extends XposedModule {
 
       if("com.heytap.opluscarlink".equals(pkg)) {
         CarLinkHostReporter.report(this,process,"hooks-entered",true,"",param.getClassLoader());
+        try{CarLinkLocalPanelHook.install(this);}catch(Throwable x){warn("carlink_local_panel unavailable="+x.getClass().getSimpleName());}
         try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
         try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_virtual_session unavailable="+x.getClass().getSimpleName());}

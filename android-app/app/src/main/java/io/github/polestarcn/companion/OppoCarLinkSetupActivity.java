@@ -45,8 +45,6 @@ public final class OppoCarLinkSetupActivity extends Activity {
     Switch activation=new Switch(this);activation.setText("允许CarLink按需更新车况（默认关闭）");activation.setChecked(AppPreferences.visible(this,"carlink_activation_reads",false));
     activation.setOnCheckedChangeListener((view,checked)->{AppPreferences.set(this,"carlink_activation_reads",checked?"on":"off");refresh();});page.addView(activation);
     TextView power=new TextView(this);power.setText("仅收到当前车辆的系统连接请求时更新一次，5分钟最多一次；长停省电开启时不新增读取。普通读卡不唤醒车辆，无定时轮询。");page.addView(power);
-    button(page,"Root测试官方绑车入口",()->{status.setText("正在请求root打开本机CarLink绑定Activity…");work.execute(()->{String r;try{r=OppoCarLinkRoot.open(this);}catch(Exception e){r="Root入口测试未完成："+e.getClass().getSimpleName();}final String result=r;runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())status.setText(result);});});});
-    button(page,"一键Root采集并导出（≤2MB）",()->{if(OppoResearchExportJob.start(this,true))startActivity(new Intent(this,OppoWidgetSetupActivity.class).putExtra("autoShare",true));});
     button(page,"刷新接入状态",this::refresh);status=new TextView(this);status.setTextIsSelectable(true);page.addView(status);ScrollView scroll=new ScrollView(this);scroll.addView(page);setContentView(scroll);refresh();
   }
   private EditText field(LinearLayout page,String hint,String value){EditText e=new EditText(this);e.setHint(hint);e.setText(value);e.setSingleLine(true);page.addView(e);return e;}

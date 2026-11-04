@@ -10,7 +10,7 @@ import static org.robolectric.Shadows.shadowOf;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=28)
 public class OppoWidgetSetupTest {
  @Test public void observedPickerIntentHasExactComponentAndStateWithoutInventedAction(){Intent i=OppoWidgetSetupActivity.standardPickerIntent();assertEquals("com.android.launcher",i.getComponent().getPackageName());assertEquals("com.android.launcher.Launcher",i.getComponent().getClassName());assertEquals("ToggleBar_widget",i.getStringExtra("state"));assertNull(i.getAction());assertNull(i.getCategories());}
- @Test public void setupCanOpenAndLaunchPickerWithoutVehicleSession(){OppoWidgetSetupActivity a=Robolectric.buildActivity(OppoWidgetSetupActivity.class).setup().get();a.findViewById(android.R.id.button1).performClick();assertEquals(OppoWidgetSetupActivity.standardPickerIntent().getComponent(),shadowOf(a).getNextStartedActivity().getComponent());}
+ @Test public void setupCanOpenAndLaunchPickerWithoutVehicleSession(){OppoWidgetSetupActivity a=Robolectric.buildActivity(OppoWidgetSetupActivity.class,new Intent().putExtra("advanced",true)).setup().get();a.findViewById(android.R.id.button1).performClick();assertEquals(OppoWidgetSetupActivity.standardPickerIntent().getComponent(),shadowOf(a).getNextStartedActivity().getComponent());}
  @org.junit.Test public void hostExportUsesUserSelectedDocument() {
    android.content.Intent intent=OppoWidgetSetupActivity.hostExportIntent();
    org.junit.Assert.assertEquals(android.content.Intent.ACTION_CREATE_DOCUMENT,intent.getAction());

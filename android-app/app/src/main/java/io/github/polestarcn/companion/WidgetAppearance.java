@@ -86,6 +86,12 @@ public final class WidgetAppearance {
     }
     return bitmap;
   }
+  public static boolean customizedButton(Context c){
+    return !"vi_orange".equals(AppPreferences.get(c,"widget_button_color","vi_orange"))
+      ||percent(c,"widget_button_opacity",100)!=100||width(c,"widget_button_width",1)!=1
+      ||!"white".equals(AppPreferences.get(c,"widget_border","white"))
+      ||percent(c,"widget_border_opacity",100)!=100||width(c,"widget_border_width",2)!=2;
+  }
   public static String label(Context c,String key){
     switch(key){
       case "white":case "light":return AppPreferences.tr(c,"白色","White");

@@ -12,10 +12,10 @@ import org.robolectric.annotation.Config;
 @Config(sdk=35)
 public class CarLinkBoundAndSupportTest {
   @Test public void carLinkPackageVariantsAreRecognized(){
-    assertTrue(OppoBridgeModule.isCarLinkHost("com.heytap.opluscarlink"));
-    assertTrue(OppoBridgeModule.isCarLinkHost("com.oplus.carlink"));
-    assertTrue(OppoBridgeModule.isCarLinkHost("com.oppo.carlink"));
-    assertFalse(OppoBridgeModule.isCarLinkHost("com.example.other"));
+    assertTrue(BridgeIdentity.isCarLinkHost("com.heytap.opluscarlink"));
+    assertTrue(BridgeIdentity.isCarLinkHost("com.oplus.carlink"));
+    assertTrue(BridgeIdentity.isCarLinkHost("com.oppo.carlink"));
+    assertFalse(BridgeIdentity.isCarLinkHost("com.example.other"));
   }
 
   @Test public void bindingKeysProjectAsBoundOrConnected(){

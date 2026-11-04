@@ -105,7 +105,7 @@ public final class OppoWidgetSetupActivity extends Activity {
     return new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
         .setType("application/zip").putExtra(Intent.EXTRA_TITLE,"PsAssistant-OPPO-light.zip");
   }
-  @Override protected void onStart() {super.onStart();OppoResearchExportJob.observe(exportListener);}
+  @Override protected void onStart() {super.onStart();if(report!=null)OppoResearchExportJob.observe(exportListener);}
   @Override protected void onStop() {OppoResearchExportJob.remove(exportListener);super.onStop();}
   @Override protected void onSaveInstanceState(Bundle out) {out.putBoolean("autoShare",autoShare);super.onSaveInstanceState(out);}
   private void showExportState(OppoResearchExportJob.State state) {

@@ -33,6 +33,11 @@ public class Beta36SystemAccessTest {
   OppoWidgetSetupActivity legacy=Robolectric.buildActivity(OppoWidgetSetupActivity.class).setup().get();
   Intent next=org.robolectric.Shadows.shadowOf(legacy).getNextStartedActivity();assertEquals(OppoSystemAccessActivity.class.getName(),next.getComponent().getClassName());
  }
+ @Test public void unifiedSettingsOpensWithoutLoginAndHasOneMasterSwitch(){
+  OppoSystemAccessActivity page=Robolectric.buildActivity(OppoSystemAccessActivity.class).setup().get();
+  assertEquals(1,countSwitches(page.getWindow().getDecorView()));
+ }
+ private static int countSwitches(android.view.View view){int n=view instanceof android.widget.Switch?1:0;if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)n+=countSwitches(group.getChildAt(i));}return n;}
  @Test public void noCloudPermissionOrVehicleSuccessIsInferredFromPanelMount(){
   Context c=RuntimeEnvironment.getApplication();Bundle input=new Bundle();input.putBoolean("ready",true);input.putString("moduleVersion","2.0.0");
   Bundle b=OppoSystemAccess.recordPanel(c,input);assertTrue(b.getBoolean("panelReady"));assertTrue(b.getString("commandState","").isEmpty());

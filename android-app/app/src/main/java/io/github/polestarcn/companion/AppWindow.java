@@ -1,0 +1,8 @@
+package io.github.polestarcn.companion;
+import android.app.Activity;import android.graphics.Color;import android.view.*;import java.util.WeakHashMap;
+/** Draw backgrounds behind status icons while keeping interactive content inside safe insets. */
+final class AppWindow {
+ private static final WeakHashMap<View,int[]> padding=new WeakHashMap<>();
+ static void apply(Activity a,View foreground){Window w=a.getWindow();boolean edge=AppPreferences.visible(a,"immersive",true),dark=AppPreferences.dark(a);int flags=dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;w.setStatusBarColor(edge?Color.TRANSPARENT:PsaDesign.canvas(dark));w.getDecorView().setSystemUiVisibility(flags|(edge?View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN:0));if(foreground==null){ViewGroup content=a.findViewById(android.R.id.content);if(content!=null&&content.getChildCount()>0)foreground=content.getChildAt(0);}if(foreground==null)return;final View target=foreground;int[] base=padding.get(target);if(base==null){base=new int[]{target.getPaddingLeft(),target.getPaddingTop(),target.getPaddingRight(),target.getPaddingBottom()};padding.put(target,base);}final int[] initial=base;target.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(initial[0]+(edge?insets.getSystemWindowInsetLeft():0),initial[1]+(edge?insets.getSystemWindowInsetTop():0),initial[2]+(edge?insets.getSystemWindowInsetRight():0),initial[3]);return insets;});if(!edge)target.setPadding(initial[0],initial[1],initial[2],initial[3]);target.requestApplyInsets();UiTypography.applyTree(target);}
+ private AppWindow(){}
+}

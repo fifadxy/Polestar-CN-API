@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">PsAssistant Preview</string>
+    <string name="widget_standard_name" translatable="false">PsAssistant Preview · 4×2</string>
+    <string name="widget_compact_name" translatable="false">PsAssistant Preview · 2×2</string>
+    <string name="widget_wide_name" translatable="false">PsAssistant Preview · 4×1</string>
+    <string name="widget_mini_name" translatable="false">PsAssistant Preview · 2×1</string>
+    <string name="widget_data_name" translatable="false">PsAssistant Preview · Data 4×4</string>
+</resources>

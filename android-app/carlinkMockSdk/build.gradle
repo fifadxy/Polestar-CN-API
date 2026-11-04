@@ -1,0 +1,11 @@
+plugins { id 'com.android.library' }
+android {
+  namespace 'com.oplus.ocs.carlink.mocktestlab'
+  compileSdk 35
+  defaultConfig { minSdk 26 }
+  buildFeatures { buildConfig = false }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+}

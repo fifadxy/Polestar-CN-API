@@ -1,0 +1,113 @@
+{
+  "analysis_date": "2026-10-26",
+  "original_filename": "app-release.apk.1.1(1).1",
+  "sha256": "8cae07a3b5c6050487443914ebb55b1d2f2f26e258f4b369837f2b88de052735",
+  "apk_size_bytes": 4856483,
+  "zip_entries": 526,
+  "manifest_meta_from_reference_analysis": {
+    "package": "app.c3garage.companion",
+    "versionName": "0.1.0",
+    "versionCode": 1,
+    "minSdk": 26,
+    "targetSdk": 34,
+    "compileSdk": 35,
+    "note": "Manifest metadata independently cross-checked against provided AXML dump; see research docs."
+  },
+  "gradle_app_metadata": [
+    "appMetadataVersion=1.1",
+    "androidGradlePluginVersion=8.5.2"
+  ],
+  "dex": {
+    "classes.dex": {
+      "dex_version": "038",
+      "bytes": 8831400,
+      "strings": 57453,
+      "methods": 65071,
+      "classes": 7899,
+      "first_party_classes": 96,
+      "first_party_core_classes": [
+        "Lapp/c3garage/companion/CampModeWorker;",
+        "Lapp/c3garage/companion/MainActivity;",
+        "Lapp/c3garage/companion/PolestarApi;",
+        "Lapp/c3garage/companion/PolestarWidgetProvider;",
+        "Lapp/c3garage/companion/WidgetConfigureActivity;",
+        "Lapp/c3garage/companion/WidgetControlActivity;",
+        "Lapp/c3garage/companion/WidgetRefreshWorker;"
+      ],
+      "observed_https_hosts": [
+        "https://cnepmob.volvocars.com.cn",
+        "https://cnepmob.volvocars.com.cn/",
+        "https://gw.app.polestar-auto.com"
+      ],
+      "observed_vehicle_services": [
+        "services.vehiclestates.battery.BatteryService",
+        "services.vehiclestates.exterior.ExteriorService",
+        "services.vehiclestates.odometer.OdometerService",
+        "services.vehiclestates.parkingclimatization.ParkingClimatizationService",
+        "services.vehiclestates.precleaning.PreCleaningService"
+      ],
+      "nonsensitive_auth_paths": [
+        "/user/api/v2/oauth/refresh-global-token"
+      ]
+    },
+    "classes2.dex": {
+      "dex_version": "038",
+      "bytes": 1269356,
+      "strings": 8548,
+      "methods": 6183,
+      "classes": 1218,
+      "first_party_classes": 0,
+      "first_party_core_classes": [],
+      "observed_https_hosts": [],
+      "observed_vehicle_services": [],
+      "nonsensitive_auth_paths": []
+    }
+  },
+  "top_8_zip_members": [
+    {
+      "path": "classes.dex",
+      "compressed_bytes": 3317934,
+      "uncompressed_bytes": 8831400
+    },
+    {
+      "path": "classes2.dex",
+      "compressed_bytes": 457309,
+      "uncompressed_bytes": 1269356
+    },
+    {
+      "path": "res/Lp.png",
+      "compressed_bytes": 454200,
+      "uncompressed_bytes": 454200
+    },
+    {
+      "path": "resources.arsc",
+      "compressed_bytes": 344572,
+      "uncompressed_bytes": 344572
+    },
+    {
+      "path": "kotlin/kotlin.kotlin_builtins",
+      "compressed_bytes": 5004,
+      "uncompressed_bytes": 17783
+    },
+    {
+      "path": "AndroidManifest.xml",
+      "compressed_bytes": 3000,
+      "uncompressed_bytes": 13296
+    },
+    {
+      "path": "res/qD.9.png",
+      "compressed_bytes": 2834,
+      "uncompressed_bytes": 2834
+    },
+    {
+      "path": "res/MF.9.png",
+      "compressed_bytes": 2816,
+      "uncompressed_bytes": 2816
+    }
+  ],
+  "limitations": [
+    "Static inventory only; does not prove authentication/vehicle control success.",
+    "No original Java source recovered; class names do not imply complete behavior.",
+    "Sensitive constant values intentionally excluded."
+  ]
+}

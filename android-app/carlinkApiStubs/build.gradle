@@ -1,0 +1,10 @@
+plugins { id 'java-library' }
+java { sourceCompatibility = JavaVersion.VERSION_1_8; targetCompatibility = JavaVersion.VERSION_1_8 }
+def sdkPath = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT')
+if (!sdkPath) {
+    def local = new Properties()
+    def settings = rootProject.file('local.properties')
+    if (settings.isFile()) settings.withInputStream { local.load(it) }
+    sdkPath = local.getProperty('sdk.dir', '')
+}
+dependencies { compileOnly files(new File(sdkPath, 'platforms/android-35/android.jar')) }

@@ -1,0 +1,7 @@
+<resources>
+<string name="ui_text_parts_2">%1$s%2$s</string>
+<string name="ui_text_parts_3">%1$s%2$s%3$s</string>
+<string name="ui_text_parts_4">%1$s%2$s%3$s%4$s</string>
+<string name="control_auth_entry">%1$s · %2$s</string>
+<string name="connection_with_separator">%1$s%2$s</string>
+</resources>

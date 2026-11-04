@@ -1,0 +1,11 @@
+{
+  "analysis_date": "2026-10-26",
+  "file": "app-release.apk.1(1).1",
+  "file_sha256": "1e817e29c97ea21b3ed1b78b81325f01c116446d126ee85a4b84a4b3fcb1a031",
+  "apk_v2_signature": "VERIFIED",
+  "apk_v2_content_digest": "VERIFIED",
+  "certificate_subject": "CN=Polestar 2 Companion",
+  "certificate_sha256": "a64bcf2456d3a2e920a7620e899e7da74df7bcc39d53f517f43461eaf1166bc7",
+  "classes_dex_upper_hex_32_unique_candidates": 1,
+  "note": "File hash differs from the historical sample, but the verified signer certificate is identical."
+}

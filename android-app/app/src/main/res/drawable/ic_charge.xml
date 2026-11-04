@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Independent Psa UI charge glyph; not an official brand asset. Tint at the point of use. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M13,3 L5,13 H11 L10,21 L19,10 H13 Z"
+        android:fillColor="#00000000" android:strokeColor="#151617"
+        android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

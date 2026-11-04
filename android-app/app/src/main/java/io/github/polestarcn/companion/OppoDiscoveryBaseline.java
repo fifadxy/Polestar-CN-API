@@ -1,0 +1,95 @@
+package io.github.polestarcn.companion;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+/** Local metadata-only baseline/diff for the OPPO discovery workflow. */
+final class OppoDiscoveryBaseline {
+  private static final String PREF="oppo-discovery-baseline";
+
+  private OppoDiscoveryBaseline() {}
+
+  static Bundle save(Context context) {
+    Bundle shelf=OppoShelfDiagnostics.status(context);
+    Bundle account=OppoAccountBindDiagnostics.status(context);
+    long now=System.currentTimeMillis();
+    context.getSharedPreferences(PREF,0).edit()
+        .putLong("savedAt",now)
+        .putString("services",shelf.getString("services",""))
+        .putString("boundCodes",account.getString("boundCodes",""))
+        .putString("providerCatalog",account.getString("providerCatalog",""))
+        .apply();
+    Bundle out=diff(context);
+    out.putBoolean("saved",true);
+    out.putLong("savedAt",now);
+    return out;
+  }
+
+  static Bundle diff(Context context) {
+    SharedPreferences p=context.getSharedPreferences(PREF,0);
+    Bundle out=new Bundle();
+    long savedAt=p.getLong("savedAt",0L);
+    out.putLong("savedAt",savedAt);
+    if(savedAt==0L) {
+      out.putBoolean("hasBaseline",false);
+      out.putString("reason","baseline-missing");
+      return out;
+    }
+    out.putBoolean("hasBaseline",true);
+
+    Bundle shelf=OppoShelfDiagnostics.status(context);
+    Bundle account=OppoAccountBindDiagnostics.status(context);
+
+    Set<String> oldServices=serviceIds(p.getString("services",""));
+    Set<String> newServices=serviceIds(shelf.getString("services",""));
+    putDelta(out,"services",oldServices,newServices);
+
+    Set<String> oldCodes=tokens(p.getString("boundCodes",""),'|',(char)0);
+    Set<String> newCodes=tokens(account.getString("boundCodes",""),'|',(char)0);
+    putDelta(out,"boundCodes",oldCodes,newCodes);
+
+    Set<String> oldCatalog=tokens(p.getString("providerCatalog",""),'|','=');
+    Set<String> newCatalog=tokens(account.getString("providerCatalog",""),'|','=');
+    putDelta(out,"providerCatalog",oldCatalog,newCatalog);
+
+    out.putLong("comparedAt",System.currentTimeMillis());
+    return out;
+  }
+
+  static Bundle clear(Context context) {
+    context.getSharedPreferences(PREF,0).edit().clear().apply();
+    Bundle out=new Bundle();
+    out.putBoolean("cleared",true);
+    return out;
+  }
+
+  private static Set<String> serviceIds(String raw) {
+    return tokens(raw,'|','@');
+  }
+
+  private static Set<String> tokens(String raw,char delimiter,char suffixDelimiter) {
+    LinkedHashSet<String> out=new LinkedHashSet<>();
+    if(raw==null||raw.isEmpty())return out;
+    for(String part:raw.split(java.util.regex.Pattern.quote(String.valueOf(delimiter)))) {
+      String value=part==null?"":part.trim();
+      if(suffixDelimiter!=0) {
+        int cut=value.indexOf(suffixDelimiter);
+        if(cut>=0)value=value.substring(0,cut).trim();
+      }
+      if(!value.isEmpty()&&out.size()<128)out.add(value);
+    }
+    return out;
+  }
+
+  private static void putDelta(Bundle out,String prefix,Set<String> before,Set<String> after) {
+    LinkedHashSet<String> added=new LinkedHashSet<>(after);added.removeAll(before);
+    LinkedHashSet<String> removed=new LinkedHashSet<>(before);removed.removeAll(after);
+    out.putString(prefix+"Added",String.join("|",added));
+    out.putString(prefix+"Removed",String.join("|",removed));
+    out.putInt(prefix+"Before",before.size());
+    out.putInt(prefix+"After",after.size());
+  }
+}

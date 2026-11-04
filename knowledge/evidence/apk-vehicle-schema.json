@@ -1,0 +1,140 @@
+{
+  "apk_file": "app-release.apk.1.1(1).1",
+  "class": "Lapp/c3garage/companion/PolestarApi$Vehicle;",
+  "field_count": 33,
+  "fields": [
+    {
+      "name": "air",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "airQualityIndex",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "airRuntimeMinutes",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "battery",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "chargerConnection",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "chargerPowerStatus",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "charging",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "chargingType",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "climate",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "climateRuntimeMinutes",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "climateTargetTemperatureC",
+      "dex_type": "Ljava/lang/Double;"
+    },
+    {
+      "name": "climateTemperatureC",
+      "dex_type": "Ljava/lang/Double;"
+    },
+    {
+      "name": "currentAmps",
+      "dex_type": "Ljava/lang/Double;"
+    },
+    {
+      "name": "doorStates",
+      "dex_type": "[I"
+    },
+    {
+      "name": "doors",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "locked",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "model",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "modelName",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "modelYear",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "odometerKm",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "pm25UgM3",
+      "dex_type": "Ljava/lang/Double;"
+    },
+    {
+      "name": "powerWatts",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "range",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "stateTimestamp",
+      "dex_type": "J"
+    },
+    {
+      "name": "tailgate",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "tailgateLock",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "timeToFullMinutes",
+      "dex_type": "Ljava/lang/Integer;"
+    },
+    {
+      "name": "tripAutomaticKm",
+      "dex_type": "Ljava/lang/Double;"
+    },
+    {
+      "name": "tripManualKm",
+      "dex_type": "Ljava/lang/Double;"
+    },
+    {
+      "name": "ventilation",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "vin",
+      "dex_type": "Ljava/lang/String;"
+    },
+    {
+      "name": "windowStates",
+      "dex_type": "[I"
+    },
+    {
+      "name": "windows",
+      "dex_type": "Ljava/lang/String;"
+    }
+  ],
+  "note": "Field names and declared types are static signatures, not live response mappings or proof of feature support."
+}

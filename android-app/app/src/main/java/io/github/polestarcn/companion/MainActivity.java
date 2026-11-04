@@ -2072,6 +2072,7 @@ public final class MainActivity extends FragmentActivity {
 
   private void showSettingsFloat(){
     if(page!=2||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))return;
+    if(settingsFloat!=null&&settingsFloat.isShowing())return;
     dismissSettingsFloat();
     settingsFloat=new PopupWindow(new SettingsPreviewView(this),dp(224),-2,false);
     settingsFloat.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));

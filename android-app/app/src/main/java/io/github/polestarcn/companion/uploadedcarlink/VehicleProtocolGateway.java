@@ -103,7 +103,7 @@ public class VehicleProtocolGateway {
     }
 
     private boolean tryInvokeVehicleCoordinator(OppoCarLinkCommandMap.MappedAction action, Bundle extras) {
-        return UploadedCarLinkRuntimeAdapter.enqueue(appContext,action.actionCode);
+        return UploadedCarLinkRuntimeAdapter.enqueue(appContext,action.actionCode,extras);
     }
 
     private boolean tryInvokeChinaPolestarApi(OppoCarLinkCommandMap.MappedAction action, Bundle extras) {

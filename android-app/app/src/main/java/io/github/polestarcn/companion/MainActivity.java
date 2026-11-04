@@ -1970,11 +1970,11 @@ public final class MainActivity extends FragmentActivity {
     String key=UiTypography.key(this);
     SettingsPreviewView sample=new SettingsPreviewView(this);panel.addView(sample);
     SeekBar app=campSlider(panel,tr("当前皮肤字体 %","Current skin type %"),60,200,UiTypography.percent(this,key),null,value->sample.previewFont(value));
-    SeekBar widget=campSlider(panel,tr("Widget字体 %","Widget type %"),60,200,UiTypography.percent(this,"widget_font_percent"),null,value->sample.previewWidget(value));
+    SeekBar widget=campSlider(panel,tr("Widget字体 %","Widget type %"),40,250,UiTypography.percent(this,"widget_font_percent"),null,value->sample.previewWidget(value));
     SeekBar icons=campSlider(panel,tr("按钮图标 %","Button icon %"),50,250,ButtonAppearance.iconPercent(this),null,value->sample.previewIcons(value));
     SeekBar labels=campSlider(panel,tr("按钮文字 %","Button label %"),50,220,ButtonAppearance.textPercent(this),null,value->sample.previewLabels(value));
     new HapticDialogBuilder(this).setTitle(tr("尺寸与实时预览","Size and live preview")).setView(panel)
-      .setPositiveButton(tr("应用","Apply"),(d,w)->{AppPreferences.set(this,key,""+(app.getProgress()+60));AppPreferences.set(this,"widget_font_percent",""+(widget.getProgress()+60));AppPreferences.set(this,"ui_icon_percent",""+(icons.getProgress()+50));AppPreferences.set(this,"ui_button_text_percent",""+(labels.getProgress()+50));WidgetRenderer.refreshAll(this);recreate();})
+      .setPositiveButton(tr("应用","Apply"),(d,w)->{AppPreferences.set(this,key,""+(app.getProgress()+60));AppPreferences.set(this,"widget_font_percent",""+(widget.getProgress()+40));AppPreferences.set(this,"ui_icon_percent",""+(icons.getProgress()+50));AppPreferences.set(this,"ui_button_text_percent",""+(labels.getProgress()+50));WidgetRenderer.refreshAll(this);recreate();})
       .setNeutralButton(tr("默认","Reset"),(d,w)->{for(String k:new String[]{key,"widget_font_percent","ui_icon_percent","ui_button_text_percent"})AppPreferences.set(this,k,"100");WidgetRenderer.refreshAll(this);recreate();})
       .setNegativeButton(tr("取消","Cancel"),null).show();
   }

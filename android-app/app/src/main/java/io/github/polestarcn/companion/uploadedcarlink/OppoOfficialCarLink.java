@@ -34,6 +34,7 @@ public class OppoOfficialCarLink extends Service {
     private final Messenger serviceMessenger = new Messenger(new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
+            if (!io.github.polestarcn.companion.OppoDeviceIntegration.enabled(getApplicationContext())) return;
             Bundle data = msg.getData() != null ? new Bundle(msg.getData()) : new Bundle();
             if (!data.containsKey(CarLinkDexContract.KEY_EVENT_ID) && msg.what > 0) {
                 data.putInt(CarLinkDexContract.KEY_EVENT_ID, msg.what);
@@ -63,6 +64,7 @@ public class OppoOfficialCarLink extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (!io.github.polestarcn.companion.OppoDeviceIntegration.enabled(getApplicationContext())) { stopSelf(startId); return START_NOT_STICKY; }
         if (intent != null) {
             handleIncomingIntent(intent);
         }
@@ -71,6 +73,7 @@ public class OppoOfficialCarLink extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        if (!io.github.polestarcn.companion.OppoDeviceIntegration.enabled(getApplicationContext())) return null;
         String action = intent != null ? intent.getAction() : "";
         Log.i(TAG, "onBind called by OPPO host, action=" + action);
 
@@ -216,6 +219,7 @@ public class OppoOfficialCarLink extends Service {
     private class UniversalCarControlBinder extends Binder {
         @Override
         protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+            if (!io.github.polestarcn.companion.OppoDeviceIntegration.enabled(getApplicationContext())) return false;
             if (code == INTERFACE_TRANSACTION) {
                 if (reply != null) {
                     reply.writeString("com.oppo.carlink.platform.ICarControlService");

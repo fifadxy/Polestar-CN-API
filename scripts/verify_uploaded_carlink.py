@@ -25,13 +25,19 @@ count=0
 for name,methods in checks.items():
  actual=(app/(name+'.java')).read_text()
  for method in methods:
-  assert body(blocks[name],method)==body(actual,method),(name,method)
+  current=body(actual,method)
+  if name=='OppoOfficialCarLink' and method in ('onBind','onTransact'):
+   gate='            if (!io.github.polestarcn.companion.OppoDeviceIntegration.enabled(getApplicationContext())) return '+('null' if method=='onBind' else 'false')+';\n'
+   if method=='onBind': gate=gate.replace('            if','        if')
+   assert current.count(gate)==1,(name,method,'integration gate')
+   current=current.replace(gate,'',1)
+  assert body(blocks[name],method)==current,(name,method)
   count+=1
 module=(root/'android-app/oppoBridge/src/main/java/io/github/polestarcn/oppobridge/uploaded/OppoCarLinkBridgeModule.java').read_text()
 for name in ['hookSystemServerPermissionGrant','hookLocalIotPermissionAndSignatures','hookOfficialDatabaseAndWhitelist','hookHasCarBindingCheck','hookVirtualVehicleSession','hookFourCarControlEvents','extractCarCommandFromArgs','routeCarEventToPsAssistant']:
  assert body(blocks['OppoCarLinkBridgeModule'],name)==body(module,name),name
  count+=1
-print('PASS:',count,'uploaded business methods unchanged; namespace, typed access and hook API transport are the explicit adapters')
+print('PASS:',count,'uploaded method bodies match after removing the explicitly approved service gates')
 
 import xml.etree.ElementTree as ET
 ns="{http://schemas.android.com/apk/res/android}"

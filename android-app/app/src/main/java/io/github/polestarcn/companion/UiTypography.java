@@ -8,7 +8,7 @@ public final class UiTypography {
   private UiTypography() {}
   public static String key(Context c){return "font_percent_"+UiSkin.get(c);}
   public static int percent(Context c,String key){
-    try{return Math.max(60,Math.min(200,Integer.parseInt(AppPreferences.get(c,key,"100"))));}
+    try{int min="widget_font_percent".equals(key)?40:60,max="widget_font_percent".equals(key)?250:200;return Math.max(min,Math.min(max,Integer.parseInt(AppPreferences.get(c,key,"100"))));}
     catch(NumberFormatException e){return 100;}
   }
   public static Context wrap(Context base){

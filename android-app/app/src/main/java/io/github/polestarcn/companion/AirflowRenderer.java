@@ -26,7 +26,7 @@ final class AirflowRenderer {
   int requested=p.airSpheres?p.particles:p.lines;if(p.airAbsorb)requested=field.count(requested,budget);int n=Math.min(120,Math.min(requested,budget));
   for(int i=0;i<n;i++){if(layer>=0&&(depth.behind(i,n,field.behind)?0:1)!=layer)continue;
    float t=(seconds*.20f*p.airSpeed*rate[i]+phase[i])%1f;position(b,right,i,t,p,field,head);
-   float edge=Math.min(1,t*8)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1),scale=p.particleSizePercent/100f;
+   float edge=EffectSettings.entryAlpha(t,p.entryFade)*(p.fade||p.airAbsorb?Math.min(1,(1-t)*7):1),scale=p.particleSizePercent/100f;
    int alpha=(int)(Math.min(255,p.strength*2.2f)*edge*fade*(layer==0?.7f:1));
    if(p.airSpheres){float radius=density*(.7f+3f*lane[i]*lane[i])*scale;
     matrix.setScale(radius*2.8f,radius*2.8f);matrix.postTranslate(head[0],head[1]);glow.setLocalMatrix(matrix);halo.setAlpha(alpha);c.drawCircle(head[0],head[1],radius*2.8f,halo);matrix.setScale(radius,radius);matrix.postTranslate(head[0],head[1]);bead.setLocalMatrix(matrix);paint.setShader(bead);paint.setAlpha(alpha);c.drawCircle(head[0],head[1],radius,paint);paint.setShader(null);

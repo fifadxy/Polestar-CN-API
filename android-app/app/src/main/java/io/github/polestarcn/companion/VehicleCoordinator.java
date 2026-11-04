@@ -154,6 +154,7 @@ public final class VehicleCoordinator {
     if(OppoDeviceIntegration.enabled(context))OppoCarLinkRuntime.get(context).changed();
     try {
       context.getContentResolver().notifyChange(PsAssistantBridgeProvider.URI, null);
+      context.getContentResolver().notifyChange(android.net.Uri.withAppendedPath(PsAssistantBridgeProvider.URI,io.github.polestarcn.bridge.CarLinkBridgeContract.BIND_PATH),null);
     } catch (RuntimeException ignored) {
       // Optional ColorOS bridge must never affect the main vehicle-control path.
     }

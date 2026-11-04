@@ -81,10 +81,12 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     Bundle out = new Bundle();
     out.putInt("protocolVersion", PROTOCOL_VERSION);
     out.putInt("authorizationPolicyVersion",1);
+    if(io.github.polestarcn.bridge.CarLinkBridgeContract.readMethod(method))return OppoCarLinkProtocol.read(context,method);
     boolean quickReporter=callerIn(context,QUICKAPP_REPORTERS);
     boolean myDevices=callerIs(context,"com.heytap.mydevices");
     if(quickReporter && !reporterMethodAllowed(method,myDevices))
       throw new SecurityException("QuickApp hosts are limited to diagnostics and cached state");
+    if(io.github.polestarcn.bridge.CarLinkBridgeContract.DISPATCH.equals(method))return OppoCarLinkProtocol.dispatch(context,extras);
     if("host-report".equals(method)) {
       String[] callers=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
       boolean host=false;if(callers!=null)for(String pkg:callers)if("com.heytap.mydevices".equals(pkg))host=true;
@@ -402,8 +404,10 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     return false;
   }
 
-  @Override public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) { return null; }
-  @Override public String getType(Uri uri) { return null; }
+  @Override public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    enforceCaller();return OppoCarLinkProtocol.query(contextOrThrow(),uri,projection);
+  }
+  @Override public String getType(Uri uri) { return OppoCarLinkProtocol.supports(uri)?"vnd.android.cursor.item/psa_carlink_bridge":null; }
   @Override public Uri insert(Uri uri, ContentValues values) { throw new UnsupportedOperationException(); }
   @Override public int delete(Uri uri, String selection, String[] selectionArgs) { throw new UnsupportedOperationException(); }
   @Override public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) { throw new UnsupportedOperationException(); }

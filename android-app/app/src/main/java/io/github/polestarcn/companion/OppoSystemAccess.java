@@ -36,10 +36,11 @@ final class OppoSystemAccess {
   static String summary(Context c){
     VehicleCoordinator m=VehicleCoordinator.get(c);Bundle session=VirtualVehicleSessionManager.status(c,m);
     Bundle route=OppoOfficialCarLink.status(c),quick=OppoQuickAppRuntimeDiagnostics.status(c),observed=observations(c);
-    return "PsAssistant "+BuildConfig.VERSION_NAME+" / "+BuildConfig.VERSION_CODE+" · Bridge 2.0.0\n"
+    return "PsAssistant "+BuildConfig.VERSION_NAME+" / "+BuildConfig.VERSION_CODE+" · Bridge 2.1.0\n"
       +"运行通道："+(BuildConfig.OPPO_SDK_MOCK?"MOCK_TESTLAB":"真实极星中国区接口")
       +"\n系统接入："+OppoDeviceIntegration.enabled(c)+" · 登录="+m.hasSession()+" · 选车="+(m.selected!=null)
       +"\n车辆会话="+session.getString("lifecycle","")+" · 可控="+session.getBoolean("commandReady",false)
+      +"\n本机双路径协议=v1 · 绑定URI/Provider/Messenger · 模块共享契约"
       +"\n设备卡="+OppoProviderDiagnostics.inspect(c).toString()
       +"\n负一屏事件时间="+quick.getLong("carEventReceivedAt",0)+" · 受理="+quick.getBoolean("lastCommandAccepted",false)
       +" · 原因="+quick.getString("lastCommandReason",quick.getString("reason",""))

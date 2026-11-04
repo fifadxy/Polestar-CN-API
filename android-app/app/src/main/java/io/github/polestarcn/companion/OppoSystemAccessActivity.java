@@ -13,13 +13,13 @@ public final class OppoSystemAccessActivity extends Activity {
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
   private TextView status;private Switch master;
   private final OppoResearchExportJob.Listener exportListener=s->{if(!isFinishing()&&!isDestroyed())show(s.message);};
-  @Override public void onCreate(Bundle b){super.onCreate(b);setTitle("系统车辆接入 · 2.0");
+  @Override public void onCreate(Bundle b){super.onCreate(b);setTitle("系统车辆接入 · 2.1");
     LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);int p=(int)(18*getResources().getDisplayMetrics().density);page.setPadding(p,p,p,p);
     TextView title=new TextView(this);title.setText("OPPO 系统车辆接入");title.setTextSize(24);page.addView(title);
     TextView intro=new TextView(this);intro.setText("本版使用真实登录会话和车辆接口。先登录、选车并刷新一次，再测试负一屏或 CarLink 本机面板。检查和读卡不会发送车辆命令。");page.addView(intro);
     master=new Switch(this);master.setText("启用系统车辆接入");master.setChecked(OppoDeviceIntegration.enabled(this));page.addView(master);
     master.setOnCheckedChangeListener((v,on)->{try{OppoSystemAccess.setEnabled(this,on);show("已保存；改变模块启用状态后请重载宿主。");}catch(RuntimeException e){show("设置失败："+e.getClass().getSimpleName());}});
-    button(page,"检查并配置接入",()->{try{OppoSystemAccess.setEnabled(this,true);master.setChecked(true);show("已配置设备卡、车辆目录和快捷控制。请核对下方实际状态。");}catch(RuntimeException e){show("配置失败："+e.getClass().getSimpleName());}});
+    button(page,"检查并配置接入",()->{try{OppoSystemAccess.setEnabled(this,true);master.setChecked(true);show("已配置设备卡、车辆目录和快捷控制。\n"+OppoCarLinkProtocol.selfCheck(this));}catch(RuntimeException e){show("配置失败："+e.getClass().getSimpleName());}});
     button(page,"手动刷新真实车况",()->{VehicleCoordinator m=VehicleCoordinator.get(this);if(!m.hasSession()||m.selected==null){show("请先在主程序登录并选择车辆");return;}if(m.busy||m.commandPending){show("车辆操作中，请稍后重试");return;}m.refresh(()->show("刷新完成，请核对更新时间。"));});
     button(page,"真车控制测试",()->startActivity(new Intent().setClassName(getPackageName(),"io.github.polestarcn.oppobridge.VehicleCardDetailActivity")));
     button(page,"CarLink 本机面板（Root）",()->{show("正在请求 Root 启动 CarLink…");worker.execute(()->{try{String result=OppoCarLinkRoot.openPanel(this);runOnUiThread(()->show(result));}catch(Exception e){runOnUiThread(()->show("Root 入口失败："+e.getClass().getSimpleName()));}});});

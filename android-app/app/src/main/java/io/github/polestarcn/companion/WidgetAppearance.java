@@ -55,11 +55,13 @@ public final class WidgetAppearance {
   }
   public static boolean validHex(String text){return text!=null&&text.toUpperCase(Locale.ROOT).matches("#[0-9A-F]{6}");}
   public static CharSequence weight(Context c,CharSequence value){
-    SpannableStringBuilder text=new SpannableStringBuilder(value==null?"":value);
-    if(text.length()==0)return text;
+    if(value==null)return "";
     String selected=AppPreferences.get(c,"widget_text_weight","regular");
+    boolean bold="bold".equals(selected)||AppPreferences.visible(c,"widget_bold",false);
+    if(value.length()==0||(!bold&&!"medium".equals(selected)))return value;
+    SpannableStringBuilder text=new SpannableStringBuilder(value);
     if("medium".equals(selected))text.setSpan(new TypefaceSpan("sans-serif-medium"),0,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    if("bold".equals(selected)||AppPreferences.visible(c,"widget_bold",false))
+    if(bold&&text.getSpans(0,text.length(),StyleSpan.class).length==0)
       text.setSpan(new StyleSpan(android.graphics.Typeface.BOLD),0,text.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     return text;
   }

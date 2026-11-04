@@ -94,7 +94,7 @@ public final class ResidentService extends Service {
     if(pending)detail.append(tr(c," · 提示：托管停止待核实"," · Notice: camping stop unconfirmed"));
     else if(v!=null&&VehicleCondition.problem(v,true))
       detail.append(tr(c," · 提示：请检查车辆"," · Notice: check vehicle"));
-    String timestamps=tr(c,"数据更新 ","Updated ")+(v==null?"—":time(v.timestampMillis));
+    String timestamps=tr(c,"数据更新 ","Data updated ")+(v==null?"—":time(v.timestampMillis));
     PendingIntent open =
         PendingIntent.getActivity(
             c,

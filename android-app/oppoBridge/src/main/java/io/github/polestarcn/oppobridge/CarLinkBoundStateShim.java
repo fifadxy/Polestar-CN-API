@@ -60,7 +60,7 @@ final class CarLinkBoundStateShim {
         List<Object> args=chain.getArgs();
         String key=args!=null&&!args.isEmpty()?String.valueOf(args.get(0)):"";
         String normalized=normalizeKey(key);
-        if(!active()||!vehicleStack()||(!BOOL_KEYS.contains(normalized)&&!BIND_STATE_KEYS.contains(normalized)
+        if(!active()||!vehicleHostProcess()||(!BOOL_KEYS.contains(normalized)&&!BIND_STATE_KEYS.contains(normalized)
             &&!CONNECT_STATE_KEYS.contains(normalized)))return chain.proceed();
 
         Object value=valueFor(out,normalized);

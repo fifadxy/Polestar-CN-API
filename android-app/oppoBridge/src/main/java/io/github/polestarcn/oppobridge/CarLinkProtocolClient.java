@@ -5,7 +5,7 @@ import io.github.polestarcn.bridge.CarLinkBridgeContract;
 /** Modern LSPosed hosts use the same contract compiled into the main APK. No broadcast retry. */
 final class CarLinkProtocolClient {
  private CarLinkProtocolClient(){}
- static boolean supports(String a){return "lock".equals(a)||"unlock".equals(a)||"climate-start".equals(a)||"climate-stop".equals(a)||"windows-open".equals(a)||"windows-close".equals(a)||"honk-flash".equals(a)||"flash".equals(a)||"honk".equals(a);}
+ static boolean supports(String a){return "lock".equals(a)||"unlock".equals(a)||"climate-start".equals(a)||"climate-stop".equals(a)||"windows-open".equals(a)||"windows-close".equals(a)||"honk-flash".equals(a);}
  static Bundle request(String action){Bundle b=new Bundle();b.putString(CarLinkBridgeContract.COMMAND,action);b.putString(CarLinkBridgeContract.REQUEST,java.util.UUID.randomUUID().toString());return b;}
  static Bundle command(Context c,String action){
   Bundle in=request(action);

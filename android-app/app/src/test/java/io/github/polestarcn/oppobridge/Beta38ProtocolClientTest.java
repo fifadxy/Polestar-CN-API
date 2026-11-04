@@ -6,5 +6,5 @@ import org.junit.Test;import org.junit.runner.RunWith;import org.robolectric.Rob
 @RunWith(RobolectricTestRunner.class)
 public class Beta38ProtocolClientTest {
  @Test public void modernModuleSharesContractAndCreatesUniqueTickets(){Bundle a=CarLinkProtocolClient.request("unlock"),b=CarLinkProtocolClient.request("unlock");assertEquals("unlock",a.getString(CarLinkBridgeContract.COMMAND));assertNotEquals(a.getString(CarLinkBridgeContract.REQUEST),b.getString(CarLinkBridgeContract.REQUEST));assertEquals(1,CarLinkBridgeContract.VERSION);assertEquals(1001,CarLinkBridgeContract.LOCK);}
- @Test public void onlyExplicitCoreVocabularyUsesNewProtocol(){assertTrue(CarLinkProtocolClient.supports("climate-stop"));assertTrue(CarLinkProtocolClient.supports("windows-open"));assertFalse(CarLinkProtocolClient.supports("unlock-everything"));assertFalse(CarLinkProtocolClient.supports("trunk-open"));}
+ @Test public void onlyExplicitCoreVocabularyUsesNewProtocol(){assertTrue(CarLinkProtocolClient.supports("climate-stop"));assertTrue(CarLinkProtocolClient.supports("windows-open"));assertFalse(CarLinkProtocolClient.supports("unlock-everything"));assertFalse(CarLinkProtocolClient.supports("trunk-open"));assertFalse(CarLinkProtocolClient.supports("honk"));assertFalse(CarLinkProtocolClient.supports("flash"));}
 }

@@ -9,7 +9,7 @@
 保留原有行为：
 
 - `hasCarBinding(null)` 返回true，`force_mock_bind_enabled` 默认true，未能读取选车时保留原文 VIN 回退值。
-- 缺少方向时默认true；保留原文子串映射，包括 air→空调、honk/flash→寻车组合事件。
+- 缺少方向时默认true；保留原文子串映射，包括 air→空调、horn/flash→寻车组合事件；honk按原文仍为UNKNOWN。
 - 缺少车况时保留82% /415km及原有锁车、空调等默认值；保留乐观状态更新和持久化顺序。
 - `dispatchCarCommand` 立即回执的 `exec_success=true` / `exec_code=0`、实际调用全部失败后的成功兜底均保留；未知指令的异步失败返回也按原文处理。
 - Provider的原列结构和投影处理保持原样；Service保留原文 Universal Binder事务逻辑；模块保留原权限/签名、目录查询、会话和四事件Hook业务逻辑。

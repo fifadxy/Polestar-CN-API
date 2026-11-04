@@ -7,11 +7,15 @@ import android.os.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/** Optional foreground presence. No wake lock, timer loop, or remote writes. */
+/** Optional foreground presence. Timer presentation reads cache and does not wake the car. */
 public final class ResidentService extends Service {
   private static final String CHANNEL = "vehicle_status_v1";
   private static final int ID = 41;
   private static boolean running;
+  private static ResidentService active;
+  private final Handler timerHandler=new Handler(Looper.getMainLooper());
+  private final Runnable timerTick=()->{if(!running)return;NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);nm.notify(ID,notification(this));WidgetRenderer.refreshAll(this);scheduleTimerTick();};
+  private void scheduleTimerTick(){timerHandler.removeCallbacks(timerTick);VehicleSnapshot v=VehicleSnapshotStore.loadChina(this);String vehicle=AppPreferences.get(this,"vehicle","");long now=System.currentTimeMillis();Long air=AirRuntime.remaining(this,v,vehicle,now);Integer climate=ClimateRuntime.remainingMinutes(v,now);boolean ticking=(air!=null&&air>0)||(climate!=null&&climate>0)||(v!=null&&"开启".equals(v.climate)&&climate==null&&ClimateRuntime.estimatedRemaining(this,vehicle,now)>0);if(ticking)timerHandler.postDelayed(timerTick,60_000L);}
 
   public static void apply(Context c) {
     if (AppPreferences.enabled(c)) {
@@ -45,6 +49,7 @@ public final class ResidentService extends Service {
     if (running) {
       NotificationManager nm = (NotificationManager) c.getSystemService(NOTIFICATION_SERVICE);
       nm.notify(ID, notification(c));
+      ResidentService service=active;if(service!=null)service.timerHandler.post(service::scheduleTimerTick);
     }
   }
 
@@ -115,12 +120,14 @@ public final class ResidentService extends Service {
     }
     startForeground(ID, notification(this));
     running = true;
+    active=this;scheduleTimerTick();
     return START_STICKY;
   }
 
   @Override
   public void onDestroy() {
     running = false;
+    if(active==this)active=null;timerHandler.removeCallbacks(timerTick);
     super.onDestroy();
   }
 

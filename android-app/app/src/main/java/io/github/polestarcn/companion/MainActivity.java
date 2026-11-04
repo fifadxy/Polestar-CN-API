@@ -2451,8 +2451,13 @@ public final class MainActivity extends FragmentActivity {
   private void tireDialog(){openStatusSection("status_tyres");}
   private void maintenancePopup(){
     LinearLayout panel=detailPanel();panel.setTag("maintenance_popup");
-    serviceContents(panel);
-    disclosure(panel,"maintenance_checks",tr("车辆检查项目","Vehicle checks"),true,this::healthOverview);
+    VehicleSnapshot v=model.snapshot;
+    detailRow(panel,tr("保养周期剩余（参考）","Service cycle remaining (reference)"),ServiceReading.number(ServiceReading.cyclePercent(this,v),"%"));
+    detailRow(panel,tr("剩余天数","Days left"),ServiceReading.number(ServiceReading.days(this,v)," d"));
+    detailRow(panel,tr("剩余里程","Distance left"),ServiceReading.number(ServiceReading.km(this,v)," km"));
+    for(int i=0;i<panel.getChildCount();i++){View row=panel.getChildAt(i);if("detail_row".equals(row.getTag()))row.setPadding(dp(8),dp(6),dp(8),dp(6));}
+    panel.addView(text(tr("参考周期：365天 / 30,000km","Reference: 365 days / 30,000 km"),11,muted,false));gap(panel,6);
+    disclosure(panel,"maintenance_checks",tr("车辆检查项目","Vehicle checks"),false,this::healthOverview);
     new HapticDialogBuilder(this).setTitle(tr("保养","Service")).setView(panel).setNegativeButton(tr("关闭","Close"),null).show();
   }
   private void carStatusDialog(){

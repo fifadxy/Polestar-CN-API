@@ -163,8 +163,11 @@
         </service>
     <activity android:name=".OppoSystemAccessActivity" android:exported="false"/>
     <service android:name=".OppoCarLinkBridgeService" android:exported="true" android:permission="com.oppo.permission.safe.IOT">
-        <intent-filter><action android:name="io.github.polestarcn.companion.action.CARLINK_SERVICE"/><action android:name="com.oppo.carlink.action.CAR_CONTROL_SERVICE"/><action android:name="com.oplus.carlink.action.CAR_CONTROL_SERVICE"/></intent-filter>
+        <intent-filter><action android:name="io.github.polestarcn.companion.action.CARLINK_SERVICE"/></intent-filter>
     </service>
     <receiver android:name=".OppoCarLinkCommandReceiver" android:exported="true" android:permission="com.oppo.permission.safe.IOT"><intent-filter><action android:name="io.github.polestarcn.companion.action.CARLINK_COMMAND"/></intent-filter></receiver>
+    <service android:name=".uploadedcarlink.OppoOfficialCarLink" android:enabled="true" android:exported="true" android:permission="com.oppo.permission.safe.IOT">
+      <intent-filter><action android:name="com.oppo.carlink.action.CAR_CONTROL_SERVICE"/><action android:name="com.oplus.carlink.action.CAR_CONTROL_SERVICE"/><action android:name="com.coloros.sceneservice.action.CAR_CONTROL"/></intent-filter>
+    </service>
 </application>
 </manifest>

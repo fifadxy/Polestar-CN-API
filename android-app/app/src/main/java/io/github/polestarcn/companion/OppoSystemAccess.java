@@ -40,7 +40,7 @@ final class OppoSystemAccess {
       +"运行通道："+(BuildConfig.OPPO_SDK_MOCK?"MOCK_TESTLAB":"真实极星中国区接口")
       +"\n系统接入："+OppoDeviceIntegration.enabled(c)+" · 登录="+m.hasSession()+" · 选车="+(m.selected!=null)
       +"\n车辆会话="+session.getString("lifecycle","")+" · 可控="+session.getBoolean("commandReady",false)
-      +"\n本机双路径协议=v1 · 绑定URI/Provider/Messenger · 模块共享契约"
+      +"\n本机双路径协议=v1 · 上传逻辑兼容通道 · 模块共享契约"
       +"\n设备卡="+OppoProviderDiagnostics.inspect(c).toString()
       +"\n负一屏事件时间="+quick.getLong("carEventReceivedAt",0)+" · 受理="+quick.getBoolean("lastCommandAccepted",false)
       +" · 原因="+quick.getString("lastCommandReason",quick.getString("reason",""))
@@ -52,6 +52,7 @@ final class OppoSystemAccess {
       +"\nRoot 入口使用 root 身份启动；不表示主程序获得 IOT 权限。"
       +"\n最近真实命令="+observed.getString("commandAction","")+" · 结果="+observed.getString("commandState","")
       +" · 时间="+observed.getLong("commandEventAt",0)
+      +"\n上传通道保留模拟绑定、默认车况与兼容成功返回；这些不表示实际车辆已执行。"
       +"\n仅 VEHICLE_CONFIRMED 表示可读状态已确认；鸣笛/闪灯需现场确认。"
       +"\n官方 OCS："+(BuildConfig.OPPO_SDK_PACKAGED?"SDK 已打包；授权需真实回调":"当前为本机桥接构建，未包含官方 SDK 实现")
       +"\n手表/数字钥匙：尚未完成实机适配。页面不自动刷新车辆。";

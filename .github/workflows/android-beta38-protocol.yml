@@ -30,6 +30,8 @@ jobs:
             SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
             "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
           fi
+      - name: Verify uploaded business logic
+        run: python3 scripts/verify_uploaded_carlink.py
       - name: Compile lint and assemble beta38
         working-directory: android-app
         run: gradle --no-daemon --stacktrace :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug

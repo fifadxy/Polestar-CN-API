@@ -1,43 +1,47 @@
-# PsAssistant beta38 双路径协议融合
+# PsAssistant beta38：按上传原逻辑融合
 
-版本：主程序 `0.9.7-beta38-protocol /152`，内置与独立模块 `2.1.0 /34`。基于 beta37 UI 分支。输入：用户上传的九个 Java 类及 Manifest 片段。
+主程序 `0.9.7-beta38-protocol /152`，内置/独立模块 `2.1.0 /34`，保留 beta37 全部 UI。用户明确要求仅做工程适配，绑定 URI、会话与车况、四类事件的业务逻辑不得擅改。本次以此要求为准，取代本分支最初采用的严格返回值版本。
 
-## 文件适配
+## 原文与一致性
 
-| 输入文件 | 工程中的整合方式 |
+上传原文存于 `knowledge/incoming/CARLINK_DUAL_ROUTE_USER_SOURCE_20261104.txt`。`scripts/verify_uploaded_carlink.py` 比较24个核心方法的完整方法体，涵盖绑定判断、两种事件解析、Session构造、乐观更新、默认值、回调、失败成功兜底、Provider call/query、Service Binder及八个模块Hook方法；要求与上传原文一致。
+
+保留原有行为：
+
+- `hasCarBinding(null)` 返回true，`force_mock_bind_enabled` 默认true，未能读取选车时保留原文 VIN 回退值。
+- 缺少方向时默认true；保留原文子串映射，包括 air→空调、honk/flash→寻车组合事件。
+- 缺少车况时保留82% /415km及原有锁车、空调等默认值；保留乐观状态更新和持久化顺序。
+- `dispatchCarCommand` 立即回执的 `exec_success=true` / `exec_code=0`、实际调用全部失败后的成功兜底均保留；未知指令的异步失败返回也按原文处理。
+- Provider的原列结构和投影处理保持原样；Service保留原文 Universal Binder事务逻辑；模块保留原权限/签名、目录查询、会话和四事件Hook业务逻辑。
+
+这些兼容返回按用户要求保留，不自动等同于实际车辆执行。主程序原有 `VehicleCoordinator` 继续独立记录真实发送与回读；诊断额外标出 `uploadedLogic` / `realVehicleConfirmed`，不改上传的已有返回键值。
+
+## 仅做的工程适配
+
+| 输入文件 | 融合位置与适配 |
 |---|---|
-| CarLinkDexContract | 原同名类是 DEX 声明扫描器，保留；新共享 `bridge-contract/CarLinkBridgeContract` 同时编入主 APK、独立模块 |
-| OppoCarLinkCommandMap | 保留官方 InstructionType 映射，新增精确字符串及本机 1001–1004 / 1–4 事件映射；方向必须明确 |
-| OppoOfficialVehicleBindState | 复用真实登录、选车和已缓存车辆判断；本机绑定与 OCS 官方授权分别报告 |
-| VirtualVehicleSessionManager | 复用真实缓存和稳定合成标识，未知数值不补造 82%/415km，不乐观覆盖已确认车况 |
-| VehicleProtocolGateway | 保留类型明确的 VehicleCoordinator，统一现有鉴权与有界回读；不反射猜方法，不以失败兜底成功 |
-| PsAssistantBridgeProvider | 新增三个 call 别名、根 URI 车辆 Cursor 与绑定 Cursor 查询、列投影和变更通知，保留已有所有入口及调用方限制 |
-| OppoOfficialCarLink | 保留现有 OCS 发现、初始化入口；新 `OppoCarLinkBridgeService` 实现明确定义的 Messenger 协议，未冒充未知 AIDL |
-| OppoCarLinkInitReceiver | 原有受保护 OCS 初始化接收器不覆盖；另增受 IOT 权限保护的显式命令接收器 |
-| OppoCarLinkBridgeModule | 不并装旧 IXposedHookLoadPackage；适配当前 libxposed API102，由现有模块/BridgeClient 调用共享协议，四类指令实际接入 |
+| CarLinkDexContract | 放入共享源目录，包名为 `companion.uploadedcarlink`；主程序和模块编入同一份；原同名DEX扫描器不覆盖 |
+| OppoCarLinkCommandMap | 上传原文编译于 `companion.uploadedcarlink`，保留业务方法；主程序旧官方指令映射不覆盖 |
+| OppoOfficialVehicleBindState | 保留原判断；读取当前VIN时补接现有选车接口，读取不到仍走原回退 |
+| VirtualVehicleSessionManager | 保留原默认/持久化/乐观更新；通过类型适配器读取当前工程的缓存字段 |
+| VehicleProtocolGateway | 保留原分发顺序、回调和成功兜底；把反射猜测Coordinator入口替换为当前实际命令队列调用 |
+| PsAssistantBridgeProvider | 上传Provider作为现有Provider的内嵌委托，使用同一个`.bridge` authority，不重复注册；启用系统接入后路由上传方法/查询；现有调用方边界和其他接口不覆盖 |
+| OppoOfficialCarLink | 原Service编入独立命名空间，保留上传Action与Binder；现有OCS发现类不覆盖 |
+| OppoCarLinkInitReceiver | 上传原文保留；现有受保护OCS初始化接收器继续工作，新增显式命令接收器转交同一上传Provider |
+| OppoCarLinkBridgeModule | Hook业务方法原样保留，通过LegacyApi把before/after接口转至现有libxposed API102，不并装第二套旧Xposed运行时 |
 
-## 两条可测试路径
+主开关关闭时仍按当前项目的关闭行为处理。服务/广播沿用项目受保护的入口边界。模块默认作用域不扩大到系统框架；原文 system_server 分支保留在源码，实际是否加载需相应框架/作用域支持并由真机确认。不是声称已经在所有宿主触发了全部候选Hook。
 
-- Provider：`content://io.github.polestarcn.companion.bridge/auth/checkCarBind/hasCarBinding` 查询；call `getVirtualSession`、`getVehicleSnapshot`、`dispatchCarCommand`。
-- Service：绑定 `io.github.polestarcn.companion.OppoCarLinkBridgeService`，使用 Android Messenger。Message Bundle 的 `method` 为上述方法；`sendingUid` 必须是主程序、独立模块或已识别 CarLink 宿主；Service 本身还要求 IOT 权限。上传文档里的 CarLink Action 字符串作为兼容发现别名，并不证明 OEM 会自动调用。
-- 广播仅作手工显式兼容通道，组件 `OppoCarLinkCommandReceiver`、Action `io.github.polestarcn.companion.action.CARLINK_COMMAND`，同样受平台 IOT 权限保护。模块不自动广播重试，避免重复写车。
+## 使用与验收
 
-命令 Bundle：`sdk_cmd_name`（lock/unlock/climate_on/climate_off/window_close/window_vent/find_car 等精确别名），或 `car_event_id` + Boolean `action_target_state`。必须使用稳定 `request_id`；可提供 `result_receiver` 接受异步状态。1001/1002/1003 的 true 分别是锁车/开启空调/关闭车窗；false 为反向；1004 寻车。它们是本机协议编号，不是已证实的 OEM 事件编号。请求温度字段目前明确拒绝，不能无声忽略。
+1. 相同签名FULL APK覆盖安装。主程序已内置模块，通常无需安装独立Bridge；不要同时启用两份同类Hook。
+2. LSPosed选择主APK模块，保留目标宿主作用域，重启宿主或手机。
+3. 主程序→设置→系统车辆接入→检查并配置接入，进行只读URI/会话/映射自检。主程序正常控车仍使用已有账号和真实极星接口。
+4. 上传通道使用同一个`content://io.github.polestarcn.companion.bridge`；绑定查询路径`auth/checkCarBind/hasCarBinding`；call方法为`getVirtualSession`、`getVehicleSnapshot`、`dispatchCarCommand`。
+5. 请求键/事件码/缺省值按上传原文；兼容成功与真实车辆回读分开核对，不能只用exec_success断定车辆已动作。
+6. 本版还保留早期开发的明确Messenger协议端点供独立对照；上传默认路径使用原Service/Provider，不替换成该协议。
+7. 当前没有ADB连接真机。工程编译、模拟设备测试、签名检查与实际手机安装/宿主Hook验证分别报告。OPPO云端车型/鉴权和手表支持不由本机兼容回执推定。
 
-受理先返回 queued，`exec_success=false`。需要验证时通过回调返回一次性授权 PendingIntent；模块打开该入口。取消、超时、换车均返回未发送。只有既有车端回读确认才返回 `exec_success=true / vehicleConfirmed=true`；鸣笛/闪灯仍需现场确认。相同请求 ID 不重复执行，改动作或换车辆复用 ID 则拒绝；队列上限128、有效期120秒。所有真实命令复用中国区已有接口。
+## 构建交付
 
-## 为什么没有直接复制原代码
-
-原文默认强制绑定、默认虚构 VIN/车况、网络调用全失败仍返回 true，且用任意 Binder transaction 编号代表车控。模块另有将任意 UID 的 IOT 检查置成功、按任意 SQL 中 car/scene 字样拼行的逻辑；这些既没有匹配当前固件签名/表结构，也无法保证正常运行。工程融合使用当前已识别宿主与现有路由，不把这些猜测包装成成功的官方绑定。
-
-主 APK 与模块都不含新申请的 OPPO AUTH_CODE/companyId，也未证明云端车型白名单放行。Root 本机面板沿用 beta36 实现；此版本不能据此宣称官方鉴权、手表、数字钥匙全链路已打通。
-
-## 真机安装与使用
-
-1. 用相同签名 FULL APK 覆盖安装，保持账号与车辆选择。主 APK 已内置模块，通常无需再装独立 Bridge。
-2. 在 LSPosed 中选择主 APK 模块，启用原有目标作用域；不要同时启用主 APK 和独立 Bridge 的同类 Hook。更改后重启相应系统宿主或手机。
-3. 主程序登录、选车、手工刷新一次。设置→系统车辆接入→检查并配置接入，会执行只读绑定 URI / Provider 协议和四类映射自检，不发送车控。
-4. 测试负一屏、设备空间、CarLink 本机面板：选择一个动作，按原设置完成验证，核对操作后的车况回读。重发需要新 request_id；同一个请求跨通道投递仍只执行一次。
-5. 失败时复制该页文字诊断或导出≤2MB ZIP。IOT 权限、官方授权、宿主挂载、车辆回读分别核对，不能互相推定。
-
-没有连接的 ADB 真机时，只能验证编译、模拟设备回归与 APK 签名，不能声称已在用户手机安装或运行 Hook。本次实际构建结果在交付验证段追加。
+构建、测试、APK大小、签名及GitHub提交在完成后追加。

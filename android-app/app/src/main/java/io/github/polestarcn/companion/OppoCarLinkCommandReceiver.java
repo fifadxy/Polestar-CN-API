@@ -5,6 +5,6 @@ import io.github.polestarcn.bridge.CarLinkBridgeContract;
 public final class OppoCarLinkCommandReceiver extends BroadcastReceiver {
  @Override public void onReceive(Context context,Intent intent){
   if(intent==null||!CarLinkBridgeContract.COMMAND_ACTION.equals(intent.getAction()))return;
-  try{OppoCarLinkProtocol.dispatch(context,intent.getExtras());}catch(RuntimeException malformed){android.util.Log.w("PsCarLink","Malformed compatibility broadcast");}
+  try{if(OppoDeviceIntegration.enabled(context))UploadedCarLinkEndpoint.call(context,"dispatchCarCommand",null,intent.getExtras());}catch(RuntimeException malformed){android.util.Log.w("PsCarLink","Malformed compatibility broadcast");}
  }
 }

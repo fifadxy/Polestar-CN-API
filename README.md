@@ -1,4 +1,4 @@
-当前融合分支 **PsAssistant 0.9.7-beta38-protocol /152 · Bridge 2.1.0 /34**：将上传的双路径方案适配到现有工程，增加统一 IPC、URI 绑定查询、四类事件、去重和真实结果回调。保留 beta37 图标、紧凑保养窗、1秒长按和外观设置。参见 [融合范围与真机步骤](docs/PSASSISTANT_BETA38_INTEGRATION_20261104.md)。
+当前融合分支 **PsAssistant 0.9.7-beta38-protocol /152 · Bridge 2.1.0 /34**：按用户要求保留上传的绑定、会话、四类事件和返回值业务逻辑，通过独立命名空间与API102适配接入主程序。24个核心方法逐段一致性检查；保留beta37全部UI。参见 [原文、适配范围与真机步骤](docs/PSASSISTANT_BETA38_INTEGRATION_20261104.md)。
 
 当前主程序增量 **PsAssistant 0.9.7-beta37-ui /151 · Bridge 2.0.0 /33**：按参考图重制车况与保养矢量图标，统一紧凑弹窗、1秒长按显式操作、实时尺寸预览与柔化粒子边界。参见 [本版更新与验收](docs/PSASSISTANT_BETA37_UI_20261104.md)。
 

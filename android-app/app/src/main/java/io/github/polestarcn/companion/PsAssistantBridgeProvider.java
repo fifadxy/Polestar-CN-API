@@ -82,6 +82,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
     out.putInt("protocolVersion", PROTOCOL_VERSION);
     out.putInt("authorizationPolicyVersion",1);
     out.putInt("bridgeProtocolVersion",io.github.polestarcn.bridge.CarLinkBridgeContract.VERSION);
+    if(OppoDeviceIntegration.enabled(context)&&UploadedCarLinkEndpoint.handles(method))return UploadedCarLinkEndpoint.call(context,method,arg,extras);
     if(io.github.polestarcn.bridge.CarLinkBridgeContract.readMethod(method))return OppoCarLinkProtocol.read(context,method);
     boolean quickReporter=callerIn(context,QUICKAPP_REPORTERS);
     boolean myDevices=callerIs(context,"com.heytap.mydevices");
@@ -406,7 +407,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
   }
 
   @Override public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-    enforceCaller();return OppoCarLinkProtocol.query(contextOrThrow(),uri,projection);
+    enforceCaller();Context c=contextOrThrow();return OppoDeviceIntegration.enabled(c)?UploadedCarLinkEndpoint.query(c,uri,projection,selection,selectionArgs,sortOrder):OppoCarLinkProtocol.query(c,uri,projection);
   }
   @Override public String getType(Uri uri) { return OppoCarLinkProtocol.supports(uri)?"vnd.android.cursor.item/psa_carlink_bridge":null; }
   @Override public Uri insert(Uri uri, ContentValues values) { throw new UnsupportedOperationException(); }

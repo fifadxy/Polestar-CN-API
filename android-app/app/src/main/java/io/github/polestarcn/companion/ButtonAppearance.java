@@ -16,7 +16,7 @@ final class ButtonAppearance {
    android.view.ViewGroup.LayoutParams lp=v.getLayoutParams();if(lp==null||lp.width<=0||lp.height<=0)return;
    int[] base=(int[])v.getTag(R.id.psa_size_baseline);if(base==null){base=new int[]{lp.width,lp.height};v.setTag(R.id.psa_size_baseline,base);}
    float scale=iconScale(v.getContext());int limit=Math.round(68*v.getResources().getDisplayMetrics().density);
-   lp.width=Math.min(limit,Math.round(base[0]*scale));lp.height=Math.min(limit,Math.round(base[1]*scale));v.setLayoutParams(lp);
+   int maxWidth=limit,maxHeight=limit;if(v.getParent() instanceof View){View parent=(View)v.getParent();android.view.ViewGroup.LayoutParams box=parent.getLayoutParams();if(box!=null){if(box.width>0)maxWidth=Math.min(maxWidth,box.width-parent.getPaddingLeft()-parent.getPaddingRight());if(box.height>0)maxHeight=Math.min(maxHeight,box.height-parent.getPaddingTop()-parent.getPaddingBottom());}}lp.width=Math.max(1,Math.min(maxWidth,Math.round(base[0]*scale)));lp.height=Math.max(1,Math.min(maxHeight,Math.round(base[1]*scale)));v.setLayoutParams(lp);
   }
   if(v instanceof TextView&&(tag.startsWith("control_title_")||tag.equals("volike_control_label")||tag.equals("shortcut_label"))){
    TextView t=(TextView)v;Float base=(Float)t.getTag(R.id.psa_size_baseline);if(base==null){base=t.getTextSize();t.setTag(R.id.psa_size_baseline,base);}

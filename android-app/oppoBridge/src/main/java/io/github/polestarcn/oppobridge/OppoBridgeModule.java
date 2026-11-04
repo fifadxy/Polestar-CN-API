@@ -30,6 +30,8 @@ public final class OppoBridgeModule extends XposedModule {
       boolean directControl=BridgeSettings.directControlForCurrentHost();
 
       HostProbe.install(this,pkg,param.getClassLoader());
+      if(directControl&&(pkg.contains("carlink")||pkg.contains("assistantscreen")||pkg.contains("digitalkey")))
+        io.github.polestarcn.oppobridge.uploaded.OppoCarLinkBridgeModule.install(this,pkg,param.getClassLoader());
       VehicleSurfaceProbe.install(this,pkg,process,param.getClassLoader());
       ShelfCardHostProbe.install(this,pkg,process);
 

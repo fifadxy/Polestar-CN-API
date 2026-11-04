@@ -26,7 +26,9 @@ final class BridgeClient {
   static Bundle resolveGateway(Context context,String action) { Bundle in=new Bundle();in.putString("action",action);return call(context,"gateway-resolve",in); }
 
   static Bundle command(Context context, String action) {
-    if(capabilities(context).getInt("authorizationPolicyVersion",0)!=1)return failure("main-app-update-required");
+    Bundle features=capabilities(context);
+    if(features.getInt("authorizationPolicyVersion",0)!=1)return failure("main-app-update-required");
+    if(features.getInt("bridgeProtocolVersion",0)>=1&&(BridgeIdentity.isBridgePackage(context.getPackageName())||"com.heytap.opluscarlink".equals(context.getPackageName()))&&CarLinkProtocolClient.supports(action))return CarLinkProtocolClient.command(context,action);
     Bundle in=new Bundle();in.putString("action",action);
     if(!BridgeIdentity.isBridgePackage(context.getPackageName())) {
       Bundle ticket=call(context,"command-intent",in);
@@ -46,7 +48,7 @@ final class BridgeClient {
     return result;
   }
 
-  private static boolean sendPendingIntent(Context context,android.app.PendingIntent intent) {
+  static boolean sendPendingIntent(Context context,android.app.PendingIntent intent) {
     try {android.app.ActivityOptions options=android.app.ActivityOptions.makeBasic();
       if(android.os.Build.VERSION.SDK_INT>=34)options.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
       intent.send(context,0,null,null,null,null,options.toBundle());return true;

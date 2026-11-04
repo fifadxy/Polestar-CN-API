@@ -30,10 +30,10 @@ public final class OppoBridgeModule extends XposedModule {
       boolean directControl=BridgeSettings.directControlForCurrentHost();
 
       HostProbe.install(this,pkg,param.getClassLoader());
-      if(directControl&&isCarLinkHost(pkg))
+      if(directControl&&BridgeIdentity.isCarLinkHost(pkg))
         io.github.polestarcn.oppobridge.uploaded.OppoCarLinkBridgeModule.install(this,pkg,param.getClassLoader());
 
-      boolean vehicleHost=isCarLinkHost(pkg)
+      boolean vehicleHost=BridgeIdentity.isCarLinkHost(pkg)
           ||"com.coloros.assistantscreen".equals(pkg)||"com.oplus.assistantscreen".equals(pkg)
           ||"com.oplus.sceneservice".equals(pkg)||"com.coloros.sceneservice".equals(pkg)
           ||"com.oplus.smartengine".equals(pkg)||"com.oplus.cardservice".equals(pkg)
@@ -79,7 +79,7 @@ public final class OppoBridgeModule extends XposedModule {
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("scene_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 
-      if(isCarLinkHost(pkg)) {
+      if(BridgeIdentity.isCarLinkHost(pkg)) {
         CarLinkHostReporter.report(this,process,"hooks-entered",true,"",param.getClassLoader());
         try{CarLinkLocalPanelHook.install(this);}catch(Throwable x){warn("carlink_local_panel unavailable="+x.getClass().getSimpleName());}
         try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}

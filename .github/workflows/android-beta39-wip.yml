@@ -5,7 +5,7 @@ on:
       - feature/oppo-beta39-widget-ui-20261104
     paths:
       - 'android-app/**'
-      - '.github/workflows/android-beta39-protocol.yml'
+      - '.github/workflows/android-beta39-wip.yml'
   workflow_dispatch:
 jobs:
   build:
@@ -35,12 +35,6 @@ jobs:
       - name: Compile lint and assemble beta39
         working-directory: android-app
         run: gradle --no-daemon --stacktrace :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug
-      - name: Unit tests beta39
-        working-directory: android-app
-        run: |
-          gradle --no-daemon --stacktrace :app:testDebugUnitTest
-          mkdir -p ../verification/beta39
-          cp -a app/build/test-results/testDebugUnitTest ../verification/beta39/device-test-results
       - name: Package outputs
         run: |
           cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta39-widget-ui-VALIDATION-debug.apk
@@ -54,6 +48,12 @@ jobs:
         with:
           name: PsAssistant-OPPO-Bridge-v2.1.0-debug
           path: PsAssistant-OPPO-Bridge-v2.1.0-debug.apk
+      - name: Unit tests beta39
+        working-directory: android-app
+        run: |
+          gradle --no-daemon --stacktrace :app:testDebugUnitTest
+          mkdir -p ../verification/beta39
+          cp -a app/build/test-results/testDebugUnitTest ../verification/beta39/device-test-results
       - uses: actions/upload-artifact@v4
         if: always()
         with:

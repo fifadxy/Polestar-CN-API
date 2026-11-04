@@ -50,6 +50,7 @@ final class PsAssistantCarAppCatalogHook {
   static void install(OppoBridgeModule module,String pkg,ClassLoader loader){
     int hooks=0;
     for(String className:CATALOG_CLASSES)hooks+=hookCatalogClass(module,loader,className);
+    hooks+=hookPackageEligibility(module,pkg,loader);
     if("com.oplus.ocar".equals(pkg))hooks+=hookCarPlus(module,loader);
     module.info("psassistant_car_app_catalog package="+pkg+" hooks="+hooks);
   }
@@ -196,6 +197,61 @@ final class PsAssistantCarAppCatalogHook {
    * <p>The constructor/field contract mirrors the currently verified ColorOS Car+ implementation.
    * Unknown builds fail open without changing the OEM list.</p>
    */
+  private static int hookPackageEligibility(OppoBridgeModule module,String hostPackage,ClassLoader loader){
+    Class<?> pm;
+    try{pm=Class.forName("android.app.ApplicationPackageManager",false,loader);}
+    catch(Throwable unavailable){return 0;}
+    int hooks=0;
+    for(Method method:pm.getDeclaredMethods()){
+      Class<?>[] p=method.getParameterTypes();
+      if("checkPermission".equals(method.getName())&&p.length==2&&p[0]==String.class&&p[1]==String.class
+          &&(method.getReturnType()==int.class||method.getReturnType()==Integer.class)){
+        method.setAccessible(true);
+        module.hook(method).setId("psassistant_carlink_pkg_permission")
+            .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain->{
+              List<Object> args=chain.getArgs();
+              String permission=args!=null&&args.size()>0?String.valueOf(args.get(0)):"";
+              String pkg=args!=null&&args.size()>1?String.valueOf(args.get(1)):"";
+              if(active()&&PSA.equals(pkg)&&carPermission(permission)){
+                module.info("psassistant_carlink_pkg_permission granted="+permission+" host="+hostPackage);
+                return PackageManager.PERMISSION_GRANTED;
+              }
+              return chain.proceed();
+            });
+        hooks++;
+      }else if("checkSignatures".equals(method.getName())&&p.length==2&&p[0]==String.class&&p[1]==String.class
+          &&(method.getReturnType()==int.class||method.getReturnType()==Integer.class)){
+        method.setAccessible(true);
+        module.hook(method).setId("psassistant_carlink_pkg_signature")
+            .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain->{
+              List<Object> args=chain.getArgs();
+              String a=args!=null&&args.size()>0?String.valueOf(args.get(0)):"";
+              String b=args!=null&&args.size()>1?String.valueOf(args.get(1)):"";
+              if(active()&&((PSA.equals(a)&&hostIdentity(b,hostPackage))||(PSA.equals(b)&&hostIdentity(a,hostPackage)))){
+                module.info("psassistant_carlink_pkg_signature local-match host="+hostPackage);
+                return PackageManager.SIGNATURE_MATCH;
+              }
+              return chain.proceed();
+            });
+        hooks++;
+      }
+    }
+    return hooks;
+  }
+
+  static boolean carPermission(String permission){
+    if(permission==null)return false;
+    String p=permission.toLowerCase(Locale.ROOT);
+    return p.contains("permission.safe.iot")||p.contains("carlink.permission")||p.contains("vehicle.control");
+  }
+
+  static boolean hostIdentity(String candidate,String hostPackage){
+    if(candidate==null)return false;
+    return candidate.equals(hostPackage)||candidate.equals("com.heytap.opluscarlink")
+        ||candidate.equals("com.oplus.ocar")||candidate.equals("com.oplus.sceneservice")
+        ||candidate.equals("com.coloros.sceneservice");
+  }
+
   private static int hookCarPlus(OppoBridgeModule module,ClassLoader loader){
     try{
       Class<?> apps=loader.loadClass("com.oplus.ocar.carcontrol.response.CertifiedApps");

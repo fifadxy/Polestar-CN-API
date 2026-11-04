@@ -13,6 +13,13 @@ final class OppoCarLinkRoot {
     if(!OppoOfficialCarLink.PACKAGE.equals(pkg)||!name.matches("[A-Za-z0-9_.$]{1,240}"))throw new IllegalArgumentException("Unverified CarLink component");
     return "am start -W --user current -a android.intent.action.VIEW -d "+quote(OppoOfficialCarLink.BIND_URI.toString())+" -n "+quote(pkg+"/"+name);
   }
+  static String panelCommand(Bundle route){return launchCommand(route)+" --ez psassistant.local_panel true";}
+  static String openPanel(Context c)throws Exception {
+    Bundle route=OppoOfficialCarLink.status(c);
+    if(!route.getBoolean("bindRouteAvailable",false))return "未发现 CarLink 入口";
+    String output=run(panelCommand(route));
+    return "Root 启动结果：\n"+output+"\n请返回本页核对 CarLink 宿主面板时间；启动结果不等于 IOT 权限已授予。";
+  }
   static String open(Context c)throws Exception {Bundle route=OppoOfficialCarLink.status(c);if(!route.getBoolean("bindRouteAvailable"))return "未发现官方绑定Activity，未尝试root启动";return "Root入口测试：\n"+run(launchCommand(route))+"\n启动成功只表示页面已打开；车辆资料、SDK鉴权和云端车型配置仍需独立验证。";}
   static String run(String command)throws Exception{
     Process p=new ProcessBuilder("su","-c",command).redirectErrorStream(true).start();ByteArrayOutputStream bytes=new ByteArrayOutputStream();

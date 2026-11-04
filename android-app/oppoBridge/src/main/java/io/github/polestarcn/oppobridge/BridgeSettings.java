@@ -7,7 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 
 /** Small non-secret settings contract shared with the LSPosed host processes. */
-final class BridgeSettings {
+public final class BridgeSettings {
   static final String AUTHORITY = "io.github.polestarcn.oppobridge.settings";
   static final String INTEGRATED_AUTHORITY = "io.github.polestarcn.companion.bridge-settings";
   static final Uri URI = Uri.parse("content://" + AUTHORITY);
@@ -52,6 +52,12 @@ final class BridgeSettings {
     if (!isBooleanKey(key)) throw new IllegalArgumentException("Unknown bridge setting");
     context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(key, value).apply();
     context.getContentResolver().notifyChange(settingsUri(context), null);
+  }
+
+  public static void setUnified(Context context,boolean enabled) {
+    SharedPreferences.Editor edit=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit();
+    for(String key:BOOLEAN_KEYS)edit.putBoolean(key,enabled);
+    edit.apply();context.getContentResolver().notifyChange(settingsUri(context),null);
   }
 
   static void enableRecommendedDefaults(Context context) {

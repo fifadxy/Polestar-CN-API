@@ -77,7 +77,7 @@ public final class VehicleShortcutActivity extends Activity {
     if(state==null||!state.getBoolean("available",false)||state.getBoolean("demo",false)
         ||!state.getBoolean("cardEnabled",true)
         ||!fresh(state.getLong("capturedAt",0L),System.currentTimeMillis()))return null;
-    if("flash".equals(requested)||"honk".equals(requested)||"honk-flash".equals(requested)
+    if("windows-open".equals(requested)||"windows-close".equals(requested)||"flash".equals(requested)||"honk".equals(requested)||"honk-flash".equals(requested)
         ||"lock".equals(requested)||"unlock".equals(requested)||"climate-start".equals(requested)||"climate-stop".equals(requested)
         ||"air-start".equals(requested)||"air-stop".equals(requested)||"trunk-open".equals(requested)||"trunk-close".equals(requested))return requested;
     if("lock-toggle".equals(requested)) {

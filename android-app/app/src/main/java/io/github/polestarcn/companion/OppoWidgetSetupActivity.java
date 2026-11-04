@@ -23,6 +23,9 @@ public final class OppoWidgetSetupActivity extends Activity {
   private static final int EXPORT_HOSTS=7305;
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
+    if(!getIntent().getBooleanExtra("advanced",false)&&!getIntent().getBooleanExtra("autoShare",false)){
+      startActivity(new Intent(this,OppoSystemAccessActivity.class));finish();return;
+    }
     autoShare=state!=null?state.getBoolean("autoShare"):getIntent().getBooleanExtra("autoShare",false);
     LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
     int p=(int)(16*getResources().getDisplayMetrics().density);column.setPadding(p,p,p,p);

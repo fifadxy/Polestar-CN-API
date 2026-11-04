@@ -1,3 +1,4 @@
+- [beta36 真机测试与模块 2.0](OPPO_DEVICE_BETA36_20261104.md)
 - [beta35 实测包交付验证（11月4日）](../docs/PSASSISTANT_BETA35_MOCK_VERIFICATION_20261104.md)
 - [beta35 Mock / 负一屏实测流程](OPPO_MOCK_SHELF_BETA35_20261103.md)
 

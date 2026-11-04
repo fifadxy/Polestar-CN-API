@@ -319,6 +319,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       return out;
     }
 
+    if(OppoDeviceIntegration.enabled(context))return UploadedCarLinkEndpoint.call(context,method,arg,extras);
     throw new IllegalArgumentException("Unknown bridge method: " + method);
   }
   static boolean commandStateReady(VehicleSnapshot state,long now) {

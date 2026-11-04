@@ -9,7 +9,7 @@ import io.github.polestarcn.bridge.CarLinkBridgeContract;
 final class UploadedCarLinkEndpoint {
  private static io.github.polestarcn.companion.uploadedcarlink.PsAssistantBridgeProvider provider;
  private static synchronized io.github.polestarcn.companion.uploadedcarlink.PsAssistantBridgeProvider provider(Context c){if(provider==null){provider=new io.github.polestarcn.companion.uploadedcarlink.PsAssistantBridgeProvider();ProviderInfo info=new ProviderInfo();info.authority=CarLinkBridgeContract.AUTHORITY;provider.attachInfo(c.getApplicationContext(),info);}return provider;}
- static boolean handles(String method){return "virtual-session-profile".equals(method)||CarLinkBridgeContract.readMethod(method)||CarLinkBridgeContract.DISPATCH.equals(method);}
+ static boolean handles(String method){return java.util.Arrays.asList("lock","unlock","climate_on","climate_off","window_close","window_vent","find_car","auth").contains(method)||"virtual-session-profile".equals(method)||CarLinkBridgeContract.readMethod(method)||CarLinkBridgeContract.DISPATCH.equals(method);}
  static Bundle call(Context c,String method,String arg,Bundle extras){if("virtual-session-profile".equals(method))method=CarLinkBridgeContract.SESSION;Bundle out=provider(c).call(method,arg,extras);if(out==null)return null;
   // Additional diagnostics/legacy aliases; preserve every uploaded field, including exec_success.
   if(!out.containsKey("accepted")&&out.containsKey("exec_success"))out.putBoolean("accepted",out.getBoolean("exec_success"));

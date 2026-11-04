@@ -9,7 +9,7 @@ import android.widget.TextView;
 
 /** Native glyph/text layout: no custom text painting or single-line scrolling on device canvases. */
 class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
- private String title="";private boolean composing,slot,iconOnly;private String feedback="";private Drawable glyph;private Integer bar;
+ private String title="";private boolean composing,slot,iconOnly;private String feedback="";private Drawable glyph;private boolean serviceGlyph;private Integer bar;
  private int desiredGlyphSize;private int previewIcon=-1,previewLabel=-1;
  final void previewAppearance(int icon,int label){if(icon>=0)previewIcon=icon;if(label>=0)previewLabel=label;refreshAppearance();}
  private float iconScale(){return previewIcon<0?ButtonAppearance.iconScale(getContext()):previewIcon/100f;}
@@ -18,10 +18,15 @@ class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
  CenteredStatusButton(Context c){super(c);setIncludeFontPadding(false);}
  @Override public void setText(CharSequence value,BufferType type){if(!composing)title=value==null?"":value.toString().split("\n",2)[0];super.setText(value,type);}
  final String title(){return title;}
- final void glyph(int resource){glyph=resource==0?null:androidx.core.content.ContextCompat.getDrawable(getContext(),resource).mutate();compose();}
+ final void glyph(int resource){serviceGlyph=resource==R.drawable.ic_service_reference;glyph=resource==0?null:androidx.core.content.ContextCompat.getDrawable(getContext(),resource).mutate();compose();}
+ private void tintGlyph(int color){
+  if(!serviceGlyph){glyph.setTint(color);return;}
+  // Preserve the reference gauge's orange sector; recolor only its white car/needle.
+  glyph.setTintList(null);glyph.setColorFilter(new ColorMatrixColorFilter(new float[]{0,0,(Color.red(color)-255)/255f,0,255,0,0,(Color.green(color)-107)/255f,0,107,0,0,Color.blue(color)/255f,0,0,0,0,0,1,0}));
+ }
  final void reserveIconRow(boolean value){slot=value;compose();}
  final void contents(String detail,Integer progress){feedback=detail==null?"":detail;bar=progress;compose();}
- @Override public void setTextColor(int color){super.setTextColor(color);if(glyph!=null)glyph.setTint(color);for(Drawable d:getCompoundDrawablesRelative())if(d!=null)d.setTint(color);}
+ @Override public void setTextColor(int color){super.setTextColor(color);if(glyph!=null)tintGlyph(color);for(Drawable d:getCompoundDrawablesRelative())if(d!=null)d.setTint(color);}
  final void refreshAppearance(){compose();requestLayout();invalidate();}
  private void compose(){
   float d=getResources().getDisplayMetrics().density;boolean icon=glyph!=null;boolean minimal=UiDisplayMode.minimal(getContext())&&icon;String shownTitle=minimal?"":title;iconOnly=minimal&&feedback.isEmpty();
@@ -30,7 +35,7 @@ class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
   setTypeface(PsaDesign.regular());androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(this,androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE);
   SpannableStringBuilder value=new SpannableStringBuilder(shownTitle);if(AppPreferences.visible(getContext(),"ui_button_bold",true))value.setSpan(new StyleSpan(Typeface.BOLD),0,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
   if(second||shownTitle.isEmpty()&&!feedback.isEmpty()){if(second)value.append('\n');int start=value.length();value.append(feedback.isEmpty()?"\u00a0":feedback);value.setSpan(new ForegroundColorSpan(AppPreferences.dark(getContext())?Color.WHITE:Color.rgb(115,115,115)),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);value.setSpan(new RelativeSizeSpan(Math.min(.85f,ButtonFeedback.sp(getContext())/11f)),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);if(AppPreferences.visible(getContext(),"feedback_bold",false))value.setSpan(new StyleSpan(Typeface.BOLD),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
-  if(icon){glyph.setTint(getCurrentTextColor());int base=slot?(getResources().getConfiguration().screenHeightDp<=360?12:18):16;int px=Math.round((minimal?(getResources().getConfiguration().screenHeightDp<=360?24:32):base)*d*iconScale());desiredGlyphSize=px;glyph.setBounds(0,0,px,px);}
+  if(icon){tintGlyph(getCurrentTextColor());int base=slot?(getResources().getConfiguration().screenHeightDp<=360?12:18):16;int px=Math.round((minimal?(getResources().getConfiguration().screenHeightDp<=360?24:32):base)*d*iconScale());desiredGlyphSize=px;glyph.setBounds(0,0,px,px);}
   if(glyph!=null||slot)setCompoundDrawablesRelative(iconOnly||slot?null:glyph,!iconOnly&&slot?glyph:null,null,null);setCompoundDrawablePadding(Math.round(2*d));
   composing=true;super.setText(value,BufferType.SPANNABLE);composing=false;scrollTo(0,0);
  }

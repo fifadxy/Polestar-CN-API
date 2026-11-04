@@ -39,7 +39,7 @@ public final class WidgetButtons {
   int[] labels={R.id.widget_lock_label,R.id.widget_climate_label,R.id.widget_extra2_label,R.id.widget_extra3_label,R.id.widget_extra4_label,R.id.widget_extra5_label};
   v.setViewVisibility(R.id.widget_action_row,count==0?View.GONE:View.VISIBLE);
   for(int i=0;i<roots.length;i++){v.setViewVisibility(wrappers[i],i<count?View.VISIBLE:View.GONE);if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int color=on?Color.BLACK:ink;
-   v.setInt(roots[i],"setBackgroundResource",on?R.drawable.widget_action_on:R.drawable.widget_action_clear);v.setImageViewResource(icons[i],icon(c,id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
+   v.setInt(roots[i],"setBackgroundResource",WidgetColors.borderDrawable(c,on));v.setImageViewResource(icons[i],icon(c,id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
    String name=label(c,id),state=state(c,id,s);String visible=(id.equals("lock")||id.equals("air"))?state:name;
    if(id.startsWith("climate")){
     String action=id.equals("climate-start")?AppPreferences.widgetTr(c,"开启","Start"):id.equals("climate-stop")?AppPreferences.widgetTr(c,"停止","Stop"):name;

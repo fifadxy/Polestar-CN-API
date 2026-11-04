@@ -8,6 +8,8 @@ import java.util.Locale;
 public final class WidgetColors {
   public static final String[] KEYS={"system","light","dark","vi_orange","nordic_teal","stone_gray","custom"};
   private WidgetColors(){}
+  public static int border(Context c){String value=AppPreferences.get(c,"widget_border","white");return "orange".equals(value)?PsaDesign.ORANGE:"black".equals(value)?Color.rgb(20,22,24):Color.WHITE;}
+  public static int borderDrawable(Context c,boolean on){switch(AppPreferences.get(c,"widget_border","white")){case "orange":return on?R.drawable.widget_border_orange_on:R.drawable.widget_border_orange_clear;case "black":return on?R.drawable.widget_border_black_on:R.drawable.widget_border_black_clear;default:return on?R.drawable.widget_border_white_on:R.drawable.widget_border_white_clear;}}
   public static boolean explicit(Context c) { return !"system".equals(AppPreferences.get(c,"widget_ink","system")); }
   public static int ink(Context c) {
     String choice=AppPreferences.get(c,"widget_ink","system");

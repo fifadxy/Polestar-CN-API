@@ -2171,6 +2171,7 @@ public final class MainActivity extends FragmentActivity {
     disclosure(root,"settings_widget",tr("桌面 Widget","Home-screen widgets"),false,p->{
       setting(p,tr("Widget 风格 · ","Widget design · ")+VoLikeWidgetRenderer.label(this,VoLikeWidgetRenderer.style(this)),this::widgetDesignDialog);
       setting(p,tr("Widget 数据 · 按尺寸选择","Widget data · choose by size"),this::widgetFields);setting(p,tr("PSeu 显示类型","PSeu display type"),this::pseuChoice);
+      settingToggle(p,"widget_strip_header",tr("单行 Widget 显示 Polestar 标题","Show Polestar title on strip widgets"),false,true);
       setting(p,tr("Widget 按钮 · 按尺寸选择","Widget buttons · choose by size"),this::widgetButtonSettings);
       setting(p,tr("Widget 字号（独立设置）","Widget text size (independent)"),this::fontDialog);
       settingToggle(p,"widget_bold",tr("Widget 加粗字体（所有风格）","Bold widget text (all styles)"),false,true);
@@ -2178,6 +2179,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("Widget 车辆图片 / 透明程序图标","Widget vehicle / transparent icon"),this::widgetVisualDialog);
       setting(p,tr("背景样式 · 不透明 / 透明","Background · opaque / transparent"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 背景","Widget background")).setItems(new String[]{tr("不透明","Opaque"),tr("透明","Transparent")},(d,w)->{AppPreferences.set(this,"widget_style",w==0?"opaque":"transparent");WidgetRenderer.refreshAll(this);}).show());
       setting(p,tr("Widget 文字颜色 · 预设 / 自定义","Widget text color · presets / custom"),this::widgetColorDialog);
+      setting(p,tr("Widget 边框颜色 · 白色 / 橙色 / 黑色","Widget borders · white / orange / black"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 边框颜色","Widget border color")).setItems(new String[]{tr("白色（默认）","White (default)"),tr("VI 橙色","VI orange"),tr("黑色","Black")},(d,w)->{AppPreferences.set(this,"widget_border",new String[]{"white","orange","black"}[w]);WidgetRenderer.refreshAll(this);}).show());
       widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);note(p,tr("磨砂玻璃说明","Frosted glass"),tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."));
     });
     disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("车控验证方式 · 生物识别 / 确认 / 直接发送","Control authorization · biometrics / confirm / direct"),this::authorizationSettings);setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});

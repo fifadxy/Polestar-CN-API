@@ -133,6 +133,7 @@ public class OppoCarLinkBridgeModule {
                                     && ((Method) param.method).getReturnType() == int.class) {
                                 param.setResult(PackageManager.PERMISSION_GRANTED);
                             } else {
+                                // enforce* 方法返回 void，直接阻断异常抛出
                                 param.setResult(null);
                             }
                         }

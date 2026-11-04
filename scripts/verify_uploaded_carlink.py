@@ -35,9 +35,22 @@ for name,methods in checks.items():
   count+=1
 module=(root/'android-app/oppoBridge/src/main/java/io/github/polestarcn/oppobridge/uploaded/OppoCarLinkBridgeModule.java').read_text()
 for name in ['hookSystemServerPermissionGrant','hookLocalIotPermissionAndSignatures','hookOfficialDatabaseAndWhitelist','hookHasCarBindingCheck','hookVirtualVehicleSession','hookFourCarControlEvents','extractCarCommandFromArgs','routeCarEventToPsAssistant']:
- assert body(blocks['OppoCarLinkBridgeModule'],name)==body(module,name),name
+ current=body(module,name)
+ if name=='hookLocalIotPermissionAndSignatures':
+  # Beta40 narrows the uploaded permission hook to calls attributable to the PsAssistant UID.
+  hardened='if (isOppoIotPermission(perm) && isPsAssistantPermissionRequest(param.args)) {'
+  assert current.count(hardened)==1,(name,'PsAssistant UID gate')
+  current=current.replace(hardened,'if (isOppoIotPermission(perm)) {',1)
+ if name=='hookOfficialDatabaseAndWhitelist':
+  # Catalog list injection is allowed only while the local PsAssistant vehicle session is active.
+  gate='                            Bundle session = syncSessionFromPsAssistant();\n                            if (session == null || !session.getBoolean("active", false)) return;\n'
+  assert current.count(gate)==1,(name,'active local vehicle gate')
+  current=current.replace(gate,'',1)
+ assert body(blocks['OppoCarLinkBridgeModule'],name)==current,(name,'uploaded business body')
  count+=1
-print('PASS:',count,'uploaded method bodies match after removing the explicitly approved service gates')
+assert 'if (session == null || !session.getBoolean("active", false)) return null;' in module
+assert 'uidOwnsPsAssistant(context, android.os.Binder.getCallingUid())' in module
+print('PASS:',count,'uploaded method bodies match with Beta40 PsAssistant-only security hardening')
 
 import xml.etree.ElementTree as ET
 ns="{http://schemas.android.com/apk/res/android}"

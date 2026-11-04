@@ -22,7 +22,7 @@ final class BridgeClient {
     return call(context, "refresh", null);
   }
 
-  static Bundle virtualSession(Context context) { Bundle b=call(context,"getVirtualSession",null);return b.containsKey("bridgeProtocolVersion")?b:call(context,"virtual-session-profile",null); }
+  static Bundle virtualSession(Context context) { return call(context,"virtual-session-profile",null); }
   static Bundle resolveGateway(Context context,String action) { Bundle in=new Bundle();in.putString("action",action);return call(context,"gateway-resolve",in); }
 
   static Bundle command(Context context, String action) {

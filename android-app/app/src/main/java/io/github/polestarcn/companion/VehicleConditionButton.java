@@ -13,6 +13,6 @@ public final class VehicleConditionButton extends CenteredStatusButton {
   String detail=percent==null?VehicleCondition.summary(getContext(),snapshot.get(),AppPreferences.visible(getContext(),"show_tire_status",true)):percent+"%";
   // Percent-only removes the bar, not the native title or the PS Default icon slot.
   contents(detail,mode.equals("bar")?percent:null);
-  setContentDescription(base+(percent==null?"":" · "+fullDetail)+AppPreferences.tr(getContext()," · 点击展开车况"," · Expand vehicle condition"));
+  setContentDescription(base+(percent==null?"":" · "+fullDetail)+AppPreferences.tr(getContext()," · 点击查看保养与车辆检查"," · Open service and vehicle checks"));
  }
 }

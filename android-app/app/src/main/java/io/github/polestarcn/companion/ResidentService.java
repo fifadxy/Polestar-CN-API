@@ -81,7 +81,10 @@ public final class ResidentService extends Service {
                 + ClimateRuntime.label(c, v, AppPreferences.get(c, "vehicle", ""))
                 + " · "
                 + tr(c, "净化 ", "Air ")
-                + AppPreferences.status(c, v.air);
+                + AirRuntime.label(c, v, AppPreferences.get(c,"vehicle",""))
+                + " · " + tr(c,"门锁 ","Lock ") + AppPreferences.status(c,v.lock)
+                + " · " + tr(c,"尾门 ","Trunk ") + AppPreferences.status(c,v.tailgate)
+                + " · " + tr(c,"车窗 ","Windows ") + AppPreferences.status(c,v.windows);
     String timestamps = tr(c, "数据更新 ", "Data updated ")
         + (v == null ? "—" : time(v.timestampMillis));
     PendingIntent open =

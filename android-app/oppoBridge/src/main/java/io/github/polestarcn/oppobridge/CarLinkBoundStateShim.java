@@ -111,23 +111,14 @@ final class CarLinkBoundStateShim {
     }catch(Throwable ignored){return false;}
   }
 
-  private static boolean vehicleStack(){
-    StackTraceElement[] trace=Thread.currentThread().getStackTrace();
-    int checked=0;
-    for(StackTraceElement e:trace){
-      if(e==null)continue;
-      String c=e.getClassName();
-      if(c==null)continue;
-      if(c.startsWith("java.")||c.startsWith("android.")||c.startsWith("org.json.")
-          ||c.startsWith("io.github.polestarcn.oppobridge."))continue;
-      checked++;
-      String lower=c.toLowerCase(Locale.ROOT);
-      if(lower.contains("carlink")||lower.contains("carbind")||lower.contains("vehicle")
-          ||lower.contains("sceneservice")||lower.contains("ocar")||lower.contains("smartengine")
-          ||lower.contains("cardservice"))return true;
-      if(checked>=12)break;
-    }
-    return false;
+  private static boolean vehicleHostProcess(){
+    Application app=currentApplication();
+    if(app==null)return false;
+    String pkg=app.getPackageName();
+    return BridgeIdentity.isCarLinkHost(pkg)
+        ||"com.oplus.sceneservice".equals(pkg)||"com.coloros.sceneservice".equals(pkg)
+        ||"com.oplus.ocar".equals(pkg)||"com.oplus.smartengine".equals(pkg)
+        ||"com.oplus.cardservice".equals(pkg);
   }
 
   private static String safeKey(String raw){

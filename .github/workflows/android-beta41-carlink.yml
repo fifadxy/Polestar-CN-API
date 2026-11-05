@@ -1,11 +1,14 @@
-name: Android Beta41 CarLink Bound
+name: Android v1.0 Beta42 Stability
 on:
   push:
     branches:
       - feature/oppo-beta41-carlink-bound-app-20261104
+      - android-polestar-assistant-main
     paths:
       - 'android-app/**'
       - 'scripts/verify_uploaded_carlink.py'
+      - 'knowledge/**'
+      - 'docs/**'
       - '.github/workflows/android-beta41-carlink.yml'
   workflow_dispatch:
 jobs:
@@ -33,19 +36,19 @@ jobs:
           fi
       - name: Verify uploaded business logic
         run: python3 scripts/verify_uploaded_carlink.py
-      - name: Compile lint and assemble beta41
+      - name: Compile lint and assemble beta42
         working-directory: android-app
-        run: gradle --no-daemon --stacktrace :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :oppoBridge:assembleDebug
       - name: Package outputs
         run: |
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v0.9.7-beta41-carlink-bound-VALIDATION-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v1.0.0-beta42-VALIDATION-debug.apk
           cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-v2.3.0-debug.apk
-          test -s PsAssistant-v0.9.7-beta41-carlink-bound-VALIDATION-debug.apk
+          test -s PsAssistant-v1.0.0-beta42-VALIDATION-debug.apk
           test -s PsAssistant-OPPO-Bridge-v2.3.0-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v0.9.7-beta41-carlink-bound-VALIDATION-debug
-          path: PsAssistant-v0.9.7-beta41-carlink-bound-VALIDATION-debug.apk
+          name: PsAssistant-v1.0.0-beta42-VALIDATION-debug
+          path: PsAssistant-v1.0.0-beta42-VALIDATION-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: PsAssistant-OPPO-Bridge-v2.3.0-debug

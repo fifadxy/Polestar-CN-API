@@ -2433,6 +2433,76 @@ public final class MainActivity extends FragmentActivity {
         AppPreferences.set(this,weightKey,"100");render();
       }).setNegativeButton(tr("取消","Cancel"),null).show();
   }
+  /** Per-skin, per-control appearance settings. No vehicle state or network access. */
+  private void skinButtonLayoutDialog(){
+    String[] skins=UiSkin.CHOICES;
+    String[] labels=new String[skins.length];
+    for(int i=0;i<skins.length;i++)
+      labels[i]=UiSkin.label(this,skins[i])+(skins[i].equals(UiSkin.get(this))?tr(" · 当前"," · current"):"");
+    new HapticDialogBuilder(this).setTitle(tr("选择需要调整的皮肤","Choose the skin to customize"))
+      .setItems(labels,(d,i)->skinButtonChoose(skins[i]))
+      .setNegativeButton(tr("关闭","Close"),null).show();
+  }
+  private String skinButtonName(String control){
+    switch(control){
+      case "lock":return tr("门锁","Lock");
+      case "climate":return tr("空调","Climate");
+      case "air":return tr("净化","Purification");
+      case "trunk":return tr("尾箱","Trunk");
+      case "windows":return tr("车窗","Windows");
+      case "signal":return tr("寻车","Find car");
+      case "camp":return tr("露营模式","Camping");
+      default:return tr("保养","Service");
+    }
+  }
+  private void skinButtonChoose(String skin){
+    LinearLayout panel=detailPanel();
+    note(panel,UiSkin.label(this,skin),tr("只调整这一皮肤，所有按钮都保留在各自网格内，不影响车辆控制或其他皮肤。",
+      "Only this skin changes. Controls remain within their original slots and vehicle actions are unaffected."));
+    for(String control:SkinButtonLayout.CONTROLS)
+      setting(panel,skinButtonName(control),()->skinButtonEditor(skin,control));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    new HapticDialogBuilder(this).setTitle(UiSkin.label(this,skin)+tr(" · 按钮布局"," · button layout"))
+      .setView(scroll)
+      .setNeutralButton(tr("重置本皮肤全部按钮","Reset this skin"),(d,w)->{
+        SkinButtonLayout.clearSkin(this,skin);
+        if(skin.equals(UiSkin.get(this)))render();
+      }).setPositiveButton(tr("完成","Done"),null).show();
+  }
+  private void skinButtonEditor(String skin,String control){
+    LinearLayout panel=detailPanel();
+    SkinButtonLayout.Preview preview=new SkinButtonLayout.Preview(this,skin,control);
+    panel.addView(preview,new LinearLayout.LayoutParams(-1,dp(160)));
+    String[] labels={
+      tr("边框宽度 %","Button width %"),tr("边框高度 %","Button height %"),
+      tr("边框线条粗细 dp","Border stroke dp"),tr("边框圆角 dp","Corner radius dp"),
+      tr("图标大小 %","Icon size %"),tr("文字大小 %","Text size %"),
+      tr("按钮位置 X dp","Button position X dp"),tr("按钮位置 Y dp","Button position Y dp"),
+      tr("图文焦点 X dp","Content focus X dp"),tr("图文焦点 Y dp","Content focus Y dp")
+    };
+    int[] chosen=SkinButtonLayout.values(this,skin,control);
+    SeekBar[] bars=new SeekBar[SkinButtonLayout.FIELDS.length];
+    for(int i=0;i<bars.length;i++){
+      final int index=i;
+      bars[i]=campSlider(panel,labels[i],SkinButtonLayout.LOW[i],SkinButtonLayout.HIGH[i],
+        chosen[i],null,v->{chosen[index]=v;preview.update(chosen);});
+    }
+    note(panel,tr("边界与预览","Bounds and preview"),tr(
+      "上方是离线实时预览；宽高仅在各自按钮区域内调整，默认保持原皮肤布局；可单独保存或恢复默认。修改不会发起控车、联网和 Widget 重新调度。",
+      "Live preview is offline. Cards stay inside their own slot, defaults preserve the skin, and changes never send commands or schedule network requests."));
+    ScrollView scroll=new ScrollView(this);scroll.addView(panel);
+    new HapticDialogBuilder(this).setTitle(UiSkin.label(this,skin)+" · "+skinButtonName(control))
+      .setView(scroll).setPositiveButton(tr("保存","Save"),(d,w)->{
+        int[] values=new int[bars.length];
+        for(int i=0;i<bars.length;i++)values[i]=SkinButtonLayout.LOW[i]+bars[i].getProgress();
+        SkinButtonLayout.store(this,skin,control,values);
+        if(skin.equals(UiSkin.get(this)))render();
+      }).setNeutralButton(tr("恢复本按钮默认","Reset this control"),(d,w)->{
+        SkinButtonLayout.clear(this,skin,control);
+        if(skin.equals(UiSkin.get(this)))render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+
   private void mapRefreshDialog(){
     LinearLayout p=detailPanel();
     setting(p,tr("模式 · 智能 / 固定 / 手动","Mode · smart / fixed / manual"),()->

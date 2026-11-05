@@ -1,43 +1,37 @@
-# PsAssistant Beta47 — UI 优化与构建验收
+# PsAssistant Beta47 — 构建、签名与测试验收（2026-11-06）
 
-日期：2026-11-06  ·  Android APK `1.0.0-beta47 / versionCode 161`
+**版本**：`v1.0.0-beta47` / `versionCode=161`，Android 目标主分支 `android-polestar-assistant-main`。
 
-## 功能范围
+## GitHub Android CI 结果
 
-- 净化未运行时不显示“已关闭”，显示从车辆快照读取的 `AQI`、`PM2.5`；数据缺失时显示 `--`，不生成虚假数值。
-- 7 套皮肤 × 8 种首页按钮（门锁、空调、净化、尾箱、车窗、寻车、露营、保养），每套每按钮独立配置宽高比例、边框粗细/圆角、图标/文字大小、按钮位置 X/Y、内容焦点 X/Y。
-- 设置入口：`设置 → 外观与交互 → 各皮肤按钮布局`；离线实时预览、按钮单独复原、整套皮肤复原、设置备份/恢复支持。
-- 按钮始终留在原加权网格内，车辆远控、数据刷新、OPPO Hook 与露营安全判断不受新视觉参数修改。
+- 通过测试的 Android 代码提交：`c5ea4cb6bb693542a638359098a7170eeb45586f`。
+- CI：[Android Beta47 Per-Skin Controls，run 42124120790](https://github.com/fifadxy/Polestar-CN-API/actions/runs/42124120790)。
+- `assembleDebug`、`oppoBridge:assembleDebug`、`lintDebug`：**PASS**。
+- Robolectric / JVM：**主程序 554 项通过、OPPO Bridge 12 项通过，合计 566 项通过；失败 0、错误 0、跳过 0**。
+- 新增 `Beta47AirIdleReadoutTest`、`Beta47SkinButtonLayoutTest`、`Beta47CenteredMetricsTest`：通过。
+- CI 工件：`PsAssistant-v1.0.0-beta47-VALIDATION-debug.apk`、`PsAssistant-OPPO-Bridge-beta47-debug.apk`，及测试结果 XML。
 
-## 自动化 CI 验收
+## 已制作的独立登录兼容 FULL APK
 
-构建与测试记录：[GitHub Actions 42054020789](https://github.com/fifadxy/Polestar-CN-API/actions/runs/42054020789)。源提交：`e2ad8845621bda1764a759e26c31c46a9338a755`。
+| 字段 | 结果 |
+|---|---|
+| 文件 | `PsAssistant-v1.0.0-beta47-Standalone-FULL.apk` |
+| 字节 | **9,668,971 B**（低于 10,000,000 B） |
+| SHA-256 | `a4b60cecc794f2539cca4639eeed5591759e874426d48e55027b27cf10275a04` |
+| Android 应用 ID | `io.github.polestarcn.companion` |
+| 版本 | `1.0.0-beta47` / `161` |
+| 来源 CI Debug APK SHA-256 | `4dbf93d9f44ea5daa4c9d85cd63f682871ffdc0f9ce20113725f8b0ec426fa70` |
+| 签名 | v2 与 v3 验证均 PASS |
+| 原历史 FULL 证书 SHA-256 | `d4cd1b06701f9a8829c5ecc5bbee1398a0f8a655703b6cc356398efa30218a7e` |
+| 静态二进制完整性 | 原 ZIP 全部条目字节未改变，仅应用 Manifest 的 debuggable 位由 true 改为 false；新增已核验的私有独立登录兼容资源与 APK 签名 |
+| 兼容输入 | 从用户已批准的 Beta46 Standalone FULL 中提取同版格式客户端兼容资源；不写入公开 GitHub |
+| 真实中国区账号登录和远程车控 | **未实机验证** |
 
-| 测试范围 | 通过 | 失败 | 错误 | 跳过 |
-|---|---:|---:|---:|---:|
-| Android 主程序 | 552 | 0 | 0 | 0 |
-| OPPO Bridge | 12 | 0 | 0 | 0 |
-| **合计** | **564** | **0** | **0** | **0** |
+**发布边界**：该 FULL 包使用成功 CI 的 Debug 编译字节码，离线封装并以相同历史签名重新签名、关闭 Manifest 的可调试标志，**不等于独立构建的正式 Production Release**。旧版完整安装包若有相同包名和签名，可按 Android 版本码规则覆盖升级，建议先备份设置。中国区真实账号登录、手机实机 UI、ColorOS CarLink 及车辆命令回读仍须实际验证。
 
-CI Android 编译、Lint、APK 构建、单元测试及版本检查均成功。
+## 文件与功能
 
-## APK 文件完整性和签名
+- [Beta47 UI 专项说明](PSASSISTANT_BETA47_SKIN_CONTROLS_20261106.md)
+- [Beta47 技术知识库](../knowledge/PSASSISTANT_BETA47_SKIN_CONTROLS_20261106.md)
 
-| 文件类型 | 文件名 | 字节 | SHA256 |
-|---|---|---:|---|
-| FULL | `PsAssistant-v1.0.0-beta47-Standalone-FULL.apk` | 9,668,973 | `0fc9d41c14e28d57cd93e6fe7243d7997d072dc8d8d962bff9f08a02dd184d1a` |
-| Debug | `PsAssistant-v1.0.0-beta47-VALIDATION-debug.apk` | 9,994,154 | `17bfe7dcd86cc61e99a5c811d45718b3ad51d59abb6926d0f8a8736a74167d4a` |
-| OPPO Bridge | `PsAssistant-OPPO-Bridge-beta47-debug.apk` | 2,131,263 | `4c8218a0448b6bbfa9419a8fec2acd6b4fcd89d8a21f388a877cedc8849f0073` |
-
-- 完整 FULL 版的 AndroidManifest `debuggable=false`。包名 `io.github.polestarcn.companion`、versionCode 161。
-- FULL 复用以前批准的 PsAssistant 独立登录兼容资源（未写入 GitHub），资源长度 48 字节且原始密文指纹一致。
-- APK v2 / v3 签名验证通过，证书 SHA-256 与 Beta46 FULL 完全相同：`d4cd1b06701f9a8829c5ecc5bbee1398a0f8a655703b6cc356398efa30218a7e`。
-- 对比本轮 CI 编译的主 APK，全部原始 DEX 和资源条目逐字节保持一致；仅有 Manifest `debuggable` 从 true 调整为 false，再加入独立登录资源和签名文件。
-- FULL 版约 9.67 MB（低于 10,000,000 字节目标）。
-- 此 FULL 为 **CI Debug 编译代码的离线封装并关闭 debuggable**，并非 R8 优化正式 Release 变体。
-
-## 真实设备验收边界
-
-测试没有使用真实中国区账户登录或车辆进行指令回读，也没有通过 OPPO 官方 CarLink 认证。需要在 ColorOS 17 及其它目标设备上进一步检查：各套皮肤在横屏、小屏、大字体的按钮边界，空气读数的新鲜度，以及相同签名的覆盖安装。
-
-为避免泄露，签名私钥、独立登录资源、正式 FULL APK 均只交付给用户，**不进入公开 GitHub 仓库**。
+本次变更只涉及显示、设置保存和离线编辑预览；不改变手机与极星云端认证、远控确认、露营托管安全检查、OPPO LSPosed Stable/NEW/Mock 逻辑。

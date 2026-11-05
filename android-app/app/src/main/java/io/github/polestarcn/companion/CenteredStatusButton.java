@@ -12,8 +12,8 @@ class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
  private String title="";private boolean composing,slot,iconOnly;private String feedback="";private Drawable glyph;private boolean serviceGlyph;private Integer bar;
  private int desiredGlyphSize;private int previewIcon=-1,previewLabel=-1;
  final void previewAppearance(int icon,int label){if(icon>=0)previewIcon=icon;if(label>=0)previewLabel=label;refreshAppearance();}
- private float iconScale(){return previewIcon>=0?previewIcon/100f:UiDisplayMode.minimal(getContext())?MinimalIconAppearance.sizePercent(getContext())/100f:ButtonAppearance.iconScale(getContext());}
- private float labelScale(){return previewLabel<0?ButtonAppearance.textScale(getContext()):previewLabel/100f;}
+ private float iconScale(){float baseline=previewIcon>=0?previewIcon/100f:UiDisplayMode.minimal(getContext())?MinimalIconAppearance.sizePercent(getContext())/100f:ButtonAppearance.iconScale(getContext());return baseline*SkinButtonLayout.iconScale(this);}
+ private float labelScale(){return (previewLabel<0?ButtonAppearance.textScale(getContext()):previewLabel/100f)*SkinButtonLayout.labelScale(this);}
  private final Paint track=new Paint(Paint.ANTI_ALIAS_FLAG);
  CenteredStatusButton(Context c){super(c);setIncludeFontPadding(false);}
  @Override public void setText(CharSequence value,BufferType type){if(!composing)title=value==null?"":value.toString().split("\n",2)[0];super.setText(value,type);}
@@ -58,5 +58,5 @@ class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
   setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,best*scale);
   super.onMeasure(widthSpec,heightSpec);
  }
- @Override protected void onDraw(Canvas canvas){super.onDraw(canvas);if(iconOnly&&glyph!=null){canvas.save();canvas.translate((getWidth()-glyph.getBounds().width())/2f,(getHeight()-glyph.getBounds().height())/2f);glyph.draw(canvas);canvas.restore();}if(bar==null||UiDisplayMode.minimal(getContext()))return;float d=getResources().getDisplayMetrics().density,width=Math.max(0,Math.min(getWidth()-10*d,96*d)),left=(getWidth()-width)/2f;track.setColor(PsaDesign.line(AppPreferences.dark(getContext())));canvas.drawRoundRect(left,getHeight()-4*d,left+width,getHeight()-2*d,d,d,track);track.setColor(PsaDesign.ORANGE);canvas.drawRoundRect(left,getHeight()-4*d,left+width*bar/100f,getHeight()-2*d,d,d,track);}
+ @Override protected void onDraw(Canvas canvas){canvas.save();canvas.translate(SkinButtonLayout.focus(this,true),SkinButtonLayout.focus(this,false));super.onDraw(canvas);if(iconOnly&&glyph!=null){canvas.save();canvas.translate((getWidth()-glyph.getBounds().width())/2f,(getHeight()-glyph.getBounds().height())/2f);glyph.draw(canvas);canvas.restore();}canvas.restore();if(bar==null||UiDisplayMode.minimal(getContext()))return;float d=getResources().getDisplayMetrics().density,width=Math.max(0,Math.min(getWidth()-10*d,96*d)),left=(getWidth()-width)/2f;track.setColor(PsaDesign.line(AppPreferences.dark(getContext())));canvas.drawRoundRect(left,getHeight()-4*d,left+width,getHeight()-2*d,d,d,track);track.setColor(PsaDesign.ORANGE);canvas.drawRoundRect(left,getHeight()-4*d,left+width*bar/100f,getHeight()-2*d,d,d,track);}
 }

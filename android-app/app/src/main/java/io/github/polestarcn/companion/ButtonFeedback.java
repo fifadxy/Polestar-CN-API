@@ -11,6 +11,10 @@ public final class ButtonFeedback {
   if(UiDisplayMode.minimal(c)&&!showMinimal(c,control,s,state))return "";
 
   if(!"hidden".equals(mode(c,control))&&pending(state))return state;
+  // When purification is not active, show only actual reported AQI / PM2.5.
+  // Preserve the explicit Hidden preference and never fabricate missing sensor values.
+  if("air".equals(control)&&!"hidden".equals(mode(c,control))
+      &&(s==null||!"开启".equals(s.air)))return AirButtonMetrics.value(c,s,true);
   if("camp".equals(control)&&!"hidden".equals(mode(c,control))&& (CampModeManager.active(c)||"STOPPING".equals(CampModeManager.phase(c)))) return CampModeManager.remainingCaption(c);
   if("camp".equals(control)&&"state".equals(mode(c,control)))return ControlStatusText.value(c,"camp",s,state);
   switch(mode(c,control)){

@@ -1,3 +1,5 @@
+> **交付状态更新**：Beta46 新源码已通过 GitHub Android CI、Lint 和 558 项自动化测试，离线 FULL 已完成同证书 v2/v3 签名。实际中国区登录和 OEM 车辆控制仍需真机验收。详见 [构建报告](PSASSISTANT_BETA46_BUILD_VERIFICATION_20261105.md)。
+
 # PsAssistant Beta46 — OPPO CarLink / LSPosed 双方案融合实施说明
 
 **版本目标**：PsAssistant `v1.0.0-beta46`（code 160）、OPPO Bridge `v2.4.0`（code 37）。

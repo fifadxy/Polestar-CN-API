@@ -1,3 +1,5 @@
+**实际构建状态更新（2026-11-05）**：Beta46 CI [41999321739](https://github.com/fifadxy/Polestar-CN-API/actions/runs/41999321739) 已通过 558 项测试，Debug/Bridge APK 已构建，独立登录 FULL 已按上一已批准客户端资源和相同签名证书封装。以下为后续维护的复现指南，并非仍待执行的本次状态。详见 [构建验收](PSASSISTANT_BETA46_BUILD_VERIFICATION_20261105.md)。
+
 # Beta46 GitHub 同步与 FULL APK 编译流程
 
 截至当前离线交付：**GitHub 连接器读取/推送持续超时，尚不能确认 Beta46 代码已经同步；Beta46 Android APK 尚未编译，不能提供真实 FULL 文件。** 此文档给出准确的后续可复现步骤，且不会公开密钥。

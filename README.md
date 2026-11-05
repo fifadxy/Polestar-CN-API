@@ -1,3 +1,5 @@
+**Beta46 已通过 GitHub CI：558 项测试（0 失败），并制作同签名独立登录 FULL（160）。** 详见 [构建验收](docs/PSASSISTANT_BETA46_BUILD_VERIFICATION_20261105.md)。
+
 **Beta46 OPPO CarLink 双方案**：Stable/NEW/Mock 三模式、回退与安全回读，详见 [实施说明](docs/PSASSISTANT_BETA46_CARLINK_FUSION_20261105.md)。
 
 **Beta44 OPPO Watch 实验（2026-11-05）**：新增默认关闭的手机 Indicator 诊断与90秒通知测试，另提供可直接安装至兼容手表的独立测试 APK，无需新权限调用车辆；真实车况始终保留 SERVICE 类别，不宣称导航/运动。技术详情：[Beta44 Watch Indicator](docs/PSASSISTANT_BETA44_OPPO_WATCH_INDICATOR_20261105.md)。

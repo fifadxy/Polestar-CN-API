@@ -11,6 +11,7 @@ public final class VehicleWidgetProvider extends AppWidgetProvider {
   @Override public void onAppWidgetOptionsChanged(Context c, AppWidgetManager m, int id, Bundle opts) {
     WidgetRenderer.update(c, m, id, WidgetRenderer.Size.LARGE,opts);
   }
+  @Override public void onEnabled(Context context) { ResidentService.scheduleUpdates(context); }
   @Override public void onDisabled(Context context) { ResidentService.scheduleUpdates(context); }
 }
 

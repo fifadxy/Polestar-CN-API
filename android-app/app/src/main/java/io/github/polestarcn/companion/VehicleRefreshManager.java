@@ -72,6 +72,19 @@ public final class VehicleRefreshManager {
    if(period<=0)return false;
    return !RefreshPlanner.fresh(readAt(vin,group),System.currentTimeMillis(),period*60_000L);
  }
+ private boolean airExpirationDue(String vin,VehicleSnapshot s){
+   if(s==null||!"开启".equals(s.air))return false;
+   long expiry=0;
+   android.content.SharedPreferences local=context.getSharedPreferences("air-runtime-v1",0);
+   String identity=AppPreferences.get(context,"vehicle","");
+   if(identity.equals(local.getString("vehicle",""))){
+     long started=local.getLong("started",0);if(started>0)expiry=started+300_000L;
+   }
+   if(expiry==0&&s.environment.airRuntimeMinutes!=null&&s.environment.airReportedAt>0)
+     expiry=s.environment.airReportedAt+s.environment.airRuntimeMinutes*60_000L;
+   long now=System.currentTimeMillis();
+   return expiry>0&&expiry<=now&&now-expiry<24*60*60_000L&&readAt(vin,RefreshDomain.AIR)<expiry;
+ }
  private EnumSet<RefreshDomain> requested(boolean front,boolean idle){
    VehicleCoordinator car=VehicleCoordinator.get(context);
    EnumSet<RefreshDomain> set=EnumSet.noneOf(RefreshDomain.class);
@@ -84,6 +97,7 @@ public final class VehicleRefreshManager {
      return set;
    }
    for(RefreshDomain d:RefreshDomain.values())if(due(vin,d,front,car.snapshot))set.add(d);
+   if(front&&airExpirationDue(vin,car.snapshot))set.add(RefreshDomain.AIR);
    // These fields are on the same Health RPC; read it once when either expires.
    if(set.contains(RefreshDomain.HEALTH)||set.contains(RefreshDomain.MAINTENANCE)){
      set.add(RefreshDomain.HEALTH);set.add(RefreshDomain.MAINTENANCE);

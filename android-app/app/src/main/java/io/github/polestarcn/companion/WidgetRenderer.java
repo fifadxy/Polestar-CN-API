@@ -267,7 +267,7 @@ public final class WidgetRenderer {
         int[] panels={R.id.widget_action_lock,R.id.widget_action_climate,R.id.volike_widget_charge,R.id.volike_widget_location};
         int[] glyphs={R.id.widget_lock_icon,R.id.widget_climate_icon,R.id.volike_widget_charge_icon,R.id.volike_widget_location_icon};boolean[] active={locked,unlocked,running,stopped};
         views.setTextColor(R.id.widget_lock_label,locked?Color.BLACK:ink);views.setTextColor(R.id.widget_climate_label,unlocked?Color.BLACK:ink);
-        for(int n=0;n<panels.length;n++){views.setInt(panels[n],"setBackgroundResource",active[n]?R.drawable.widget_action_on:R.drawable.widget_action_clear);views.setInt(glyphs[n],"setColorFilter",active[n]?Color.BLACK:ink);}
+        for(int n=0;n<panels.length;n++){views.setInt(panels[n],"setBackgroundResource",active[n]?R.drawable.widget_action_on:R.drawable.widget_action_clear);views.setInt(glyphs[n],"setColorFilter",active[n]?PsaDesign.ORANGE:ink);}
         int[] roots={R.id.widget_action_lock,R.id.widget_action_climate,R.id.volike_widget_lock,R.id.volike_widget_climate,R.id.volike_widget_charge,R.id.volike_widget_location};
         String[] commands={"widget-lock","widget-unlock","widget-lock","widget-unlock","widget-climate-start","widget-climate-stop"};
         String[] names={en?"Lock":"锁车",en?"Unlock":"解锁",en?"Lock":"锁车",en?"Unlock":"解锁",en?"Start climate":"开启空调",en?"Stop climate":"关闭空调"};
@@ -378,7 +378,7 @@ public final class WidgetRenderer {
     if (nio) views.setInt(icon, "setBackgroundResource", active
         ? lock || !nioColors ? R.drawable.widget_action_nio_lock_active : R.drawable.widget_action_nio_climate_active
         : AppPreferences.dark(c) ? R.drawable.widget_action_nio_dark : R.drawable.widget_action_nio_light);
-    int color = active ? Color.rgb(21,22,23) : ink;
+    int color = active ? PsaDesign.ORANGE : ink;
     views.setInt(icon, "setColorFilter", color); views.setTextColor(text, nio ? ink : color);
     widgetText(views,c,text, label);
     views.setContentDescription(root, AppPreferences.widgetTr(c, lock ? "门锁 · " : "空调 · ", lock ? "Door lock · " : "Climate · ")

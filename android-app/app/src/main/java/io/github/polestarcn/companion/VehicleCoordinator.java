@@ -91,16 +91,24 @@ public final class VehicleCoordinator {
 
   public boolean locationBusy;
   private int locationGeneration;
-  private long parkingFetchedAt;
-  public long parkingRefreshDelay(){int minutes=RefreshPolicy.map(context);if(minutes==0)return -1;long interval=minutes*60000L;return parkingFetchedAt==0?interval:Math.max(1000,interval-(android.os.SystemClock.elapsedRealtime()-parkingFetchedAt));}
+  private long parkingFetchedAt,parkingAttemptAt;
+  private int parkingUnchangedReads,parkingFailures;
+  private int parkingIntervalMinutes(){return ParkingRefreshStrategy.intervalMinutes(
+      RefreshPolicy.mapMode(context),RefreshPolicy.map(context),parkingUnchangedReads,parkingFailures);}
+  public long parkingRefreshDelay(){
+    if(!VehiclePowerPolicy.automaticReads(context)||"manual".equals(RefreshPolicy.mapMode(context)))return -1;
+    long since=Math.max(parkingFetchedAt,parkingAttemptAt);
+    int minutes=parkingIntervalMinutes();
+    return since==0?1000L:Math.max(1000L,minutes*60000L-(android.os.SystemClock.elapsedRealtime()-since));
+  }
   private final List<java.util.function.BiConsumer<LocationSnapshot,String>> locationCompletions=new ArrayList<>();
   public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete){readLastParkedLocation(true,complete);}
   public void readLastParkedLocation(boolean force,java.util.function.BiConsumer<LocationSnapshot,String> complete) {
     if(!FirstUseConsent.accepted(context)||!signedIn||selected==null||selected.vin==null||selected.vin.isEmpty()){complete.accept(null,tr("请先连接车辆","Connect a vehicle first"));return;}
-    int cacheMinutes=RefreshPolicy.map(context);
-    if(!force&&cacheMinutes>0&&parkedLocation!=null&&!parkedLocation.stale&&android.os.SystemClock.elapsedRealtime()-parkingFetchedAt<cacheMinutes*60_000L){complete.accept(parkedLocation,"");return;}
+    int cacheMinutes=parkingIntervalMinutes();
+    if(!force&&parkedLocation!=null&&!parkedLocation.stale&&parkingFetchedAt>0&&android.os.SystemClock.elapsedRealtime()-parkingFetchedAt<cacheMinutes*60_000L){complete.accept(parkedLocation,"");return;}
     locationCompletions.add(complete);if(locationBusy)return;
-    String vin=selected.vin;int generation=locationGeneration;locationBusy=true;changed();
+    String vin=selected.vin;int generation=locationGeneration;locationBusy=true;parkingAttemptAt=android.os.SystemClock.elapsedRealtime();changed();
     io.execute(()->{
       LocationSnapshot result=null;String error="";
       try{result=api.readLastParkedLocation(vin);}catch(Exception e){DiagnosticLog.add("Last parked location unavailable; vehicle session unchanged");error=tr("暂时无法读取停车位置，请稍后重试","Parking location is unavailable. Try again later.");}
@@ -110,7 +118,12 @@ public final class VehicleCoordinator {
         locationBusy=false;
         List<java.util.function.BiConsumer<LocationSnapshot,String>> callbacks=new ArrayList<>(locationCompletions);locationCompletions.clear();
         if(signedIn&&selected!=null&&vin.equals(selected.vin)){
-          if(location!=null){if(parkedLocation==null||Math.abs(parkedLocation.latitude-location.latitude)>.0001||Math.abs(parkedLocation.longitude-location.longitude)>.0001)parkingName="";parkedLocation=location;parkingFetchedAt=android.os.SystemClock.elapsedRealtime();}
+          if(location!=null){
+            boolean same=ParkingRefreshStrategy.same(parkedLocation,location);
+            if(!same)parkingName="";
+            parkingUnchangedReads=same?Math.min(6,parkingUnchangedReads+1):0;
+            parkingFailures=0;parkedLocation=location;parkingFetchedAt=android.os.SystemClock.elapsedRealtime();
+          }else{parkingFailures=Math.min(4,parkingFailures+1);}
           changed();for(java.util.function.BiConsumer<LocationSnapshot,String> callback:callbacks)callback.accept(location,message);if(location!=null&&parkingName.isEmpty())resolveParkingName(location,null);
         }
       });
@@ -262,7 +275,7 @@ public final class VehicleCoordinator {
 
   public void choose(ChinaPolestarApi.VehicleInfo car) {
     if (busy || commandPending) return;
-    lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
+    lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;parkingAttemptAt=0;parkingFailures=0;parkingUnchangedReads=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     SecureVehicleSelection.clear(context);
     AppPreferences.set(context, "vehicle", identity(car.vin));
     selected = null;
@@ -372,7 +385,7 @@ public final class VehicleCoordinator {
     BridgeCommandRequests.cancelAll();
     signedIn=false;exclusive=false;busy=false;quietRefresh=false;userRefreshing=false;
     for(PendingCommand pending:pendingCommands.values()){pending.cancelled=true;if(pending.readback!=null)pending.readback.cancel();}pendingCommands.clear();syncCommandStatus();completions.clear();
-    lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
+    lastVehicleReadOk=false;parkedLocation=null;parkingName="";parkingFetchedAt=0;parkingAttemptAt=0;parkingFailures=0;parkingUnchangedReads=0;locationGeneration++;locationBusy=false;locationCompletions.clear();
     signedIn = false;
     // Preserve an encrypted pending remote-stop record across local sign-out.
     // It must not make network calls until the user signs in to the matching vehicle again.

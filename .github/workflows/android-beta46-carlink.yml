@@ -2,7 +2,6 @@ name: Android Beta46 CarLink Dual Mode
 on:
   push:
     branches:
-      - android-polestar-assistant-main
       - feature/psassistant-beta46-dual-carlink-20261105
     paths:
       - 'android-app/**'

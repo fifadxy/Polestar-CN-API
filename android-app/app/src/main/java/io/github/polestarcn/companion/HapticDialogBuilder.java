@@ -10,17 +10,18 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
   HapticDialogBuilder(Context context){super(context);this.context=context;}
   @Override public AlertDialog.Builder setView(android.view.View view){
     if(view instanceof android.widget.LinearLayout){
-      android.widget.ScrollView sc=new android.widget.ScrollView(context);sc.addView(view);return super.setView(sc);
+      android.widget.ScrollView sc=new android.widget.ScrollView(context);sc.setFillViewport(false);sc.setVerticalScrollBarEnabled(false);sc.setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);sc.addView(view);return super.setView(sc);
     }
     return super.setView(view);
   }
   @Override public AlertDialog create(){
     AlertDialog dialog = super.create();
+    android.view.Window initial=dialog.getWindow();if(initial!=null){initial.setWindowAnimations(0);initial.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);}
     dialog.setOnShowListener(ignored -> {
       android.view.Window window=dialog.getWindow();boolean dark=AppPreferences.dark(context);
       if(window!=null){android.graphics.drawable.GradientDrawable glass=new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR,dark?new int[]{0xF02A3036,0xF2181D22}:new int[]{0xF8FFFFFF,0xF0EDF1F4});glass.setCornerRadius(24*context.getResources().getDisplayMetrics().density);glass.setStroke(1,dark?0x557C8993:0xAAFFFFFF);window.setBackgroundDrawable(glass);window.setDimAmount(.24f);
-        if(android.os.Build.VERSION.SDK_INT>=31){android.view.WindowManager wm=context.getSystemService(android.view.WindowManager.class);if(wm!=null&&wm.isCrossWindowBlurEnabled())window.setBackgroundBlurRadius(24);}
-        android.view.View decor=window.getDecorView();UiTypography.applyTree(decor);decor.animate().cancel();decor.setAlpha(1f);decor.setScaleX(1f);decor.setScaleY(1f);decor.setTranslationX(0f);decor.setTranslationY(0f);window.setWindowAnimations(android.R.style.Animation_Dialog);window.setLayout(Math.min((int)(360*context.getResources().getDisplayMetrics().density),(int)(context.getResources().getDisplayMetrics().widthPixels*.86f)),android.view.ViewGroup.LayoutParams.WRAP_CONTENT);window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);}
+        if(android.os.Build.VERSION.SDK_INT>=31){android.view.WindowManager wm=context.getSystemService(android.view.WindowManager.class);if(wm!=null&&wm.isCrossWindowBlurEnabled())window.setBackgroundBlurRadius(0);}
+        android.view.View decor=window.getDecorView();UiTypography.applyTree(decor);decor.animate().cancel();decor.setAlpha(1f);decor.setScaleX(1f);decor.setScaleY(1f);decor.setTranslationX(0f);decor.setTranslationY(0f);window.setWindowAnimations(0);android.view.WindowManager.LayoutParams layout=window.getAttributes();layout.width=Math.min((int)(360*context.getResources().getDisplayMetrics().density),(int)(context.getResources().getDisplayMetrics().widthPixels*.86f));layout.height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT;layout.gravity=android.view.Gravity.CENTER;window.setAttributes(layout);window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);}
 
       android.widget.ListView list=dialog.getListView();
       if(list!=null) {

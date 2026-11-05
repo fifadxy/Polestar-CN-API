@@ -13,7 +13,14 @@ public final class RefreshPolicy {
     return fallback;
   }
   public static int foreground(Context c){return VehiclePowerPolicy.automaticReads(c)?minutes(c,"foreground_refresh_minutes",5,0,1,2,5,10,15):0;}
-  public static int map(Context c){return VehiclePowerPolicy.automaticReads(c)?minutes(c,"map_refresh_minutes",15,0,5,15,30,60):0;}
+  public static String mapMode(Context c){
+    String mode=AppPreferences.get(c,"map_refresh_mode","smart");
+    return mode.equals("fixed")||mode.equals("manual")?mode:"smart";
+  }
+  public static int map(Context c){
+    if(!VehiclePowerPolicy.automaticReads(c)||"manual".equals(mapMode(c)))return 0;
+    return "fixed".equals(mapMode(c))?minutes(c,"map_refresh_minutes",15,5,15,30,60,120):15;
+  }
   public static int background(Context c,boolean resident,boolean widgets){
     if(!VehiclePowerPolicy.automaticReads(c))return 0;
     int a=(resident||AppPreferences.visible(c,"app_background_enabled",false))?minutes(c,"app_background_minutes",30,0,15,30,60,120):0;

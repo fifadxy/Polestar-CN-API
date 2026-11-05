@@ -75,7 +75,7 @@ public final class WidgetAppearance {
     int fill=button(c),stroke=border(c);
     float inset=2f,radius=11f;
     if(active && Color.alpha(fill)>0){
-      paint.setStyle(Paint.Style.FILL);paint.setColor(fill);
+      paint.setStyle(Paint.Style.FILL);paint.setColor(alpha(fill,22));
       canvas.drawRoundRect(inset,inset,w-inset,h-inset,radius,radius,paint);
     }
     int thickness=width(c,"widget_button_width",1);

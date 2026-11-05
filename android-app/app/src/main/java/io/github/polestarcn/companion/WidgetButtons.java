@@ -42,7 +42,7 @@ public final class WidgetButtons {
     v.setViewVisibility(wrappers[i],i<count?View.VISIBLE:View.GONE);
     if(i>=2)v.setViewVisibility(new int[]{R.id.widget_button_holder_2,R.id.widget_button_holder_3,R.id.widget_button_holder_4,R.id.widget_button_holder_5}[i-2],i<count?View.VISIBLE:View.GONE);
     v.setViewVisibility(new int[]{R.id.widget_button_bg_0,R.id.widget_button_bg_1,R.id.widget_button_bg_2,R.id.widget_button_bg_3,R.id.widget_button_bg_4,R.id.widget_button_bg_5}[i],i<count?View.VISIBLE:View.GONE);
-    if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int fill=WidgetAppearance.button(c);int color=on&&(!WidgetAppearance.customizedButton(c)||Color.alpha(fill)>160&&Color.luminance(fill)>.43)?Color.BLACK:ink;
+    if(i>=count)continue;String id=chosen.get(i);boolean on=active(id,s);int fill=WidgetAppearance.button(c);int color=on?PsaDesign.ORANGE:ink;
    v.setInt(roots[i],"setBackgroundResource",WidgetAppearance.customizedButton(c)?0:WidgetColors.borderDrawable(c,on));v.setImageViewBitmap(new int[]{R.id.widget_button_bg_0,R.id.widget_button_bg_1,R.id.widget_button_bg_2,R.id.widget_button_bg_3,R.id.widget_button_bg_4,R.id.widget_button_bg_5}[i],WidgetAppearance.buttonBackground(c,on));v.setImageViewResource(icons[i],icon(c,id,s));v.setInt(icons[i],"setBackgroundResource",0);v.setInt(icons[i],"setColorFilter",color);
    String name=label(c,id),state=state(c,id,s);String visible=(id.equals("lock")||id.equals("air"))?state:name;if(id.equals("air"))visible=AirRuntime.label(c,s,AppPreferences.get(c,"vehicle",""));
    if(id.startsWith("climate")){

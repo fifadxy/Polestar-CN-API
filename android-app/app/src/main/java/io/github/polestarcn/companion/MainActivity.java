@@ -124,12 +124,12 @@ public final class MainActivity extends FragmentActivity {
     return 60_000L;
   }
   private static boolean openingRefreshClaimed,openingRefreshFinished;private static long openingRefreshDue;
-  private final Runnable openingRefresh=()->{openingRefreshFinished=true;if(getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)&&model.hasSession()&&!model.busy&&!model.commandPending)model.refreshQuiet();};
+  private final Runnable openingRefresh=()->{openingRefreshFinished=true;VehicleRefreshManager.get(this).requestResume();};
   private final Runnable foregroundRefresh=new Runnable(){public void run(){
-    if(FirstUseConsent.accepted(MainActivity.this)&&model.hasSession()&&!model.busy&&!model.commandPending )model.refreshQuiet();
+    if(FirstUseConsent.accepted(MainActivity.this)&&model.hasSession()&&!model.busy&&!model.commandPending)VehicleRefreshManager.get(this).requestForeground();
     scheduleForeground();
   }};
-  private void scheduleForeground(){displayHandler.removeCallbacks(foregroundRefresh);int minutes=RefreshPolicy.foreground(this);if(minutes>0)displayHandler.postDelayed(foregroundRefresh,minutes*60_000L);}
+  private void scheduleForeground(){displayHandler.removeCallbacks(foregroundRefresh);long delay=VehicleRefreshManager.get(this).nextForegroundDelay();if(delay>0&&mapRefreshHostActive)displayHandler.postDelayed(foregroundRefresh,Math.max(15000L,delay));}
   private static final int NOTIFICATIONS = 33, MAP_LOCATION = 34;
   private static final String HOME_DEFAULTS =
       "vehicle_status,odometer,ta_distance,tm_distance,ta_speed,tm_speed,ta_consumption,tm_consumption,temperature,aqi,charge_power";
@@ -172,7 +172,7 @@ public final class MainActivity extends FragmentActivity {
   }
   private void startConsented(){
     handleWidgetIntent(getIntent());
-    if(AppPreferences.visible(this,"refresh_on_open",true)){if(!openingRefreshClaimed){openingRefreshClaimed=true;openingRefreshDue=android.os.SystemClock.elapsedRealtime()+3000L;}if(!openingRefreshFinished)displayHandler.postDelayed(openingRefresh,Math.max(0,openingRefreshDue-android.os.SystemClock.elapsedRealtime()));}
+    // Resume TTL gate replaces the previous unconditional launch refresh.
     if (AppPreferences.enabled(this))
       try {
         ResidentService.apply(this);
@@ -223,7 +223,7 @@ public final class MainActivity extends FragmentActivity {
   protected void onDestroy() {
     lockHoldHandler.removeCallbacksAndMessages(null);displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);
     displayHandler.removeCallbacks(openingRefresh);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);
-    displayHandler.removeCallbacks(mapRefreshTick);dismissParking();if(carDialog!=null)carDialog.dismiss();if(backdrop!=null)backdrop.release();
+    displayHandler.removeCallbacks(mapRefreshTick);displayHandler.removeCallbacks(resumeParking);dismissParking();if(carDialog!=null)carDialog.dismiss();if(backdrop!=null)backdrop.release();
     model.remove(listener);
     authGeneration++; authPending = false;
     if (biometric != null) biometric.cancelAuthentication();
@@ -235,15 +235,17 @@ public final class MainActivity extends FragmentActivity {
     if (model != null) { model.listen(listener); if (resumeRender) { resumeRender = false; render(); } }
   }
   @Override protected void onResume() {
-    super.onResume();mapRefreshHostActive=true;scheduleMapRefresh();if(backdrop!=null)backdrop.resume();monitorCampingNetwork();AllGoodTextView.host(findViewById(android.R.id.content),true);if(model!=null&&dashboardReady&&page==0)onModelChanged();scheduleForeground();displayHandler.removeCallbacks(displayTick); displayHandler.postDelayed(displayTick, displayDelay());
+    super.onResume();mapRefreshHostActive=true;VehicleRefreshManager.get(this).setForeground(true);
+    displayHandler.removeCallbacks(openingRefresh);displayHandler.postDelayed(openingRefresh,RefreshPolicy.resumeDelaySeconds(this)*1000L);
+    displayHandler.removeCallbacks(resumeParking);displayHandler.postDelayed(resumeParking,2000L);scheduleMapRefresh();if(backdrop!=null)backdrop.resume();monitorCampingNetwork();AllGoodTextView.host(findViewById(android.R.id.content),true);if(model!=null&&dashboardReady&&page==0)onModelChanged();scheduleForeground();displayHandler.removeCallbacks(displayTick); displayHandler.postDelayed(displayTick, displayDelay());
   }
   @Override protected void onPause() {
-    lockHoldHandler.removeCallbacksAndMessages(null);mapRefreshHostActive=false;displayHandler.removeCallbacks(mapRefreshTick);if(backdrop!=null)backdrop.pause();stopCampingNetworkMonitor();AllGoodTextView.host(findViewById(android.R.id.content),false);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);View pulse=findViewById(android.R.id.content).findViewWithTag("charging_pulse");if(pulse instanceof ChargingPulseView)((ChargingPulseView)pulse).setActive(false); super.onPause();
+    lockHoldHandler.removeCallbacksAndMessages(null);mapRefreshHostActive=false;VehicleRefreshManager.get(this).setForeground(false);displayHandler.removeCallbacks(openingRefresh);displayHandler.removeCallbacks(resumeParking);displayHandler.removeCallbacks(mapRefreshTick);if(backdrop!=null)backdrop.pause();stopCampingNetworkMonitor();AllGoodTextView.host(findViewById(android.R.id.content),false);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);View pulse=findViewById(android.R.id.content).findViewWithTag("charging_pulse");if(pulse instanceof ChargingPulseView)((ChargingPulseView)pulse).setActive(false); super.onPause();
   }
 
   @Override
   protected void onStop() {
-    displayHandler.removeCallbacks(mapRefreshTick);dismissParking();if(carDialog!=null)carDialog.dismiss();
+    displayHandler.removeCallbacks(mapRefreshTick);displayHandler.removeCallbacks(resumeParking);dismissParking();if(carDialog!=null)carDialog.dismiss();
     if (model != null) model.remove(listener);
     resumeRender = true;
     if (biometric != null && authPending) {
@@ -632,6 +634,18 @@ public final class MainActivity extends FragmentActivity {
     if(backdrop!=null){backdrop.release();mapHost.removeView(backdrop);}backdropPoint=point;backdropStyleKey=key;backdrop=new ParkingBackdrop(this,point);mapHost.addView(backdrop,0,new FrameLayout.LayoutParams(-1,-1));
   }
   private boolean mapRefreshHostActive;
+  private boolean shouldDisplayParking(){
+    if(page!=0)return false;
+    if(!RefreshPolicy.mapVisibleOnly(this))return true;
+    View caption=findViewById(android.R.id.content).findViewWithTag("parking_caption");
+    return AppPreferences.visible(this,"map_backdrop",false)
+        ||caption!=null&&caption.getVisibility()==View.VISIBLE;
+  }
+  private final Runnable resumeParking=()->{
+    if(!mapRefreshHostActive||!VehiclePowerPolicy.automaticReads(this)
+        ||!model.hasSession()||model.selected==null||!shouldDisplayParking())return;
+    model.readLastParkedLocationOnResume(RefreshPolicy.mapResume(this),(point,error)->scheduleMapRefresh());
+  };
   private final Runnable mapRefreshTick=()->{if(VehiclePowerPolicy.automaticReads(this)&&model.hasSession()&&model.selected!=null&&AppPreferences.visible(this,"map_backdrop",false))model.readLastParkedLocation(false,(point,error)->scheduleMapRefresh());else scheduleMapRefresh();};
   private void scheduleMapRefresh(){displayHandler.removeCallbacks(mapRefreshTick);long delay=model==null?-1:model.parkingRefreshDelay();if(mapRefreshHostActive&&delay>=0&&AppPreferences.visible(this,"map_backdrop",false))displayHandler.postDelayed(mapRefreshTick,Math.max(1000,delay));}
 
@@ -658,7 +672,7 @@ public final class MainActivity extends FragmentActivity {
   private final Runnable locationProbe3=()->probeOpeningLocation();
   private final Runnable locationProbe5=()->probeOpeningLocation();
   private void scheduleOpeningLocation(){if(!VehiclePowerPolicy.automaticReads(this)||!FirstUseConsent.accepted(this)||!model.hasSession()||model.selected==null)return;String vin=model.selected.vin;if(Objects.equals(vin,openingLocationVin)&&locationProbesScheduled)return;openingLocationVin=vin;locationProbesScheduled=true;displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);displayHandler.postDelayed(locationProbe3,Math.max(0,3000-(SystemClock.elapsedRealtime()-locationStart)));displayHandler.postDelayed(locationProbe5,Math.max(0,5000-(SystemClock.elapsedRealtime()-locationStart)));}
-  private void probeOpeningLocation(){if(!VehiclePowerPolicy.automaticReads(this)||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)||!model.hasSession()||model.selected==null||!Objects.equals(openingLocationVin,model.selected.vin)||!model.parkingName.isEmpty())return;model.readLastParkedLocation(false,(point,error)->{if(point!=null)model.resolveParkingName(point,()->{if(!model.parkingName.isEmpty()){displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);}});});}
+  private void probeOpeningLocation(){if(!shouldDisplayParking()||!VehiclePowerPolicy.automaticReads(this)||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)||!model.hasSession()||model.selected==null||!Objects.equals(openingLocationVin,model.selected.vin)||!model.parkingName.isEmpty())return;model.readLastParkedLocation(false,(point,error)->{if(point!=null)model.resolveParkingName(point,()->{if(!model.parkingName.isEmpty()){displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);}});});}
   private LinearLayout chargeHealthSlot(LinearLayout health,int height){LinearLayout slot=column();slot.setTag("health_charge_slot");slot.addView(health,new LinearLayout.LayoutParams(-1,-1));FrameLayout charging=new FrameLayout(this);charging.setTag("charging_section");ChargingPulseView pulse=new ChargingPulseView(this);charging.addView(pulse,new FrameLayout.LayoutParams(-1,-1));TextView state=liveText(()->tr("充电中","Charging")+" · "+DisplayMetric.CHARGE_POWER.value(this,model.snapshot,true,AppPreferences.english(this))+" · "+DisplayMetric.CHARGE_ETA.value(this,model.snapshot,true,AppPreferences.english(this)),height<=42?12:15,ink,true);state.setGravity(Gravity.CENTER);charging.addView(state,new FrameLayout.LayoutParams(-1,-1));slot.addView(charging,new LinearLayout.LayoutParams(-1,-1));click(charging,this::chargingDialog);bindDashboard(()->{boolean active=ChargingVisibility.shouldShow(model.snapshot);health.setVisibility(active?View.GONE:"behind".equals(AppPreferences.get(this,"all_good_position","below"))&&VehicleCondition.reported(model.snapshot,showTires())&&!VehicleCondition.problem(model.snapshot,showTires())?View.INVISIBLE:View.VISIBLE);charging.setVisibility(active?View.VISIBLE:View.GONE);pulse.setActive(active);slot.setVisibility(!active&&"behind".equals(AppPreferences.get(this,"all_good_position","below"))&&"offset_c".equals(AppPreferences.get(this,"all_good_lines","one"))&&VehicleCondition.reported(model.snapshot,showTires())&&!VehicleCondition.problem(model.snapshot,showTires())?View.GONE:View.VISIBLE);});return slot;}
   private LinearLayout simple2Card(){LinearLayout card=column();card.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable frame=bg(surface,20);frame.setStroke(dp(1),line);card.setBackground(frame);return card;}
   private void simple2Action(LinearLayout parent,String control,String label){

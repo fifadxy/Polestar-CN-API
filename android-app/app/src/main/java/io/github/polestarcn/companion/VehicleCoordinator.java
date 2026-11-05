@@ -102,6 +102,16 @@ public final class VehicleCoordinator {
     return since==0?1000L:Math.max(1000L,minutes*60000L-(android.os.SystemClock.elapsedRealtime()-since));
   }
   private final List<java.util.function.BiConsumer<LocationSnapshot,String>> locationCompletions=new ArrayList<>();
+  /** A resume gate distinct from continuous 15/30/60 min parking reads. */
+  public void readLastParkedLocationOnResume(int thresholdMinutes,java.util.function.BiConsumer<LocationSnapshot,String> done){
+    if(done==null)return;
+    if(thresholdMinutes==0||!VehiclePowerPolicy.automaticReads(context)){done.accept(parkedLocation,"");return;}
+    long now=android.os.SystemClock.elapsedRealtime();
+    if(locationBusy||parkingAttemptAt>0&&now-parkingAttemptAt<60_000L){done.accept(parkedLocation,"");return;}
+    if(parkedLocation!=null&&!parkedLocation.stale&&parkingFetchedAt>0
+        &&now-parkingFetchedAt<thresholdMinutes*60_000L){done.accept(parkedLocation,"");return;}
+    readLastParkedLocation(true,done);
+  }
   public void readLastParkedLocation(java.util.function.BiConsumer<LocationSnapshot,String> complete){readLastParkedLocation(true,complete);}
   public void readLastParkedLocation(boolean force,java.util.function.BiConsumer<LocationSnapshot,String> complete) {
     if(!FirstUseConsent.accepted(context)||!signedIn||selected==null||selected.vin==null||selected.vin.isEmpty()){complete.accept(null,tr("请先连接车辆","Connect a vehicle first"));return;}

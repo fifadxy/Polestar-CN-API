@@ -1,3 +1,5 @@
+**Android v1.0.0-beta42 /156（2026-11-05）**：稳定二级菜单、工作态Widget VI橙色、净化 PM2.5/AQI 选择、各皮肤极简图标粗细/大小、停车点独立智能刷新。当前等待CI与ColorOS真机验证，参见 [Beta42更新说明](docs/PSASSISTANT_V1_0_BETA42_20261105.md)。
+
 当前融合分支 **PsAssistant 0.9.7-beta38-protocol /152 · Bridge 2.1.0 /34**：按用户要求保留上传的绑定、会话、四类事件和返回值业务逻辑，通过独立命名空间与API102适配接入主程序。24个核心方法逐段一致性检查；保留beta37全部UI。参见 [原文、适配范围与真机步骤](docs/PSASSISTANT_BETA38_INTEGRATION_20261104.md)。
 
 当前主程序增量 **PsAssistant 0.9.7-beta37-ui /151 · Bridge 2.0.0 /33**：按参考图重制车况与保养矢量图标，统一紧凑弹窗、1秒长按显式操作、实时尺寸预览与柔化粒子边界。参见 [本版更新与验收](docs/PSASSISTANT_BETA37_UI_20261104.md)。

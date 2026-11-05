@@ -1,3 +1,5 @@
+**最新Android v1.0.0-beta42 /156**：[二级弹窗、极简图标、净化空气质量、停车位置自适应策略](PSASSISTANT_V1_0_BETA42_UI_REFRESH_20261105.md)。2026-11-05：源码已提交，CI/真机结果单独报告，以下为历史记录。
+
 - [beta38 双路径协议融合、适配差异与真机验收](../docs/PSASSISTANT_BETA38_INTEGRATION_20261104.md)
 - [beta37 参考图标、保养弹窗与外观优化](../docs/PSASSISTANT_BETA37_UI_20261104.md)
 - [beta36 真机测试与模块 2.0](OPPO_DEVICE_BETA36_20261104.md)

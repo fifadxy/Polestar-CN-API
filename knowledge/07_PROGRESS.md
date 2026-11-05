@@ -1,3 +1,5 @@
+**2026-11-05 Android v1.0.0-beta42 /156**：[当前UI与停车点独立刷新实现](PSASSISTANT_V1_0_BETA42_UI_REFRESH_20261105.md)，已提交，构建和实车验证需按记录确认。
+
 当前增量：[v0.9.6-beta2 · 自动测试与车窗羽化](48_V096_BETA2_EFFECT_PREVIEW_FEATHER.md)，版本107。
 
 当前增量：[v0.9.6-beta1 · 设置与交互升级](47_V096_SETTINGS_INTERACTION.md)，版本106。

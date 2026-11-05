@@ -1,3 +1,5 @@
+**PsAssistant Beta47（2026-11-06）**：净化关闭仅显示实际 AQI/PM2.5；7 套皮肤 × 8 类按钮的宽高、边框、图标、文字、焦点可分别调整。CI 已通过 564 项测试，详见 [构建验收](docs/PSASSISTANT_BETA47_BUILD_VERIFICATION_20261106.md)。
+
 **Beta46 已通过 GitHub CI：558 项测试（0 失败），并制作同签名独立登录 FULL（160）。** 详见 [构建验收](docs/PSASSISTANT_BETA46_BUILD_VERIFICATION_20261105.md)。
 
 **Beta46 OPPO CarLink 双方案**：Stable/NEW/Mock 三模式、回退与安全回读，详见 [实施说明](docs/PSASSISTANT_BETA46_CARLINK_FUSION_20261105.md)。

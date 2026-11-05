@@ -365,7 +365,7 @@ public final class MainActivity extends FragmentActivity {
   private int feedbackSp(boolean compact){return Math.min(ButtonFeedback.sp(this),voLike()?8:compact?10:11);}
   private TextView feedbackText(String control,boolean compact){
     TextView view=text("",feedbackSp(compact),muted,false);view.setTag("control_feedback_"+control);view.setGravity(Gravity.CENTER);view.setTypeface(ButtonFeedback.typeface(this));fitSingleLine(view,feedbackSp(compact));
-    bindDashboard(()->{String value=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));view.setText(value);view.setVisibility(AppPreferences.visible(this,"show_button_feedback",true)&&!value.isEmpty()?View.VISIBLE:View.GONE);});return view;
+    bindDashboard(()->{String value=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));view.setText(value);view.setVisibility(!minimalMode()&&AppPreferences.visible(this,"show_button_feedback",true)&&!value.isEmpty()?View.VISIBLE:View.GONE);});return view;
   }
   private void gap(LinearLayout p, int size) {
     p.addView(new View(this), new LinearLayout.LayoutParams(1, dp(size)));
@@ -658,7 +658,7 @@ public final class MainActivity extends FragmentActivity {
   private final Runnable locationProbe3=()->probeOpeningLocation();
   private final Runnable locationProbe5=()->probeOpeningLocation();
   private void scheduleOpeningLocation(){if(!VehiclePowerPolicy.automaticReads(this)||!FirstUseConsent.accepted(this)||!model.hasSession()||model.selected==null)return;String vin=model.selected.vin;if(Objects.equals(vin,openingLocationVin)&&locationProbesScheduled)return;openingLocationVin=vin;locationProbesScheduled=true;displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);displayHandler.postDelayed(locationProbe3,Math.max(0,3000-(SystemClock.elapsedRealtime()-locationStart)));displayHandler.postDelayed(locationProbe5,Math.max(0,5000-(SystemClock.elapsedRealtime()-locationStart)));}
-  private void probeOpeningLocation(){if(!VehiclePowerPolicy.automaticReads(this)||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)||!model.hasSession()||model.selected==null||!Objects.equals(openingLocationVin,model.selected.vin)||!model.parkingName.isEmpty())return;model.readLastParkedLocation(true,(point,error)->{if(point!=null)model.resolveParkingName(point,()->{if(!model.parkingName.isEmpty()){displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);}});});}
+  private void probeOpeningLocation(){if(!VehiclePowerPolicy.automaticReads(this)||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)||!model.hasSession()||model.selected==null||!Objects.equals(openingLocationVin,model.selected.vin)||!model.parkingName.isEmpty())return;model.readLastParkedLocation(false,(point,error)->{if(point!=null)model.resolveParkingName(point,()->{if(!model.parkingName.isEmpty()){displayHandler.removeCallbacks(locationProbe3);displayHandler.removeCallbacks(locationProbe5);}});});}
   private LinearLayout chargeHealthSlot(LinearLayout health,int height){LinearLayout slot=column();slot.setTag("health_charge_slot");slot.addView(health,new LinearLayout.LayoutParams(-1,-1));FrameLayout charging=new FrameLayout(this);charging.setTag("charging_section");ChargingPulseView pulse=new ChargingPulseView(this);charging.addView(pulse,new FrameLayout.LayoutParams(-1,-1));TextView state=liveText(()->tr("充电中","Charging")+" · "+DisplayMetric.CHARGE_POWER.value(this,model.snapshot,true,AppPreferences.english(this))+" · "+DisplayMetric.CHARGE_ETA.value(this,model.snapshot,true,AppPreferences.english(this)),height<=42?12:15,ink,true);state.setGravity(Gravity.CENTER);charging.addView(state,new FrameLayout.LayoutParams(-1,-1));slot.addView(charging,new LinearLayout.LayoutParams(-1,-1));click(charging,this::chargingDialog);bindDashboard(()->{boolean active=ChargingVisibility.shouldShow(model.snapshot);health.setVisibility(active?View.GONE:"behind".equals(AppPreferences.get(this,"all_good_position","below"))&&VehicleCondition.reported(model.snapshot,showTires())&&!VehicleCondition.problem(model.snapshot,showTires())?View.INVISIBLE:View.VISIBLE);charging.setVisibility(active?View.VISIBLE:View.GONE);pulse.setActive(active);slot.setVisibility(!active&&"behind".equals(AppPreferences.get(this,"all_good_position","below"))&&"offset_c".equals(AppPreferences.get(this,"all_good_lines","one"))&&VehicleCondition.reported(model.snapshot,showTires())&&!VehicleCondition.problem(model.snapshot,showTires())?View.GONE:View.VISIBLE);});return slot;}
   private LinearLayout simple2Card(){LinearLayout card=column();card.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable frame=bg(surface,20);frame.setStroke(dp(1),line);card.setBackground(frame);return card;}
   private void simple2Action(LinearLayout parent,String control,String label){
@@ -667,9 +667,9 @@ public final class MainActivity extends FragmentActivity {
     tile.setPadding(dp(8),dp(minimal?2:6),dp(8),dp(minimal?2:6));GradientDrawable frame=bg(surface,16);frame.setStroke(dp(1),line);tile.setBackground(frame);
     ImageView icon=new ImageView(this);icon.setTag("control_icon_"+control);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setPadding(dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8));icon.setBackground(bg(viSoft(),12));tile.addView(icon,new LinearLayout.LayoutParams(dp(minimal?40:38),dp(minimal?40:38)));
     TextView state=feedbackText(control,false);
-    if(minimal)tile.addView(state,new LinearLayout.LayoutParams(-1,-2));
+    if(minimal)state.setVisibility(View.GONE);
     else {LinearLayout words=column();words.setPadding(dp(9),0,0,0);TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);fitSingleLine(title,13);words.addView(title);state.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);words.addView(state);tile.addView(words,new LinearLayout.LayoutParams(0,-2,1));}
-    bindDashboard(()->{String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);icon.setColorFilter(active?orange:ink);tile.setEnabled(model.canControl(control));tile.setAlpha(tile.isEnabled()?1f:.5f);});
+    bindDashboard(()->{String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);icon.setColorFilter(active?orange:ink);tile.setEnabled(model.canControl(control));tile.setAlpha(tile.isEnabled()?1f:.5f);});
     click(tile,()->{if("signal".equals(control))signalMenu();else directControl(control);});installLockHold(tile,control);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(7);parent.addView(tile,lp);
   }
   private void buildSimple2(){
@@ -885,8 +885,8 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout range = column(); range.setGravity(Gravity.END);
     TextView km = liveText(() -> model.snapshot == null ? "-- km"
         : VehicleSnapshot.metric(model.snapshot.rangeKm, " km"), compact ? 21 : 30, ink, true);
-    km.setTag("battery_range"); if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this)))applyHeroWeight(km);range.addView(km);
-    if (!compact) range.addView(text(tr("预计续航", "Estimated range"), 10, muted, false));
+    km.setTag("battery_range");km.setGravity(Gravity.END);if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this)))applyHeroWeight(km);range.addView(km);
+    if(!compact){TextView rangeCaption=text(tr("预计续航","Estimated range"),10,muted,false);rangeCaption.setGravity(Gravity.END);range.addView(rangeCaption);}
     LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1); rp.leftMargin = dp(20);
     headline.addView(range, rp); parent.addView(headline);
   }
@@ -1084,10 +1084,10 @@ public final class MainActivity extends FragmentActivity {
     label.setGravity(Gravity.CENTER);label.setSingleLine(true);label.setVisibility(hideTitle?View.GONE:View.VISIBLE);
     label.setTypeface(buttonTypeface());fitSingleLine(label,compact?10:11);
     item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(compact?10:11)));
-    item.addView(feedbackText(control,true),new LinearLayout.LayoutParams(-1,-2));
+    if(!minimal)item.addView(feedbackText(control,true),new LinearLayout.LayoutParams(-1,-2));
 
     bindDashboard(()->{
-      String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));
+      String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
       boolean warning=control.equals("lock")&&"未锁".equals(raw)||control.equals("trunk")&&active;
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
@@ -1270,9 +1270,9 @@ public final class MainActivity extends FragmentActivity {
     label.setTag("volike_control_label");
     label.setTypeface(buttonTypeface());fitSingleLine(label,landscape?10:11);
     item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(landscape?10:11)+dp(1)));
-    TextView feedbackView=feedbackText(control,true);feedbackView.setMaxLines(1);item.addView(feedbackView,new LinearLayout.LayoutParams(-1,textLineHeight(8)));
+    if(!minimal){TextView feedbackView=feedbackText(control,true);feedbackView.setMaxLines(1);item.addView(feedbackView,new LinearLayout.LayoutParams(-1,textLineHeight(8)));}
     bindDashboard(()->{
-      String raw=controlRaw(control);icon.setImageResource(controlIcon(control,raw));
+      String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
       boolean warning=control.equals("lock")&&"未锁".equals(raw)||control.equals("trunk")&&active;
       int fill=warning?orange:(active&&(control.equals("climate")||control.equals("air"))?voAccent():viSoft());
@@ -1370,7 +1370,7 @@ public final class MainActivity extends FragmentActivity {
       int height=fourAcross?(landscape?Math.max(dp(48),dp(8)+2*textLineHeight(10)):Math.max(dp(68),dp(nioSkin()?46:34)+2*textLineHeight(10)))
           :dp(26)+textLineHeight(14)+textLineHeight(Math.max(12,ButtonFeedback.sp(this)))+textLineHeight(11);
       if(fourAcross)height=landscape?Math.max(dp(48),Math.max(dp(nioSkin()?36:24),textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)))+dp(8)):Math.max(height,dp(nioSkin()?52:34)+textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)));
-      if(fourAcross&&minimalMode())height=Math.max(height,dp(nioSkin()?(landscape?44:50):38)+textLineHeight(feedbackSp(true))+dp(8));
+      if(fourAcross&&minimalMode())height=Math.max(dp(landscape?48:60),dp(nioSkin()?(landscape?44:50):42)+dp(8));
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
         body.addView(actions,new LinearLayout.LayoutParams(-1,height)); if(i==0&&!fourAcross)gap(body,4);
@@ -1400,7 +1400,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       VehicleHealthSnapshot h=model.snapshot==null?VehicleHealthSnapshot.unknown():model.snapshot.health;
       boolean warn=VehicleCondition.problem(model.snapshot,showTires()),good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(good||warn?ConditionStyle.message(this,warn):tr("保养","Service"));label.setTextColor(good||warn?accentText():muted);
+      label.setText(minimalMode()?"":good||warn?ConditionStyle.message(this,warn):tr("保养","Service"));label.setTextColor(good||warn?accentText():muted);
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);symbol.setColorFilter(good||warn?accentText():muted);
       symbol.setVisibility(good||warn?View.VISIBLE:View.GONE);
       health.setContentDescription(tr("保养","Service")+" · "+VehicleCondition.summary(this,model.snapshot,showTires()));
@@ -1467,11 +1467,11 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout card=column();card.setGravity(Gravity.CENTER);card.setBackground(bg(surface,16));
     card.setTag(kind.equals("windows")?"windows_control_button":"signal_control_button");
     ImageView image=new ImageView(this);image.setTag("control_icon_"+kind);image.setImageResource(drawable);image.setColorFilter(ink);addNioOrb(card,image);
-    TextView label=text(title,10,ink,false);label.setTag("shortcut_label");label.setGravity(Gravity.CENTER);
+    TextView label=text(title,10,ink,false);label.setTag("shortcut_label");label.setGravity(Gravity.CENTER);label.setVisibility(minimalMode()?View.GONE:View.VISIBLE);
     TextView feedback=text("",ButtonFeedback.sp(this),muted,false);feedback.setTag("shortcut_feedback");feedback.setGravity(Gravity.CENTER);feedback.setTypeface(ButtonFeedback.typeface(this));fitSingleLine(feedback,ButtonFeedback.sp(this));label.setTypeface(buttonTypeface());fitSingleLine(label,10);
     label.setSingleLine(true);feedback.setSingleLine(true);
-    card.addView(label,new LinearLayout.LayoutParams(-1,textLineHeight(10)+dp(1)));
-    card.addView(feedback,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(1)));
+    if(!minimalMode())card.addView(label,new LinearLayout.LayoutParams(-1,textLineHeight(10)+dp(1)));
+    if(!minimalMode())card.addView(feedback,new LinearLayout.LayoutParams(-1,textLineHeight(9)+dp(1)));
     click(card,action);installLockHold(card,kind);
     bindDashboard(()->{
       boolean warning=kind.equals("windows")&&model.snapshot!=null&&model.snapshot.windows!=null&&model.snapshot.windows.contains("个开启");
@@ -1513,7 +1513,7 @@ public final class MainActivity extends FragmentActivity {
             : kind.equals("health") ? (good ? "ALL GOOD" : tr("车况", "Health"))
             : kind.equals("camp") ? tr("露营", "Camp") : tr("寻车", "Find car");
         view.setMaxLines(good ? 2 : 1);
-        view.setText(getString(R.string.ui_text_parts_2, String.valueOf(good ? "ALL\nGOOD" : label), String.valueOf((warn ? " !" : ""))));
+        view.setText(minimalMode()?"":getString(R.string.ui_text_parts_2, String.valueOf(good ? "ALL\nGOOD" : label), String.valueOf((warn ? " !" : ""))));
         GradientDrawable background = (GradientDrawable) view.getBackground();
         background.setColor(active ? orange : surface);
         background.setStroke(dp(1), active || good ? orange : line);
@@ -1605,11 +1605,11 @@ public final class MainActivity extends FragmentActivity {
         temperature.setGravity(Gravity.CENTER);temperature.setVisibility(minimal?View.GONE:View.VISIBLE);card.addView(temperature);
       }
     }
-    if(!horizontalCompact)card.addView(feedback,
+    if(!minimal&&!horizontalCompact)card.addView(feedback,
         new LinearLayout.LayoutParams(-1,-2));
-    if (!compact) card.addView(support, new LinearLayout.LayoutParams(-1, -2));
+    if(!minimal&&!nioSkin())card.addView(support,new LinearLayout.LayoutParams(-1,-2));
     bindDashboard(() -> {
-      String raw = controlRaw(control);icon.setImageResource(controlIcon(control,raw));
+      String raw = controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));
       boolean active = "开启".equals(raw) || "未锁".equals(raw) || "已打开".equals(raw) || "未关严".equals(raw);
       boolean known = active || "关闭".equals(raw) || "已上锁".equals(raw) || "已锁".equals(raw) || "已关闭".equals(raw);
       int activeColor = nioColors() && (control.equals("climate") || control.equals("air")) ? Color.rgb(0,191,185) : orange;
@@ -1620,12 +1620,13 @@ public final class MainActivity extends FragmentActivity {
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(ink); feedback.setTextColor(muted);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      feedback.setText(feedbackValue);feedback.setVisibility(AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
+      feedback.setText(feedbackValue);feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
           : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
-      support.setText("");support.setVisibility(View.GONE);
+      String airMetrics=control.equals("air")&&!nioSkin()&&!minimal?AirButtonMetrics.value(this,model.snapshot,false):"";
+      support.setText(airMetrics);support.setTextSize(9);support.setSingleLine(true);support.setGravity(Gravity.CENTER);support.setVisibility(airMetrics.isEmpty()?View.GONE:View.VISIBLE);
       card.setEnabled(model.canControl(control));
       card.setAlpha(card.isEnabled() ? 1f : .55f);
       card.setContentDescription(label+" · "+feedbackValue);
@@ -1678,6 +1679,7 @@ public final class MainActivity extends FragmentActivity {
               && model.snapshot.health.allGood() ? tr("正常", "OK")
               : metric.value(this, model.snapshot, false, AppPreferences.english(this)), valueSp, ink, false);
           value.setTag("home_value_"+metric.id);
+          if(UiSkin.PS_DEFAULT.equals(UiSkin.get(this))&&count==2&&j==1){label.setGravity(Gravity.RIGHT|Gravity.BOTTOM);value.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);}
           cell.addView(label, new LinearLayout.LayoutParams(-1, captionHeight * captionLines)); cell.addView(value,new LinearLayout.LayoutParams(-1,valueHeight));
           bindDashboard(() -> cell.setContentDescription(metric.label(AppPreferences.english(this))
               + " · " + metric.value(this, model.snapshot, true, AppPreferences.english(this))));
@@ -1719,7 +1721,7 @@ public final class MainActivity extends FragmentActivity {
     gap(panel,6);
     TextView mapOptions=text(tr("手机定位：","Phone location: ")+(MapLocationPermission.enabled(this)?tr("允许","allowed"):tr("关闭","off"))+tr(" · 点按设置"," · tap to change"),11,muted,false);click(mapOptions,this::mapLocationDialog);panel.addView(mapOptions);
     ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));parkingPreview=map;
-    int mapHeight=Math.max(220,Math.min(360,(int)(getResources().getConfiguration().screenHeightDp*.55f)));
+    int mapHeight=Math.max(180,Math.min(300,(int)(getResources().getConfiguration().screenHeightDp*.42f)));
     panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,8);
     if(MapLocationPermission.enabled(this))setting(panel,tr("刷新手机位置 · 仅本次预览","Refresh phone position · this preview only"),()->map.requestPhoneLocation());
     panel.addView(text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.6f",location.latitude)+" · "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.6f",location.longitude),12,muted,false));
@@ -2187,6 +2189,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"immersive",tr("沉浸模式 · 背景延伸至状态栏","Immersive · background behind status bar"),true,false);
       settingToggle(p,"ui_all_bold",tr("所有UI文字加粗","Bold text across all UI"),false,false);
       setting(p,tr("字体、按钮图标与文字大小","Font, button icons and labels"),this::fontDialog);
+      setting(p,tr("各皮肤极简图标 · 大小与粗细","Per-skin minimal icons · size and weight"),this::minimalIconDialog);
       settingToggle(p,"minimal_mode",tr("极简模式 · 隐藏按钮名称并放大图标","Minimal mode · hide button names and enlarge icons"),false,false);
       note(p,tr("极简模式","Minimal mode"),tr("可在此切换，也可长按首页车图1秒打开外观菜单后切换。图标居中放大；关闭时隐藏反馈，开启后显示状态或剩余时间，颜色保持原有规则。","Toggle here or hold the vehicle image for 1 second to open the appearance menu. Larger icons are centered; feedback appears while active, with state colors preserved."));
       setting(p,tr("数字粗细 / 按钮背景透明度","Number weight / button opacity"),this::visualControlsDialog);
@@ -2211,6 +2214,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("车辆电池容量 · ","Battery capacity · ")+EnergyLog.capacity(this)+" kWh",this::batteryCapacityDialog);
       setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
+      setting(p,tr("净化按钮下方 · PM2.5 / AQI","Purification readout · PM2.5 / AQI"),this::airMetricsDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
       settingToggle(p,"show_battery_bar",tr("电量指示条（所有皮肤与Widget）","Battery indicator bar (all skins and widgets)"),true,true);
       setting(p,tr("日间车图 · ","Day car · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,false))+" · "+VehicleArt.label(this,VehicleArt.selection(this,false)),()->vehicleArtDialog(false));
@@ -2284,9 +2288,39 @@ public final class MainActivity extends FragmentActivity {
     note(p,tr("说明","Info"),tr("建议前台5分钟、后台/Widget30分钟。App和Widget共享车辆快照，使用已启用来源中较快的周期；后台最短15分钟，由Android调度，省电模式可能延迟。车辆停车点和手机定位均独立，不在此后台任务中读取。远控后的5/10/15/20秒回读不受这些周期影响。","Recommended: foreground 5 min, background/widgets 30 min. App and widgets share one vehicle snapshot and use the fastest enabled source. Android schedules jobs at 15 min or longer and can defer them. These jobs do not request vehicle or phone location. Command readbacks at 5/10/15/20 s remain separate."));
     new HapticDialogBuilder(this).setTitle(tr("刷新规则","Refresh rules")).setView(p).setPositiveButton(tr("完成","Done"),(d,w)->ResidentService.scheduleUpdates(this)).show();
   }
+  private void airMetricsDialog(){
+    choice(tr("净化按钮下方数据","Purification button readout"),AirButtonMetrics.KEY,
+      new String[]{"both","pm25","aqi","off"},
+      new String[]{tr("PM2.5 + AQI（默认）","PM2.5 + AQI (default)"),"PM2.5","AQI",tr("隐藏","Hide")},
+      "both",this::render);
+  }
+  private void minimalIconDialog(){
+    String[] skins=UiSkin.pickerChoices();String[] labels=new String[skins.length];
+    for(int i=0;i<skins.length;i++)labels[i]=UiSkin.label(this,skins[i]);
+    new HapticDialogBuilder(this).setTitle(tr("选择需要调整的皮肤","Choose skin to customize"))
+      .setItems(labels,(d,i)->minimalIconStyleDialog(skins[i])).show();
+  }
+  private void minimalIconStyleDialog(String skin){
+    LinearLayout panel=detailPanel();
+    String sizeKey="minimal_icon_size_"+skin,weightKey="minimal_icon_weight_"+skin;
+    int defaultSize=UiSkin.PS_DEFAULT.equals(skin)?125:100;
+    SeekBar size=campSlider(panel,tr("图标尺寸 %","Icon size %"),65,175,EffectSettings.number(this,sizeKey,defaultSize,65,175),null,null);
+    SeekBar weight=campSlider(panel,tr("图标线条粗细 %","Icon stroke weight %"),70,150,EffectSettings.number(this,weightKey,100,70,150),null,null);
+    note(panel,tr("显示规则","Display rules"),tr("仅在极简模式生效，自动居中并限制在按钮内部。不同皮肤独立保存，图标过大时自动裁切限制。不改变车控状态。","Only affects Minimal mode. Glyphs are centered and bounded within buttons. Each skin retains separate settings; commands are unchanged."));
+    new HapticDialogBuilder(this).setTitle(UiSkin.label(this,skin)).setView(panel)
+      .setPositiveButton(tr("保存","Save"),(d,w)->{
+        AppPreferences.set(this,sizeKey,String.valueOf(size.getProgress()+65));
+        AppPreferences.set(this,weightKey,String.valueOf(weight.getProgress()+70));render();
+      }).setNeutralButton(tr("重置","Reset"),(d,w)->{
+        AppPreferences.set(this,sizeKey,String.valueOf(defaultSize));
+        AppPreferences.set(this,weightKey,"100");render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
   private void mapRefreshDialog(){
-    LinearLayout p=detailPanel();setting(p,tr("车辆位置读取 / 缓存周期","Vehicle position read / cache interval"),()->intervalChoice(tr("车辆停车位置缓存","Parked vehicle position cache"),"map_refresh_minutes",15,new int[]{0,5,15,30,60},tr("每次打开预览都读取","Read on every preview open"),null));
-    note(p,tr("说明","Info"),tr("建议15分钟：打开地图时优先复用周期内的c3Lbs停车点；点“重新读取车辆位置”立即绕过缓存。不会开启手机定位，不会后台追踪；上报为过期的位置不复用。手机定位在独立设置中控制。","Recommended: 15 min. Opening the map reuses a recent c3Lbs parked point; Refresh vehicle position bypasses the cache. No phone location or background tracking is started, and stale reports are not reused. Configure phone location separately."));
+    LinearLayout p=detailPanel();
+    setting(p,tr("读取方式 · 智能 / 固定 / 手动","Read mode · smart / fixed / manual"),()->choice(tr("停车位置刷新模式","Parking refresh mode"),"map_refresh_mode",new String[]{"smart","fixed","manual"},new String[]{tr("智能 · 15/30/60分钟（推荐）","Smart · 15/30/60 min (recommended)"),tr("固定时间间隔","Fixed interval"),tr("只在手动操作时获取","Manual only")},"smart",this::scheduleMapRefresh));
+    setting(p,tr("固定周期 · 5 / 15 / 30 / 60 / 120分钟","Fixed interval · 5 / 15 / 30 / 60 / 120 minutes"),()->intervalChoice(tr("停车位置固定周期","Parking location fixed interval"),"map_refresh_minutes",15,new int[]{5,15,30,60,120},tr("关闭","Off"),this::scheduleMapRefresh));
+    note(p,tr("来源与省电","Source and efficiency"),tr("车辆坐标来自极星停车位置 c3Lbs 接口，高德只负责地图展示和地点名称。智能模式根据位置是否变化调整间隔；不附带车况刷新，也不会主动唤醒车端。无法保证服务端本身不影响车辆休眠。","Coordinates come from the Polestar parked-location c3Lbs API; Amap shows the map and place name only. Smart mode backs off if coordinates remain unchanged, and never triggers a vehicle-status read. Server-side vehicle wake behavior is not guaranteed."));
     new HapticDialogBuilder(this).setTitle(tr("车辆位置刷新规则","Vehicle position refresh rules")).setView(p).setPositiveButton(tr("完成","Done"),null).show();
   }
   private void phoneRefreshDialog(){choice(tr("手机定位刷新时机","Phone location refresh timing"),"phone_location_refresh",new String[]{"manual","on_open"},new String[]{tr("仅在二级预览点按刷新（建议）","Manual refresh in secondary preview (recommended)"),tr("打开二级地图预览时刷新一次","Refresh once when secondary map preview opens")},"manual",null);}

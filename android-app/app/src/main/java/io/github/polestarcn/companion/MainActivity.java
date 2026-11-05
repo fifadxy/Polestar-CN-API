@@ -387,6 +387,7 @@ public final class MainActivity extends FragmentActivity {
   private int feedbackSp(boolean compact){return Math.min(ButtonFeedback.sp(this),voLike()?8:compact?10:11);}
   private TextView feedbackText(String control,boolean compact){
     TextView view=text("",feedbackSp(compact),muted,false);view.setTag("control_feedback_"+control);view.setGravity(Gravity.CENTER);view.setTypeface(ButtonFeedback.typeface(this));fitSingleLine(view,feedbackSp(compact));
+    if("air".equals(control)){view.setSingleLine(false);view.setMaxLines(2);}
     bindDashboard(()->{String value=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));view.setText(value);view.setVisibility(!minimalMode()&&AppPreferences.visible(this,"show_button_feedback",true)&&!value.isEmpty()?View.VISIBLE:View.GONE);});return view;
   }
   private void gap(LinearLayout p, int size) {
@@ -1305,7 +1306,7 @@ public final class MainActivity extends FragmentActivity {
     label.setTag("volike_control_label");
     label.setTypeface(buttonTypeface());fitSingleLine(label,landscape?10:11);
     item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(landscape?10:11)+dp(1)));
-    if(!minimal){TextView feedbackView=feedbackText(control,true);feedbackView.setMaxLines(1);item.addView(feedbackView,new LinearLayout.LayoutParams(-1,textLineHeight(8)));}
+    if(!minimal){TextView feedbackView=feedbackText(control,true);feedbackView.setMaxLines(control.equals("air")?2:1);item.addView(feedbackView,new LinearLayout.LayoutParams(-1,textLineHeight(8)*(control.equals("air")?2:1)));}
     bindDashboard(()->{
       String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
@@ -1329,7 +1330,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       condition.setText(tr("保养","Service"));condition.refreshService();
-      ((GradientDrawable)condition.getBackground()).setStroke(dp(1),warn?orange:line);
+      ((GradientDrawable)condition.getBackground()).setStroke(SkinButtonLayout.strokePx(this,"body",1),warn?orange:line);
       boolean active=CampModeManager.active(this)||"STOPPING".equals(CampModeManager.phase(this));((GradientDrawable)camp.getBackground()).setColor(active?voAccent():surface);
       camp.setTextColor(ink);tintUtilityIcon(camp);((UtilityButton)camp).feedback(ButtonFeedback.value(this,"camp",model.snapshot,CampModeManager.status(this)));
       ((UtilityButton)windows).feedback(ButtonFeedback.value(this,"windows",model.snapshot,model.snapshot==null?"--":status(model.snapshot.windows)));
@@ -1479,7 +1480,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       boolean opened=VehicleCondition.problem(model.snapshot,showTires()),active=CampModeManager.active(this);
       bodyButton.setText(getString(R.string.ui_text_parts_2, String.valueOf(tr("保养","Service")), String.valueOf((opened?" !":""))));
-      ((GradientDrawable)bodyButton.getBackground()).setStroke(dp(1),opened?orange:line);bodyButton.setTextColor(opened?accentText():ink);bodyButton.refreshService();
+      ((GradientDrawable)bodyButton.getBackground()).setStroke(SkinButtonLayout.strokePx(this,"body",1),opened?orange:line);bodyButton.setTextColor(opened?accentText():ink);bodyButton.refreshService();
       ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);tintUtilityIcon(camp);((UtilityButton)camp).feedback(ButtonFeedback.value(this,"camp",model.snapshot,CampModeManager.status(this)));
     });
     SkinButtonLayout.mount(utilities,bodyButton,"body",new LinearLayout.LayoutParams(0,dp(58),1));
@@ -1593,6 +1594,8 @@ public final class MainActivity extends FragmentActivity {
         ? tr("发送中", "Sending") : tr("待确认", "Verifying");
     if(control.equals("signal"))return tr("鸣闪","Horn / flash");
     VehicleSnapshot v = model.snapshot;
+    if(control.equals("air")&&(v==null||!"开启".equals(v.air)))
+      return AirButtonMetrics.value(this,v,false);
     return ControlStatusText.value(this,control,v,status(controlRaw(control)));
   }
 
@@ -1612,6 +1615,8 @@ public final class MainActivity extends FragmentActivity {
     title.setTag("control_title_"+control);title.setVisibility(minimal?View.GONE:View.VISIBLE);
     TextView feedback = text("", compact ? 10 : 12, ink, false);feedback.setTag("control_feedback_"+control);
     TextView support = text("", ButtonFeedback.sp(this), muted, false);
+    if(control.equals("air"))support.setTag("control_support_air");
+    final TextView[] nioAirNumber={null};
     title.setTypeface(buttonTypeface());feedback.setTypeface(ButtonFeedback.typeface(this));support.setTypeface(ButtonFeedback.typeface(this));
     title.setGravity(Gravity.CENTER);feedback.setGravity(Gravity.CENTER);support.setGravity(Gravity.CENTER);
     for (TextView v : new TextView[]{title, feedback, support}) {
@@ -1639,7 +1644,9 @@ public final class MainActivity extends FragmentActivity {
       if (nioSkin() && (control.equals("climate")||control.equals("air"))) {
         TextView temperature=liveText(() -> control.equals("air")?("AQI "+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
             :model.snapshot==null ? "--°C":DisplayMetric.TARGET_TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),22,ink,true);
-        temperature.setGravity(Gravity.CENTER);temperature.setVisibility(minimal?View.GONE:View.VISIBLE);card.addView(temperature);
+        temperature.setGravity(Gravity.CENTER);temperature.setVisibility(minimal?View.GONE:View.VISIBLE);
+        if(control.equals("air")){temperature.setTag("control_support_air");nioAirNumber[0]=temperature;}
+        card.addView(temperature);
       }
     }
     if(!minimal&&!horizontalCompact)card.addView(feedback,
@@ -1651,11 +1658,19 @@ public final class MainActivity extends FragmentActivity {
       boolean known = active || "关闭".equals(raw) || "已上锁".equals(raw) || "已锁".equals(raw) || "已关闭".equals(raw);
       int activeColor = nioColors() && (control.equals("climate") || control.equals("air")) ? Color.rgb(0,191,185) : orange;
       background.setColor(nioSkin()?surface:known&&active?orange:AppPreferences.dark(this)?surface:known?Color.WHITE:surface);
-      background.setStroke(dp(1), controlSending(control) || nioSkin() && active ? activeColor : nioSkin() ? line : known&&!AppPreferences.dark(this) ? Color.TRANSPARENT : line);
+      background.setStroke(SkinButtonLayout.strokePx(this,control,1), controlSending(control) || nioSkin() && active ? activeColor : nioSkin() ? line : known&&!AppPreferences.dark(this) ? Color.TRANSPARENT : line);
       int color=nioSkin()?ink:known&&active?Color.rgb(21,22,23):AppPreferences.dark(this)?ink:known?Color.rgb(21,22,23):ink;
       icon.setColorFilter(nioSkin() && active ? activeColor : color);
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(ink); feedback.setTextColor(muted);
+      boolean airIdle=control.equals("air")&&!active&&!controlSending(control);
+      if(airIdle){
+        feedback.setSingleLine(false);feedback.setMaxLines(2);
+        feedback.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      }else{
+        feedback.setSingleLine(true);feedback.setMaxLines(1);
+      }
+      if(nioAirNumber[0]!=null)nioAirNumber[0].setVisibility(airIdle?View.GONE:View.VISIBLE);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
       feedback.setText(feedbackValue);feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")
@@ -1664,10 +1679,10 @@ public final class MainActivity extends FragmentActivity {
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
       String airMetrics=control.equals("air")&&!nioSkin()&&!minimal?AirButtonMetrics.value(this,model.snapshot,false):"";
       boolean narrowAir=control.equals("air")&&!nioSkin()&&!minimal&&getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
-      if(narrowAir&&!airMetrics.isEmpty()){feedback.setText(airMetrics);feedback.setVisibility(View.VISIBLE);}
+      // Inactive air shows AQI/PM2.5 in the feedback slot, without a second row.
       support.setText(airMetrics);support.setTextSize(9);support.setSingleLine(true);support.setGravity(Gravity.CENTER);
       support.setMinHeight(textLineHeight(9)+dp(2));
-      support.setVisibility(airMetrics.isEmpty()||narrowAir?View.GONE:View.VISIBLE);
+      support.setVisibility(airMetrics.isEmpty()||narrowAir||airIdle?View.GONE:View.VISIBLE);
       card.setEnabled(model.canControl(control));
       card.setAlpha(card.isEnabled() ? 1f : .55f);
       card.setContentDescription(label+" · "+feedbackValue);

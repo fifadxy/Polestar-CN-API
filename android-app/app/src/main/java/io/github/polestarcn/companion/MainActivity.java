@@ -1385,6 +1385,8 @@ public final class MainActivity extends FragmentActivity {
           :dp(26)+textLineHeight(14)+textLineHeight(Math.max(12,ButtonFeedback.sp(this)))+textLineHeight(11);
       if(fourAcross)height=landscape?Math.max(dp(48),Math.max(dp(nioSkin()?36:24),textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)))+dp(8)):Math.max(height,dp(nioSkin()?52:34)+textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)));
       if(fourAcross&&minimalMode())height=Math.max(dp(landscape?48:60),dp(nioSkin()?(landscape?44:50):42)+dp(8));
+      // Reserve a full baseline for both PM2.5 and AQI in non-NIO compact tiles.
+      if(!minimalMode()&&!nioSkin()&&!landscape)height+=textLineHeight(9)+dp(5);
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
         body.addView(actions,new LinearLayout.LayoutParams(-1,height)); if(i==0&&!fourAcross)gap(body,4);
@@ -1640,7 +1642,11 @@ public final class MainActivity extends FragmentActivity {
           : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
       String airMetrics=control.equals("air")&&!nioSkin()&&!minimal?AirButtonMetrics.value(this,model.snapshot,false):"";
-      support.setText(airMetrics);support.setTextSize(9);support.setSingleLine(true);support.setGravity(Gravity.CENTER);support.setVisibility(airMetrics.isEmpty()?View.GONE:View.VISIBLE);
+      boolean narrowAir=control.equals("air")&&!nioSkin()&&!minimal&&getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
+      if(narrowAir&&!airMetrics.isEmpty()){feedback.setText(airMetrics);feedback.setVisibility(View.VISIBLE);}
+      support.setText(airMetrics);support.setTextSize(9);support.setSingleLine(true);support.setGravity(Gravity.CENTER);
+      support.setMinHeight(textLineHeight(9)+dp(2));
+      support.setVisibility(airMetrics.isEmpty()||narrowAir?View.GONE:View.VISIBLE);
       card.setEnabled(model.canControl(control));
       card.setAlpha(card.isEnabled() ? 1f : .55f);
       card.setContentDescription(label+" · "+feedbackValue);

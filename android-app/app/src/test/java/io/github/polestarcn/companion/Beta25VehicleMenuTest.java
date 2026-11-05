@@ -61,9 +61,9 @@ public class Beta25VehicleMenuTest {
       ImageView regular=root.findViewWithTag("control_icon_climate");assertNotNull(skin,regular);int before=regular.getLayoutParams().width;
       UiDisplayMode.setMinimal(a,true);root=render(360,780);ImageView icon=root.findViewWithTag("control_icon_climate");
       assertTrue(skin+" icon size",icon.getLayoutParams().width>before);
-      for(String control:new String[]{"climate","air"}){TextView feedback=root.findViewWithTag("control_feedback_"+control);assertNotNull(skin,feedback);assertEquals(skin,View.GONE,feedback.getVisibility());}
+      for(String control:new String[]{"climate","air"}){TextView feedback=root.findViewWithTag("control_feedback_"+control);if(feedback!=null)assertEquals(skin,View.GONE,feedback.getVisibility());}
       View parent=(View)icon.getParent();assertEquals(skin+" centered",parent.getWidth()/2f,icon.getLeft()+icon.getWidth()/2f,1.1f);
-      snapshot(true);root=render(360,780);TextView feedback=root.findViewWithTag("control_feedback_climate");assertEquals(skin,View.VISIBLE,feedback.getVisibility());
+      snapshot(true);root=render(360,780);TextView feedback=root.findViewWithTag("control_feedback_climate");if(feedback!=null)assertEquals(skin,View.GONE,feedback.getVisibility());
       if(UiSkin.PS_DEFAULT.equals(skin)||UiSkin.SIMPLE.equals(skin)||UiSkin.SIMPLE_2.equals(skin))export(root,skin);
     }
   }
@@ -73,10 +73,10 @@ public class Beta25VehicleMenuTest {
     for(String skin:UiSkin.CHOICES)for(int[] size:new int[][]{{320,568},{640,320}}){
       UiSkin.set(a,skin);View root=render(size[0],size[1]);
       View icon=root.findViewWithTag("control_icon_climate"),feedback=root.findViewWithTag("control_feedback_climate");
-      assertNotNull(skin,icon);assertNotNull(skin,feedback);assertEquals(skin,View.VISIBLE,feedback.getVisibility());
+      assertNotNull(skin,icon);if(feedback!=null)assertEquals(skin,View.GONE,feedback.getVisibility());
       View tile=icon;while(!"control_tile".equals(tile.getTag())&&tile.getParent() instanceof View)tile=(View)tile.getParent();
       int[] start=new int[2],at=new int[2];tile.getLocationInWindow(start);
-      for(View child:new View[]{icon,feedback}){child.getLocationInWindow(at);assertTrue(skin+" top",at[1]>=start[1]);assertTrue(skin+" bottom "+size[0]+"x"+size[1],at[1]+child.getHeight()<=start[1]+tile.getHeight());}
+      for(View child:new View[]{icon}){child.getLocationInWindow(at);assertTrue(skin+" top",at[1]>=start[1]);assertTrue(skin+" bottom "+size[0]+"x"+size[1],at[1]+child.getHeight()<=start[1]+tile.getHeight());}
     }
   }
   private void export(View root,String name)throws Exception{

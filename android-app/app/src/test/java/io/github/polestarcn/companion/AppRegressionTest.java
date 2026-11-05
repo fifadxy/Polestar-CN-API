@@ -222,7 +222,12 @@ public final class AppRegressionTest {
     if ("control_tile".equals(view.getTag())) {
       LinearLayout tile = (LinearLayout) view;
       assertTrue("control target at least 48 dp", tile.getHeight() >= 48);
-      assertTrue("control text fits", tile.getChildAt(tile.getChildCount()-1).getBottom() <= tile.getHeight());
+      View last=tile.getChildAt(tile.getChildCount()-1);
+      assertTrue("control text fits: last="+last.getTag()+" b="+last.getBottom()
+          +" parentH="+tile.getHeight()+" vis="+last.getVisibility()
+          +" txt="+(last instanceof android.widget.TextView?
+              ((android.widget.TextView)last).getText().toString():""),
+          last.getVisibility()!=View.VISIBLE||last.getBottom()<=tile.getHeight());
       android.graphics.Rect bounds = new android.graphics.Rect();
       assertTrue("control remains on screen", tile.getGlobalVisibleRect(bounds));
       assertEquals("complete control remains on screen", tile.getHeight(), bounds.height());

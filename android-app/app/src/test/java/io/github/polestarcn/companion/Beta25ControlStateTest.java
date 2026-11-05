@@ -54,7 +54,9 @@ public class Beta25ControlStateTest {
     assertEquals("开启",ButtonFeedback.value(c,"air",on,""));
     assertEquals("发送中",ButtonFeedback.value(c,"air",off,"发送中"));
     UiDisplayMode.setMinimal(c,false);
-    assertEquals("关闭",ButtonFeedback.value(c,"air",off,""));
+    String idle=ButtonFeedback.value(c,"air",off,"");
+    assertTrue(idle.contains("PM2.5 --"));assertTrue(idle.contains("AQI --"));
+    assertFalse(idle.contains("关闭"));
   }
   @Test public void minimalUtilityShowsOnlyActiveFeedbackAndCentersItsGlyph(){
     UiDisplayMode.setMinimal(c,true);UtilityButton button=new UtilityButton(c);

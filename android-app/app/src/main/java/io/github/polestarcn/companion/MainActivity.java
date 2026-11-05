@@ -387,8 +387,15 @@ public final class MainActivity extends FragmentActivity {
   private int feedbackSp(boolean compact){return Math.min(ButtonFeedback.sp(this),voLike()?8:compact?10:11);}
   private TextView feedbackText(String control,boolean compact){
     TextView view=text("",feedbackSp(compact),muted,false);view.setTag("control_feedback_"+control);view.setGravity(Gravity.CENTER);view.setTypeface(ButtonFeedback.typeface(this));fitSingleLine(view,feedbackSp(compact));
-    if("air".equals(control)){view.setSingleLine(false);view.setMaxLines(2);}
-    bindDashboard(()->{String value=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));view.setText(value);view.setVisibility(!minimalMode()&&AppPreferences.visible(this,"show_button_feedback",true)&&!value.isEmpty()?View.VISIBLE:View.GONE);});return view;
+    // Compact VoLike chips cannot reserve two lines without hiding the icon/title.
+    // Fit both sensor names into one line when possible; retain full values for a11y.
+    bindDashboard(()->{
+      String full=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
+      String shown="air".equals(control)?full.replace("\n"," · "):full;
+      view.setText(shown);
+      view.setContentDescription(full);
+      view.setVisibility(!minimalMode()&&AppPreferences.visible(this,"show_button_feedback",true)&&!full.isEmpty()?View.VISIBLE:View.GONE);
+    });return view;
   }
   private void gap(LinearLayout p, int size) {
     p.addView(new View(this), new LinearLayout.LayoutParams(1, dp(size)));
@@ -1306,7 +1313,7 @@ public final class MainActivity extends FragmentActivity {
     label.setTag("volike_control_label");
     label.setTypeface(buttonTypeface());fitSingleLine(label,landscape?10:11);
     item.addView(label,new LinearLayout.LayoutParams(-1,hideTitle?0:textLineHeight(landscape?10:11)+dp(1)));
-    if(!minimal){TextView feedbackView=feedbackText(control,true);feedbackView.setMaxLines(control.equals("air")?2:1);item.addView(feedbackView,new LinearLayout.LayoutParams(-1,textLineHeight(8)*(control.equals("air")?2:1)));}
+    if(!minimal){TextView feedbackView=feedbackText(control,true);feedbackView.setMaxLines(1);item.addView(feedbackView,new LinearLayout.LayoutParams(-1,textLineHeight(8)));}
     bindDashboard(()->{
       String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));
       boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);
@@ -1664,15 +1671,27 @@ public final class MainActivity extends FragmentActivity {
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(ink); feedback.setTextColor(muted);
       boolean airIdle=control.equals("air")&&!active&&!controlSending(control);
-      if(airIdle){
-        feedback.setSingleLine(false);feedback.setMaxLines(2);
-        feedback.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      }else{
-        feedback.setSingleLine(true);feedback.setMaxLines(1);
+      // Use single-line metrics in four-across/large-font layouts. Never force a
+      // two-line TextView into the original 16dp feedback slot.
+      boolean compactAir=airIdle&&(compact||nioSkin()
+          ||getResources().getConfiguration().fontScale>1.2f);
+      feedback.setSingleLine(compactAir||!airIdle);
+      feedback.setMaxLines(compactAir||!airIdle?1:2);
+      feedback.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      String airMode=AirButtonMetrics.mode(this);
+      if(nioAirNumber[0]!=null){
+        boolean separate=airIdle&&!minimal&&!compact&&("both".equals(airMode)||"aqi".equals(airMode));
+        nioAirNumber[0].setVisibility(airIdle?(separate?View.VISIBLE:View.GONE):minimal?View.GONE:View.VISIBLE);
       }
-      if(nioAirNumber[0]!=null)nioAirNumber[0].setVisibility(airIdle||minimal?View.GONE:View.VISIBLE);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      feedback.setText(feedbackValue);feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
+      if(airIdle&&nioAirNumber[0]!=null&&!compact){
+        if("both".equals(airMode)||"pm25".equals(airMode))
+          feedbackValue=AirButtonMetrics.value(this,model.snapshot,true).split("\\n",2)[0];
+        else feedbackValue="";
+      }else if(compactAir)feedbackValue=feedbackValue.replace("\n"," · ");
+      feedback.setText(feedbackValue);
+      feedback.setContentDescription(airIdle?AirButtonMetrics.value(this,model.snapshot,true):feedbackValue);
+      feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
           : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")

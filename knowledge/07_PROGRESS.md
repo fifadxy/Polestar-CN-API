@@ -1,3 +1,5 @@
+**2026-11-05 / Beta46**：Stable/NEW/Mock、负一屏快捷控制与RPK自适配，手机端Watch Indicator；原授权与远控结果验证保留。见 [Beta46实施知识库](PSASSISTANT_BETA46_CARLINK_20261105.md)。
+
 2026-11-05 · **PsAssistant v1.0.0-beta44 /158 OPPO Watch Indicator 实验**：默认关，手机通知通道/权限/ongoing/category/extra诊断，90秒短测，单独表端可安装APK（待真机兼容），不启用车辆云端刷新。详情 `knowledge/PSASSISTANT_BETA44_WATCH_INDICATOR_20261105.md`。
 
 

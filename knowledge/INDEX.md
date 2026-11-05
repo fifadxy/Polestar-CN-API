@@ -1,3 +1,5 @@
+**Beta46（2026-11-05）**：[OPPO CarLink 双方案与安全回退](PSASSISTANT_BETA46_CARLINK_20261105.md)。
+
 **Beta44 OPPO 手表实验**：[通知 Indicator 规范、主程序设置与表端真实测试边界](PSASSISTANT_BETA44_WATCH_INDICATOR_20261105.md)。
 
 **Beta43 Standalone FULL**：[客户端配置复用、原证书签名、APK 验收与真机边界](../docs/PSASSISTANT_BETA43_STANDALONE_FULL_20261105.md)。个人文件库中的输入和签名私钥不进入公开源码。

@@ -10,8 +10,8 @@ android {
         applicationId 'io.github.polestarcn.oppobridge'
         minSdk 26
         targetSdk 35
-        versionCode 36
-        versionName '2.3.0'
+        versionCode 37
+        versionName '2.4.0'
     }
 
     sourceSets { main.java.srcDir("../bridge-contract/src/main/java") }

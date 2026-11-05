@@ -12,7 +12,7 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /** Runs all read-only compatibility paths in one pass. No vehicle command is sent. */
-final class BridgeTestOrchestrator {
+public final class BridgeTestOrchestrator {
   private static final String PREFS = "bridge-test-history";
 
   static final class Result {
@@ -26,6 +26,7 @@ final class BridgeTestOrchestrator {
   }
 
   private BridgeTestOrchestrator() {}
+  public static String runReport(Context context){return run(context).text;}
 
   static Result run(Context context) {
     Counter counter = new Counter();

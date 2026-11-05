@@ -126,6 +126,22 @@ final class QuickAppCarCapability {
     return patched.getBytes(StandardCharsets.UTF_8);
   }
 
+  /** A future host can be patched only if every CAR JS anchor is unique and the result validates.
+   *  A loose "contains CAR" match is explicitly insufficient. */
+  static byte[] patchFeature(byte[] source){
+    if(source==null||source.length<200||source.length>MAX_INDEX_SIZE)return null;
+    String text=new String(source,StandardCharsets.UTF_8);
+    if(!java.util.Arrays.equals(source,text.getBytes(StandardCharsets.UTF_8)))return null;
+    if(occurrences(text,PATCH_ANCHOR)!=1
+        ||occurrences(text,"carEventIconName: _config.carEventIconName,")!=1
+        ||occurrences(text,"clickEvent(this.deviceInfo.id, item.id, Number(!item.state));")!=1
+        ||hasCarEvents(text)
+        ||text.contains("var clickEvent = __webpack_require__(\"./src/cards/public/api.js\").clickEvent;"))return null;
+    String patched=bindCarClick(patchVerifiedText(text));
+    if(patched==null||!hasCarEvents(patched)||patched.length()-text.length()>1024)return null;
+    return patched.getBytes(StandardCharsets.UTF_8);
+  }
+
   static String patchVerifiedText(String text) {
     if(occurrences(text,PATCH_ANCHOR)!=1||hasCarEvents(text))return null;
     String patched=text.replace(PATCH_ANCHOR,PATCH_REPLACEMENT);

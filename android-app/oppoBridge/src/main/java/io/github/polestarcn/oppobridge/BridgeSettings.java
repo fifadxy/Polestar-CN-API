@@ -20,6 +20,9 @@ public final class BridgeSettings {
   static final String WATCH = "watchEnabled";
   static final String DIRECT = "directControlEnabled";
   static final String CARLINK_PROBE = "carLinkProbeEnabled";
+  public static final String MODE="compatibilityMode", RPK_MODE="rpkCompatibilityMode";
+  public static final String MODE_STABLE="stable", MODE_NEW="new", MODE_MOCK="mock";
+  public static final String RPK_EXACT="exact", RPK_FEATURE="feature";
   private static final String[] BOOLEAN_KEYS = {
       MASTER, MY_DEVICES, ASSISTANT, WATCH, DIRECT, CARLINK_PROBE
   };
@@ -30,8 +33,10 @@ public final class BridgeSettings {
     SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     Bundle out = defaults();
     for (String key : BOOLEAN_KEYS) out.putBoolean(key, prefs.getBoolean(key, true));
+    out.putString(MODE,validMode(prefs.getString(MODE,MODE_STABLE)));
+    out.putString(RPK_MODE,validRpkMode(prefs.getString(RPK_MODE,RPK_EXACT)));
     out.putString("moduleVersion", BridgeBuild.VERSION_NAME);
-    out.putInt("settingsVersion", 2);
+    out.putInt("settingsVersion", 3);
     return out;
   }
 
@@ -48,6 +53,30 @@ public final class BridgeSettings {
     }
   }
 
+  public static String validMode(String value){
+    if(MODE_NEW.equals(value)||MODE_MOCK.equals(value))return value;
+    return MODE_STABLE;
+  }
+  public static String validRpkMode(String value){
+    return RPK_FEATURE.equals(value)?RPK_FEATURE:RPK_EXACT;
+  }
+  public static String mode(Context context){
+    return validMode(snapshot(context).getString(MODE,MODE_STABLE));
+  }
+  static String modeForCurrentHost(){
+    Application app=currentApplication();return app==null?MODE_STABLE:mode(app);
+  }
+  static String rpkModeForCurrentHost(){
+    Application app=currentApplication();
+    return app==null?RPK_EXACT:validRpkMode(snapshot(app).getString(RPK_MODE,RPK_EXACT));
+  }
+  static void updateLocalMode(Context context,String key,String value){
+    if(!MODE.equals(key)&&!RPK_MODE.equals(key))
+      throw new IllegalArgumentException("Unknown mode key");
+    String mode=MODE.equals(key)?validMode(value):validRpkMode(value);
+    context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit().putString(key,mode).apply();
+    context.getContentResolver().notifyChange(settingsUri(context),null);
+  }
   static void updateLocal(Context context, String key, boolean value) {
     if (!isBooleanKey(key)) throw new IllegalArgumentException("Unknown bridge setting");
     context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(key, value).apply();
@@ -117,14 +146,18 @@ public final class BridgeSettings {
         + "\nassistantScreen=" + value.getBoolean(ASSISTANT, true)
         + "\nwatch=" + value.getBoolean(WATCH, true)
         + "\ndirectControl=" + value.getBoolean(DIRECT, true)
-        + "\ncarLinkProbe=" + value.getBoolean(CARLINK_PROBE, true) + '\n';
+        + "\ncarLinkProbe=" + value.getBoolean(CARLINK_PROBE, true)
+        + "\nmode=" + value.getString(MODE,MODE_STABLE)
+        + "\nrpk=" + value.getString(RPK_MODE,RPK_EXACT)+'\n';
   }
 
   private static Bundle defaults() {
     Bundle out = new Bundle();
     for (String key : BOOLEAN_KEYS) out.putBoolean(key, true);
+    out.putString(MODE,MODE_STABLE);
+    out.putString(RPK_MODE,RPK_EXACT);
     out.putString("moduleVersion", BridgeBuild.VERSION_NAME);
-    out.putInt("settingsVersion", 2);
+    out.putInt("settingsVersion", 3);
     return out;
   }
 

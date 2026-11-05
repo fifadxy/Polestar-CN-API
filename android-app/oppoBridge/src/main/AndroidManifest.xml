@@ -82,6 +82,15 @@
                 <data android:scheme="psassistant-oppo-bridge" android:host="command"/>
             </intent-filter>
         </activity>
+        <activity android:name=".OppoShortcutConfirmActivity"
+            android:exported="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Material.Light.Dialog.Alert">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="psassistant-oppo-bridge" android:host="command"/>
+            </intent-filter>
+        </activity>
         <activity
             android:name=".BridgeDiagnosticsActivity"
             android:exported="true">

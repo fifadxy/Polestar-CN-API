@@ -15,6 +15,16 @@ public final class BridgeSettingsProvider extends ContentProvider {
   @Override public Bundle call(String method, String arg, Bundle extras) {
     if (BridgeSettings.METHOD_SNAPSHOT.equals(method))
       return BridgeSettings.localSnapshot(contextOrThrow());
+    if ("update-mode".equals(method)) {
+      if (Binder.getCallingUid() != Process.myUid())
+        throw new SecurityException("Only hosting APK may select a module mode");
+      if(extras==null)throw new IllegalArgumentException("Missing mode settings");
+      BridgeSettings.updateLocalMode(contextOrThrow(),extras.getString("key",""),extras.getString("value",""));
+      Bundle result=BridgeSettings.localSnapshot(contextOrThrow());
+      result.putBoolean("accepted",true);
+      result.putBoolean("restartRequired",true);
+      return result;
+    }
     if (BridgeSettings.METHOD_UPDATE.equals(method)) {
       if (Binder.getCallingUid() != Process.myUid()) throw new SecurityException("Module UID required");
       if (extras == null) throw new IllegalArgumentException("Missing settings payload");

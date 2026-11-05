@@ -7,7 +7,9 @@ import java.lang.reflect.Method;
 
 /** Exact-build home view adapter, scoped to our CAR row and provider identity. */
 final class NativeHomeCardHook {
-  static void install(OppoBridgeModule module,ClassLoader loader) throws Exception {
+  static void install(OppoBridgeModule module,ClassLoader loader) throws Exception {installImpl(module,loader,false);}
+  static void installNew(OppoBridgeModule module,ClassLoader loader) throws Exception {installImpl(module,loader,true);}
+  private static void installImpl(OppoBridgeModule module,ClassLoader loader,boolean adaptive) throws Exception {
     Class<?> host=loader.loadClass("com.oplus.mydevices.deviceui.devicecard.view.homecard.HomeCardView");
     Class<?> data=loader.loadClass("com.oplus.mydevices.domain.entities.cards.QuickCardDeviceData");
     Method bind=host.getDeclaredMethod("D",data);
@@ -16,7 +18,7 @@ final class NativeHomeCardHook {
     Method pkg=data.getMethod("getPackageName"),type=data.getMethod("getType"),id=data.getMethod("getId");
     Field boundId=host.getDeclaredField("j");boundId.setAccessible(true);
     Field engineContent=host.getDeclaredField("i");engineContent.setAccessible(true);
-    module.hook(bind).setId("psassistant_native_home_card").setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain->{
+    module.hook(bind).setId(adaptive?"psassistant_beta46_native_home_card":"psassistant_native_home_card").setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE).intercept(chain->{
       Object row=chain.getArgs().get(0);
       if(row!=null)try {
         String rowPkg=String.valueOf(pkg.invoke(row));
@@ -28,7 +30,7 @@ final class NativeHomeCardHook {
           View view=(View)chain.getThisObject();
           // Fail closed on OTA changes; no generic name/parameter guessing.
           String version=view.getContext().getPackageManager().getPackageInfo("com.heytap.mydevices",0).versionName;
-          if("17.4.15".equals(version)) {
+          if(adaptive||"17.4.15".equals(version)) {
             NativeVehicleHomeView nativeView=new NativeVehicleHomeView(view.getContext());
             nativeView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(-1,-2));
             content.invoke(view,nativeView);

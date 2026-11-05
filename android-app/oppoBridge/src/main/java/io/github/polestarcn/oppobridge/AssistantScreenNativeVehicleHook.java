@@ -33,8 +33,14 @@ final class AssistantScreenNativeVehicleHook {
   private AssistantScreenNativeVehicleHook() {}
 
   static void install(OppoBridgeModule module,ClassLoader loader) throws Exception {
+    installImpl(module,loader,false);
+  }
+  static void installNew(OppoBridgeModule module,ClassLoader loader) throws Exception {
+    installImpl(module,loader,true);
+  }
+  private static void installImpl(OppoBridgeModule module,ClassLoader loader,boolean adaptive) throws Exception {
     Application app=currentApplication();
-    if(app!=null) {
+    if(app!=null&&!adaptive) {
       String version=app.getPackageManager().getPackageInfo(HOST,0).versionName;
       if(!VERSION.equals(version)) {
         module.info("assistant_native_vehicle skipped hostVersion="+version);
@@ -42,7 +48,7 @@ final class AssistantScreenNativeVehicleHook {
       }
     }
 
-    Class<?> manager=loader.loadClass(MANAGER);
+    Class<?> manager=adaptive?resolveAdaptiveManager(loader):loader.loadClass(MANAGER);
     Class<?> deviceInfo=loader.loadClass(DEVICE_INFO);
     Class<?> deviceType=loader.loadClass(DEVICE_TYPE);
     Class<?> connectState=loader.loadClass(CONNECT_STATE);
@@ -53,10 +59,10 @@ final class AssistantScreenNativeVehicleHook {
         int.class,String.class,String.class,useState,int.class,long.class,boolean.class,boolean.class,ArrayList.class,boolean.class,
         List.class,ArrayList.class,ArrayList.class,ArrayList.class);
 
-    Method load=manager.getDeclaredMethod("c");
+    Method load=adaptive?resolveAdaptiveListMethod(manager):manager.getDeclaredMethod("c");
     if(Modifier.isStatic(load.getModifiers())||!ArrayList.class.isAssignableFrom(load.getReturnType())
         ||load.getParameterCount()!=0)
-      throw new IllegalStateException("AssistantScreen DeviceInfoManager.c shape changed");
+      throw new IllegalStateException("AssistantScreen device list method shape changed");
     load.setAccessible(true);
 
     Method getId=deviceInfo.getMethod("getMDeviceId");
@@ -76,7 +82,7 @@ final class AssistantScreenNativeVehicleHook {
         String.class,String.class,String.class,int.class,int.class,boolean.class,String.class);
 
     module.hook(load)
-        .setId("psassistant_assistantscreen_native_vehicle")
+        .setId(adaptive?"psassistant_beta46_assistant_dynamic_vehicle":"psassistant_assistantscreen_native_vehicle")
         .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
         .intercept(chain->{
           Object raw=chain.proceed();
@@ -84,7 +90,7 @@ final class AssistantScreenNativeVehicleHook {
           Application host=currentApplication();
           if(host==null)return raw;
           try {
-            if(!VERSION.equals(host.getPackageManager().getPackageInfo(HOST,0).versionName))return raw;
+            if(!adaptive&&!VERSION.equals(host.getPackageManager().getPackageInfo(HOST,0).versionName))return raw;
             Bundle snapshot=BridgeClient.snapshot(host);
             if(!snapshot.getBoolean("available",false)||snapshot.getBoolean("demo",false)
                 ||!snapshot.getBoolean("cardEnabled",true))
@@ -121,7 +127,32 @@ final class AssistantScreenNativeVehicleHook {
           return raw;
         });
 
-    module.info("assistant_native_vehicle ready=true manager="+load.getName());
+    module.info("assistant_native_vehicle ready=true adaptive="+adaptive+" manager="+manager.getName()+" method="+load.getName());
+  }
+
+  private static Class<?> resolveAdaptiveManager(ClassLoader loader) throws ClassNotFoundException {
+    for(String name:new String[]{MANAGER,
+        "com.oplus.assistantscreen.card.mydevices.data.b",
+        "com.oplus.assistantscreen.card.mydevices.data.DeviceInfoManager"}){
+      try {
+        Class<?> c=loader.loadClass(name);
+        resolveAdaptiveListMethod(c);
+        return c;
+      }catch(ClassNotFoundException|NoSuchMethodException unavailable){/* inspect next known host type */}
+    }
+    throw new ClassNotFoundException("No structurally compatible AssistantScreen manager");
+  }
+  private static Method resolveAdaptiveListMethod(Class<?> type) throws NoSuchMethodException {
+    Method selected=null;
+    for(Method m:type.getDeclaredMethods()){
+      if(Modifier.isStatic(m.getModifiers())||m.getParameterCount()!=0
+          ||!ArrayList.class.isAssignableFrom(m.getReturnType()))continue;
+      // Avoid installing a generic hook when an OTA adds a second compatible method.
+      if(selected!=null)throw new NoSuchMethodException("Ambiguous AssistantScreen list getters");
+      selected=m;
+    }
+    if(selected==null)throw new NoSuchMethodException("No AssistantScreen device list getter");
+    return selected;
   }
 
   static Object newDevice(Constructor<?> ctor,Bundle state,Object car,Object connected,Object template,List<Object> switches) throws Exception {

@@ -100,6 +100,15 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       if(!host)throw new SecurityException("Only MyDevices can report host installation");
       return OppoHostDiagnostics.record(context,extras);
     }
+    if("bridge-mode-report".equals(method)){
+      String origin=extras==null?"":extras.getString("packageName","");
+      String[] packages=context.getPackageManager().getPackagesForUid(Binder.getCallingUid());
+      boolean trusted=false;
+      if(packages!=null)for(String p:packages)if(p.equals(origin)&&OppoBridgeModeDiagnostics.validHost(p))trusted=true;
+      if(!trusted)throw new SecurityException("Only reporting host UID can record hook mode");
+      return OppoBridgeModeDiagnostics.record(context,extras);
+    }
+    if("bridge-mode-status".equals(method))return OppoBridgeModeDiagnostics.status(context);
     if("host-status".equals(method))return OppoHostDiagnostics.status(context);
     if("quickapp-runtime-report".equals(method)) {
       if(!quickReporter&&Binder.getCallingUid()!=Process.myUid())
@@ -389,7 +398,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
   }
 
   private static boolean reporterMethodAllowed(String method,boolean myDevices) {
-    if("quickapp-runtime-report".equals(method)||"quickapp-runtime-status".equals(method)
+    if("bridge-mode-report".equals(method)||"quickapp-runtime-report".equals(method)||"quickapp-runtime-status".equals(method)
         ||"oppo-oem-car-status".equals(method)||"virtual-session-status".equals(method)
         ||"virtual-session-profile".equals(method)||"gateway-resolve".equals(method)
         ||"command-intent".equals(method))return true;

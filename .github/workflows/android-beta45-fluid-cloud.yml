@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - feature/psassistant-beta45-fluid-cloud-20261105
-      - android-polestar-assistant-main
     paths:
       - 'android-app/**'
       - 'docs/PSASSISTANT_BETA45_**'

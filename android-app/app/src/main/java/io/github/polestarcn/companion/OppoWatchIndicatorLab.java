@@ -91,8 +91,8 @@ public final class OppoWatchIndicatorLab {
       return tr(c,"实验通知通道被禁用","Lab notification channel is blocked");
     n.notify(NOTIFICATION_ID,buildTest(c,category(c)));
     AppPreferences.set(c,"oppo_watch_last_test",String.valueOf(System.currentTimeMillis()));
-    return tr(c,"已发送手机侧 90 秒模拟通知。请在手表端独立测试 Indicator；手机通知不等于表盘已显示。",
-        "90-second phone-side test notification sent. Run the separate watch app to test the indicator on the watch face.");
+    return tr(c,"已发送 90 秒手机侧 Indicator 模拟通知。本版本仅集成手机端，不能据此认定手表表盘已经显示。",
+        "90-second phone-side test notification posted. This APK does not install a watch app and does not prove a watch-face indicator.");
   }
   public static void cancel(Context c){
     NotificationManager n=manager(c);if(n!=null)n.cancel(NOTIFICATION_ID);
@@ -122,6 +122,6 @@ public final class OppoWatchIndicatorLab {
         +"\ncategory="+cat+"  ongoing="+ongoing+"  "+EXTRA_INDICATOR+"="+extra
         +"\n"+tr(c,"通道重要级别：","Channel importance: ")+(ch==null?"not-created":ch.getImportance())
         +"\n"+tr(c,"常驻通知附加标记：","Resident hint flag: ")+residentEnabled(c)
-        +"\n"+tr(c,"手表实际接收：未检测（需要手表端测试）","Watch received: unverified (requires watch-side test)");
+        +"\n"+tr(c,"手表实际接收：未检测（仅手机端集成）","Watch received: unverified (phone-side integration only)");
   }
 }

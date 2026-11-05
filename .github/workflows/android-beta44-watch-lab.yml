@@ -2,7 +2,6 @@ name: Android Beta44 OPPO Watch Indicator Lab
 on:
   push:
     branches:
-      - android-polestar-assistant-main
       - feature/psassistant-beta44-oppo-watch-indicator-20261105
     paths:
       - 'android-app/**'

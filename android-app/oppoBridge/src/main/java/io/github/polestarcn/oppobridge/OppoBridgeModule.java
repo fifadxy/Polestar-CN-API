@@ -27,11 +27,21 @@ public final class OppoBridgeModule extends XposedModule {
         return;
       }
 
+      final String selectedMode=BridgeSettings.modeForCurrentHost();
+      final boolean newMode=BridgeSettings.MODE_NEW.equals(selectedMode);
+      final boolean mock=BridgeSettings.MODE_MOCK.equals(selectedMode);
+      BridgeModeReporter.report(this,pkg,process,selectedMode);
+      if(mock){
+        // Isolated local test path: no provider write, permission change or command Hook.
+        HostProbe.install(this,pkg,param.getClassLoader());
+        info("oppo_mode_mock_isolated package="+pkg);
+        return;
+      }
       boolean directControl=BridgeSettings.directControlForCurrentHost();
 
       HostProbe.install(this,pkg,param.getClassLoader());
       if(directControl&&BridgeIdentity.isCarLinkHost(pkg))
-        io.github.polestarcn.oppobridge.uploaded.OppoCarLinkBridgeModule.install(this,pkg,param.getClassLoader());
+        info("global_permission_and_database_spoof_skipped_in_real_mode");
 
       boolean vehicleHost=BridgeIdentity.isCarLinkHost(pkg)
           ||"com.coloros.assistantscreen".equals(pkg)||"com.oplus.assistantscreen".equals(pkg)
@@ -52,19 +62,25 @@ public final class OppoBridgeModule extends XposedModule {
         if(!directControl) {
           info("quickapp_direct_control_disabled package="+pkg);
         } else {
-          try{QuickAppRpkPatch.install(this);}catch(Throwable x){warn("quickapp_rpk_patch unavailable="+x.getClass().getSimpleName());}
+          try {
+            if(newMode)AdaptiveQuickAppRpkPatch.install(this);
+            else QuickAppRpkPatch.install(this);
+          }catch(Throwable x){warn("quickapp_rpk_patch unavailable="+x.getClass().getSimpleName());}
         }
       }
 
       if(("com.coloros.assistantscreen".equals(pkg)||"com.oplus.assistantscreen".equals(pkg))&&pkg.equals(process)) {
-        if("com.coloros.assistantscreen".equals(pkg)) {
+        if("com.coloros.assistantscreen".equals(pkg)||newMode) {
           AssistantScreenHostReporter.report(this,"hooks-entered",true,"");
           try{ShelfPantanalProbe.install(this);}catch(Throwable x){warn("shelf_pantanal_probe unavailable="+x.getClass().getSimpleName());}
           try{SceneAccountBindProbe.install(this);}catch(Throwable x){warn("scene_account_bind_probe unavailable="+x.getClass().getSimpleName());}
           try{AccountProviderCatalogProbe.install(this,param.getClassLoader());}catch(Throwable x){warn("account_provider_catalog_probe unavailable="+x.getClass().getSimpleName());}
           try{SceneAccountBindResultShim.install(this);}catch(Throwable x){warn("scene_account_bind_result unavailable="+x.getClass().getSimpleName());}
           if(directControl)
-            try{AssistantScreenNativeVehicleHook.install(this,param.getClassLoader());}catch(Throwable x){warn("assistant_native_vehicle unavailable="+x.getClass().getSimpleName());}
+            try {
+              if(newMode){AdaptiveShelfShortcutInterceptor.install(this);AssistantScreenNativeVehicleHook.installNew(this,param.getClassLoader());}
+              else AssistantScreenNativeVehicleHook.install(this,param.getClassLoader());
+            }catch(Throwable x){warn("assistant_native_vehicle unavailable="+x.getClass().getSimpleName());}
         }
         try{PolestarProviderCatalogShim.install(this,param.getClassLoader());}catch(Throwable x){warn("polestar_provider_catalog unavailable="+x.getClass().getSimpleName());}
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
@@ -74,8 +90,10 @@ public final class OppoBridgeModule extends XposedModule {
       if(("com.oplus.sceneservice".equals(pkg)||"com.coloros.sceneservice".equals(pkg))
           &&pkg.equals(process)){
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("scene_vehicle_catalog unavailable="+x.getClass().getSimpleName());}
-        try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_virtual_session unavailable="+x.getClass().getSimpleName());}
-        try{CarLinkBoundStateShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_bound_state unavailable="+x.getClass().getSimpleName());}
+        if(!newMode){
+          try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_virtual_session unavailable="+x.getClass().getSimpleName());}
+          try{CarLinkBoundStateShim.install(this,param.getClassLoader());}catch(Throwable x){warn("scene_bound_state unavailable="+x.getClass().getSimpleName());}
+        }else info("beta46_new_mode: no OEM binding/permission spoof");
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("scene_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
 
@@ -84,9 +102,11 @@ public final class OppoBridgeModule extends XposedModule {
         try{CarLinkLocalPanelHook.install(this);}catch(Throwable x){warn("carlink_local_panel unavailable="+x.getClass().getSimpleName());}
         try{CarLinkServiceEntryProbe.install(this,param.getClassLoader(),process);}catch(Throwable x){warn("carlink_service_entry unavailable="+x.getClass().getSimpleName());}
         try{VehicleCatalogCursorShim.install(this);}catch(Throwable x){warn("vehicle_catalog_cursor unavailable="+x.getClass().getSimpleName());}
-        try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_virtual_session unavailable="+x.getClass().getSimpleName());}
-        try{CarLinkBoundStateShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_bound_state unavailable="+x.getClass().getSimpleName());}
-        try{SceneAccountBindResultShim.install(this);}catch(Throwable x){warn("carlink_scene_bind_result unavailable="+x.getClass().getSimpleName());}
+        if(!newMode){
+          try{CarLinkVirtualSessionShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_virtual_session unavailable="+x.getClass().getSimpleName());}
+          try{CarLinkBoundStateShim.install(this,param.getClassLoader());}catch(Throwable x){warn("carlink_bound_state unavailable="+x.getClass().getSimpleName());}
+          try{SceneAccountBindResultShim.install(this);}catch(Throwable x){warn("carlink_scene_bind_result unavailable="+x.getClass().getSimpleName());}
+        }else info("beta46_new_mode: only genuine OEM bind/session; local facade remains separate");
         // Local TestLab provider/account row is projected as bound only while PsAssistant has an active vehicle session.
         try{PolestarBindIntentShim.install(this);}catch(Throwable x){warn("carlink_polestar_bind_redirect unavailable="+x.getClass().getSimpleName());}
       }
@@ -95,7 +115,9 @@ public final class OppoBridgeModule extends XposedModule {
         try{QuickAppProviderProbe.install(this,param.getClassLoader());}catch(Throwable x){warn("quickapp_provider_probe unavailable="+x.getClass().getSimpleName());}
         if("com.heytap.mydevices".equals(process)) {
           MyDevicesVehicleHook.installMain(this,param.getClassLoader());
-          try{NativeHomeCardHook.install(this,param.getClassLoader());}catch(Throwable x){warn("native_home_card unavailable="+x.getClass().getSimpleName());}
+          try{if(newMode)NativeHomeCardHook.installNew(this,param.getClassLoader());
+              else NativeHomeCardHook.install(this,param.getClassLoader());}
+          catch(Throwable x){warn("native_home_card unavailable="+x.getClass().getSimpleName());}
           HostReporter.report(pkg,process,"hooks-installed",true,"");
         } else if("com.heytap.mydevices:cards".equals(process)) {
           if(directControl)MyDevicesVehicleHook.installCardProcess(this,param.getClassLoader());

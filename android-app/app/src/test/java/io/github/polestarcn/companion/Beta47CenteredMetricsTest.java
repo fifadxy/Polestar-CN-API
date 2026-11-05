@@ -12,7 +12,7 @@ public final class Beta47CenteredMetricsTest {
    Context c=RuntimeEnvironment.getApplication();
    CenteredStatusButton button=new CenteredStatusButton(c);
    button.setText("净化");
-   button.contents("PM2.5 12.5\\nAQI 43",null);
+   button.contents("PM2.5 12.5\nAQI 43",null);
    assertEquals(3,button.getMaxLines());
    String shown=button.getText().toString();
    assertTrue(shown.contains("PM2.5 12.5"));

@@ -35,7 +35,7 @@ class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
   // Inactive purification can show two actual metrics below the title.
   // Reserve a third text line; otherwise Android truncates AQI or PM2.5.
   int feedbackLines=visibleFeedback.isEmpty()?(slot&&second?1:0):1;
-  for(int i=0;i<visibleFeedback.length();i++)if(visibleFeedback.charAt(i)=='\\n')feedbackLines++;
+  for(int i=0;i<visibleFeedback.length();i++)if(visibleFeedback.charAt(i)=='\n')feedbackLines++;
   int totalLines=(shownTitle.isEmpty()?0:1)+feedbackLines;
   setMaxLines(Math.min(3,Math.max(1,totalLines)));setPadding(Math.round(4*d),Math.round(2*d),Math.round(4*d),Math.round((slot&&!minimal?6:bar!=null?6:2)*d));
   setTypeface(PsaDesign.regular());androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(this,androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE);

@@ -63,6 +63,12 @@ public final class VehicleRefreshManager {
    if(vin==null||scopes.isEmpty())return;
    SharedPreferences.Editor edit=cache.edit();long now=System.currentTimeMillis();
    for(RefreshDomain group:scopes)edit.putLong(token(vin,group),now);
+   // CORE already performs climate/air gRPC calls to discover externally started sessions.
+   // Mark these component TTLs to prevent duplicate expiry checks after the same batch.
+   if(scopes.contains(RefreshDomain.CORE)){
+     edit.putLong(token(vin,RefreshDomain.CLIMATE),now);
+     edit.putLong(token(vin,RefreshDomain.AIR),now);
+   }
    if(scopes.contains(RefreshDomain.HEALTH))edit.putLong(token(vin,RefreshDomain.MAINTENANCE),now);
    if(scopes.contains(RefreshDomain.MAINTENANCE))edit.putLong(token(vin,RefreshDomain.HEALTH),now);
    edit.apply();

@@ -388,6 +388,93 @@ public final class ChinaPolestarApi {
         .withCharging(chargeDetails).withTires(tires).withHealth(vehicleHealth);
   }
 
+
+  /**
+   * Partial telemetry read for the ordinary refresh scheduler. P0 command verification
+   * deliberately keeps readVehicle() and does not accept pre-command cached fields.
+   */
+  public VehicleSnapshot readVehicleScoped(VehicleInfo info,VehicleSnapshot previous,
+      java.util.EnumSet<io.github.polestarcn.companion.RefreshDomain> scopes) throws Exception {
+    if(previous==null||previous.isDemo||!"LIVE".equals(previous.source)||scopes==null||scopes.isEmpty())
+      return readVehicle(info);
+    Session session=refreshIfNeeded(requireSession());ensureC3Host(session);
+    String vin=info.vin;
+    Integer soc=previous.batteryPercent,range=previous.rangeKm;
+    String charging=previous.charging,lock=previous.lock,doors=previous.doors,
+        windows=previous.windows,tailgate=previous.tailgate;
+    long reported=previous.timestampMillis;
+    MileageSnapshot mileage=previous.mileage;ExteriorSnapshot exterior=previous.exterior;
+    ChargingSnapshot charge=previous.chargingDetails;
+    TireSnapshot tires=previous.tires;VehicleHealthSnapshot health=previous.health;
+    EnvironmentSnapshot environment=previous.environment;
+    boolean battery=scopes.contains(io.github.polestarcn.companion.RefreshDomain.CORE)
+        ||scopes.contains(io.github.polestarcn.companion.RefreshDomain.CHARGING);
+    Map<Integer,Object> batteryData=Collections.emptyMap();
+    if(battery){
+      batteryData=ProtoWire.nested(stateRpc(session,vin,"services.vehiclestates.battery.BatteryService","GetLatestBattery"),3);
+      soc=ProtoWire.integer(batteryData,2);range=ProtoWire.integer(batteryData,4);
+      charging=ProtoWire.enumText(batteryData,7,"未指定","充电中","空闲","计划中","放电中","错误","智能充电","已完成","智能充电暂停");
+      long at=ProtoWire.timestampMillis(batteryData,1);
+      if(at>0&&at<=System.currentTimeMillis()+300_000L)reported=at;
+      ChargingSnapshot values=ChargingSnapshot.fromData(batteryData);
+      charge=new ChargingSnapshot(values.connection,values.type,values.powerStatus,values.minutesToFull,
+          values.powerWatts,values.currentAmps,previous.chargingDetails.targetPercent,previous.chargingDetails.targetReportedAt);
+      if(scopes.contains(io.github.polestarcn.companion.RefreshDomain.CHARGING)
+          &&System.currentTimeMillis()>=targetSocUnavailableUntil.getOrDefault(vin,0L))try {
+        Map<Integer,Object> reply=ProtoWire.decode(invoke(session,vin,"chronos.services.v1.TargetSocService","GetLatestTargetSoc",
+            ProtoWire.bytesField(1,ProtoWire.concat(ProtoWire.stringField(1,UUID.randomUUID().toString()),ProtoWire.stringField(2,vin)))));
+        Object returned=reply.get(2);
+        if(returned instanceof byte[]&&!vin.equals(new String((byte[])returned,StandardCharsets.UTF_8)))
+          throw new Exception("Target SoC vehicle mismatch");
+        charge=charge.withTarget(reply);targetSocUnavailableUntil.remove(vin);
+      }catch(Exception unsupported){
+        targetSocUnavailableUntil.put(vin,System.currentTimeMillis()+300_000L);
+        DiagnosticLog.add("Scoped Target SoC unavailable");
+      }
+    }
+    if(scopes.contains(io.github.polestarcn.companion.RefreshDomain.CORE)){
+      try{
+        Map<Integer,Object> data=ProtoWire.nested(stateRpc(session,vin,"services.vehiclestates.exterior.ExteriorService","GetLatestExterior"),3);
+        Integer state=ProtoWire.integer(data,2);
+        if(state!=null)lock=state==2?"已上锁":state==1?"未锁":"未知";
+        exterior=ExteriorSnapshot.fromData(data);doors=exterior.summary(false);windows=exterior.summary(true);
+        tailgate=ProtoWire.enumText(data,12,"未知","已打开","已关闭","未关严");
+      }catch(Exception unavailable){DiagnosticLog.add("Scoped exterior unavailable; retaining cache");}
+    }
+    if(scopes.contains(io.github.polestarcn.companion.RefreshDomain.MILEAGE)){
+      try{mileage=MileageSnapshot.fromReply(stateRpc(session,vin,"services.vehiclestates.odometer.OdometerService","GetLatestOdometer"));}
+      catch(Exception unavailable){DiagnosticLog.add("Scoped mileage unavailable; retaining cache");}
+      if(battery)mileage=mileage.withConsumption(batteryData);
+    }
+    if(scopes.contains(io.github.polestarcn.companion.RefreshDomain.HEALTH)
+        ||scopes.contains(io.github.polestarcn.companion.RefreshDomain.MAINTENANCE)){
+      Map<Integer,Object> fields=readHealth(session,vin);
+      if(!fields.isEmpty()){tires=TireSnapshot.fromData(fields);health=VehicleHealthSnapshot.fromData(fields,tires);}
+    }
+    boolean climate=scopes.contains(io.github.polestarcn.companion.RefreshDomain.CLIMATE);
+    boolean air=scopes.contains(io.github.polestarcn.companion.RefreshDomain.AIR);
+    if(climate||air){
+      Map<Integer,Object> cd=climate?readFeatureData(session,vin,true):Collections.emptyMap();
+      Map<Integer,Object> ad=air?readFeatureData(session,vin,false):Collections.emptyMap();
+      EnvironmentSnapshot fresh=EnvironmentSnapshot.fromData(cd,ad);
+      environment=new EnvironmentSnapshot(
+        climate&&!cd.isEmpty()?fresh.climate:environment.climate,
+        air&&!ad.isEmpty()?fresh.air:environment.air,
+        climate&&!cd.isEmpty()?fresh.temperatureC:environment.temperatureC,
+        climate&&!cd.isEmpty()?fresh.targetTemperatureC:environment.targetTemperatureC,
+        air&&!ad.isEmpty()?fresh.pm25UgM3:environment.pm25UgM3,
+        air&&!ad.isEmpty()?fresh.aqi:environment.aqi,
+        climate&&!cd.isEmpty()?fresh.climateRuntimeMinutes:environment.climateRuntimeMinutes,
+        air&&!ad.isEmpty()?fresh.airRuntimeMinutes:environment.airRuntimeMinutes,
+        climate&&!cd.isEmpty()?fresh.climateReportedAt:environment.climateReportedAt,
+        air&&!ad.isEmpty()?fresh.airReportedAt:environment.airReportedAt);
+    }
+    return new VehicleSnapshot(previous.name,previous.id,soc,range,mileage.wholeKm(),charging,
+        doors,windows,tailgate,lock,reported,"LIVE",false,environment.climate,environment.air)
+        .withMileage(mileage).withExterior(exterior).withEnvironment(environment)
+        .withCharging(charge).withTires(tires).withHealth(health);
+  }
+
   private Map<Integer, Object> readHealth(Session s, String vin) {
     long now = System.currentTimeMillis();
     HealthCache cache = healthCache.get(vin);

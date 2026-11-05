@@ -1,3 +1,5 @@
+**2026-11-06 / Beta47**：统一新增逐皮肤逐按钮宽高、边框、圆角、字号、图标与焦点布局；净化未运行显示真实 AQI/PM2.5、无数据为 --，CenteredStatusButton 三行支持。已完成 CI 编译和测试；真实车况和小屏视觉效果需实机验收。详见 [专项说明](PSASSISTANT_BETA47_SKIN_CONTROLS_20261106.md)。
+
 **2026-11-06 · Beta47 验收与交付**：7 套皮肤独立按钮宽高、边框、图标/文字大小与焦点，净化关闭时 AQI/PM2.5 读数，CI 564/564 通过；从新编译的 Beta47 Debug 二进制封装同证书 Standalone FULL（161），v2/v3 通过，真实登录/控车待真机核验。详见 [构建报告](../docs/PSASSISTANT_BETA47_BUILD_VERIFICATION_20261106.md)。
 
 **2026-11-05 · Beta46 构建交付完成**：GitHub Actions 41999321739（第二次尝试）编译与 Lint PASS，App 546 + Bridge 12 = 558项测试全部通过。FULL APK版本160、原证书v2/v3签名通过；真实登录与OEM官方授权需真机验证。见 [构建报告](../docs/PSASSISTANT_BETA46_BUILD_VERIFICATION_20261105.md)。

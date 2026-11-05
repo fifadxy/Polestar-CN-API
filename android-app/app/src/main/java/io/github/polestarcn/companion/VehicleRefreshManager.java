@@ -171,7 +171,10 @@ public final class VehicleRefreshManager {
    record("networkBatches");
    car.refreshScoped(scope,()->{
      inFlight=false;activeScopes.clear();
-     if(car.lastVehicleReadOk&&car.selected!=null&&vin.equals(car.selected.vin)){
+     if(car.selected==null||!vin.equals(car.selected.vin)){
+       // A logout/vehicle switch invalidates an old scope result; don't backoff the new VIN.
+       record("cancelled");
+     }else if(car.lastVehicleReadOk){
        onScopesRead(vin,scope);
      }else {record("failures");lastFailedAt=SystemClock.elapsedRealtime();}
      if(!pending.isEmpty()){main.postDelayed(dispatch,RefreshPolicy.mergeSeconds(context)*1000L);}

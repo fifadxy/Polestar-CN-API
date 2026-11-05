@@ -299,7 +299,10 @@ public final class VehicleCoordinator {
       try{
         VehicleSnapshot fresh=api.readVehicleScoped(vehicle,previous,scopes);
         main.post(()->{
-          if(generation!=sessionGeneration||!signedIn||selected==null||!vehicle.vin.equals(selected.vin))return;
+          if(generation!=sessionGeneration||!signedIn||selected==null||!vehicle.vin.equals(selected.vin)){
+            // Release the old ordinary queue without altering a newly selected vehicle/session.
+            if(done!=null)done.run();return;
+          }
           boolean updated=RefreshDisplay.changed(previous,fresh);
           snapshot=fresh;lastVehicleReadOk=true;
           VehicleSnapshotStore.saveChina(context,fresh);
@@ -313,7 +316,9 @@ public final class VehicleCoordinator {
         });
       }catch(Exception failure){
         main.post(()->{
-          if(generation!=sessionGeneration||!signedIn)return;
+          if(generation!=sessionGeneration||!signedIn||selected==null||!vehicle.vin.equals(selected.vin)){
+            if(done!=null)done.run();return;
+          }
           lastVehicleReadOk=false;DiagnosticLog.add("Scoped telemetry unavailable");
           if(done!=null)completions.add(done);
           finish();

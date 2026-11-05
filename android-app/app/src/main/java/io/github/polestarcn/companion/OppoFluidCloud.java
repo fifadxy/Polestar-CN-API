@@ -109,7 +109,7 @@ public final class OppoFluidCloud {
         .setContentIntent(open(c,notificationId,null,s.id,s.synthetic))
         .setCategory(Notification.CATEGORY_SERVICE).setOngoing(s.ongoing)
         .setOnlyAlertOnce(s.ongoing).setShowWhen(false).setVisibility(Notification.VISIBILITY_PRIVATE);
-    if(!"simple".equals(style)||level==2)
+    if(!"simple".equals(style)||level==2||requestedPromoted(c,path,s.ongoing))
       b.setStyle(new Notification.BigTextStyle().bigText(detail+"\n"+tr(c,"一级：","Primary: ")+capsule));
     if(s.endsAt>System.currentTimeMillis()+1000&&s.ongoing&&!s.synthetic){
       // Android ticks down locally; no repeated polling or CPU wake-up is required.
@@ -182,7 +182,10 @@ public final class OppoFluidCloud {
   }
   public static void cancelRealScene(Context c,String scene){if(!OppoFluidPolicy.allowed(scene))return;NotificationManager n=manager(c);if(n!=null)n.cancel(itemId(scene,false));store(c).edit().remove("active_sig_"+scene).apply();}
   public static void cancelTests(Context c){NotificationManager n=manager(c);if(n!=null)for(String scene:OppoFluidPolicy.SCENES)n.cancel(itemId(scene,true));}
-  public static void cancelAll(Context c){NotificationManager n=manager(c);if(n!=null)for(String scene:OppoFluidPolicy.SCENES){n.cancel(itemId(scene,true));n.cancel(itemId(scene,false));}store(c).edit().clear().apply();}
+  public static void cancelAll(Context c){NotificationManager n=manager(c);if(n!=null){
+    for(String scene:OppoFluidPolicy.SCENES){n.cancel(itemId(scene,true));n.cancel(itemId(scene,false));}
+    n.cancel(47099);
+  }store(c).edit().clear().apply();}
   public static void onVerifiedCommand(Context c,String action,OperationState result){
     // "server accepted" is not vehicle execution. Only confirmed live readback qualifies.
     if(result!=OperationState.VEHICLE_CONFIRMED||!OppoFluidPolicy.enabled(c)||!canNotify(c))return;
@@ -206,9 +209,17 @@ public final class OppoFluidCloud {
   /** Read-only status update; never calls the car API or a privileged OEM service. */
   public static void onLiveSnapshot(Context c,VehicleSnapshot s){
     if(!OppoFluidPolicy.enabled(c)||s==null||s.isDemo||!"LIVE".equals(s.source)||!canNotify(c))return;
-    android.content.SharedPreferences.Editor mark=store(c).edit();
+    String sourceId=Integer.toHexString(s.id==null?0:s.id.hashCode());
+    android.content.SharedPreferences state=store(c);
+    String previousId=state.getString("last_source_id","");
+    if(!previousId.isEmpty()&&!previousId.equals(sourceId)){
+      // Never carry a vehicle-specific cloud action, cached fault, or caption into another VIN.
+      for(String scene:OppoFluidPolicy.SCENES)cancelRealScene(c,scene);
+      NotificationManager manager=manager(c);if(manager!=null)manager.cancel(47099);
+    }
+    android.content.SharedPreferences.Editor mark=state.edit();
     mark.putLong("last_live_snapshot",System.currentTimeMillis());
-    mark.putString("last_source_id",Integer.toHexString(s.id==null?0:s.id.hashCode()));mark.apply();
+    mark.putString("last_source_id",sourceId);mark.apply();
     channels(c);onIssues(c,s);syncOngoing(c,s,true);
   }
   private static void onIssues(Context c,VehicleSnapshot s){
@@ -286,8 +297,9 @@ public final class OppoFluidCloud {
         OppoFluidScene alert=new OppoFluidScene("fault",tr(c,"托管结束待核实","Camping stop unconfirmed"),
             tr(c,"本地已停止，远程空调/净化是否关闭仍待确认","Local task stopped; remote HVAC remains unverified"),
             tr(c,"待核实","VERIFY"),false,0,null,null,false);
-        maybeNotify(c,alert);
-      }
+        // Dedicated ID: do not overwrite the real tyre/12V/vehicle-issue notification.
+        manager(c).notify(47099,build(c,alert,OppoFluidPolicy.style(c),1,"v1",false));
+      }else manager(c).cancel(47099);
     }
   }
   private static void showActive(Context c,String id,boolean active,String detail,String chip,long end,String first,String second){
@@ -304,10 +316,6 @@ public final class OppoFluidCloud {
   }
   private static void maybeNotify(Context c,OppoFluidScene scene){
     if(!OppoFluidPolicy.notify(c,scene.id))return;
-    String signature=scene.title+"|"+scene.detail+"|"+scene.firstAction+"|"+scene.secondAction+"|"+OppoFluidPolicy.level(c)+"|"+OppoFluidPolicy.style(c)+"|"+OppoFluidPolicy.path(c)+"|"+OppoFluidPolicy.action(c,scene.id);
-    String key="active_sig_"+scene.id;
-    android.content.SharedPreferences p=store(c);
-    if(signature.equals(p.getString(key,"")))return;
     String path="v1";
     if(OppoFluidPolicy.cloud(c,scene.id)){
       if(scene.synthetic)path=OppoFluidPolicy.path(c);
@@ -317,6 +325,11 @@ public final class OppoFluidCloud {
         if(started>0&&now>=started&&now-started<120*60_000L)path=OppoFluidPolicy.path(c);
       }
     }
+    String signature=scene.title+"|"+scene.detail+"|"+scene.firstAction+"|"+scene.secondAction+"|"+
+        OppoFluidPolicy.level(c)+"|"+OppoFluidPolicy.style(c)+"|"+path+"|"+OppoFluidPolicy.action(c,scene.id);
+    String key="active_sig_"+scene.id;
+    android.content.SharedPreferences p=store(c);
+    if(signature.equals(p.getString(key,"")))return;
     Notification n=build(c,scene,OppoFluidPolicy.style(c),OppoFluidPolicy.level(c),
         path,OppoFluidPolicy.action(c,scene.id));
     manager(c).notify(itemId(scene.id,false),n);

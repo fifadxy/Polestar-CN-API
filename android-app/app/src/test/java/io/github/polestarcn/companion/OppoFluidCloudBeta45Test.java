@@ -45,6 +45,10 @@ public class OppoFluidCloudBeta45Test {
     assertFalse(OppoFluidCloud.allowedAction("fake-unlock"));
     assertFalse(OppoFluidCloud.allowedAction("arbitrary"));
     assertTrue(OppoFluidCloud.allowedAction("climate-stop"));
+    assertTrue(OppoFluidCloud.actionBelongs("climate","climate-stop"));
+    assertTrue(OppoFluidCloud.actionBelongs("status","unlock"));
+    assertFalse(OppoFluidCloud.actionBelongs("climate","unlock"));
+    assertFalse(OppoFluidCloud.actionBelongs("fault","lock"));
   }
   @Test public void explicitWarningsUseKnownFlagsNotInventedPressureValues(){
     Context c=c();

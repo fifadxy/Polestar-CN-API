@@ -172,6 +172,7 @@ public final class MainActivity extends FragmentActivity {
   }
   private void startConsented(){
     handleWidgetIntent(getIntent());
+    handleOppoFluidIntent(getIntent());
     // Resume TTL gate replaces the previous unconditional launch refresh.
     if (AppPreferences.enabled(this))
       try {
@@ -190,6 +191,25 @@ public final class MainActivity extends FragmentActivity {
     super.onNewIntent(intent);
     setIntent(intent);
     handleWidgetIntent(intent);
+    handleOppoFluidIntent(intent);
+  }
+  /** Cloud secondary actions ALWAYS require an explicit on-screen confirmation. */
+  private void handleOppoFluidIntent(Intent i){
+    if(i==null)return;
+    String action=i.getStringExtra(OppoFluidCloud.ACTION_EXTRA);
+    String source=i.getStringExtra(OppoFluidCloud.SOURCE_EXTRA);
+    if(action==null)return;i.removeExtra(OppoFluidCloud.ACTION_EXTRA);i.removeExtra(OppoFluidCloud.SOURCE_EXTRA);
+    if(!OppoFluidPolicy.action(this,source)||!OppoFluidCloud.actionBelongs(source,action))return;
+    if(!model.hasSession()||model.selected==null){
+      info(tr("车辆未连接","Vehicle disconnected"),tr("先登录并选择车辆后再使用系统卡片控制。","Log in and choose a vehicle before issuing controls."));return;
+    }
+    final String originalVin=model.selected.vin;
+    new HapticDialogBuilder(this).setTitle(tr("流体云车辆操作","Fluid card vehicle action"))
+      .setMessage(tr("这将申请实际车辆控制。请确认并继续原有安全验证，未确认时不会显示成功。","This will request a real vehicle command. Confirm before existing authorization; unverified results are never reported as success.")+"\n"+ControlAuthorization.actionLabel(this,action))
+      .setPositiveButton(tr("继续验证","Continue"),(d,w)->{
+        if(model.selected!=null&&originalVin.equals(model.selected.vin)&&!authPending)
+          authenticate(ControlAuthorization.actionLabel(this,action),action);
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
   }
   private void handleWidgetIntent(Intent i) {
     if(i!=null && "io.github.polestarcn.companion.WIDGET".equals(i.getAction()) && !i.hasExtra("widget_action"))Haptics.tap(this);
@@ -2260,20 +2280,22 @@ public final class MainActivity extends FragmentActivity {
       widgetSlider(p,tr("透明度","Opacity"),"widget_opacity",58);widgetSlider(p,tr("模拟磨砂程度","Simulated frost intensity"),"widget_frost",28);note(p,tr("磨砂玻璃说明","Frosted glass"),tr("磨砂是视觉模拟，不实时模糊桌面壁纸。","Frost is simulated; it does not live-blur wallpaper."));
     });
     disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("车控验证方式 · 生物识别 / 确认 / 直接发送","Control authorization · biometrics / confirm / direct"),this::authorizationSettings);setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});
-    disclosure(root,"settings_oppo",tr("OPPO CarLink / 设备空间","OPPO CarLink / device space"),false,p->{
-      setting(p,tr("OPPO 互联设置 · 设备卡／车辆入口／诊断","OPPO integration · cards / vehicle entry / diagnostics"),()->startActivity(new Intent(this,OppoWidgetSetupActivity.class)));
-      note(p,tr("接入状态","Integration"),OppoDeviceIntegration.enabled(this)?tr("设备卡桥接已启用；官方授权及手表链路请查看诊断。","Card bridge enabled; check diagnostics for OEM authorization and watch routing."):tr("设备卡桥接已关闭","Card bridge disabled"));
+    disclosure(root,"settings_oppo",tr("OPPO 系统兼容 · CarLink / LSPosed / 流体云 / Indicator","OPPO system integration · CarLink / LSPosed / Fluid Cloud / Indicator"),false,p->{
+      setting(p,tr("OPPO 系统兼容总设置与全项目测试","OPPO system compatibility and all-feature tests"),
+        ()->startActivity(new Intent(this,OppoSystemCompatActivity.class)));
+      setting(p,tr("CarLink / 设备空间 / LSPosed 兼容诊断","CarLink / MyDevices / LSPosed diagnostics"),
+        ()->startActivity(new Intent(this,OppoWidgetSetupActivity.class)));
+      note(p,tr("开关状态","Compatibility state"),tr("流体云","Fluid Cloud")+"="+OppoFluidPolicy.enabled(this)+" · "+
+        tr("真实车辆授权仍由 PsAssistant 控制链路负责。","Vehicle authorization stays in PsAssistant."));
     });
     disclosure(root,"settings_background",tr("数据刷新管理","Vehicle data refresh manager"),true,p->{
       setting(p,tr("前台 / 后台 / 运行状态 / 数据有效期","Foreground / background / runtime / field TTL"),this::refreshRulesDialog);
       note(p,tr("共享数据源","Shared data source"),tr("主程序、Widget、通知栏和OPPO卡片共享一次刷新结果；远控确认与露营托管单独运行。","App, widgets, notifications and OPPO share telemetry. Remote-command verification and camping are separate."));
       residentSettings(p);
     });
-    disclosure(root,"settings_watch",tr("OPPO 手表 · 功能与测试","OPPO Watch · integration lab"),false,p->{
+    disclosure(root,"settings_watch",tr("手表布局预览","Watch layout preview"),false,p->{
       setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);
-      setting(p,tr("Indicator 指示器 · 实验设置与测试","Indicator · experimental settings and tests"),this::oppoWatchIndicatorDialog);
-      note(p,tr("手表测试状态","Watch testing"),tr("默认关闭。可发送手机通知实验包；要在表盘验证 Indicator，应在 OPPO 手表上安装独立手表测试 APK。手机通知不能证明手表已经显示。",
-          "Off by default. The phone can send a lab notification; real indicator acceptance must be tested with the standalone watch APK installed on the watch."));
+      note(p,tr("手表联动设置","Watch integration"),tr("OPPO Watch Indicator 与流体云测试已统一归入 OPPO 系统兼容。","OPPO Watch Indicator and Fluid Cloud tests are under OPPO system compatibility."));
     });
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
       note(p,tr("独立运行说明","Standalone build"),new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."));

@@ -423,7 +423,7 @@ public final class VehicleCoordinator {
     ticket.readback.start(ticket.action);
   }
 
-  private void complete(PendingCommand ticket,OperationState result){OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,result.name());java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}}
+  private void complete(PendingCommand ticket,OperationState result){OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,result.name());OppoFluidCloud.onVerifiedCommand(context,ticket.action,result);java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}}
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
     if(updated==null||selected==null||!vehicle.vin.equals(selected.vin))return;
     // A delayed callback cannot overwrite a newer refresh / another family's readback.

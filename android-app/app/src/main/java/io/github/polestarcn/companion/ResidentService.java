@@ -31,7 +31,7 @@ public final class ResidentService extends Service {
       NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
       nm.notify(ID,notification(this));WidgetRenderer.refreshAll(this);
     }
-    lastTimerSignature=signature;scheduleTimerTick();
+    lastTimerSignature=signature;OppoFluidCloud.updateFromCache(this);scheduleTimerTick();
   };
   private void scheduleTimerTick(){timerHandler.removeCallbacks(timerTick);VehicleSnapshot v=VehicleSnapshotStore.loadChina(this);String vehicle=AppPreferences.get(this,"vehicle","");long now=System.currentTimeMillis();Long air=AirRuntime.remaining(this,v,vehicle,now);Integer climate=ClimateRuntime.remainingMinutes(v,now);boolean ticking=CampModeManager.active(this)||(air!=null&&air>0)||(climate!=null&&climate>0)||(v!=null&&"开启".equals(v.climate)&&climate==null&&ClimateRuntime.estimatedRemaining(this,vehicle,now)>0);if(ticking)timerHandler.postDelayed(timerTick,60_000L);}
 
@@ -65,6 +65,7 @@ public final class ResidentService extends Service {
   }
 
   public static void update(Context c) {
+    OppoFluidCloud.updateFromCache(c);
     if (running) {
       NotificationManager nm = (NotificationManager) c.getSystemService(NOTIFICATION_SERVICE);
       nm.notify(ID, notification(c));

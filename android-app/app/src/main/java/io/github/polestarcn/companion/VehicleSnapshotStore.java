@@ -78,6 +78,7 @@ public final class VehicleSnapshotStore {
           .edit()
           .putString(KEY, o.toString())
           .apply();
+      if("LIVE".equals(snapshot.source))OppoFluidCloud.onLiveSnapshot(context,snapshot);
     } catch (Exception e) {
       DiagnosticLog.add("Display snapshot cache write failed");
     }

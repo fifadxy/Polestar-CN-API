@@ -451,8 +451,12 @@ public final class ChinaPolestarApi {
       Map<Integer,Object> fields=readHealth(session,vin);
       if(!fields.isEmpty()){tires=TireSnapshot.fromData(fields);health=VehicleHealthSnapshot.fromData(fields,tires);}
     }
-    boolean climate=scopes.contains(io.github.polestarcn.companion.RefreshDomain.CLIMATE);
-    boolean air=scopes.contains(io.github.polestarcn.companion.RefreshDomain.AIR);
+    // CORE refresh must discover a climate/air activation from another client as well.
+    // When already running, dedicated 2/15-minute CLIMATE scopes avoid battery/exterior RPCs.
+    boolean climate=scopes.contains(io.github.polestarcn.companion.RefreshDomain.CLIMATE)
+        ||scopes.contains(io.github.polestarcn.companion.RefreshDomain.CORE);
+    boolean air=scopes.contains(io.github.polestarcn.companion.RefreshDomain.AIR)
+        ||scopes.contains(io.github.polestarcn.companion.RefreshDomain.CORE);
     if(climate||air){
       Map<Integer,Object> cd=climate?readFeatureData(session,vin,true):Collections.emptyMap();
       Map<Integer,Object> ad=air?readFeatureData(session,vin,false):Collections.emptyMap();

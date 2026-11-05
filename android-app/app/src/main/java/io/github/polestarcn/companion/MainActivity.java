@@ -546,6 +546,7 @@ public final class MainActivity extends FragmentActivity {
     if(v instanceof TextView&&(role||v instanceof SwitchCompat||tag.startsWith("control_title_")||tag.equals("volike_control_label")||tag.equals("shortcut_label")))((TextView)v).setTextColor(AppPreferences.dark(this)?ink:Color.BLACK);
     if(v instanceof TextView&&(tag.startsWith("control_feedback_")||tag.equals("shortcut_feedback")))((TextView)v).setTextColor(AppPreferences.dark(this)?muted:Color.rgb(115,115,115));
     ButtonAppearance.apply(v);
+    SkinButtonLayout.apply(v);
     if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)applyButtonHierarchy(((ViewGroup)v).getChildAt(i));
   }
 
@@ -704,7 +705,7 @@ public final class MainActivity extends FragmentActivity {
     if(minimal)state.setVisibility(View.GONE);
     else {LinearLayout words=column();words.setPadding(dp(9),0,0,0);TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);fitSingleLine(title,13);words.addView(title);state.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);words.addView(state);tile.addView(words,new LinearLayout.LayoutParams(0,-2,1));}
     bindDashboard(()->{String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);icon.setColorFilter(active?orange:ink);tile.setEnabled(model.canControl(control));tile.setAlpha(tile.isEnabled()?1f:.5f);});
-    click(tile,()->{if("signal".equals(control))signalMenu();else directControl(control);});installLockHold(tile,control);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(7);parent.addView(tile,lp);
+    click(tile,()->{if("signal".equals(control))signalMenu();else directControl(control);});installLockHold(tile,control);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(7);SkinButtonLayout.mount(parent,tile,control,lp);
   }
   private void buildSimple2(){
     if(getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp||getResources().getConfiguration().screenHeightDp<680){buildDashboard(true);return;}
@@ -714,7 +715,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout hero=simple2Card();LinearLayout energy=row();LinearLayout battery=column();TextView soc=liveText(()->model.snapshot==null?"--%":VehicleSnapshot.metric(model.snapshot.batteryPercent,"%"),compact?32:44,ink,true);soc.setTag("battery_soc");battery.addView(soc);battery.addView(text(tr("当前电量","Battery"),11,muted,false));energy.addView(battery,new LinearLayout.LayoutParams(0,-2,1));LinearLayout range=column();range.setGravity(Gravity.END);TextView km=liveText(()->model.snapshot==null?"-- km":VehicleSnapshot.metric(model.snapshot.rangeKm," km"),25,ink,true);km.setTag("battery_range");range.addView(km);range.addView(text(tr("预计续航","Estimated range"),11,muted,false));energy.addView(range,new LinearLayout.LayoutParams(0,-2,1));hero.addView(energy);
     ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(100);styleViProgress(bar);batteryBarVisibility(bar);bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));hero.addView(bar,new LinearLayout.LayoutParams(-1,dp(5)));hero.addView(vehicleVisual(),new LinearLayout.LayoutParams(-1,0,1));body.addView(hero,new LinearLayout.LayoutParams(-1,0,1));gap(body,6);
     for(String[] controls:new String[][]{{"lock","windows"},{"trunk","signal"},{"climate","air"}}){LinearLayout line=row();for(String key:controls){String label=key.equals("lock")?tr("车门锁","Door lock"):key.equals("windows")?tr("车窗","Windows"):key.equals("trunk")?tr("后备箱","Trunk"):key.equals("signal")?tr("寻车","Find car"):key.equals("climate")?tr("空调","Climate"):tr("净化","Purification");simple2Action(line,key,label);}body.addView(line,new LinearLayout.LayoutParams(-1,dp(compact?56:64)));gap(body,6);}
-    LinearLayout utilities=row();VehicleConditionButton condition=conditionButton(tr("保养","Service"));condition.setConditionIcon(R.drawable.ic_service_reference);utilities.addView(condition,new LinearLayout.LayoutParams(0,dp(58),1));TextView camp=utility(tr("露营模式","Camping"),false,false,this::campDialog);utilityIcon(camp,R.drawable.ic_camp);camp.setTag("camp_button");LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(7);utilities.addView(camp,cp);bindDashboard(()->{boolean active=CampModeManager.active(this);camp.setTextColor(ink);tintUtilityIcon(camp);((UtilityButton)camp).feedback(ButtonFeedback.value(this,"camp",model.snapshot,CampModeManager.status(this)));condition.refreshService();});body.addView(utilities);gap(body,5);
+    LinearLayout utilities=row();VehicleConditionButton condition=conditionButton(tr("保养","Service"));condition.setConditionIcon(R.drawable.ic_service_reference);SkinButtonLayout.mount(utilities,condition,"body",new LinearLayout.LayoutParams(0,dp(58),1));TextView camp=utility(tr("露营模式","Camping"),false,false,this::campDialog);utilityIcon(camp,R.drawable.ic_camp);camp.setTag("camp_button");LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(7);SkinButtonLayout.mount(utilities,camp,"camp",cp);bindDashboard(()->{boolean active=CampModeManager.active(this);camp.setTextColor(ink);tintUtilityIcon(camp);((UtilityButton)camp).feedback(ButtonFeedback.value(this,"camp",model.snapshot,CampModeManager.status(this)));condition.refreshService();});body.addView(utilities);gap(body,5);
     List<DisplayMetric> chosen=controlMetrics();chosen.removeIf(m->ChargingVisibility.isChargingMetric(m)||m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE);if(chosen.size()>3)chosen=new ArrayList<>(chosen.subList(0,3));LinearLayout data=simple2Card();TextView all=button(tr("车辆数据 · 全部数据 ›","Vehicle data · all data ›"),()->{page=1;render();});all.setMinHeight(0);all.setTextSize(12);data.addView(all,new LinearLayout.LayoutParams(-1,dp(26)));addMetricGrid(data,model.snapshot,chosen,true);body.addView(data);dashboardReady=true;
   }
 
@@ -1131,7 +1132,7 @@ public final class MainActivity extends FragmentActivity {
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
     click(item,()->directControl(control));installLockHold(item,control);
-    parent.addView(item,new LinearLayout.LayoutParams(-1,0,1));
+    SkinButtonLayout.mount(parent,item,control,new LinearLayout.LayoutParams(-1,0,1));
   }
 
   private LinearLayout voDetailRail(boolean compact) {
@@ -1316,7 +1317,7 @@ public final class MainActivity extends FragmentActivity {
       item.setContentDescription(title+" · "+controlFeedback(control,true));
     });
     click(item,()->directControl(control));installLockHold(item,control);
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(2);parent.addView(item,lp);
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(2);SkinButtonLayout.mount(parent,item,control,lp);
   }
 
   private void addVoUtilities(LinearLayout parent,boolean landscape) {
@@ -1335,8 +1336,8 @@ public final class MainActivity extends FragmentActivity {
       ((UtilityButton)signal).feedback(ButtonFeedback.value(this,"signal",model.snapshot,model.commandPending&&model.activeAction.startsWith("signal")?tr("待确认","Verifying"):tr("鸣闪","Horn / flash")));
     });
     int h=dp(landscape?46:56);
-    row.addView(condition,new LinearLayout.LayoutParams(0,h,1f));
-    for(TextView view:new TextView[]{windows,camp,signal}){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,h,1);lp.leftMargin=dp(4);row.addView(view,lp);}
+    SkinButtonLayout.mount(row,condition,"body",new LinearLayout.LayoutParams(0,h,1f));
+    for(TextView view:new TextView[]{windows,camp,signal}){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,h,1);lp.leftMargin=dp(4);SkinButtonLayout.mount(row,view,view==windows?"windows":view==camp?"camp":"signal",lp);}
     parent.addView(row,new LinearLayout.LayoutParams(-1,h));
   }
 
@@ -1481,8 +1482,8 @@ public final class MainActivity extends FragmentActivity {
       ((GradientDrawable)bodyButton.getBackground()).setStroke(dp(1),opened?orange:line);bodyButton.setTextColor(opened?accentText():ink);bodyButton.refreshService();
       ((GradientDrawable)camp.getBackground()).setColor(active?orange:surface);camp.setTextColor(active?Color.BLACK:ink);tintUtilityIcon(camp);((UtilityButton)camp).feedback(ButtonFeedback.value(this,"camp",model.snapshot,CampModeManager.status(this)));
     });
-    utilities.addView(bodyButton,new LinearLayout.LayoutParams(0,dp(58),1));
-    LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(6);utilities.addView(camp,cp);parent.addView(utilities);
+    SkinButtonLayout.mount(utilities,bodyButton,"body",new LinearLayout.LayoutParams(0,dp(58),1));
+    LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(6);SkinButtonLayout.mount(utilities,camp,"camp",cp);parent.addView(utilities);
   }
 
   private void addNioOrb(LinearLayout parent,ImageView icon) {
@@ -1518,7 +1519,7 @@ public final class MainActivity extends FragmentActivity {
       feedback.setVisibility(AppPreferences.visible(this,"show_button_feedback",true)&&!"hidden".equals(ButtonFeedback.mode(this,kind))?View.VISIBLE:View.GONE);
       feedback.setTextColor(muted);image.setColorFilter(warning?accentText():ink);
     });
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(5);parent.addView(card,lp);
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(5);SkinButtonLayout.mount(parent,card,kind,lp);
   }
 
   private void addDashboardUtilities(LinearLayout parent, boolean landscape) {
@@ -1565,7 +1566,7 @@ public final class MainActivity extends FragmentActivity {
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
           dp(landscape ? 48 : 58), 1);
       if (utilities.getChildCount() > 0) lp.leftMargin = dp(4);
-      utilities.addView(view, lp);
+      SkinButtonLayout.mount(utilities,view,kind,lp);
     }
     parent.addView(utilities);
   }
@@ -1674,7 +1675,7 @@ public final class MainActivity extends FragmentActivity {
     click(card, () -> directControl(control));installLockHold(card,control); card.setFocusable(true);
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
     if (parent.getChildCount() > 0) lp.leftMargin = dp(5);
-    parent.addView(card, lp);
+    SkinButtonLayout.mount(parent,card,control,lp);
   }
 
   private void addMetricGrid(LinearLayout parent, VehicleSnapshot unused,
@@ -2229,6 +2230,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"immersive",tr("沉浸模式 · 背景延伸至状态栏","Immersive · background behind status bar"),true,false);
       settingToggle(p,"ui_all_bold",tr("所有UI文字加粗","Bold text across all UI"),false,false);
       setting(p,tr("字体、按钮图标与文字大小","Font, button icons and labels"),this::fontDialog);
+      setting(p,tr("各皮肤按钮布局 · 逐皮肤逐按钮微调","Per-skin layout · customize every control"),this::skinButtonLayoutDialog);
       setting(p,tr("各皮肤极简图标 · 大小与粗细","Per-skin minimal icons · size and weight"),this::minimalIconDialog);
       settingToggle(p,"minimal_mode",tr("极简模式 · 隐藏按钮名称并放大图标","Minimal mode · hide button names and enlarge icons"),false,false);
       note(p,tr("极简模式","Minimal mode"),tr("可在此切换，也可长按首页车图1秒打开外观菜单后切换。图标居中放大；关闭时隐藏反馈，开启后显示状态或剩余时间，颜色保持原有规则。","Toggle here or hold the vehicle image for 1 second to open the appearance menu. Larger icons are centered; feedback appears while active, with state colors preserved."));

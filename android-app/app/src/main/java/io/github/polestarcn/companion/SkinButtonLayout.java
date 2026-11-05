@@ -185,12 +185,14 @@ final class SkinButtonLayout {
     }
     if(text&&!(v instanceof CenteredStatusButton)){
       TextView label=(TextView)v;
-      Float base=(Float)label.getTag(R.id.psa_text_baseline);
+      Object normalBaseline=label.getTag(R.id.psa_size_baseline);
+      Float base=normalBaseline instanceof Float?(Float)normalBaseline:
+          (Float)label.getTag(R.id.psa_text_baseline);
       if(base==null){base=label.getTextSize();label.setTag(R.id.psa_text_baseline,base);}
       if(customized(v.getContext(),control,"label")){
         androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(label,0);
-        label.setTextSize(TypedValue.COMPLEX_UNIT_PX,
-            base*ButtonAppearance.textScale(v.getContext())*labelScale(v));
+        float normalScale=normalBaseline instanceof Float?ButtonAppearance.textScale(v.getContext()):1f;
+        label.setTextSize(TypedValue.COMPLEX_UNIT_PX,base*normalScale*labelScale(v));
       }
     }
     if(icon||text){

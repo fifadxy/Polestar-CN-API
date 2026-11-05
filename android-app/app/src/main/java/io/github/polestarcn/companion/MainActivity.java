@@ -1670,7 +1670,7 @@ public final class MainActivity extends FragmentActivity {
       }else{
         feedback.setSingleLine(true);feedback.setMaxLines(1);
       }
-      if(nioAirNumber[0]!=null)nioAirNumber[0].setVisibility(airIdle?View.GONE:View.VISIBLE);
+      if(nioAirNumber[0]!=null)nioAirNumber[0].setVisibility(airIdle||minimal?View.GONE:View.VISIBLE);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
       feedback.setText(feedbackValue);feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")

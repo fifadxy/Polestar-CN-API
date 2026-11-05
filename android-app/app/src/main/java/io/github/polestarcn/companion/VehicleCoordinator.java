@@ -257,6 +257,7 @@ public final class VehicleCoordinator {
                   if(selectionChanged)SecureVehicleSelection.save(context,pick);
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;lastVehicleReadOk=true;
+                  VehicleRefreshManager.get(context).onFullRead(pick.vin);
                   protectCamp(pick.vin, live);
                   message = tr("车辆状态已更新", "Vehicle updated");
                   WidgetRenderer.refreshAll(context);
@@ -271,6 +272,44 @@ public final class VehicleCoordinator {
                 });
           }
         });
+  }
+
+
+  /** Ordinary scoped refresh only. Remote commands and camping retain their independent full reads. */
+  public void refreshScoped(java.util.EnumSet<RefreshDomain> scopes,Runnable done){
+    if(!FirstUseConsent.accepted(context)||!signedIn||selected==null){
+      if(done!=null)done.run();return;
+    }
+    if(busy||commandPending){if(done!=null)done.run();return;}
+    busy=true;quietRefresh=true;changed();
+    final long generation=sessionGeneration;
+    final ChinaPolestarApi.VehicleInfo vehicle=selected;
+    final VehicleSnapshot previous=snapshot;
+    io.execute(()->{
+      try{
+        VehicleSnapshot fresh=api.readVehicleScoped(vehicle,previous,scopes);
+        main.post(()->{
+          if(generation!=sessionGeneration||!signedIn||selected==null||!vehicle.vin.equals(selected.vin))return;
+          boolean updated=RefreshDisplay.changed(previous,fresh);
+          snapshot=fresh;lastVehicleReadOk=true;
+          VehicleSnapshotStore.saveChina(context,fresh);
+          if(scopes.contains(RefreshDomain.CORE)||scopes.contains(RefreshDomain.MILEAGE))
+            EnergyLog.record(context,identity(vehicle.vin),fresh);
+          protectCamp(vehicle.vin,fresh);
+          if(updated)WidgetRenderer.refreshAll(context);
+          message=tr("车辆状态已更新","Vehicle updated");
+          if(done!=null)completions.add(done);
+          finish();
+        });
+      }catch(Exception failure){
+        main.post(()->{
+          if(generation!=sessionGeneration||!signedIn)return;
+          lastVehicleReadOk=false;DiagnosticLog.add("Scoped telemetry unavailable");
+          if(done!=null)completions.add(done);
+          finish();
+        });
+      }
+    });
   }
 
   public void choose(ChinaPolestarApi.VehicleInfo car) {
@@ -375,6 +414,7 @@ public final class VehicleCoordinator {
     // A delayed callback cannot overwrite a newer refresh / another family's readback.
     if(snapshot!=null&&updated.timestampMillis<snapshot.timestampMillis)return;
     snapshot=updated;lastVehicleReadOk=true;VehicleSnapshotStore.saveChina(context,updated);
+    VehicleRefreshManager.get(context).onFullRead(vehicle.vin);
     EnergyLog.record(context,identity(vehicle.vin),updated);protectCamp(vehicle.vin,updated);WidgetRenderer.refreshAll(context);
   }
 

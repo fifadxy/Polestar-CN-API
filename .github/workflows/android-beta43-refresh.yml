@@ -26,6 +26,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - name: Verify offline Standalone FULL packaging entrypoint
+        run: |
+          python3 -m py_compile scripts/package_standalone_full.py
+          python3 scripts/package_standalone_full.py --help >/dev/null
       - name: Ensure Android API 35
         run: |
           test -n "${ANDROID_HOME:-}"

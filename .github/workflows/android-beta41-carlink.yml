@@ -4,7 +4,6 @@ on:
     branches:
       - feature/oppo-beta41-carlink-bound-app-20261104
       - feature/psassistant-beta43-unified-refresh-20261105
-      - android-polestar-assistant-main
     paths:
       - 'android-app/**'
       - 'scripts/verify_uploaded_carlink.py'

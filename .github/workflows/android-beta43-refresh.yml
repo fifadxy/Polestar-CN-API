@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - feature/psassistant-beta43-unified-refresh-20261105
-      - android-polestar-assistant-main
     paths:
       - 'android-app/**'
       - 'knowledge/**'

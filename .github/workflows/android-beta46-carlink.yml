@@ -39,17 +39,18 @@ jobs:
           test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
           grep -q 'versionCode 160' android-app/app/build.gradle
           ! grep -q "include ':oppoWatchIndicator'" android-app/settings.gradle
-          sha256sum android-app/app/build/outputs/apk/debug/app-debug.apk
-          sha256sum android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v1.0.0-beta46-VALIDATION-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-beta46-debug.apk
+          sha256sum PsAssistant-v1.0.0-beta46-VALIDATION-debug.apk PsAssistant-OPPO-Bridge-beta46-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: PsAssistant-v1.0.0-beta46-VALIDATION-debug
-          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          path: PsAssistant-v1.0.0-beta46-VALIDATION-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: PsAssistant-OPPO-Bridge-beta46-debug
-          path: android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
+          path: PsAssistant-OPPO-Bridge-beta46-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()

@@ -17,7 +17,7 @@ final class OppoCarLinkRuntime {
   private final OppoCarLinkCommandWindow commandWindow=new OppoCarLinkCommandWindow();
   private final OppoCarLinkActivationWindow activationWindow=new OppoCarLinkActivationWindow();
   private volatile boolean registered,requested;private boolean authRequested,authInFlight;private volatile Integer authResult,subscribeResult;private volatile String phase="未初始化";private volatile int errorCode;
-  private long publishedAt=-1;private String publishedCar="";private volatile String infoPublishMode="",statusPublishMode="";
+  private long publishedAt=-1;private String publishedCar="",publishedSignature="";private volatile String infoPublishMode="",statusPublishMode="";
   private OppoCarLinkRuntime(Context c){context=c;}
   private static final class Task {
     final String id,action,car;final long deadline;boolean sent;
@@ -61,12 +61,14 @@ final class OppoCarLinkRuntime {
   private void publish(boolean force,boolean includeInfo){if(!ready()||!CarLink.isCarControlInitComplete())return;
     VehicleSnapshot state=currentSnapshot();String vin=currentVin();String car=OppoCarLinkModels.carId(vin);
     if(state==null||vin.isEmpty())return;
-    if(!force&&state.timestampMillis==publishedAt&&car.equals(publishedCar))return;
+    String signature=state.timestampMillis+"|"+state.batteryPercent+"|"+state.rangeKm+"|"+
+        state.lock+"|"+state.climate+"|"+state.air+"|"+state.charging+"|"+state.odometerKm;
+    if(!force&&signature.equals(publishedSignature)&&car.equals(publishedCar))return;
     try{
       if(includeInfo||!car.equals(publishedCar))publishInfo(OppoCarLinkModels.info(context,OppoCarLinkConfig.load(context),state,vin));
       if(OppoCarLinkModels.canReport(state))publishStatus(OppoCarLinkModels.status(state,vin));
       else phase="缓存必填车况缺失，未上报零值状态";
-      publishedAt=state.timestampMillis;publishedCar=car;
+      publishedAt=state.timestampMillis;publishedCar=car;publishedSignature=signature;
     }catch(RuntimeException failure){phase="SDK发布失败："+failure.getClass().getSimpleName();requested=false;}
   }
 
@@ -110,7 +112,7 @@ final class OppoCarLinkRuntime {
   }
   void stop(){if(Looper.myLooper()!=Looper.getMainLooper()){main.post(this::stop);return;}requested=false;cancelAll("桥接关闭或账号退出");commandWindow.clear();
     if(registered){try{if(CarLink.isCarControlInitComplete())CarControl.accountExpired();CarControl.unregisterCallback(callback);}catch(RuntimeException ignored){}}
-    registered=false;requested=false;authRequested=false;authInFlight=false;authResult=null;subscribeResult=null;publishedAt=-1;publishedCar="";phase="已停止输出";
+    registered=false;requested=false;authRequested=false;authInFlight=false;authResult=null;subscribeResult=null;publishedAt=-1;publishedCar="";publishedSignature="";phase="已停止输出";
   }
   private void cancelAll(String reason){for(String id:new ArrayList<>(tasks.keySet()))finish(id,OperationState.UNCONFIRMED,reason);}
   private final ICarControlCallback callback=new ICarControlCallback(){

@@ -126,7 +126,7 @@ public final class MainActivity extends FragmentActivity {
   private static boolean openingRefreshClaimed,openingRefreshFinished;private static long openingRefreshDue;
   private final Runnable openingRefresh=()->{openingRefreshFinished=true;VehicleRefreshManager.get(this).requestResume();};
   private final Runnable foregroundRefresh=new Runnable(){public void run(){
-    if(FirstUseConsent.accepted(MainActivity.this)&&model.hasSession()&&!model.busy&&!model.commandPending)VehicleRefreshManager.get(this).requestForeground();
+    if(FirstUseConsent.accepted(MainActivity.this)&&model.hasSession()&&!model.busy&&!model.commandPending)VehicleRefreshManager.get(MainActivity.this).requestForeground();
     scheduleForeground();
   }};
   private void scheduleForeground(){displayHandler.removeCallbacks(foregroundRefresh);long delay=VehicleRefreshManager.get(this).nextForegroundDelay();if(delay>0&&mapRefreshHostActive)displayHandler.postDelayed(foregroundRefresh,Math.max(15000L,delay));}

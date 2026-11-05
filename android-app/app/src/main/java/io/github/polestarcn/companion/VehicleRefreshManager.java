@@ -28,6 +28,7 @@ public final class VehicleRefreshManager {
  private EnumSet<RefreshDomain> pending=EnumSet.noneOf(RefreshDomain.class);
  private final ArrayList<Runnable> waiting=new ArrayList<>();
  private boolean inFlight,foreground;
+ private EnumSet<RefreshDomain> activeScopes=EnumSet.noneOf(RefreshDomain.class);
  private long queuedAt,blockedSince,lastFailedAt;
  private String queuedVehicle="";
  private final Runnable dispatch=this::dispatch;
@@ -100,10 +101,8 @@ public final class VehicleRefreshManager {
    if(!foreground||car.selected==null||!car.hasSession())return;
    int minutes=RefreshPolicy.resumeThreshold(context);
    if(minutes==0)return;
-   String vin=car.selected.vin;
-   // A just-finished background job is already fresh; also check active-run scopes.
-   if(RefreshPlanner.fresh(readAt(vin,RefreshDomain.CORE),System.currentTimeMillis(),minutes*60_000L))
-     return;
+   // Each group's TTL is checked independently: a recently refreshed battery does
+   // not suppress a due 2-minute climate check after returning to the foreground.
    request(true,false,null);
  }
  public void requestBridge(Runnable done){request(false,false,done);}
@@ -117,8 +116,14 @@ public final class VehicleRefreshManager {
      if(done!=null)done.run();return;
    }
    EnumSet<RefreshDomain> needs=requested(front,idle);
-   if(needs.isEmpty()){record("cacheHits");if(done!=null)done.run();return;}
    String vin=car.selected.vin;
+   if(inFlight&&queuedVehicle.equals(vin)){
+     needs.removeAll(activeScopes);
+     if(needs.isEmpty()){
+       record("merged");if(done!=null)waiting.add(done);return;
+     }
+   }
+   if(needs.isEmpty()){record("cacheHits");if(done!=null)done.run();return;}
    if(!queuedVehicle.isEmpty()&&!queuedVehicle.equals(vin)){
      pending.clear();for(Runnable callback:waiting)callback.run();waiting.clear();
    }
@@ -148,10 +153,10 @@ public final class VehicleRefreshManager {
    }
    final EnumSet<RefreshDomain> scope=EnumSet.copyOf(pending);
    final String vin=queuedVehicle;
-   pending.clear();inFlight=true;blockedSince=0;
+   pending.clear();inFlight=true;activeScopes=EnumSet.copyOf(scope);blockedSince=0;
    record("networkBatches");
    car.refreshScoped(scope,()->{
-     inFlight=false;
+     inFlight=false;activeScopes.clear();
      if(car.lastVehicleReadOk&&car.selected!=null&&vin.equals(car.selected.vin)){
        onScopesRead(vin,scope);
      }else {record("failures");lastFailedAt=SystemClock.elapsedRealtime();}

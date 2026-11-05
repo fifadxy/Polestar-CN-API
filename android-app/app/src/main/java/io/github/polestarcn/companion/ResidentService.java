@@ -14,7 +14,25 @@ public final class ResidentService extends Service {
   private static boolean running;
   private static ResidentService active;
   private final Handler timerHandler=new Handler(Looper.getMainLooper());
-  private final Runnable timerTick=()->{if(!running)return;NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);nm.notify(ID,notification(this));WidgetRenderer.refreshAll(this);scheduleTimerTick();};
+  private String lastTimerSignature="";
+  private String timerSignature(){
+    VehicleSnapshot s=VehicleSnapshotStore.loadChina(this);
+    String vehicle=AppPreferences.get(this,"vehicle","");
+    return (s==null?"--":AirRuntime.label(this,s,vehicle))+"|"
+        +ClimateRuntime.remainingMinutes(s,System.currentTimeMillis())+"|"
+        +CampModeManager.remainingCaption(this);
+  }
+  private final Runnable timerTick=()->{
+    if(!running)return;
+    String signature=timerSignature();
+    boolean changed=!signature.equals(lastTimerSignature);
+    boolean redrawEachMinute="minute".equals(AppPreferences.get(this,"refresh_local_redraw","event"));
+    if(changed||redrawEachMinute){
+      NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+      nm.notify(ID,notification(this));WidgetRenderer.refreshAll(this);
+    }
+    lastTimerSignature=signature;scheduleTimerTick();
+  };
   private void scheduleTimerTick(){timerHandler.removeCallbacks(timerTick);VehicleSnapshot v=VehicleSnapshotStore.loadChina(this);String vehicle=AppPreferences.get(this,"vehicle","");long now=System.currentTimeMillis();Long air=AirRuntime.remaining(this,v,vehicle,now);Integer climate=ClimateRuntime.remainingMinutes(v,now);boolean ticking=CampModeManager.active(this)||(air!=null&&air>0)||(climate!=null&&climate>0)||(v!=null&&"开启".equals(v.climate)&&climate==null&&ClimateRuntime.estimatedRemaining(this,vehicle,now)>0);if(ticking)timerHandler.postDelayed(timerTick,60_000L);}
 
   public static void apply(Context c) {

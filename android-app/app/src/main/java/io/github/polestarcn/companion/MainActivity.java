@@ -2173,7 +2173,7 @@ public final class MainActivity extends FragmentActivity {
   private void setting(LinearLayout parent,String title,Runnable action){if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,settingsAliases(title),action);TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);GradientDrawable frame=bg(surface,12);frame.setStroke(dp(1),line);entry.setBackground(frame);entry.setPadding(dp(14),dp(12),dp(14),dp(12));entry.setMinHeight(dp(52));entry.setSingleLine(false);entry.setMaxLines(3);parent.addView(entry);gap(parent,6);}
   private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
     SwitchCompat toggle=new SwitchCompat(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(52));toggle.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable tf=bg(surface,12);tf.setStroke(dp(1),line);toggle.setBackground(tf);toggle.setThumbTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{orange,muted}));toggle.setTrackTintList(android.content.res.ColorStateList.valueOf(line));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
-    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
+    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
   }
   private void themeChoice(){new HapticDialogBuilder(this).setTitle(tr("日夜模式","Day / night mode")).setItems(new String[]{tr("跟随系统","System"),tr("浅色","Light"),tr("深色","Dark")},(d,w)->{AppPreferences.set(this,"theme",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);render();}).show();}
   private void widgetFields(){String[] labels={"4×2 · 8","2×2 · 4","4×1 · 4","5×1 · 4","2×1 · 2","Data 4×4 · 8"};WidgetRenderer.Size[] sizes={WidgetRenderer.Size.LARGE,WidgetRenderer.Size.SQUARE,WidgetRenderer.Size.WIDE,WidgetRenderer.Size.EXTRA_WIDE,WidgetRenderer.Size.MINI,WidgetRenderer.Size.DATA};new HapticDialogBuilder(this).setTitle(tr("Widget 尺寸与数据","Widget size and data")).setItems(labels,(d,w)->metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),WidgetRenderer.capacity(sizes[w]),WidgetRenderer.selectionDefaults(this,sizes[w]))).show();}
@@ -2269,7 +2269,12 @@ public final class MainActivity extends FragmentActivity {
       note(p,tr("共享数据源","Shared data source"),tr("主程序、Widget、通知栏和OPPO卡片共享一次刷新结果；远控确认与露营托管单独运行。","App, widgets, notifications and OPPO share telemetry. Remote-command verification and camping are separate."));
       residentSettings(p);
     });
-    disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);note(p,tr("手表预览说明","Watch preview"),tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."));});
+    disclosure(root,"settings_watch",tr("OPPO 手表 · 功能与测试","OPPO Watch · integration lab"),false,p->{
+      setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);
+      setting(p,tr("Indicator 指示器 · 实验设置与测试","Indicator · experimental settings and tests"),this::oppoWatchIndicatorDialog);
+      note(p,tr("手表测试状态","Watch testing"),tr("默认关闭。可发送手机通知实验包；要在表盘验证 Indicator，应在 OPPO 手表上安装独立手表测试 APK。手机通知不能证明手表已经显示。",
+          "Off by default. The phone can send a lab notification; real indicator acceptance must be tested with the standalone watch APK installed on the watch."));
+    });
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
       note(p,tr("独立运行说明","Standalone build"),new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."));
       setting(p,tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this)));
@@ -2544,6 +2549,52 @@ public final class MainActivity extends FragmentActivity {
             })
         .setNegativeButton(tr("取消", "Cancel"), null)
         .show();
+  }
+
+  private void oppoWatchIndicatorDialog(){
+    LinearLayout panel=detailPanel();
+    settingToggle(panel,OppoWatchIndicatorLab.PREF_ENABLED,
+      tr("启用 OPPO Watch Indicator 实验（默认关闭）","Enable OPPO Watch Indicator lab (off by default)"),false,false);
+    settingToggle(panel,OppoWatchIndicatorLab.PREF_RESIDENT,
+      tr("常驻车况通知附加 Indicator 标记（可不被系统识别）","Add indicator hint to real resident service (may be ignored)"),false,false);
+    setting(panel,tr("模拟类别 · 导航 / 运动（仅限短时实验）","Synthetic category · navigation / workout (brief test only)"),()->choice(
+      tr("选择测试通知的类别（不会真的启动导航/运动）","Choose lab category (does not navigate or start a workout)"),
+      OppoWatchIndicatorLab.PREF_CATEGORY,new String[]{"navigation","workout"},
+      new String[]{tr("导航类别模拟 · 90 秒","Navigation simulation · 90s"),tr("运动类别模拟 · 90 秒","Workout simulation · 90s")},
+      "navigation",null));
+    setting(panel,tr("发送一次 90 秒 Indicator 测试通知","Post 90-second Indicator lab notification"),()->{
+      if(!OppoWatchIndicatorLab.enabled(this)){
+        info(tr("尚未启用","Not enabled"),tr("请先开启手表实验开关。","Enable the watch lab switch first."));return;
+      }
+      if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATIONS);
+        toast(tr("授权后请再次点击测试按钮","Grant permission and tap test again"));return;
+      }
+      new HapticDialogBuilder(this)
+        .setTitle(tr("仅限开发测试","Development test only"))
+        .setMessage(tr("模拟通知会临时标记为导航或运动，但不会真的导航、运动、连接车辆或发送远控指令。90 秒后自动消失，不能代表手表已经接收。继续？",
+          "This is a temporary navigation/workout-category simulation. It does not start these activities, connect to a vehicle or send commands. It auto-expires in 90 seconds and does not prove watch receipt. Continue?"))
+        .setPositiveButton(tr("发送测试","Post test"),(d,w)->info(tr("通知测试结果","Notification test result"),OppoWatchIndicatorLab.startTest(this)))
+        .setNegativeButton(tr("取消","Cancel"),null).show();
+    });
+    setting(panel,tr("停止并清除测试通知","Cancel lab notification"),()->{OppoWatchIndicatorLab.cancel(this);toast(tr("已停止测试","Test stopped"));});
+    setting(panel,tr("检查通知权限和 Indicator 条件","Inspect notification and indicator fields"),()->
+      info(tr("OPPO Watch · 测试诊断","OPPO Watch · lab diagnostics"),OppoWatchIndicatorLab.diagnostics(this)));
+    setting(panel,tr("打开手机通知设置","Open phone notification settings"),()->{
+      Intent intent=new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName());startActivity(intent);
+    });
+    note(panel,tr("适用性说明","Compatibility"),tr(
+      "OPPO 文档的 Indicator 条件是 ongoing=true、category 为导航或运动、extra show_heytap_indicator=true，通知需由手表上的应用发出。",
+      "OPPO requires an ongoing notification, navigation/workout category and show_heytap_indicator=true. The watch app must post it locally."));
+    note(panel,tr("正式车况通知","Real vehicle notification"),tr(
+      "车况、空调与露营并非导航/运动；开启标记后仍保留真实 CATEGORY_SERVICE，不伪装业务类型。显示与否取决于 OPPO 手表系统。",
+      "Car telemetry, climate and camping are not navigation/workouts; real notifications keep CATEGORY_SERVICE even with the hint enabled. The watch may ignore it."));
+    note(panel,tr("独立手表测试","On-watch test"),tr(
+      "随源码提供 :oppoWatchIndicator 单独手表 APK。手表端点击导航模拟/运动模拟后返回表盘检查图标；此阶段没有 Wear Engine 双端数据通信或表端真实控车。",
+      "Install the :oppoWatchIndicator watch APK and post a test from its own UI, then return to the watch face. No Wear Engine sync or real car commands are included."));
+    new HapticDialogBuilder(this).setTitle(tr("OPPO Watch Indicator 测试","OPPO Watch Indicator lab"))
+      .setView(panel).setPositiveButton(tr("完成","Done"),(d,w)->ResidentService.update(this)).show();
   }
 
   private String watchSkinLabel() {

@@ -19,3 +19,4 @@ include ':oppoBridge'
 include ':carlinkApiStubs'
 
 include ':carlinkMockSdk'
+include ':oppoWatchIndicator'

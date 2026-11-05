@@ -1,3 +1,5 @@
+**Beta44 OPPO Watch 实验（2026-11-05）**：新增默认关闭的手机 Indicator 诊断与90秒通知测试，另提供可直接安装至兼容手表的独立测试 APK，无需新权限调用车辆；真实车况始终保留 SERVICE 类别，不宣称导航/运动。技术详情：[Beta44 Watch Indicator](docs/PSASSISTANT_BETA44_OPPO_WATCH_INDICATOR_20261105.md)。
+
 **Beta43 Standalone FULL（2026-11-05）**：已离线制作相同 Beta40 签名证书、独立登录兼容资源、可调试标志关闭的 9.62 MB 版本；打包流程不提交密钥和私有 APK。见 [验证报告](docs/PSASSISTANT_BETA43_STANDALONE_FULL_20261105.md)。账户登录和真实车控仍需真机验证。
 
 **Android 正线候选 PsAssistant v1.0.0-beta43 /157（2026-11-05）**：App/Widget/OPPO 共享远程数据调度，2秒请求合并、按分组 TTL 的中国区 gRPC 定向读取、停车点独立10分钟前台阈值、7组参数均可编辑。安全回读与托管独立。见 [更新说明](docs/PSASSISTANT_BETA43_REFRESH_V1_20261105.md) 与 [技术知识库](knowledge/PSASSISTANT_BETA43_REFRESH_V1_20261105.md)。DEBUG验证包不等于具有私有登录配置和原签名的FULL包。

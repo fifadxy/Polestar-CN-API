@@ -1,3 +1,5 @@
+2026-11-05 · **PsAssistant v1.0.0-beta44 /158 OPPO Watch Indicator 实验**：默认关，手机通知通道/权限/ongoing/category/extra诊断，90秒短测，单独表端可安装APK（待真机兼容），不启用车辆云端刷新。详情 `knowledge/PSASSISTANT_BETA44_WATCH_INDICATOR_20261105.md`。
+
 
 **2026-11-05 · Beta43 Standalone FULL 完整构建与离线交付**：已从 Android CI 提交 `8d4033ab` 的验证二进制封装独立登录版，复用用户文件库中的 Beta40 FULL 已批准客户端资源及原签名证书，Manifest 可调试标志关闭；9,619,819 字节、SHA-256 `065e7299eebaf6bb6fd94e2b86da982174d3854a358b0227ff051244ff63decb`，v2/v3 签名通过、620 个源文件仅 Manifest 按预期改变，546 项 CI 测试通过。私密输入和实际 FULL APK 不入公开 GitHub；仅同步可复用的打包脚本及报告。真实账户登录与 OPPO 车辆控制仍须真机验证。见 [Beta43 Standalone FULL 验证说明](../docs/PSASSISTANT_BETA43_STANDALONE_FULL_20261105.md)。
 

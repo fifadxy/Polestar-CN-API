@@ -1,0 +1,87 @@
+name: Android Beta44 OPPO Watch Indicator Lab
+on:
+  push:
+    branches:
+      - android-polestar-assistant-main
+      - feature/psassistant-beta44-oppo-watch-indicator-20261105
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-beta44-watch-lab.yml'
+  workflow_dispatch:
+jobs:
+  indicator:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PSA_OPPO_MOCK_SDK: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Ensure Android API 35
+        run: |
+          test -n "${ANDROID_HOME:-}"
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+            test -n "$SDKMANAGER"
+            "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
+          fi
+      - name: Build phone app watch indicator app and OPPO Bridge
+        working-directory: android-app
+        run: gradle --no-daemon :app:assembleDebug :oppoWatchIndicator:assembleDebug :oppoBridge:assembleDebug :app:lintDebug
+      - name: Verify APK packages and runtime boundaries
+        run: |
+          test -s android-app/app/build/outputs/apk/debug/app-debug.apk
+          test -s android-app/oppoWatchIndicator/build/outputs/apk/debug/oppoWatchIndicator-debug.apk
+          test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v1.0.0-beta44-VALIDATION-debug.apk
+          cp android-app/oppoWatchIndicator/build/outputs/apk/debug/oppoWatchIndicator-debug.apk PsAssistant-OPPO-Watch-Indicator-Lab-v0.1.0-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-beta44-debug.apk
+          python3 - <<'PY'
+          from zipfile import ZipFile
+          for name in ['PsAssistant-v1.0.0-beta44-VALIDATION-debug.apk',
+                       'PsAssistant-OPPO-Watch-Indicator-Lab-v0.1.0-debug.apk',
+                       'PsAssistant-OPPO-Bridge-beta44-debug.apk']:
+              with ZipFile(name) as z:
+                  assert z.testzip() is None
+                  assert 'AndroidManifest.xml' in z.namelist()
+                  assert 'classes.dex' in z.namelist()
+                  if 'VALIDATION' in name:
+                      assert 'assets/client-signing.bin' not in z.namelist()
+              print('APK structure and scope verified:',name)
+          PY
+          sha256sum *.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-v1.0.0-beta44-VALIDATION-debug
+          path: PsAssistant-v1.0.0-beta44-VALIDATION-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-OPPO-Watch-Indicator-Lab-v0.1.0-debug
+          path: PsAssistant-OPPO-Watch-Indicator-Lab-v0.1.0-debug.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-OPPO-Bridge-beta44-debug
+          path: PsAssistant-OPPO-Bridge-beta44-debug.apk
+          if-no-files-found: error
+      - name: Run phone watch and OPPO Bridge unit tests
+        working-directory: android-app
+        run: gradle --no-daemon :app:testDebugUnitTest :oppoWatchIndicator:testDebugUnitTest :oppoBridge:testDebugUnitTest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PsAssistant-Beta44-Watch-Test-Reports
+          path: |
+            android-app/app/build/test-results/testDebugUnitTest/
+            android-app/oppoWatchIndicator/build/test-results/testDebugUnitTest/
+            android-app/oppoBridge/build/test-results/testDebugUnitTest/
+            android-app/app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore

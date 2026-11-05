@@ -120,7 +120,7 @@ public final class ResidentService extends Service {
             0,
             new Intent(c, MainActivity.class),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-    return new Notification.Builder(c, channel)
+    return OppoWatchIndicatorLab.decorateResident(c,new Notification.Builder(c, channel)
         .setSmallIcon(AppIcons.notificationSmall(c))
         .setContentTitle(title)
         .setContentText(detail.toString() + " · " + timestamps)
@@ -130,7 +130,7 @@ public final class ResidentService extends Service {
         .setOnlyAlertOnce(true)
         .setShowWhen(false)
         .setCategory(Notification.CATEGORY_SERVICE)
-        .setVisibility(Notification.VISIBILITY_PRIVATE)
+        .setVisibility(Notification.VISIBILITY_PRIVATE))
         .build();
   }
 

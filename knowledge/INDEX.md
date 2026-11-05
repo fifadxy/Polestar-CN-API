@@ -1,3 +1,5 @@
+**Beta44 OPPO 手表实验**：[通知 Indicator 规范、主程序设置与表端真实测试边界](PSASSISTANT_BETA44_WATCH_INDICATOR_20261105.md)。
+
 **Beta43 Standalone FULL**：[客户端配置复用、原证书签名、APK 验收与真机边界](../docs/PSASSISTANT_BETA43_STANDALONE_FULL_20261105.md)。个人文件库中的输入和签名私钥不进入公开源码。
 
 **最新 Android 增量 v1.0.0-beta43 /157**：[统一数据刷新系统V1.0：前后台、7组频率、位置、OPPO共用缓存与安全界限](PSASSISTANT_BETA43_REFRESH_V1_20261105.md)。本增量优先于以下历史刷新参数描述；旧版测试结果与新版构建/实机验证分别报告。

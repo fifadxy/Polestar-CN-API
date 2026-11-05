@@ -12,11 +12,9 @@ public final class VehicleRefreshJob extends JobService {
     stopped = false;
     if ((RefreshPolicy.background(this,AppPreferences.enabled(this),WidgetRenderer.hasWidgets(this))==0)
         || !VehicleCoordinator.get(this).hasSession()) return false;
-    VehicleCoordinator.get(this)
-        .refresh(
-            () -> {
-              if (!stopped) jobFinished(p, false);
-            });
+    VehicleRefreshManager.get(this).requestBackground(() -> {
+      if (!stopped) jobFinished(p, false);
+    });
     return true;
   }
 

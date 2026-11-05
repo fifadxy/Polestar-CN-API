@@ -48,7 +48,7 @@ public final class WidgetRenderer {
         java.util.Map<android.util.SizeF,RemoteViews> variants=new java.util.LinkedHashMap<>();
         for(android.util.SizeF measured:sizes){if(variants.size()>=4)break;if(measured==null||!Float.isFinite(measured.getWidth())||!Float.isFinite(measured.getHeight())||measured.getWidth()<96||measured.getHeight()<48||(measured.getHeight()<70&&measured.getWidth()<230))continue;
           int w=Math.min(920,Math.round(measured.getWidth())),h=Math.min(720,Math.round(measured.getHeight()));variants.put(measured,createViews(c,id,size,w,h,null,snapshot));}
-        if(!variants.isEmpty()){m.updateAppWidget(id,new RemoteViews(variants));ResidentService.scheduleUpdates(c);return;}
+        if(!variants.isEmpty()){m.updateAppWidget(id,new RemoteViews(variants));return;}
       }
     }
     int pw = Math.max(118, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, defaultWidth(size)));
@@ -60,7 +60,6 @@ public final class WidgetRenderer {
     RemoteViews portrait = createViews(c, id, size, pw, ph, backing, snapshot);
     m.updateAppWidget(id, pw == lw && ph == lh ? portrait :
         new RemoteViews(createViews(c, id, size, lw, lh, backing, snapshot), portrait));
-    ResidentService.scheduleUpdates(c);
   }
 
   public static boolean hasWidgets(Context c) {

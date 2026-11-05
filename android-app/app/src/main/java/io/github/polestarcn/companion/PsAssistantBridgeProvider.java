@@ -278,7 +278,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       if(!refreshThrottle.admit(now)) {
         out.putBoolean("accepted",false);out.putString("reason","refresh-cooldown");out.putLong("retryAfterMillis",refreshThrottle.retryAfter(now));return out;
       }
-      main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())coordinator.refresh(null);});
+      main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())VehicleRefreshManager.get(context).requestBridge(null);});
       out.putBoolean("accepted", true);
       out.putString("reason", "queued");
       return out;

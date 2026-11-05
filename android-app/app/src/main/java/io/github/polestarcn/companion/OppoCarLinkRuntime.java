@@ -147,7 +147,7 @@ final class OppoCarLinkRuntime {
       phase="连接请求未新增读取：请检查按需更新、长停省电或稍后手动刷新";return;
     }
     phase="CarLink按需更新一次车况；未安排轮询";
-    m.refresh(()->{if(ready()&&car.equals(OppoCarLinkModels.carId(currentVin())))publish(true,false);});
+    VehicleRefreshManager.get(context).requestBridge(()->{if(ready()&&car.equals(OppoCarLinkModels.carId(currentVin())))publish(true,false);});
   }
   private void receive(String id,String car,String instruction,String value){
     String canonical=OppoCarLinkCommandMap.canonical(instruction);

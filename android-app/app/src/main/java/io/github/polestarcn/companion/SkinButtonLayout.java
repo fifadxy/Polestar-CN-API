@@ -141,7 +141,9 @@ final class SkinButtonLayout {
     if(drawable instanceof GradientDrawable){
       GradientDrawable g=(GradientDrawable)drawable;
       if(customized(c,control,"radius"))g.setCornerRadius(dp(c,current(c,control,"radius")));
-      // Stateful border colors are still supplied by the original renderer.
+      // A runtime state binding may later recolor the border, while retaining this width.
+      if(customized(c,control,"stroke"))
+        g.setStroke(dp(c,current(c,control,"stroke")),PsaDesign.line(AppPreferences.dark(c)));
     } else if(customized(c,control,"stroke")&&current(c,control,"stroke")>0){
       GradientDrawable border=new GradientDrawable();
       border.setColor(Color.TRANSPARENT);

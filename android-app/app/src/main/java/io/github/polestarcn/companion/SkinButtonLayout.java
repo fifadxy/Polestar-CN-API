@@ -64,8 +64,12 @@ final class SkinButtonLayout {
   static void store(Context c,String skin,String control,int[] values){
     if(values==null||values.length!=FIELDS.length)throw new IllegalArgumentException("Bad button values");
     SharedPreferences.Editor edit=c.getSharedPreferences("preferences",0).edit();
-    for(int i=0;i<FIELDS.length;i++)
-      edit.putString(key(skin,control,FIELDS[i]),String.valueOf(clamp(values[i],i)));
+    // An unchanged slider must not override an existing skin's original radius/stroke.
+    for(int i=0;i<FIELDS.length;i++){
+      int value=clamp(values[i],i);String pref=key(skin,control,FIELDS[i]);
+      if(value==DEFAULTS[i])edit.remove(pref);
+      else edit.putString(pref,String.valueOf(value));
+    }
     edit.apply();
   }
   static void clear(Context c,String skin,String control){

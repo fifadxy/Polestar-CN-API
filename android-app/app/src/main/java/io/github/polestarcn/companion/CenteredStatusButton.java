@@ -31,7 +31,13 @@ class CenteredStatusButton extends androidx.appcompat.widget.AppCompatTextView {
  private void compose(){
   float d=getResources().getDisplayMetrics().density;boolean icon=glyph!=null;boolean minimal=UiDisplayMode.minimal(getContext())&&icon;String shownTitle=minimal?"":title;String visibleFeedback=minimal?"":feedback;iconOnly=minimal;
   setSingleLine(false);setHorizontallyScrolling(false);setGravity(minimal?Gravity.CENTER:slot?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);setEllipsize(TextUtils.TruncateAt.END);
-  boolean second=!shownTitle.isEmpty()&&(!visibleFeedback.isEmpty()||slot);setMaxLines(second?2:1);setPadding(Math.round(4*d),Math.round(2*d),Math.round(4*d),Math.round((slot&&!minimal?6:bar!=null?6:2)*d));
+  boolean second=!shownTitle.isEmpty()&&(!visibleFeedback.isEmpty()||slot);
+  // Inactive purification can show two actual metrics below the title.
+  // Reserve a third text line; otherwise Android truncates AQI or PM2.5.
+  int feedbackLines=visibleFeedback.isEmpty()?(slot&&second?1:0):1;
+  for(int i=0;i<visibleFeedback.length();i++)if(visibleFeedback.charAt(i)=='\\n')feedbackLines++;
+  int totalLines=(shownTitle.isEmpty()?0:1)+feedbackLines;
+  setMaxLines(Math.min(3,Math.max(1,totalLines)));setPadding(Math.round(4*d),Math.round(2*d),Math.round(4*d),Math.round((slot&&!minimal?6:bar!=null?6:2)*d));
   setTypeface(PsaDesign.regular());androidx.core.widget.TextViewCompat.setAutoSizeTextTypeWithDefaults(this,androidx.core.widget.TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE);
   SpannableStringBuilder value=new SpannableStringBuilder(shownTitle);if(AppPreferences.visible(getContext(),"ui_button_bold",true))value.setSpan(new StyleSpan(Typeface.BOLD),0,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
   if(second||shownTitle.isEmpty()&&!visibleFeedback.isEmpty()){if(second)value.append('\n');int start=value.length();value.append(visibleFeedback.isEmpty()?"\u00a0":visibleFeedback);value.setSpan(new ForegroundColorSpan(AppPreferences.dark(getContext())?Color.WHITE:Color.rgb(115,115,115)),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);value.setSpan(new RelativeSizeSpan(Math.min(.85f,ButtonFeedback.sp(getContext())/11f)),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);if(AppPreferences.visible(getContext(),"feedback_bold",false))value.setSpan(new StyleSpan(Typeface.BOLD),start,value.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}

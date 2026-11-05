@@ -2167,7 +2167,7 @@ public final class MainActivity extends FragmentActivity {
   private void setting(LinearLayout parent,String title,Runnable action){if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,settingsAliases(title),action);TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);GradientDrawable frame=bg(surface,12);frame.setStroke(dp(1),line);entry.setBackground(frame);entry.setPadding(dp(14),dp(12),dp(14),dp(12));entry.setMinHeight(dp(52));entry.setSingleLine(false);entry.setMaxLines(3);parent.addView(entry);gap(parent,6);}
   private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
     SwitchCompat toggle=new SwitchCompat(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(52));toggle.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable tf=bg(surface,12);tf.setStroke(dp(1),line);toggle.setBackground(tf);toggle.setThumbTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{orange,muted}));toggle.setTrackTintList(android.content.res.ColorStateList.valueOf(line));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
-    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging"))ResidentService.scheduleUpdates(this);});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
+    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background"))ResidentService.scheduleUpdates(this);});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
   }
   private void themeChoice(){new HapticDialogBuilder(this).setTitle(tr("日夜模式","Day / night mode")).setItems(new String[]{tr("跟随系统","System"),tr("浅色","Light"),tr("深色","Dark")},(d,w)->{AppPreferences.set(this,"theme",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);render();}).show();}
   private void widgetFields(){String[] labels={"4×2 · 8","2×2 · 4","4×1 · 4","5×1 · 4","2×1 · 2","Data 4×4 · 8"};WidgetRenderer.Size[] sizes={WidgetRenderer.Size.LARGE,WidgetRenderer.Size.SQUARE,WidgetRenderer.Size.WIDE,WidgetRenderer.Size.EXTRA_WIDE,WidgetRenderer.Size.MINI,WidgetRenderer.Size.DATA};new HapticDialogBuilder(this).setTitle(tr("Widget 尺寸与数据","Widget size and data")).setItems(labels,(d,w)->metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),WidgetRenderer.capacity(sizes[w]),WidgetRenderer.selectionDefaults(this,sizes[w]))).show();}
@@ -2258,7 +2258,11 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("OPPO 互联设置 · 设备卡／车辆入口／诊断","OPPO integration · cards / vehicle entry / diagnostics"),()->startActivity(new Intent(this,OppoWidgetSetupActivity.class)));
       note(p,tr("接入状态","Integration"),OppoDeviceIntegration.enabled(this)?tr("设备卡桥接已启用；官方授权及手表链路请查看诊断。","Card bridge enabled; check diagnostics for OEM authorization and watch routing."):tr("设备卡桥接已关闭","Card bridge disabled"));
     });
-    disclosure(root,"settings_background",tr("通知与后台刷新","Notifications and background refresh"),false,p->{residentSettings(p);setting(p,tr("App / Widget 刷新规则","App / Widget refresh rules"),this::refreshRulesDialog);});
+    disclosure(root,"settings_background",tr("数据刷新管理","Vehicle data refresh manager"),true,p->{
+      setting(p,tr("前台 / 后台 / 运行状态 / 数据有效期","Foreground / background / runtime / field TTL"),this::refreshRulesDialog);
+      note(p,tr("共享数据源","Shared data source"),tr("主程序、Widget、通知栏和OPPO卡片共享一次刷新结果；远控确认与露营托管单独运行。","App, widgets, notifications and OPPO share telemetry. Remote-command verification and camping are separate."));
+      residentSettings(p);
+    });
     disclosure(root,"settings_watch",tr("手表布局预览","Watch layout previews"),false,p->{setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);note(p,tr("手表预览说明","Watch preview"),tr("这是布局预览，独立Wear OS安装包仍需单独验证。","These are layout previews; a standalone Wear OS APK requires separate validation."));});
     disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
       note(p,tr("独立运行说明","Standalone build"),new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."));
@@ -2291,16 +2295,80 @@ public final class MainActivity extends FragmentActivity {
   }
   private String feedbackLabel(String value){switch(value){case "climate":return tr("开启 / 关闭 / 剩余时间","On / off / remaining time");case "temperature":return tr("车内温度","Cabin temperature");case "remaining":return tr("剩余运行时间","Remaining running time");case "air":return "AQI";case "hidden":return tr("隐藏","Hide");default:return tr("车辆实际状态","Reported vehicle state");}}
   private void intervalChoice(String title,String key,int fallback,int[] minutes,String zero,Runnable after){String[] keys=new String[minutes.length],labels=new String[minutes.length];for(int i=0;i<minutes.length;i++){keys[i]=String.valueOf(minutes[i]);labels[i]=minutes[i]==0?zero:minutes[i]+tr(" 分钟"," min");}choice(title,key,keys,labels,String.valueOf(fallback),after);}
+  private void refreshSetting(LinearLayout p,String title,String key,int def,int[] minutes){
+    int selected=RefreshPolicy.minutes(this,key,def,minutes);
+    setting(p,title+" · "+selected+tr("分钟"," min"),()->intervalChoice(title,key,def,minutes,tr("关闭自动刷新","Automatic refresh off"),this::refreshSettingsChanged));
+  }
+  private void refreshSettingsChanged(){
+    scheduleForeground();ResidentService.scheduleUpdates(this);scheduleMapRefresh();
+  }
+  private void refreshGroup(String title,java.util.function.Consumer<LinearLayout> builder){
+    LinearLayout body=detailPanel();builder.accept(body);
+    new HapticDialogBuilder(this).setTitle(title).setView(body)
+      .setPositiveButton(tr("完成","Done"),(d,w)->refreshSettingsChanged()).show();
+  }
   private void refreshRulesDialog(){
-    LinearLayout p=detailPanel();SwitchCompat saver=new SwitchCompat(this);saver.setText(tr("长停省电 · 暂停自动车辆读取","Long parking · pause automatic vehicle reads"));saver.setTextColor(ink);saver.setChecked(VehiclePowerPolicy.saver(this));
-    saver.setOnCheckedChangeListener((v,on)->{AppPreferences.set(this,VehiclePowerPolicy.KEY,on?"on":"off");ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();});p.addView(saver);
-    p.addView(text(tr("开启后暂停 App、Widget、地图及启动定位探测的自动云端读取；手动刷新、车控回读和已开启的露营托管继续。通知和 OPPO 卡片仍显示缓存及原始更新时间。无法仅凭接口确认车辆休眠或12V状态。","Pauses automatic app, widget, map and opening-location reads. Manual refresh, command verification and active camping continue. Notifications and OPPO cards show cached data. Vehicle sleep and 12V condition are unverified."),12,muted,false));settingToggle(p,"app_background_enabled",tr("App后台自动刷新（无需常驻通知）","App background refresh (no persistent notification required)"),false,false);settingToggle(p,"refresh_on_open",tr("打开 App 时刷新车辆","Refresh vehicle when opening the app"),true,false);
-    setting(p,tr("App 前台刷新","App foreground refresh"),()->intervalChoice(tr("前台刷新周期","Foreground refresh interval"),"foreground_refresh_minutes",5,new int[]{0,1,2,5,10,15},tr("关闭自动刷新","Automatic refresh off"),this::scheduleForeground));
-    setting(p,tr("App 后台刷新周期","App background refresh interval"),()->intervalChoice(tr("App后台刷新周期","App background refresh interval"),"app_background_minutes",30,new int[]{0,15,30,60,120},tr("关闭","Off"),()->ResidentService.scheduleUpdates(this)));
-    setting(p,tr("Widget 后台刷新","Widget background refresh"),()->intervalChoice(tr("Widget 刷新周期","Widget refresh interval"),"widget_refresh_minutes",30,new int[]{0,15,30,60,120},tr("仅手动刷新","Manual only"),()->ResidentService.scheduleUpdates(this)));
-    settingToggle(p,"refresh_wifi_only",tr("后台仅使用不限流量网络","Background: unmetered network only"),false,false);settingToggle(p,"refresh_only_charging",tr("后台仅在手机充电时刷新","Background: only while phone is charging"),false,false);
-    note(p,tr("说明","Info"),tr("建议前台5分钟、后台/Widget30分钟。App和Widget共享车辆快照，使用已启用来源中较快的周期；后台最短15分钟，由Android调度，省电模式可能延迟。车辆停车点和手机定位均独立，不在此后台任务中读取。远控后的5/10/15/20秒回读不受这些周期影响。","Recommended: foreground 5 min, background/widgets 30 min. App and widgets share one vehicle snapshot and use the fastest enabled source. Android schedules jobs at 15 min or longer and can defer them. These jobs do not request vehicle or phone location. Command readbacks at 5/10/15/20 s remain separate."));
-    new HapticDialogBuilder(this).setTitle(tr("刷新规则","Refresh rules")).setView(p).setPositiveButton(tr("完成","Done"),(d,w)->ResidentService.scheduleUpdates(this)).show();
+    LinearLayout p=detailPanel();
+    setting(p,tr("基础刷新 · 前台 / 后台 / 返回前台","Core refresh · foreground / background / resume"),()->
+      refreshGroup(tr("基础车况刷新","Core telemetry"),panel->{
+        refreshSetting(panel,tr("前台核心车况","Foreground core"),"foreground_refresh_minutes",10,new int[]{0,2,5,10,15,30});
+        refreshSetting(panel,tr("后台核心车况","Background core"),"app_background_minutes",60,new int[]{0,15,30,60,120,240});
+        refreshSetting(panel,tr("无活跃消费者的后台保底周期","Idle background floor"),"refresh_idle_minutes",120,new int[]{0,60,120,240});
+        refreshSetting(panel,tr("返回前台缓存阈值","Return-to-foreground TTL"),"resume_refresh_minutes",10,new int[]{0,5,10,15,30});
+        setting(panel,tr("返回前台延迟检查","Resume grace delay")+" · "+RefreshPolicy.resumeDelaySeconds(this)+"s",()->
+          choice(tr("前台恢复后等待","Resume grace period"),"resume_delay_seconds",new String[]{"0","2","5"},new String[]{"0s","2s","5s"},"2",this::refreshSettingsChanged));
+        note(panel,tr("规则","Rule"),tr("超过上次成功读取的阈值才申请新数据，后台刚成功获取的结果可直接复用。","A successful background read also satisfies the foreground TTL."));
+      }));
+    setting(p,tr("运行中刷新 · 空调 / 充电 / 净化","Active refresh · climate / charging / air"),()->
+      refreshGroup(tr("运行中状态刷新","Active feature refresh"),panel->{
+        refreshSetting(panel,tr("空调 · 前台","Climate · foreground"),"refresh_climate_foreground",2,new int[]{0,1,2,5,10,15});
+        refreshSetting(panel,tr("空调 · 后台","Climate · background"),"refresh_climate_background",15,new int[]{0,15,30,60,120});
+        refreshSetting(panel,tr("充电 · 前台","Charging · foreground"),"refresh_charge_foreground",5,new int[]{0,2,5,10,15});
+        refreshSetting(panel,tr("充电 · 后台","Charging · background"),"refresh_charge_background",30,new int[]{0,15,30,60,120});
+        setting(panel,tr("净化 · 启停事件 / 周期","Purification · event / periodic"),()->
+          choice(tr("净化自动检查方式","Air purification polling"),"refresh_air_policy",
+            new String[]{"event","periodic"},new String[]{tr("事件驱动（默认）","Event-driven (default)"),tr("运行时 5 / 30 分钟","5 / 30 min while active")},"event",this::refreshSettingsChanged));
+        note(panel,tr("安全","Safety"),tr("远程控制确认与托管检查不受这里的普通周期约束。","Remote verification and camping safety checks bypass ordinary periodic throttling."));
+      }));
+    setting(p,tr("低频数据 · 健康 / 保养 / 能耗","Slow telemetry · health / service / mileage"),()->
+      refreshGroup(tr("低频数据缓存","Slow telemetry TTL"),panel->{
+        refreshSetting(panel,tr("健康胎压12V · 前台","Health · foreground"),"refresh_health_foreground",30,new int[]{0,10,30,60,120});
+        refreshSetting(panel,tr("健康胎压12V · 后台","Health · background"),"refresh_health_background",120,new int[]{0,60,120,240,720});
+        refreshSetting(panel,tr("保养 · 前台","Service · foreground"),"refresh_maintenance_foreground",120,new int[]{0,60,120,360,720});
+        refreshSetting(panel,tr("保养 · 后台","Service · background"),"refresh_maintenance_background",720,new int[]{0,120,360,720,1440});
+        refreshSetting(panel,tr("里程能耗 · 前台","Mileage · foreground"),"refresh_mileage_foreground",10,new int[]{0,5,10,15,30,60});
+        refreshSetting(panel,tr("里程能耗 · 后台","Mileage · background"),"refresh_mileage_background",60,new int[]{0,30,60,120,240});
+        note(panel,tr("合并接口","Shared API"),tr("Health与保养部分字段来自同一个车端服务，必要时一起读取，但不增加独立请求。","Health and maintenance can share the same RPC result."));
+      }));
+    setting(p,tr("停车位置 · 前台阈值 / 地图 / 后台","Parking location · TTL / map / background"),this::mapRefreshDialog);
+    setting(p,tr("普通请求合并窗口","Coalescing window")+" · "+RefreshPolicy.mergeSeconds(this)+"s",()->
+      choice(tr("相同车辆请求合并","Ordinary request coalescing"),"refresh_merge_seconds",
+        new String[]{"0","2","5","10"},new String[]{"0s","2s","5s","10s"},"2",this::refreshSettingsChanged));
+    setting(p,tr("本地组件 · 按变化更新 / 每分钟","Local views · change-driven / per-minute"),()->
+      choice(tr("Widget / 通知栏刷新方式","Widget / notification redraw"),"refresh_local_redraw",
+        new String[]{"event","minute"},new String[]{tr("数据变化时更新（默认）","On change (default)"),tr("计时运行时每分钟刷新","Every minute during timers")},"event",this::refreshSettingsChanged));
+    settingToggle(p,"refresh_wifi_only",tr("后台仅使用不限流量网络","Unmetered network only"),false,false);
+    settingToggle(p,"refresh_only_charging",tr("后台仅在手机充电时刷新","Only when phone charging"),false,false);
+    settingToggle(p,VehiclePowerPolicy.KEY,tr("长停省电 · 暂停普通自动读取","Long-parking saver · pause ordinary reads"),false,false);
+    setting(p,tr("读取诊断 · 请求数 / 合并 / 缓存命中","Diagnostics · requests / merged / cache"),()->
+      info(tr("共享刷新诊断","Shared refresh diagnostics"),VehicleRefreshManager.get(this).diagnostics()));
+    setting(p,tr("恢复全部刷新默认参数","Reset all refresh defaults"),this::resetRefreshDefaults);
+    note(p,tr("说明","Details"),tr("刷新周期代表申请车况的最小间隔。实际后台任务可能被Android推迟；车辆上报时间保持原样。位置与手机GPS彼此独立。","Intervals are minimum eligibility; Android may defer background jobs. Vehicle report timestamps remain unchanged. Phone GPS is separate."));
+    new HapticDialogBuilder(this).setTitle(tr("数据刷新管理","Vehicle refresh manager")).setView(p)
+      .setPositiveButton(tr("完成","Done"),(d,w)->refreshSettingsChanged()).show();
+  }
+  private void resetRefreshDefaults(){
+    new HapticDialogBuilder(this).setTitle(tr("恢复刷新默认参数","Reset refresh preferences"))
+      .setMessage(tr("仅恢复刷新设置，不清除车辆、账号、签名、外观和历史数据。","Only refresh preferences are reset; account, vehicle, UI and trip history remain."))
+      .setPositiveButton(tr("恢复默认","Reset"),(d,w)->{
+        String[] keys={"foreground_refresh_minutes","app_background_minutes","refresh_idle_minutes","resume_refresh_minutes","resume_delay_seconds",
+          "refresh_climate_foreground","refresh_climate_background","refresh_charge_foreground","refresh_charge_background",
+          "refresh_air_policy","refresh_health_foreground","refresh_health_background","refresh_maintenance_foreground","refresh_maintenance_background",
+          "refresh_mileage_foreground","refresh_mileage_background","refresh_merge_seconds","refresh_local_redraw","refresh_wifi_only",
+          "refresh_only_charging","map_refresh_mode","map_refresh_minutes","map_resume_minutes","map_refresh_trigger","map_refresh_background",VehiclePowerPolicy.KEY};
+        android.content.SharedPreferences.Editor edit=getSharedPreferences("preferences",0).edit();
+        for(String key:keys)edit.remove(key);edit.apply();refreshSettingsChanged();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
   }
   private void airMetricsDialog(){
     choice(tr("净化按钮下方数据","Purification button readout"),AirButtonMetrics.KEY,
@@ -2332,10 +2400,18 @@ public final class MainActivity extends FragmentActivity {
   }
   private void mapRefreshDialog(){
     LinearLayout p=detailPanel();
-    setting(p,tr("读取方式 · 智能 / 固定 / 手动","Read mode · smart / fixed / manual"),()->choice(tr("停车位置刷新模式","Parking refresh mode"),"map_refresh_mode",new String[]{"smart","fixed","manual"},new String[]{tr("智能 · 15/30/60分钟（推荐）","Smart · 15/30/60 min (recommended)"),tr("固定时间间隔","Fixed interval"),tr("只在手动操作时获取","Manual only")},"smart",this::scheduleMapRefresh));
-    setting(p,tr("固定周期 · 5 / 15 / 30 / 60 / 120分钟","Fixed interval · 5 / 15 / 30 / 60 / 120 minutes"),()->intervalChoice(tr("停车位置固定周期","Parking location fixed interval"),"map_refresh_minutes",15,new int[]{5,15,30,60,120},tr("关闭","Off"),this::scheduleMapRefresh));
-    note(p,tr("来源与省电","Source and efficiency"),tr("车辆坐标来自极星停车位置 c3Lbs 接口，高德只负责地图展示和地点名称。智能模式根据位置是否变化调整间隔；不附带车况刷新，也不会主动唤醒车端。无法保证服务端本身不影响车辆休眠。","Coordinates come from the Polestar parked-location c3Lbs API; Amap shows the map and place name only. Smart mode backs off if coordinates remain unchanged, and never triggers a vehicle-status read. Server-side vehicle wake behavior is not guaranteed."));
-    new HapticDialogBuilder(this).setTitle(tr("车辆位置刷新规则","Vehicle position refresh rules")).setView(p).setPositiveButton(tr("完成","Done"),null).show();
+    setting(p,tr("模式 · 智能 / 固定 / 手动","Mode · smart / fixed / manual"),()->
+      choice(tr("车辆停车位置模式","Parking location mode"),"map_refresh_mode",new String[]{"smart","fixed","manual"},
+        new String[]{tr("智能15/30/60分钟","Smart 15/30/60 min"),tr("固定周期","Fixed interval"),tr("只手动读取","Manual only")},"smart",this::refreshSettingsChanged));
+    refreshSetting(p,tr("固定读取周期","Fixed parking polling"),"map_refresh_minutes",15,new int[]{5,15,30,60,120});
+    refreshSetting(p,tr("返回前台位置阈值","Parking resume threshold"),"map_resume_minutes",10,new int[]{0,5,10,15,30,60});
+    setting(p,tr("触发条件 · 显示时 / 每次返回","Trigger · visible / every resume"),()->
+      choice(tr("返回前台位置刷新","Resume location trigger"),"map_refresh_trigger",new String[]{"visible","always"},
+        new String[]{tr("仅需要显示停车位置时（默认）","Only when location is visible (default)"),tr("每次返回前台均检查","Check on every resume")},"visible",this::refreshSettingsChanged));
+    settingToggle(p,"map_refresh_background",tr("后台自动读取停车点（默认关闭）","Background parking polling (off by default)"),false,false);
+    note(p,tr("来源说明","Source"),tr("停车坐标来自Polestar c3Lbs；高德只负责地图和地点。自动位置读取不需要手机GPS。","Parking coordinates use Polestar c3Lbs; Amap only renders the map/place. No phone GPS is needed."));
+    new HapticDialogBuilder(this).setTitle(tr("停车位置刷新","Parking location refresh")).setView(p)
+      .setPositiveButton(tr("完成","Done"),(d,w)->refreshSettingsChanged()).show();
   }
   private void phoneRefreshDialog(){choice(tr("手机定位刷新时机","Phone location refresh timing"),"phone_location_refresh",new String[]{"manual","on_open"},new String[]{tr("仅在二级预览点按刷新（建议）","Manual refresh in secondary preview (recommended)"),tr("打开二级地图预览时刷新一次","Refresh once when secondary map preview opens")},"manual",null);}
   private void widgetButtonSettings(){

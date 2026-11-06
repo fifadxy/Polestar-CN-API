@@ -215,20 +215,22 @@ public final class WidgetRenderer {
     if (hidden > 0) updated += " · +" + hidden;
     boolean check=WidgetCheckHint.visible(c,s);
     // Leave the fixed-width tiny Check symbol room on narrow 2×1 widgets.
-    if(check&&(size==Size.MINI||horizontal&&width<220))
-      updated=updated.replaceFirst("^(更新 |Upd )","");
+    if(check&&(width<360||horizontal||font>1.1f))
+      updated=compactCheckTimestamp(updated,java.util.Calendar.getInstance());
     int checkVisibility=check?android.view.View.VISIBLE:android.view.View.GONE;
     views.setViewVisibility(R.id.widget_check_icon,checkVisibility);
     views.setViewVisibility(R.id.widget_check_text,checkVisibility);
     views.setInt(R.id.widget_check_icon,"setColorFilter",PsaDesign.ORANGE);
     views.setTextColor(R.id.widget_check_text,PsaDesign.ORANGE);
     views.setTextViewText(R.id.widget_check_text,"Check");
-    views.setTextViewTextSize(R.id.widget_check_text,android.util.TypedValue.COMPLEX_UNIT_SP,Math.min(10f,9f*font));
+    views.setTextViewTextSize(R.id.widget_check_text,android.util.TypedValue.COMPLEX_UNIT_SP,
+        Math.min(8.5f,8f*font));
     views.setContentDescription(R.id.widget_check_text,AppPreferences.widgetTr(c,"车辆异常，请查看车况","Vehicle check required"));
     views.setViewVisibility(R.id.widget_region, android.view.View.VISIBLE);
     widgetText(views,c,R.id.widget_region, updated);
     views.setTextColor(R.id.widget_region, secondary);
-    views.setTextViewTextSize(R.id.widget_region, android.util.TypedValue.COMPLEX_UNIT_SP, 10*font);
+    views.setTextViewTextSize(R.id.widget_region, android.util.TypedValue.COMPLEX_UNIT_SP,
+        check&&width<360?Math.min(9f,8f*font):10*font);
     views.setContentDescription(R.id.widget_region, updated+(check?AppPreferences.widgetTr(c," · 车辆异常 Check"," · Vehicle Check"):"")+AppPreferences.widgetTr(c, "，点击刷新", ". Tap to refresh"));
     views.setOnClickPendingIntent(R.id.widget_region, pending(c, id, size, "refresh"));
     views.setOnClickPendingIntent(R.id.widget_refresh_row,pending(c,id,size,"refresh"));
@@ -394,6 +396,22 @@ public final class WidgetRenderer {
     widgetText(views,c,text, label);
     views.setContentDescription(root, AppPreferences.widgetTr(c, lock ? "门锁 · " : "空调 · ", lock ? "Door lock · " : "Climate · ")
         + label + AppPreferences.widgetTr(c, "，点击后生物验证", ". Verify biometrics to control"));
+  }
+
+  /** Preserve the actual timestamp while saving room for the orange Check label.
+   * For a same-day report use HH:mm; otherwise retain the reported MM-dd.
+   * This never reads the wall clock as a replacement for vehicle telemetry. */
+  static String compactCheckTimestamp(String formatted,java.util.Calendar today){
+    if(formatted==null||formatted.isEmpty())return "";
+    String value=formatted.replaceFirst("^(更新\\s*|Upd\\s*)","").replaceFirst("\\s*·\\s*\\+\\d+$","").trim();
+    if(value.matches("\\d{2}-\\d{2} \\d{2}:\\d{2}")){
+      String monthDay=value.substring(0,5);
+      String current=String.format(java.util.Locale.US,"%02d-%02d",today.get(java.util.Calendar.MONTH)+1,today.get(java.util.Calendar.DAY_OF_MONTH));
+      return monthDay.equals(current)?value.substring(6):monthDay;
+    }
+    if(value.matches("\\d{2}:\\d{2}")||value.matches("\\d{2}-\\d{2}"))return value;
+    if(value.equals("更新时间未知")||value.equals("Update time unknown"))return "--";
+    return value;
   }
 
   private static String updatedText(Context c, VehicleSnapshot s, java.util.List<DisplayMetric> metrics, Size size) {

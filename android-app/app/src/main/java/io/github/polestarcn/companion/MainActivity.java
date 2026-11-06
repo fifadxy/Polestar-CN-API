@@ -395,9 +395,13 @@ public final class MainActivity extends FragmentActivity {
     // VoLike retains its existing single-row chips regardless of the new preference.
     bindDashboard(()->{
       String full=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      String shown="air".equals(control)?AirButtonMetrics.forLayout(this,full,voLike()):full;
+      boolean idleAir="air".equals(control)&&!model.isCommandPending(control)
+          &&(model.snapshot==null||!"开启".equals(model.snapshot.air));
+      CharSequence shown="air".equals(control)
+          ?(voLike()?AirButtonMetrics.forLayout(this,full,true)
+              :idleAir&&!full.isEmpty()?AirButtonMetrics.styled(this,model.snapshot):full):full;
       view.setText(shown);
-      view.setContentDescription(full);
+      view.setContentDescription(shown);
       view.setVisibility(!minimalMode()&&AppPreferences.visible(this,"show_button_feedback",true)&&!full.isEmpty()?View.VISIBLE:View.GONE);
     });return view;
   }
@@ -710,12 +714,27 @@ public final class MainActivity extends FragmentActivity {
   private LinearLayout simple2Card(){LinearLayout card=column();card.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable frame=bg(surface,20);frame.setStroke(dp(1),line);card.setBackground(frame);return card;}
   private void simple2Action(LinearLayout parent,String control,String label){
     boolean minimal=minimalMode();
-    LinearLayout tile=minimal?column():row();tile.setGravity(Gravity.CENTER);tile.setTag("control_tile");
+    LinearLayout tile=minimal||control.equals("air")?column():row();tile.setGravity(Gravity.CENTER);tile.setTag("control_tile");
     tile.setPadding(dp(8),dp(minimal?2:6),dp(8),dp(minimal?2:6));GradientDrawable frame=bg(surface,16);frame.setStroke(dp(1),line);tile.setBackground(frame);
-    ImageView icon=new ImageView(this);icon.setTag("control_icon_"+control);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setPadding(dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8));icon.setBackground(bg(viSoft(),12));tile.addView(icon,new LinearLayout.LayoutParams(dp(minimal?40:38),dp(minimal?40:38)));
+    ImageView icon=new ImageView(this);icon.setTag("control_icon_"+control);icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);icon.setPadding(dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8),dp(minimal?3:8));icon.setBackground(bg(viSoft(),12));
     TextView state=feedbackText(control,false);
-    if(minimal)state.setVisibility(View.GONE);
-    else {LinearLayout words=column();words.setPadding(dp(9),0,0,0);TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);fitSingleLine(title,13);words.addView(title);state.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);words.addView(state);tile.addView(words,new LinearLayout.LayoutParams(0,-2,1));}
+    if(minimal){
+      tile.addView(icon,new LinearLayout.LayoutParams(dp(40),dp(40)));state.setVisibility(View.GONE);
+    }else if(control.equals("air")){
+      LinearLayout heading=row();heading.setGravity(Gravity.CENTER);
+      heading.addView(icon,new LinearLayout.LayoutParams(dp(34),dp(34)));
+      TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);
+      title.setGravity(Gravity.CENTER_VERTICAL);fitSingleLine(title,13);
+      LinearLayout.LayoutParams labelSpace=new LinearLayout.LayoutParams(-2,-2);labelSpace.leftMargin=dp(5);heading.addView(title,labelSpace);
+      tile.addView(heading,new LinearLayout.LayoutParams(-1,-2));
+      state.setGravity(Gravity.CENTER);tile.addView(state,new LinearLayout.LayoutParams(-1,-2));
+    }else {
+      tile.addView(icon,new LinearLayout.LayoutParams(dp(38),dp(38)));
+      LinearLayout words=column();words.setPadding(dp(9),0,0,0);
+      TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);fitSingleLine(title,13);
+      words.addView(title);state.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);words.addView(state);
+      tile.addView(words,new LinearLayout.LayoutParams(0,-2,1));
+    }
     bindDashboard(()->{String raw=controlRaw(control);MinimalIconAppearance.apply(icon,controlIcon(control,raw));boolean active="开启".equals(raw)||"未锁".equals(raw)||"已打开".equals(raw)||"未关严".equals(raw);icon.setColorFilter(active?orange:ink);tile.setEnabled(model.canControl(control));tile.setAlpha(tile.isEnabled()?1f:.5f);});
     click(tile,()->{if("signal".equals(control))signalMenu();else directControl(control);});installLockHold(tile,control);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1);if(parent.getChildCount()>0)lp.leftMargin=dp(7);SkinButtonLayout.mount(parent,tile,control,lp);
   }

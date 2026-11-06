@@ -1,3 +1,5 @@
+**PsAssistant v1.0.0-beta49 / 163（2026-11-06）**：OPPO 负一屏/设备空间卡片默认只显示电量·续航并支持完整自定义与实时预览；All Good 明确提示检查项目；指令成功回读立即结束进度并更新按钮；Widget 更新时间旁增加可关闭的 VI 橙色 Check。Bridge 2.5.0 / 38。公开 Debug 包不等于可独立登录的正式 FULL；详见 [更新说明与验收](docs/PSASSISTANT_BETA49_OPPO_CARD_HEALTH_COMMANDS_20261106.md)。
+
 **PsAssistant v1.0.0-beta48 / 162（2026-11-06）**：PS 默认车况图标白线加粗 45%，净化图标与标题同行、等字号空气数据细线分隔；所有主要长按统一默认 0.6 秒、支持设置；二级菜单改为稳定居中与纯透明度渐显，停车地图窗口占屏幕面积不超过 50%。[更新说明与验收](docs/PSASSISTANT_BETA48_UI_STABILITY_20261106.md)。
 
 **PsAssistant Beta47 · 净化读数/各皮肤按钮布局**：净化关闭只显示真实 AQI/PM2.5，7 套皮肤各 8 个按钮可独立调整尺寸、边框、图标/文字及焦点，带离线预览。见 [功能与验收](docs/PSASSISTANT_BETA47_SKIN_CONTROLS_20261106.md)。

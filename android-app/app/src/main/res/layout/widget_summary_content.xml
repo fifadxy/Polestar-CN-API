@@ -50,6 +50,8 @@
   </LinearLayout>
   <LinearLayout android:id="@+id/widget_refresh_row" android:orientation="horizontal" android:gravity="center_vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:baselineAligned="false" tools:ignore="UseCompoundDrawables">
     <ImageView android:id="@+id/widget_refresh_icon" android:layout_width="12dp" android:layout_height="12dp" android:layout_marginEnd="3dp" android:src="@drawable/ic_refresh" android:contentDescription="@null" />
-    <TextView android:id="@+id/widget_region" style="@style/WidgetCaption" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/ui_widget_text_1" />
+    <TextView android:id="@+id/widget_region" style="@style/WidgetCaption" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:singleLine="true" android:ellipsize="end" android:text="@string/ui_widget_text_1" />
+    <ImageView android:id="@+id/widget_check_icon" android:layout_width="13dp" android:layout_height="13dp" android:layout_marginStart="3dp" android:layout_marginEnd="1dp" android:src="@drawable/ic_warning" android:scaleType="fitCenter" android:visibility="gone" android:contentDescription="@null" />
+    <TextView android:id="@+id/widget_check_text" style="@style/WidgetCaption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true" android:text="Check" android:textSize="9sp" android:textColor="#FF6B00" android:visibility="gone" />
   </LinearLayout>
 </LinearLayout>

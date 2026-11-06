@@ -213,11 +213,23 @@ public final class WidgetRenderer {
     String updated = updatedText(c,s,timestampFields,size);
     int hidden = Math.max(0, Math.min(capacity(size), main.size() + charging.size()) - shown.size());
     if (hidden > 0) updated += " · +" + hidden;
+    boolean check=WidgetCheckHint.visible(c,s);
+    // Leave the fixed-width tiny Check symbol room on narrow 2×1 widgets.
+    if(check&&(size==Size.MINI||horizontal&&width<220))
+      updated=updated.replaceFirst("^(更新 |Upd )","");
+    int checkVisibility=check?android.view.View.VISIBLE:android.view.View.GONE;
+    views.setViewVisibility(R.id.widget_check_icon,checkVisibility);
+    views.setViewVisibility(R.id.widget_check_text,checkVisibility);
+    views.setInt(R.id.widget_check_icon,"setColorFilter",PsaDesign.ORANGE);
+    views.setTextColor(R.id.widget_check_text,PsaDesign.ORANGE);
+    views.setTextViewText(R.id.widget_check_text,"Check");
+    views.setTextViewTextSize(R.id.widget_check_text,android.util.TypedValue.COMPLEX_UNIT_SP,Math.min(10f,9f*font));
+    views.setContentDescription(R.id.widget_check_text,AppPreferences.widgetTr(c,"车辆异常，请查看车况","Vehicle check required"));
     views.setViewVisibility(R.id.widget_region, android.view.View.VISIBLE);
     widgetText(views,c,R.id.widget_region, updated);
     views.setTextColor(R.id.widget_region, secondary);
     views.setTextViewTextSize(R.id.widget_region, android.util.TypedValue.COMPLEX_UNIT_SP, 10*font);
-    views.setContentDescription(R.id.widget_region, updated + AppPreferences.widgetTr(c, "，点击刷新", ". Tap to refresh"));
+    views.setContentDescription(R.id.widget_region, updated+(check?AppPreferences.widgetTr(c," · 车辆异常 Check"," · Vehicle Check"):"")+AppPreferences.widgetTr(c, "，点击刷新", ". Tap to refresh"));
     views.setOnClickPendingIntent(R.id.widget_region, pending(c, id, size, "refresh"));
     views.setOnClickPendingIntent(R.id.widget_refresh_row,pending(c,id,size,"refresh"));
     views.setInt(R.id.widget_refresh_icon,"setColorFilter",secondary);

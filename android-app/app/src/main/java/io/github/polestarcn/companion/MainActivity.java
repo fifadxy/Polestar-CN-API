@@ -2404,6 +2404,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("Widget 按钮 · 按尺寸选择","Widget buttons · choose by size"),this::widgetButtonSettings);
       setting(p,tr("Widget 字号（独立设置）","Widget text size (independent)"),this::fontDialog);
       settingToggle(p,"widget_bold",tr("Widget 加粗字体（所有风格）","Bold widget text (all styles)"),false,true);
+      settingToggle(p,"widget_check_hint",tr("Widget 更新时间旁 · 橙色警告三角 Check","Widget timestamp · orange Check warning"),true,true);
       setting(p,tr("Widget 语言 · 中文 / English","Widget language · 中文 / English"),this::widgetLanguageDialog);
       setting(p,tr("Widget 车辆图片 / 透明程序图标","Widget vehicle / transparent icon"),this::widgetVisualDialog);
       setting(p,tr("背景样式 · 不透明 / 透明","Background · opaque / transparent"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 背景","Widget background")).setItems(new String[]{tr("不透明","Opaque"),tr("透明","Transparent")},(d,w)->{AppPreferences.set(this,"widget_style",w==0?"opaque":"transparent");WidgetRenderer.refreshAll(this);}).show());

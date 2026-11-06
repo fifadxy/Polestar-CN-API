@@ -46,7 +46,7 @@ public final class Beta49OppoCardDisplayTest {
     assertEquals("88% / 370KM",OppoCardSummary.format(s,"{soc}{sep}{range}"," / "));
     assertEquals("电量88% | 续航370KM",OppoCardSummary.format(s,"电量{soc}{sep}续航{range}"," | "));
     assertEquals("25100KM",OppoCardSummary.format(s,"{odometer}",""));
-    assertEquals("已锁",OppoCardSummary.format(s,"{lock}",""));
+    assertEquals("关锁",OppoCardSummary.format(s,"{lock}",""));
     assertEquals("充电中",OppoCardSummary.format(s,"{charging}",""));
     assertEquals("关闭",OppoCardSummary.format(s,"{climate}",""));
     assertEquals("缓存",OppoCardSummary.format(s,"{source}",""));

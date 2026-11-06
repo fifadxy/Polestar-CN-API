@@ -1524,11 +1524,14 @@ public final class MainActivity extends FragmentActivity {
   private void addNioOrb(LinearLayout parent,ImageView icon) {
     boolean landscape=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
     boolean minimal=minimalMode();
-    int size=minimal?(landscape?40:46):(landscape?32:38), slotHeight=size+4;
+    // Compact NIO landscape has only 48dp tile height; reserve an actual
+    // feedback line after the orb instead of measuring text to 4dp.
+    int size=minimal?(landscape?40:46):(landscape?24:38), slotHeight=size+4;
     FrameLayout slot=new FrameLayout(this);slot.setTag("shortcut_orb_slot");
     FrameLayout circle=new FrameLayout(this);circle.setTag("shortcut_circle");
     GradientDrawable outline=oval(Color.TRANSPARENT);outline.setStroke(dp(1),line);circle.setBackground(outline);
-    FrameLayout.LayoutParams image=new FrameLayout.LayoutParams(dp(minimal?34:22),dp(minimal?34:22),Gravity.CENTER);circle.addView(icon,image);
+    int glyphDp=minimal?34:landscape?18:22;
+    FrameLayout.LayoutParams image=new FrameLayout.LayoutParams(dp(glyphDp),dp(glyphDp),Gravity.CENTER);circle.addView(icon,image);
     slot.addView(circle,new FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER));
     if(parent.getOrientation()==LinearLayout.HORIZONTAL)
       parent.addView(slot,new LinearLayout.LayoutParams(dp(size+8),dp(slotHeight)));

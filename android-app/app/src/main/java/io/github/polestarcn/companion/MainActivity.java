@@ -722,7 +722,7 @@ public final class MainActivity extends FragmentActivity {
       tile.addView(icon,new LinearLayout.LayoutParams(dp(40),dp(40)));state.setVisibility(View.GONE);
     }else if(control.equals("air")){
       LinearLayout heading=row();heading.setGravity(Gravity.CENTER);
-      heading.addView(icon,new LinearLayout.LayoutParams(dp(34),dp(34)));
+      heading.addView(icon,new LinearLayout.LayoutParams(dp(38),dp(38)));
       TextView title=text(label,13,ink,true);title.setTag("control_title_"+control);
       title.setGravity(Gravity.CENTER_VERTICAL);fitSingleLine(title,13);
       LinearLayout.LayoutParams labelSpace=new LinearLayout.LayoutParams(-2,-2);labelSpace.leftMargin=dp(5);heading.addView(title,labelSpace);

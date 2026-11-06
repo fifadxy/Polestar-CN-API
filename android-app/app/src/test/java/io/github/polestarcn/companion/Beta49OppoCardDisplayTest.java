@@ -85,10 +85,10 @@ public final class Beta49OppoCardDisplayTest {
     Context c=RuntimeEnvironment.getApplication();
     c.getSharedPreferences("preferences",0).edit().clear().commit();
     OppoCardDisplaySettingsActivity activity=Robolectric.buildActivity(OppoCardDisplaySettingsActivity.class).setup().get();
-    EditText tpl=activity.findViewWithTag("oppo_card_template_editor");
-    EditText sep=activity.findViewWithTag("oppo_card_separator_editor");
-    TextView device=activity.findViewWithTag("oppo_card_preview_device");
-    TextView shelf=activity.findViewWithTag("oppo_card_preview_shelf");
+    EditText tpl=activity.getWindow().getDecorView().findViewWithTag("oppo_card_template_editor");
+    EditText sep=activity.getWindow().getDecorView().findViewWithTag("oppo_card_separator_editor");
+    TextView device=activity.getWindow().getDecorView().findViewWithTag("oppo_card_preview_device");
+    TextView shelf=activity.getWindow().getDecorView().findViewWithTag("oppo_card_preview_shelf");
     assertNotNull(tpl);assertNotNull(sep);assertNotNull(device);assertNotNull(shelf);
     tpl.setText("{range}{sep}{soc}");sep.setText(" / ");
     assertEquals(device.getText().toString(),shelf.getText().toString());

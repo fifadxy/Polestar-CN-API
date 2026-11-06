@@ -395,8 +395,31 @@ public final class ChinaPolestarApi {
    */
   public VehicleSnapshot readVehicleScoped(VehicleInfo info,VehicleSnapshot previous,
       java.util.EnumSet<io.github.polestarcn.companion.RefreshDomain> scopes) throws Exception {
-    if(previous==null||previous.isDemo||!"LIVE".equals(previous.source)||scopes==null||scopes.isEmpty())
-      return readVehicle(info);
+    return readVehicleScoped(info,previous,scopes,
+        java.util.EnumSet.noneOf(io.github.polestarcn.companion.RefreshDomain.class));
+  }
+  /**
+   * Output: only RPC families whose responses supplied real fields, including
+   * companion data delivered by the SAME request (battery -> charging, CORE -> climate/air).
+   * Optional failures and retained previous values are never marked as refreshed.
+   */
+  public VehicleSnapshot readVehicleScoped(VehicleInfo info,VehicleSnapshot previous,
+      java.util.EnumSet<io.github.polestarcn.companion.RefreshDomain> scopes,
+      java.util.EnumSet<io.github.polestarcn.companion.RefreshDomain> observed) throws Exception {
+    observed.clear();
+    if(previous==null||previous.isDemo||!"LIVE".equals(previous.source)||scopes==null||scopes.isEmpty()){
+      VehicleSnapshot full=readVehicle(info);
+      if(full.batteryPercent!=null||full.rangeKm!=null)
+        observed.add(io.github.polestarcn.companion.RefreshDomain.CHARGING);
+      if((full.batteryPercent!=null||full.rangeKm!=null)&&!"未知".equals(full.lock))
+        observed.add(io.github.polestarcn.companion.RefreshDomain.CORE);
+      if(full.odometerKm!=null)observed.add(io.github.polestarcn.companion.RefreshDomain.MILEAGE);
+      if(full.environment.climateReportedAt>0)
+        observed.add(io.github.polestarcn.companion.RefreshDomain.CLIMATE);
+      if(full.environment.airReportedAt>0)
+        observed.add(io.github.polestarcn.companion.RefreshDomain.AIR);
+      return full;
+    }
     Session session=refreshIfNeeded(requireSession());ensureC3Host(session);
     String vin=info.vin;
     Integer soc=previous.batteryPercent,range=previous.rangeKm;
@@ -414,6 +437,8 @@ public final class ChinaPolestarApi {
       batteryData=ProtoWire.nested(stateRpc(session,vin,"services.vehiclestates.battery.BatteryService","GetLatestBattery"),3);
       soc=ProtoWire.integer(batteryData,2);range=ProtoWire.integer(batteryData,4);
       charging=ProtoWire.enumText(batteryData,7,"未指定","充电中","空闲","计划中","放电中","错误","智能充电","已完成","智能充电暂停");
+      if(soc!=null||range!=null)
+        observed.add(io.github.polestarcn.companion.RefreshDomain.CHARGING);
       long at=ProtoWire.timestampMillis(batteryData,1);
       if(at>0&&at<=System.currentTimeMillis()+300_000L)reported=at;
       ChargingSnapshot values=ChargingSnapshot.fromData(batteryData);
@@ -439,17 +464,28 @@ public final class ChinaPolestarApi {
         if(state!=null)lock=state==2?"已上锁":state==1?"未锁":"未知";
         exterior=ExteriorSnapshot.fromData(data);doors=exterior.summary(false);windows=exterior.summary(true);
         tailgate=ProtoWire.enumText(data,12,"未知","已打开","已关闭","未关严");
+        if((soc!=null||range!=null)&&!data.isEmpty())
+          observed.add(io.github.polestarcn.companion.RefreshDomain.CORE);
       }catch(Exception unavailable){DiagnosticLog.add("Scoped exterior unavailable; retaining cache");}
     }
     if(scopes.contains(io.github.polestarcn.companion.RefreshDomain.MILEAGE)){
-      try{mileage=MileageSnapshot.fromReply(stateRpc(session,vin,"services.vehiclestates.odometer.OdometerService","GetLatestOdometer"));}
-      catch(Exception unavailable){DiagnosticLog.add("Scoped mileage unavailable; retaining cache");}
+      try{
+        mileage=MileageSnapshot.fromReply(stateRpc(session,vin,"services.vehiclestates.odometer.OdometerService","GetLatestOdometer"));
+        if(mileage.wholeKm()!=null)observed.add(io.github.polestarcn.companion.RefreshDomain.MILEAGE);
+      }catch(Exception unavailable){DiagnosticLog.add("Scoped mileage unavailable; retaining cache");}
       if(battery)mileage=mileage.withConsumption(batteryData);
     }
     if(scopes.contains(io.github.polestarcn.companion.RefreshDomain.HEALTH)
         ||scopes.contains(io.github.polestarcn.companion.RefreshDomain.MAINTENANCE)){
       Map<Integer,Object> fields=readHealth(session,vin);
-      if(!fields.isEmpty()){tires=TireSnapshot.fromData(fields);health=VehicleHealthSnapshot.fromData(fields,tires);}
+      if(!fields.isEmpty()){
+        tires=TireSnapshot.fromData(fields);health=VehicleHealthSnapshot.fromData(fields,tires);
+        HealthCache recorded=healthCache.get(vin);
+        if(recorded!=null&&recorded.expires-System.currentTimeMillis()>65_000L){
+          observed.add(io.github.polestarcn.companion.RefreshDomain.HEALTH);
+          observed.add(io.github.polestarcn.companion.RefreshDomain.MAINTENANCE);
+        }
+      }
     }
     // CORE refresh must discover a climate/air activation from another client as well.
     // When already running, dedicated 2/15-minute CLIMATE scopes avoid battery/exterior RPCs.
@@ -460,6 +496,8 @@ public final class ChinaPolestarApi {
     if(climate||air){
       Map<Integer,Object> cd=climate?readFeatureData(session,vin,true):Collections.emptyMap();
       Map<Integer,Object> ad=air?readFeatureData(session,vin,false):Collections.emptyMap();
+      if(!cd.isEmpty())observed.add(io.github.polestarcn.companion.RefreshDomain.CLIMATE);
+      if(!ad.isEmpty())observed.add(io.github.polestarcn.companion.RefreshDomain.AIR);
       EnvironmentSnapshot fresh=EnvironmentSnapshot.fromData(cd,ad);
       environment=new EnvironmentSnapshot(
         climate&&!cd.isEmpty()?fresh.climate:environment.climate,

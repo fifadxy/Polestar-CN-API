@@ -3,6 +3,8 @@ import android.app.Activity;import android.os.Bundle;import android.widget.*;
 /** Curated feature history only. Does not display source documents or service credentials. */
 public final class UpdateHistoryActivity extends Activity {
  static final String[][] HISTORY={
+ {"v1.1.0 /164 · 正式主版本","正式主版本：OPPO 负一屏/设备空间支持动态空调、净化、托管倒计时和开锁/关锁状态；动态刷新按普通、运行中及门锁操作后加速三个区间分别设置，默认启用；同一轮车端RPC收到的有效电量、充电、空调、净化和健康数据统一顺延各自缓存TTL，失败数据不刷新时间。保留中国区独立登录FULL打包门禁和同证书升级。","Stable 1.1.0: dynamic OPPO climate/air/camping countdowns, concise unlocked/locked states, configurable normal/active/post-lock refresh cadence, and per-RPC receipt based TTL sharing. China FULL login packaging retains approved asset and signing gates."},
+
  {"v1.0.0-beta49 /163","OPPO 负一屏与设备空间卡片默认只显示电量和续航，字段、分隔符、固定文字与更新时间可以自定义并实时预览；All Good 异常改为「请检查 玻璃水」等具体项目且字号与主页面导航一致；有效回读后立即结束指令进度并更新按钮；Widget 时间旁新增默认开启、可关闭的橙色三角 Check 提示。","OPPO Shelf/MyDevices status defaults to battery + range with editable fields, separators, time and live preview. All Good warnings name the actual problem in small text; confirmed commands end progress immediately and refresh controls. An optional VI-orange Check icon appears beside Widget timestamps."},
  {"v1.0.0-beta48 /162","默认车况图标线条加粗45%，净化图标与标题同行，空气数据细线分隔；长按默认0.6秒并支持设置；优化二级菜单固定居中、渐显以及停车位置半屏窗口。","Vehicle-condition icon stroke +45%, inline purification header and fine-separated data, 0.6-second adjustable holds, alpha-only centered dialogs and compact half-area parking map."},
 

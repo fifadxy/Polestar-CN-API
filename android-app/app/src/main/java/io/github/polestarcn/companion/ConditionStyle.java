@@ -14,10 +14,11 @@ final class ConditionStyle {
  static int color(Context c){return colorValue(AppPreferences.get(c,"condition_color","#FF6B00"),PsaDesign.ORANGE);}
  static int colorValue(String value,int fallback){try{return value.matches("#[0-9a-fA-F]{6}")?Color.parseColor(value):fallback;}catch(RuntimeException e){return fallback;}}
  static boolean issueText(String value){return value!=null&&(value.startsWith("请检查 ")||value.startsWith("Check ")||"请检查车辆".equals(value)||"Check vehicle".equals(value));}
+ static boolean warningCopy(Context c,String value){return issueText(value)||value!=null&&value.equals(message(c,true));}
  static boolean summary(Context c,String value){return value!=null&&(value.trim().equals(message(c,false))||value.trim().equals(message(c,true))||issueText(value.trim())||value.trim().equals("All Good！")||value.trim().equals("All Good!"));}
  static Typeface typeface(Context c){int weight=EffectSettings.number(c,"all_good_weight",500,300,900);if(AppPreferences.visible(c,"ui_all_bold",false))weight=Math.max(700,weight);return Build.VERSION.SDK_INT>=28?Typeface.create(PsaDesign.regular(),weight,false):Typeface.create(weight<=300?"sans-serif-light":weight>=500?"sans-serif-medium":"sans-serif",weight>=700?Typeface.BOLD:Typeface.NORMAL);}
  static void apply(TextView v){Context c=v.getContext();String shown=v.getText().toString();if(!summary(c,shown))return;v.setTypeface(typeface(c));v.setTextColor(color(c));v.setTextScaleX(EffectSettings.number(c,"condition_stretch",100,50,200)/100f);v.setLineSpacing(0,EffectSettings.number(c,"condition_line_spacing",100,50,200)/100f);int size=EffectSettings.number(c,"condition_size",0,0,100);
-  if(issueText(shown)){ // Match the 14sp bottom-navigation labels across all three main pages.
+  if(warningCopy(c,shown)){ // Match the 14sp bottom-navigation labels across all three main pages.
     int warningSp=size>0?Math.min(14,size):14;
     v.setSingleLine(true);v.setMaxLines(1);
     v.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,warningSp);

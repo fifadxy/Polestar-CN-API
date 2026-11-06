@@ -1414,7 +1414,7 @@ public final class MainActivity extends FragmentActivity {
           :dp(26)+textLineHeight(14)+textLineHeight(Math.max(12,ButtonFeedback.sp(this)))+textLineHeight(11);
       if(fourAcross)height=landscape?Math.max(dp(48),Math.max(dp(nioSkin()?36:24),textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)))+dp(8)):Math.max(height,dp(nioSkin()?52:34)+textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)));
       if(fourAcross&&minimalMode())height=Math.max(dp(landscape?48:60),dp(nioSkin()?(landscape?44:50):42)+dp(8));
-      // Reserve a full baseline for both PM2.5 and AQI in non-NIO compact tiles.
+      // Keep space for active-state captions; idle PM2.5/AQI now share one row.
       if(!minimalMode()&&!nioSkin()&&!landscape)height+=textLineHeight(9)+dp(5);
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
@@ -1671,24 +1671,17 @@ public final class MainActivity extends FragmentActivity {
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(ink); feedback.setTextColor(muted);
       boolean airIdle=control.equals("air")&&!active&&!controlSending(control);
-      // Use single-line metrics in four-across/large-font layouts. Never force a
-      // two-line TextView into the original 16dp feedback slot.
-      boolean compactAir=airIdle&&(compact||nioSkin()
-          ||getResources().getConfiguration().fontScale>1.2f);
-      feedback.setSingleLine(compactAir||!airIdle);
-      feedback.setMaxLines(compactAir||!airIdle?1:2);
+      // Non-VoLike dashboard buttons keep both idle sensor values on one row.
+      // VoLike chips use their existing independent layout.
+      feedback.setSingleLine(true);
+      feedback.setMaxLines(1);
       feedback.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      String airMode=AirButtonMetrics.mode(this);
-      if(nioAirNumber[0]!=null){
-        boolean separate=airIdle&&!minimal&&!compact&&("both".equals(airMode)||"aqi".equals(airMode));
-        nioAirNumber[0].setVisibility(airIdle?(separate?View.VISIBLE:View.GONE):minimal?View.GONE:View.VISIBLE);
-      }
+      // NIO's large AQI readout is hidden when idle to avoid splitting
+      // PM2.5 and AQI into separate rows or duplicating AQI.
+      if(nioAirNumber[0]!=null)
+        nioAirNumber[0].setVisibility(airIdle||minimal?View.GONE:View.VISIBLE);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      if(airIdle&&nioAirNumber[0]!=null&&!compact){
-        if("both".equals(airMode)||"pm25".equals(airMode))
-          feedbackValue=AirButtonMetrics.value(this,model.snapshot,true).split("\\n",2)[0];
-        else feedbackValue="";
-      }else if(compactAir)feedbackValue=feedbackValue.replace("\n"," · ");
+      if(airIdle)feedbackValue=AirButtonMetrics.singleLine(feedbackValue);
       feedback.setText(feedbackValue);
       feedback.setContentDescription(airIdle?AirButtonMetrics.value(this,model.snapshot,true):feedbackValue);
       feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);

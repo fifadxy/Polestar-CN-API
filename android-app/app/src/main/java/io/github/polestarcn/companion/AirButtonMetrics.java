@@ -5,6 +5,8 @@ import java.util.Locale;
 public final class AirButtonMetrics {
   public static final String KEY="air_button_metrics";
   private AirButtonMetrics(){}
+  /** Keep both readings on one UI line without changing sensor values or preferences. */
+  public static String singleLine(String value){return value==null?"":value.replace("\n"," · ");}
   public static String mode(Context c){
     String mode=AppPreferences.get(c,KEY,"both");
     return mode.equals("pm25")||mode.equals("aqi")||mode.equals("off")?mode:"both";

@@ -239,7 +239,7 @@ final class SkinButtonLayout {
       canvas.drawCircle(textX,textY-13*d,glyph/2,pen);
       pen.setColor(AppPreferences.dark(getContext())?Color.WHITE:0xff222222);
       pen.setTextSize(Math.min(18*d,11*d*chosen[5]/100f));
-      String label=control.equals("air")?"AQI 38 · PM2.5 12":
+      String label=control.equals("air")?"PM2.5·12 /AQI·38":
           control.equals("lock")?"已锁":control.equals("climate")?"空调":
           control.equals("camp")?"露营模式":control.equals("body")?"保养":
           control.equals("trunk")?"尾箱":control.equals("windows")?"车窗":"寻车";

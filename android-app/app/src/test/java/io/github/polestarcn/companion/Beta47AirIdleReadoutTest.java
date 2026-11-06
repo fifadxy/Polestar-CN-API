@@ -21,8 +21,8 @@ public final class Beta47AirIdleReadoutTest {
     c.getSharedPreferences("preferences",0).edit().clear().commit();
     AppPreferences.set(c,AirButtonMetrics.KEY,"both");
     String v=ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭");
-    assertTrue(v.contains("AQI 43"));
-    assertTrue(v.contains("PM2.5 12.5"));
+    assertTrue(v.contains("AQI·43"));
+    assertTrue(v.contains("PM2.5·12.5"));
     assertFalse(v.contains("已关闭"));assertFalse(v.contains("关闭"));
     assertFalse(v.contains("Off"));assertFalse(v.contains("Closed"));
   }
@@ -30,7 +30,7 @@ public final class Beta47AirIdleReadoutTest {
     Context c=RuntimeEnvironment.getApplication();
     c.getSharedPreferences("preferences",0).edit().clear().commit();
     String v=ButtonFeedback.value(c,"air",null,"关闭");
-    assertTrue(v.contains("AQI --"));assertTrue(v.contains("PM2.5 --"));
+    assertTrue(v.contains("AQI·--"));assertTrue(v.contains("PM2.5·--"));
     assertFalse(v.contains("已关闭"));
   }
   @Test public void pendingAndHiddenSettingsStillTakePriority(){
@@ -47,18 +47,18 @@ public final class Beta47AirIdleReadoutTest {
     String raw=ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭");
     assertEquals("single",AirButtonMetrics.layout(c));
     assertFalse(AirButtonMetrics.twoLines(c));
-    assertEquals("PM2.5 12.5 · AQI 43",AirButtonMetrics.forLayout(c,raw,false));
+    assertEquals("PM2.5·12.5 /AQI·43",AirButtonMetrics.forLayout(c,raw,false));
     AppPreferences.set(c,AirButtonMetrics.LAYOUT_KEY,"double");
     assertTrue(AirButtonMetrics.twoLines(c));
-    assertEquals("PM2.5 12.5\nAQI 43",AirButtonMetrics.forLayout(c,raw,false));
-    assertEquals("PM2.5 12.5 · AQI 43",AirButtonMetrics.forLayout(c,raw,true));
+    assertEquals("PM2.5·12.5\nAQI·43",AirButtonMetrics.forLayout(c,raw,false));
+    assertEquals("PM2.5·12.5 /AQI·43",AirButtonMetrics.forLayout(c,raw,true));
     assertEquals("待确认",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"待确认"),false));
     AppPreferences.set(c,"feedback_air","hidden");
     assertEquals("",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭"),false));
     AppPreferences.set(c,"feedback_air","state");
     AppPreferences.set(c,AirButtonMetrics.KEY,"pm25");
     assertFalse(AirButtonMetrics.twoLines(c));
-    assertEquals("PM2.5 12.5",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭"),false));
+    assertEquals("PM2.5·12.5",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭"),false));
     AppPreferences.set(c,AirButtonMetrics.KEY,"both");
     AppPreferences.set(c,AirButtonMetrics.LAYOUT_KEY,"invalid");
     assertEquals("single",AirButtonMetrics.layout(c));
@@ -82,12 +82,12 @@ public final class Beta47AirIdleReadoutTest {
     AppPreferences.set(c,AirButtonMetrics.KEY,"both");
     VehicleSnapshot s=snapshot("关闭");
     String shown=AirButtonMetrics.singleLine(ButtonFeedback.value(c,"air",s,"关闭"));
-    assertEquals("PM2.5 12.5 · AQI 43",shown);
+    assertEquals("PM2.5·12.5 /AQI·43",shown);
     assertFalse(shown.contains("\n"));
     AppPreferences.set(c,AirButtonMetrics.KEY,"aqi");
-    assertEquals("AQI 43",AirButtonMetrics.singleLine(ButtonFeedback.value(c,"air",s,"关闭")));
+    assertEquals("AQI·43",AirButtonMetrics.singleLine(ButtonFeedback.value(c,"air",s,"关闭")));
     AppPreferences.set(c,AirButtonMetrics.KEY,"pm25");
-    assertEquals("PM2.5 12.5",AirButtonMetrics.singleLine(ButtonFeedback.value(c,"air",s,"关闭")));
+    assertEquals("PM2.5·12.5",AirButtonMetrics.singleLine(ButtonFeedback.value(c,"air",s,"关闭")));
     AppPreferences.set(c,AirButtonMetrics.KEY,"both");
     assertEquals("待确认",AirButtonMetrics.singleLine(ButtonFeedback.value(c,"air",s,"待确认")));
     AppPreferences.set(c,"feedback_air","hidden");

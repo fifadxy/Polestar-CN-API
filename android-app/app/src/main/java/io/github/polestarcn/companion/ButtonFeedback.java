@@ -22,7 +22,7 @@ public final class ButtonFeedback {
    case "climate":return ControlStatusText.value(c,control,s,state);
    case "temperature":return DisplayMetric.TEMPERATURE.value(c,s,true,AppPreferences.english(c));
    case "remaining":return s!=null&&"开启".equals(s.climate)?ClimateRuntime.shortLabel(c,s,AppPreferences.get(c,"vehicle",""),AppPreferences.english(c)):"--";
-   case "air":return "AQI "+DisplayMetric.AQI.value(c,s,false,AppPreferences.english(c));
+   case "air":return "AQI·"+DisplayMetric.AQI.value(c,s,false,AppPreferences.english(c));
    default:return ControlStatusText.value(c,control,s,state);
   }
  }

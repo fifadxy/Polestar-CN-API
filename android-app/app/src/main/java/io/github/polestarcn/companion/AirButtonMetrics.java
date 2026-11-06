@@ -14,7 +14,7 @@ public final class AirButtonMetrics {
     return !voLike&&twoLines(c)?(value==null?"":value):singleLine(value);
   }
   /** Keep both readings on one UI line without changing sensor values or preferences. */
-  public static String singleLine(String value){return value==null?"":value.replace("\n"," · ");}
+  public static String singleLine(String value){return value==null?"":value.replace("\n"," /");}
   public static String mode(Context c){
     String mode=AppPreferences.get(c,KEY,"both");
     return mode.equals("pm25")||mode.equals("aqi")||mode.equals("off")?mode:"both";
@@ -25,8 +25,8 @@ public final class AirButtonMetrics {
     Integer aqi=s==null?null:s.environment.aqi;
     String particulate=pm==null?"--":String.format(Locale.getDefault(),pm%1==0?"%.0f":"%.1f",pm);
     String quality=aqi==null?"--":Integer.toString(aqi);
-    if("pm25".equals(mode))return "PM2.5 "+particulate;
-    if("aqi".equals(mode))return "AQI "+quality;
-    return "PM2.5 "+particulate+(compact?"\n":" · ")+"AQI "+quality;
+    if("pm25".equals(mode))return "PM2.5·"+particulate;
+    if("aqi".equals(mode))return "AQI·"+quality;
+    return "PM2.5·"+particulate+(compact?"\n":" /")+"AQI·"+quality;
   }
 }

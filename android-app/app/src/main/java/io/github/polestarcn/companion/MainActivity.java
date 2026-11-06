@@ -1657,7 +1657,7 @@ public final class MainActivity extends FragmentActivity {
       LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-2, -2); tp.leftMargin = dp(5);
       heading.addView(title, tp); card.addView(heading); gap(card, 2);
       if (nioSkin() && (control.equals("climate")||control.equals("air"))) {
-        TextView temperature=liveText(() -> control.equals("air")?("AQI "+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
+        TextView temperature=liveText(() -> control.equals("air")?("AQI·"+(model.snapshot==null||model.snapshot.environment.aqi==null?"--":model.snapshot.environment.aqi))
             :model.snapshot==null ? "--°C":DisplayMetric.TARGET_TEMPERATURE.value(this,model.snapshot,true,AppPreferences.english(this)),22,ink,true);
         temperature.setGravity(Gravity.CENTER);temperature.setVisibility(minimal?View.GONE:View.VISIBLE);
         if(control.equals("air")){temperature.setTag("control_support_air");nioAirNumber[0]=temperature;}
@@ -1696,8 +1696,8 @@ public final class MainActivity extends FragmentActivity {
       feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
-          : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
-              + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
+          : control.equals("air") ? "PM2.5·" + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
+              + " /AQI·" + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
       String airMetrics=control.equals("air")&&!nioSkin()&&!minimal
           ?AirButtonMetrics.forLayout(this,AirButtonMetrics.value(this,model.snapshot,true),false):"";
       boolean narrowAir=control.equals("air")&&!nioSkin()&&!minimal&&getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
@@ -2454,8 +2454,8 @@ public final class MainActivity extends FragmentActivity {
   private void airStatusLayoutDialog(){
     choice(tr("空气状态排版（非 VoLike 皮肤）","Air quality layout (non-VoLike skins)"),AirButtonMetrics.LAYOUT_KEY,
       new String[]{"single","double"},
-      new String[]{tr("单行 · PM2.5 / AQI 并排（默认）","One line · PM2.5 / AQI side by side (default)"),
-          tr("双行 · PM2.5 / AQI 上下排列","Two lines · PM2.5 above AQI")},
+      new String[]{tr("单行 · PM2.5·12 /AQI·43（默认）","One line · PM2.5·12 /AQI·43 (default)"),
+          tr("双行 · PM2.5·12 与 AQI·43 上下排列","Two lines · PM2.5·12 above AQI·43")},
       "single",this::render);
   }
   private void minimalIconDialog(){

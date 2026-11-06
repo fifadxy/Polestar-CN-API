@@ -54,6 +54,6 @@ public final class RefreshPolicy {
      int n=activeMinutes(c,d,false,state);
      if(n>0&&(base==0||n<base))base=n;
    }
-   return base;
+   return OppoAdaptiveRefresh.backgroundMinutes(c,state,base);
  }
 }

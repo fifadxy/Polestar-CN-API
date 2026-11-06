@@ -285,8 +285,11 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
         out.putBoolean("accepted",false);out.putString("reason","vehicle-busy");return out;
       }
       long now=android.os.SystemClock.elapsedRealtime();
-      if(!refreshThrottle.admit(now)) {
-        out.putBoolean("accepted",false);out.putString("reason","refresh-cooldown");out.putLong("retryAfterMillis",refreshThrottle.retryAfter(now));return out;
+      long window=1000L*OppoAdaptiveRefresh.bridgeCooldownSeconds(context,
+          coordinator.selected==null?"":coordinator.selected.vin,System.currentTimeMillis());
+      if(!refreshThrottle.admit(now,window)) {
+        out.putBoolean("accepted",false);out.putString("reason","refresh-cooldown");
+        out.putLong("retryAfterMillis",refreshThrottle.retryAfter(now,window));return out;
       }
       main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())VehicleRefreshManager.get(context).requestBridge(null);});
       out.putBoolean("accepted", true);

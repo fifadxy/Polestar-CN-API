@@ -63,20 +63,18 @@ public final class VehicleRefreshManager {
    if(vin==null||scopes.isEmpty())return;
    SharedPreferences.Editor edit=cache.edit();long now=System.currentTimeMillis();
    for(RefreshDomain group:scopes)edit.putLong(token(vin,group),now);
-   // CORE already performs climate/air gRPC calls to discover externally started sessions.
-   // Mark these component TTLs to prevent duplicate expiry checks after the same batch.
-   if(scopes.contains(RefreshDomain.CORE)){
-     edit.putLong(token(vin,RefreshDomain.CLIMATE),now);
-     edit.putLong(token(vin,RefreshDomain.AIR),now);
-   }
-   if(scopes.contains(RefreshDomain.HEALTH))edit.putLong(token(vin,RefreshDomain.MAINTENANCE),now);
-   if(scopes.contains(RefreshDomain.MAINTENANCE))edit.putLong(token(vin,RefreshDomain.HEALTH),now);
+   // The API reports which RPC families actually returned useful data.
+   // Never extend a stale exterior/health/climate TTL simply because the call was requested.
    edit.apply();
  }
+ private long ttlMs(String vin,RefreshDomain group,boolean front,VehicleSnapshot snapshot,long now){
+   int mins=RefreshPolicy.activeMinutes(context,group,front,snapshot);
+   long base=mins<=0?0:mins*60_000L;
+   return OppoAdaptiveRefresh.ttl(context,group,front,snapshot,vin,base,now);
+ }
  private boolean due(String vin,RefreshDomain group,boolean front,VehicleSnapshot snapshot){
-   int period=RefreshPolicy.activeMinutes(context,group,front,snapshot);
-   if(period<=0)return false;
-   return !RefreshPlanner.fresh(readAt(vin,group),System.currentTimeMillis(),period*60_000L);
+   long now=System.currentTimeMillis(),ttl=ttlMs(vin,group,front,snapshot,now);
+   return ttl>0&&!RefreshPlanner.fresh(readAt(vin,group),now,ttl);
  }
  private boolean airExpirationDue(String vin,VehicleSnapshot s){
    if(s==null||!"开启".equals(s.air))return false;
@@ -181,7 +179,7 @@ public final class VehicleRefreshManager {
        // A logout/vehicle switch invalidates an old scope result; don't backoff the new VIN.
        record("cancelled");
      }else if(car.lastVehicleReadOk){
-       onScopesRead(vin,scope);
+       onScopesRead(vin,car.lastScopedRefreshed);
      }else {record("failures");lastFailedAt=SystemClock.elapsedRealtime();}
      if(!pending.isEmpty()){main.postDelayed(dispatch,RefreshPolicy.mergeSeconds(context)*1000L);}
      else drainCallbacks();
@@ -200,10 +198,10 @@ public final class VehicleRefreshManager {
    if(car.selected==null||!car.hasSession())return 60_000L;
    long now=System.currentTimeMillis(),earliest=30*60_000L;
    for(RefreshDomain group:RefreshDomain.values()){
-     int n=RefreshPolicy.activeMinutes(context,group,true,car.snapshot);
-     if(n<=0)continue;
+     long ttl=ttlMs(car.selected.vin,group,true,car.snapshot,now);
+     if(ttl<=0)continue;
      long last=readAt(car.selected.vin,group);
-     long due=last==0?1000L:Math.max(1000L,n*60_000L-(now-last));
+     long due=last==0?1000L:Math.max(1000L,ttl-(now-last));
      earliest=Math.min(earliest,due);
    }
    return Math.max(1000L,earliest);

@@ -27,6 +27,8 @@ public final class VehicleCoordinator {
   public ChinaPolestarApi.VehicleInfo selected;
   public VehicleSnapshot snapshot;
   public boolean busy;public boolean lastVehicleReadOk;
+  /** RPC-family receipt produced by the most recently completed scoped refresh. */
+  public java.util.EnumSet<RefreshDomain> lastScopedRefreshed=java.util.EnumSet.noneOf(RefreshDomain.class);
   public boolean vehicleDataConnected(){return VehicleConnectionStatus.connected(signedIn,selected!=null,lastVehicleReadOk,snapshot,System.currentTimeMillis());}
   public boolean progressOnly;
   public boolean commandPending; public int readbackPercent; public int readbackChecks;
@@ -298,7 +300,8 @@ public final class VehicleCoordinator {
     final VehicleSnapshot previous=snapshot;
     io.execute(()->{
       try{
-        VehicleSnapshot fresh=api.readVehicleScoped(vehicle,previous,scopes);
+        java.util.EnumSet<RefreshDomain> reported=java.util.EnumSet.noneOf(RefreshDomain.class);
+        VehicleSnapshot fresh=api.readVehicleScoped(vehicle,previous,scopes,reported);
         main.post(()->{
           if(generation!=sessionGeneration||!signedIn||selected==null||!vehicle.vin.equals(selected.vin)){
             // Release the old ordinary queue without altering a newly selected vehicle/session.
@@ -306,6 +309,7 @@ public final class VehicleCoordinator {
           }
           boolean updated=RefreshDisplay.changed(previous,fresh);
           snapshot=fresh;lastVehicleReadOk=true;
+          lastScopedRefreshed=java.util.EnumSet.copyOf(reported);
           VehicleSnapshotStore.saveChina(context,fresh);
           if(scopes.contains(RefreshDomain.CORE)||scopes.contains(RefreshDomain.MILEAGE))
             EnergyLog.record(context,identity(vehicle.vin),fresh);
@@ -428,7 +432,16 @@ public final class VehicleCoordinator {
     ticket.readback.start(ticket.action);
   }
 
-  private void complete(PendingCommand ticket,OperationState result){OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,result.name());OppoFluidCloud.onVerifiedCommand(context,ticket.action,result);java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}}
+  private void complete(PendingCommand ticket,OperationState result){
+    if(result==OperationState.VEHICLE_CONFIRMED){
+      OppoAdaptiveRefresh.confirmedAction(context,ticket.vehicle.vin,ticket.action,System.currentTimeMillis());
+      ResidentService.scheduleUpdates(context);
+    }
+    OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,result.name());
+    OppoFluidCloud.onVerifiedCommand(context,ticket.action,result);
+    java.util.function.Consumer<OperationState> callback=ticket.completion;ticket.completion=null;
+    if(callback!=null)try{callback.accept(result);}catch(RuntimeException ignored){}
+  }
   private void applyReadback(ChinaPolestarApi.VehicleInfo vehicle,VehicleSnapshot updated){
     if(updated==null||selected==null||!vehicle.vin.equals(selected.vin))return;
     // A delayed callback cannot overwrite a newer refresh / another family's readback.
@@ -490,6 +503,8 @@ public final class VehicleCoordinator {
         CampSession camping = new CampSession(java.util.UUID.randomUUID().toString(), vehicle.vin,
             fresh.name, now + hours * 3_600_000L, CampModeManager.interval(context), minimum, keepAir,requestedTarget,customTarget);
         CampModeManager.start(context, camping);
+        OppoAdaptiveRefresh.confirmedAction(context,vehicle.vin,"climate-start",System.currentTimeMillis());
+        ResidentService.scheduleUpdates(context);
         VehicleSnapshotStore.saveChina(context, fresh);EnergyLog.record(context,identity(vehicle.vin),fresh);
         main.post(() -> { snapshot = fresh; message = CampModeManager.status(context); finish(); });
       } catch (Exception e) {

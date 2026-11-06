@@ -34,6 +34,7 @@
         <meta-data android:name="oplus.app.carlink.sdk.companyid" android:value="${oppoCarLinkCompanyId}"/>
         <meta-data android:name="carapp.feature_support" android:value="1"/>
         <activity android:name=".OppoSystemCompatActivity" android:exported="false"/>
+        <activity android:name=".OppoCardDisplaySettingsActivity" android:exported="false"/>
         <activity android:name=".OppoCarLinkSetupActivity" android:exported="false"/>
         <activity android:name=".OppoCarLinkAuthorizeActivity" android:exported="false" android:excludeFromRecents="true"/>
         <provider android:name="androidx.core.content.FileProvider"

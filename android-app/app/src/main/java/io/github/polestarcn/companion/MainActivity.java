@@ -2412,6 +2412,8 @@ public final class MainActivity extends FragmentActivity {
     });
     disclosure(root,"settings_vehicle",tr("车辆功能与位置权限","Vehicle features and map permission"),false,p->{setting(p,tr("车控验证方式 · 生物识别 / 确认 / 直接发送","Control authorization · biometrics / confirm / direct"),this::authorizationSettings);setting(p,tr("实验性空调目标温度","Experimental climate target temperature"),this::climateTargetDialog);setting(p,tr("露营模式","Camping mode"),this::campDialog);setting(p,tr("车辆停车位置 · 缓存与刷新规则","Vehicle parking position · cache and refresh"),this::mapRefreshDialog);setting(p,tr("手机定位 · 权限与刷新时机","Phone location · permission and refresh timing"),this::mapLocationDialog);note(p,tr("手机定位说明","Location permissions"),tr("地图定位默认关闭；拒绝手机定位仍可查看车辆停车点。","Phone location is off by default. Denying it still allows viewing the parked vehicle point."));});
     disclosure(root,"settings_oppo",tr("OPPO 系统兼容 · CarLink / LSPosed / 流体云 / Indicator","OPPO system integration · CarLink / LSPosed / Fluid Cloud / Indicator"),false,p->{
+      setting(p,tr("OPPO 负一屏 / 设备空间 · 卡片内容与实时预览","OPPO Shelf / MyDevices · card text and live preview"),
+        ()->startActivity(new Intent(this,OppoCardDisplaySettingsActivity.class)));
       setting(p,tr("OPPO 系统兼容总设置与全项目测试","OPPO system compatibility and all-feature tests"),
         ()->startActivity(new Intent(this,OppoSystemCompatActivity.class)));
       setting(p,tr("CarLink / 设备空间 / LSPosed 兼容诊断","CarLink / MyDevices / LSPosed diagnostics"),

@@ -191,6 +191,10 @@ public final class OppoSystemCompatActivity extends Activity {
     TextView top=text(tr("OPPO 系统兼容","OPPO system compatibility"),23,foreground,true);root.addView(top);
     TextView subtitle=text(tr("LSPosed · CarLink · 流体云 · 手表 Indicator","LSPosed · CarLink · Fluid Cloud · Watch Indicator"),12,ORANGE,false);subtitle.setPadding(0,dp(7),0,dp(6));root.addView(subtitle);
     button(tr("返回主程序设置","Back to app settings"),this::finish);
+    header(tr("负一屏与设备空间卡片","Shelf and MyDevices cards"),
+      tr("默认只显示电量与续航；分隔符和内容可自定义，编辑时实时预览。","Default battery/range only. Editable text and live preview."));
+    button(tr("自定义卡片文字、数据字段、分隔符","Customize card fields and separator"),
+        ()->startActivity(new Intent(this,OppoCardDisplaySettingsActivity.class)));
     header(tr("LSPosed / CarLink 双方案","LSPosed / CarLink dual-mode"),
       tr("当前选择与宿主已生效模式分别展示，默认为稳定版。","Selected and actually installed host mode are shown separately."));
     button(tr("模块模式","Module mode")+" · "+selectedMode().toUpperCase(java.util.Locale.ROOT),this::bridgeModeChoice);

@@ -55,6 +55,8 @@ public final class OppoWidgetSetupActivity extends Activity {
     android.widget.Switch local=new android.widget.Switch(this);local.setText("向系统提供 Polestar 本地车辆入口");
     local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));
     local.setOnCheckedChangeListener((v,on)->{setSystemVehicleEntry(on);local.setChecked(OppoOfficialVehicleBindState.status(this,VehicleCoordinator.get(this)).getBoolean("requested",false));});column.addView(local);
+    button(column,android.view.View.generateViewId(),"OPPO 负一屏 / 设备空间卡片显示（实时预览）",
+        ()->startActivity(new Intent(this,OppoCardDisplaySettingsActivity.class)));
     button(column,android.view.View.generateViewId(),"车型接入参数（已预填）",()->startActivity(new Intent(this,OppoVehicleAccessSettingsActivity.class)));
     button(column,android.view.View.generateViewId(),"一键恢复默认配置并启用",()->{
       try {

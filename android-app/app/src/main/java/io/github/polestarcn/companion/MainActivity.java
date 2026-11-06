@@ -386,12 +386,16 @@ public final class MainActivity extends FragmentActivity {
   private void fitSingleLine(TextView view,int sp){view.setMaxLines(1);view.setEllipsize(android.text.TextUtils.TruncateAt.END);view.setAutoSizeTextTypeUniformWithConfiguration(6,sp,1,android.util.TypedValue.COMPLEX_UNIT_SP);}
   private int feedbackSp(boolean compact){return Math.min(ButtonFeedback.sp(this),voLike()?8:compact?10:11);}
   private TextView feedbackText(String control,boolean compact){
-    TextView view=text("",feedbackSp(compact),muted,false);view.setTag("control_feedback_"+control);view.setGravity(Gravity.CENTER);view.setTypeface(ButtonFeedback.typeface(this));fitSingleLine(view,feedbackSp(compact));
-    // Compact VoLike chips cannot reserve two lines without hiding the icon/title.
-    // Fit both sensor names into one line when possible; retain full values for a11y.
+    TextView view=text("",feedbackSp(compact),muted,false);view.setTag("control_feedback_"+control);view.setGravity(Gravity.CENTER);view.setTypeface(ButtonFeedback.typeface(this));
+    boolean twoLineAir="air".equals(control)&&!voLike()&&AirButtonMetrics.twoLines(this);
+    if(twoLineAir){
+      view.setSingleLine(false);view.setMaxLines(2);view.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      view.setAutoSizeTextTypeUniformWithConfiguration(6,feedbackSp(compact),1,android.util.TypedValue.COMPLEX_UNIT_SP);
+    }else fitSingleLine(view,feedbackSp(compact));
+    // VoLike retains its existing single-row chips regardless of the new preference.
     bindDashboard(()->{
       String full=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      String shown="air".equals(control)?full.replace("\n"," · "):full;
+      String shown="air".equals(control)?AirButtonMetrics.forLayout(this,full,voLike()):full;
       view.setText(shown);
       view.setContentDescription(full);
       view.setVisibility(!minimalMode()&&AppPreferences.visible(this,"show_button_feedback",true)&&!full.isEmpty()?View.VISIBLE:View.GONE);
@@ -722,7 +726,7 @@ public final class MainActivity extends FragmentActivity {
     for(int icon:new int[]{R.drawable.ic_location,R.drawable.ic_refresh}){ImageView button=new ImageView(this);button.setImageResource(icon);button.setColorFilter(ink);button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);button.setPadding(dp(10),dp(10),dp(10),dp(10));GradientDrawable frame=bg(surface,24);frame.setStroke(dp(1),line);button.setBackground(frame);click(button,()->{if(icon==R.drawable.ic_location)locationDialog();else model.refreshUser(null);});head.addView(button,new LinearLayout.LayoutParams(dp(44),dp(44)));}body.addView(head,new LinearLayout.LayoutParams(-1,dp(52)));
     LinearLayout hero=simple2Card();LinearLayout energy=row();LinearLayout battery=column();TextView soc=liveText(()->model.snapshot==null?"--%":VehicleSnapshot.metric(model.snapshot.batteryPercent,"%"),compact?32:44,ink,true);soc.setTag("battery_soc");battery.addView(soc);battery.addView(text(tr("当前电量","Battery"),11,muted,false));energy.addView(battery,new LinearLayout.LayoutParams(0,-2,1));LinearLayout range=column();range.setGravity(Gravity.END);TextView km=liveText(()->model.snapshot==null?"-- km":VehicleSnapshot.metric(model.snapshot.rangeKm," km"),25,ink,true);km.setTag("battery_range");range.addView(km);range.addView(text(tr("预计续航","Estimated range"),11,muted,false));energy.addView(range,new LinearLayout.LayoutParams(0,-2,1));hero.addView(energy);
     ProgressBar bar=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);bar.setMax(100);styleViProgress(bar);batteryBarVisibility(bar);bindDashboard(()->bar.setProgress(model.snapshot==null||model.snapshot.batteryPercent==null?0:model.snapshot.batteryPercent));hero.addView(bar,new LinearLayout.LayoutParams(-1,dp(5)));hero.addView(vehicleVisual(),new LinearLayout.LayoutParams(-1,0,1));body.addView(hero,new LinearLayout.LayoutParams(-1,0,1));gap(body,6);
-    for(String[] controls:new String[][]{{"lock","windows"},{"trunk","signal"},{"climate","air"}}){LinearLayout line=row();for(String key:controls){String label=key.equals("lock")?tr("车门锁","Door lock"):key.equals("windows")?tr("车窗","Windows"):key.equals("trunk")?tr("后备箱","Trunk"):key.equals("signal")?tr("寻车","Find car"):key.equals("climate")?tr("空调","Climate"):tr("净化","Purification");simple2Action(line,key,label);}body.addView(line,new LinearLayout.LayoutParams(-1,dp(compact?56:64)));gap(body,6);}
+    for(String[] controls:new String[][]{{"lock","windows"},{"trunk","signal"},{"climate","air"}}){LinearLayout line=row();for(String key:controls){String label=key.equals("lock")?tr("车门锁","Door lock"):key.equals("windows")?tr("车窗","Windows"):key.equals("trunk")?tr("后备箱","Trunk"):key.equals("signal")?tr("寻车","Find car"):key.equals("climate")?tr("空调","Climate"):tr("净化","Purification");simple2Action(line,key,label);}int actionHeight=dp(compact?56:64);if("air".equals(controls[1])&&AirButtonMetrics.twoLines(this)&&!minimalMode())actionHeight+=textLineHeight(feedbackSp(false))+dp(2);body.addView(line,new LinearLayout.LayoutParams(-1,actionHeight));gap(body,6);}
     LinearLayout utilities=row();VehicleConditionButton condition=conditionButton(tr("保养","Service"));condition.setConditionIcon(R.drawable.ic_service_reference);SkinButtonLayout.mount(utilities,condition,"body",new LinearLayout.LayoutParams(0,dp(58),1));TextView camp=utility(tr("露营模式","Camping"),false,false,this::campDialog);utilityIcon(camp,R.drawable.ic_camp);camp.setTag("camp_button");LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(0,dp(58),1);cp.leftMargin=dp(7);SkinButtonLayout.mount(utilities,camp,"camp",cp);bindDashboard(()->{boolean active=CampModeManager.active(this);camp.setTextColor(ink);tintUtilityIcon(camp);((UtilityButton)camp).feedback(ButtonFeedback.value(this,"camp",model.snapshot,CampModeManager.status(this)));condition.refreshService();});body.addView(utilities);gap(body,5);
     List<DisplayMetric> chosen=controlMetrics();chosen.removeIf(m->ChargingVisibility.isChargingMetric(m)||m==DisplayMetric.VEHICLE_STATUS||m==DisplayMetric.BATTERY||m==DisplayMetric.RANGE);if(chosen.size()>3)chosen=new ArrayList<>(chosen.subList(0,3));LinearLayout data=simple2Card();TextView all=button(tr("车辆数据 · 全部数据 ›","Vehicle data · all data ›"),()->{page=1;render();});all.setMinHeight(0);all.setTextSize(12);data.addView(all,new LinearLayout.LayoutParams(-1,dp(26)));addMetricGrid(data,model.snapshot,chosen,true);body.addView(data);dashboardReady=true;
   }
@@ -1416,6 +1420,8 @@ public final class MainActivity extends FragmentActivity {
       if(fourAcross&&minimalMode())height=Math.max(dp(landscape?48:60),dp(nioSkin()?(landscape?44:50):42)+dp(8));
       // Keep space for active-state captions; idle PM2.5/AQI now share one row.
       if(!minimalMode()&&!nioSkin()&&!landscape)height+=textLineHeight(9)+dp(5);
+      // Two readings require a second baseline without overlapping adjacent buttons.
+      if(!minimalMode()&&AirButtonMetrics.twoLines(this))height+=textLineHeight(10)+dp(3);
       for(int i=0;i<4;i+=fourAcross?4:2) {
         LinearLayout actions=row(); for(int j=i;j<Math.min(4,i+(fourAcross?4:2));j++) addDashboardControl(actions,order[j],fourAcross,simple);
         body.addView(actions,new LinearLayout.LayoutParams(-1,height)); if(i==0&&!fourAcross)gap(body,4);
@@ -1480,7 +1486,9 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout features=row();
     addDashboardControl(features,"climate",false,false);
     addDashboardControl(features,"air",false,false);
-    parent.addView(features,new LinearLayout.LayoutParams(-1,Math.max(dp(84),textLineHeight(14)+textLineHeight(22)+textLineHeight(12)+textLineHeight(11)+dp(8))));gap(parent,5);
+    int featuresHeight=Math.max(dp(84),textLineHeight(14)+textLineHeight(22)+textLineHeight(12)+textLineHeight(11)+dp(8));
+    if(!minimalMode()&&AirButtonMetrics.twoLines(this))featuresHeight+=textLineHeight(10)+dp(2);
+    parent.addView(features,new LinearLayout.LayoutParams(-1,featuresHeight));gap(parent,5);
     LinearLayout utilities=row();
     VehicleConditionButton bodyButton=conditionButton(tr("保养","Service"));
     TextView camp=utility(tr("露营","Camp"),false,false,this::campDialog);utilityIcon(camp,R.drawable.ic_camp);camp.setTag("camp_button");
@@ -1671,17 +1679,18 @@ public final class MainActivity extends FragmentActivity {
       if (circles && !nioSkin()) icon.setBackground(oval(active ? Color.argb(18,0,0,0) : viSoft()));
       title.setTextColor(ink); feedback.setTextColor(muted);
       boolean airIdle=control.equals("air")&&!active&&!controlSending(control);
-      // Non-VoLike dashboard buttons keep both idle sensor values on one row.
-      // VoLike chips use their existing independent layout.
-      feedback.setSingleLine(true);
-      feedback.setMaxLines(1);
+      // Only the two-metric idle caption can use two lines; command statuses
+      // remain one line and always keep priority over the sensor readout.
+      boolean twoLineAir=airIdle&&AirButtonMetrics.twoLines(this);
+      feedback.setSingleLine(!twoLineAir);
+      feedback.setMaxLines(twoLineAir?2:1);
       feedback.setEllipsize(android.text.TextUtils.TruncateAt.END);
       // NIO's large AQI readout is hidden when idle to avoid splitting
       // PM2.5 and AQI into separate rows or duplicating AQI.
       if(nioAirNumber[0]!=null)
         nioAirNumber[0].setVisibility(airIdle||minimal?View.GONE:View.VISIBLE);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      if(airIdle)feedbackValue=AirButtonMetrics.singleLine(feedbackValue);
+      if(airIdle)feedbackValue=AirButtonMetrics.forLayout(this,feedbackValue,false);
       feedback.setText(feedbackValue);
       feedback.setContentDescription(airIdle?AirButtonMetrics.value(this,model.snapshot,true):feedbackValue);
       feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
@@ -1689,11 +1698,14 @@ public final class MainActivity extends FragmentActivity {
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
           : control.equals("air") ? "PM2.5 " + MileageSnapshot.decimalText(model.snapshot.environment.pm25UgM3, "")
               + " · AQI " + (model.snapshot.environment.aqi == null ? "--" : model.snapshot.environment.aqi) : "";
-      String airMetrics=control.equals("air")&&!nioSkin()&&!minimal?AirButtonMetrics.value(this,model.snapshot,false):"";
+      String airMetrics=control.equals("air")&&!nioSkin()&&!minimal
+          ?AirButtonMetrics.forLayout(this,AirButtonMetrics.value(this,model.snapshot,true),false):"";
       boolean narrowAir=control.equals("air")&&!nioSkin()&&!minimal&&getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
-      // Inactive air shows AQI/PM2.5 in the feedback slot, without a second row.
-      support.setText(airMetrics);support.setTextSize(9);support.setSingleLine(true);support.setGravity(Gravity.CENTER);
-      support.setMinHeight(textLineHeight(9)+dp(2));
+      // Idle air uses the feedback slot; active air keeps the optional metric readout.
+      boolean stackedSupport=control.equals("air")&&AirButtonMetrics.twoLines(this);
+      support.setText(airMetrics);support.setTextSize(9);support.setSingleLine(!stackedSupport);
+      support.setMaxLines(stackedSupport?2:1);support.setGravity(Gravity.CENTER);
+      support.setMinHeight(textLineHeight(9)*(stackedSupport?2:1)+dp(2));
       support.setVisibility(airMetrics.isEmpty()||narrowAir||airIdle?View.GONE:View.VISIBLE);
       card.setEnabled(model.canControl(control));
       card.setAlpha(card.isEnabled() ? 1f : .55f);
@@ -2284,6 +2296,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("首页数据 · 最多12项","Home data · up to 12"),()->metricDialog("home_metrics",12,HOME_DEFAULTS));
       setting(p,tr("主页数据拖动排序","Drag to reorder home data"),this::metricOrderDialog);
       setting(p,tr("净化按钮下方 · PM2.5 / AQI","Purification readout · PM2.5 / AQI"),this::airMetricsDialog);
+      setting(p,tr("空气状态排版 · ","Air quality layout · ")+("double".equals(AirButtonMetrics.layout(this))?tr("双行","Two lines"):tr("单行","One line")),this::airStatusLayoutDialog);
       setting(p,tr("车况按钮 · 百分比 / 进度条","Condition button · percentage / bar"),this::conditionDisplayDialog);
       settingToggle(p,"show_battery_bar",tr("电量指示条（所有皮肤与Widget）","Battery indicator bar (all skins and widgets)"),true,true);
       setting(p,tr("日间车图 · ","Day car · ")+VehicleArt.modelLabel(this,VehicleArt.modelFor(this,false))+" · "+VehicleArt.label(this,VehicleArt.selection(this,false)),()->vehicleArtDialog(false));
@@ -2437,6 +2450,13 @@ public final class MainActivity extends FragmentActivity {
       new String[]{"both","pm25","aqi","off"},
       new String[]{tr("PM2.5 + AQI（默认）","PM2.5 + AQI (default)"),"PM2.5","AQI",tr("隐藏","Hide")},
       "both",this::render);
+  }
+  private void airStatusLayoutDialog(){
+    choice(tr("空气状态排版（非 VoLike 皮肤）","Air quality layout (non-VoLike skins)"),AirButtonMetrics.LAYOUT_KEY,
+      new String[]{"single","double"},
+      new String[]{tr("单行 · PM2.5 / AQI 并排（默认）","One line · PM2.5 / AQI side by side (default)"),
+          tr("双行 · PM2.5 / AQI 上下排列","Two lines · PM2.5 above AQI")},
+      "single",this::render);
   }
   private void minimalIconDialog(){
     String[] skins=UiSkin.pickerChoices();String[] labels=new String[skins.length];

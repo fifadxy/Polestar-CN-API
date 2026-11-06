@@ -40,6 +40,42 @@ public final class Beta47AirIdleReadoutTest {
     AppPreferences.set(c,"feedback_air","hidden");
     assertEquals("",ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭"));
   }
+  @Test public void airStatusLayoutCanSwitchAndVoLikeStaysSingle(){
+    Context c=RuntimeEnvironment.getApplication();
+    c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,AirButtonMetrics.KEY,"both");
+    String raw=ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭");
+    assertEquals("single",AirButtonMetrics.layout(c));
+    assertFalse(AirButtonMetrics.twoLines(c));
+    assertEquals("PM2.5 12.5 · AQI 43",AirButtonMetrics.forLayout(c,raw,false));
+    AppPreferences.set(c,AirButtonMetrics.LAYOUT_KEY,"double");
+    assertTrue(AirButtonMetrics.twoLines(c));
+    assertEquals("PM2.5 12.5\nAQI 43",AirButtonMetrics.forLayout(c,raw,false));
+    assertEquals("PM2.5 12.5 · AQI 43",AirButtonMetrics.forLayout(c,raw,true));
+    assertEquals("待确认",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"待确认"),false));
+    AppPreferences.set(c,"feedback_air","hidden");
+    assertEquals("",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭"),false));
+    AppPreferences.set(c,"feedback_air","state");
+    AppPreferences.set(c,AirButtonMetrics.KEY,"pm25");
+    assertFalse(AirButtonMetrics.twoLines(c));
+    assertEquals("PM2.5 12.5",AirButtonMetrics.forLayout(c,ButtonFeedback.value(c,"air",snapshot("关闭"),"关闭"),false));
+    AppPreferences.set(c,AirButtonMetrics.KEY,"both");
+    AppPreferences.set(c,AirButtonMetrics.LAYOUT_KEY,"invalid");
+    assertEquals("single",AirButtonMetrics.layout(c));
+  }
+  @Test public void airStatusPreferencesBackUpAndRestore() throws Exception {
+    Context c=RuntimeEnvironment.getApplication();
+    c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,AirButtonMetrics.KEY,"both");
+    AppPreferences.set(c,AirButtonMetrics.LAYOUT_KEY,"double");
+    assertTrue(SettingsBackup.allowed(AirButtonMetrics.LAYOUT_KEY));
+    assertTrue(SettingsBackup.allowed(AirButtonMetrics.KEY));
+    org.json.JSONObject saved=SettingsBackup.export(c);
+    c.getSharedPreferences("preferences",0).edit().clear().commit();
+    SettingsBackup.restore(c,saved.getJSONObject("values"));
+    assertEquals("double",AirButtonMetrics.layout(c));
+    assertEquals("both",AirButtonMetrics.mode(c));
+  }
   @Test public void nonVoLikeInlineReadoutKeepsValuesAndPriority(){
     Context c=RuntimeEnvironment.getApplication();
     c.getSharedPreferences("preferences",0).edit().clear().commit();

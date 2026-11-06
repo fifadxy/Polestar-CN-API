@@ -4,7 +4,15 @@ import java.util.Locale;
 /** Optional PM2.5/AQI readouts below purification. No synthetic air-quality values. */
 public final class AirButtonMetrics {
   public static final String KEY="air_button_metrics";
+  public static final String LAYOUT_KEY="air_status_layout";
   private AirButtonMetrics(){}
+  /** Separate preference for the on-screen format. Missing/invalid values retain Beta47 single-line behavior. */
+  public static String layout(Context c){return "double".equals(AppPreferences.get(c,LAYOUT_KEY,"single"))?"double":"single";}
+  /** One selected metric never needs a second row. */
+  public static boolean twoLines(Context c){return "double".equals(layout(c))&&"both".equals(mode(c));}
+  public static String forLayout(Context c,String value,boolean voLike){
+    return !voLike&&twoLines(c)?(value==null?"":value):singleLine(value);
+  }
   /** Keep both readings on one UI line without changing sensor values or preferences. */
   public static String singleLine(String value){return value==null?"":value.replace("\n"," · ");}
   public static String mode(Context c){

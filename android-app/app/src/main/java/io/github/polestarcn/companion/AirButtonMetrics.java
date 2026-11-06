@@ -19,6 +19,27 @@ public final class AirButtonMetrics {
     String mode=AppPreferences.get(c,KEY,"both");
     return mode.equals("pm25")||mode.equals("aqi")||mode.equals("off")?mode:"both";
   }
+  /** Status labels and values have equal size; only numbers use semibold weight and primary color. */
+  public static CharSequence styled(Context c,VehicleSnapshot s){
+    String mode=mode(c);if("off".equals(mode))return "";
+    Double pm=s==null?null:s.environment.pm25UgM3;
+    Integer aqi=s==null?null:s.environment.aqi;
+    String particulate=pm==null?"--":String.format(Locale.getDefault(),pm%1==0?"%.0f":"%.1f",pm);
+    String quality=aqi==null?"--":Integer.toString(aqi);
+    android.text.SpannableStringBuilder display=new android.text.SpannableStringBuilder();
+    if(!"aqi".equals(mode))appendMetric(display,"PM2.5",particulate,PsaDesign.ink(AppPreferences.dark(c)));
+    if(!"pm25".equals(mode)){
+      if(display.length()>0)display.append(twoLines(c)?"\n":"  │  ");
+      appendMetric(display,"AQI",quality,PsaDesign.ink(AppPreferences.dark(c)));
+    }
+    return display;
+  }
+  private static void appendMetric(android.text.SpannableStringBuilder display,String label,String value,int color){
+    display.append(label).append(" ");
+    int start=display.length();display.append(value);
+    display.setSpan(new android.text.style.ForegroundColorSpan(color),start,display.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    display.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),start,display.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+  }
   public static String value(Context c,VehicleSnapshot s,boolean compact){
     String mode=mode(c);if("off".equals(mode))return "";
     Double pm=s==null?null:s.environment.pm25UgM3;

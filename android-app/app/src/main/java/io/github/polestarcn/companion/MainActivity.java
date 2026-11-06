@@ -1637,14 +1637,24 @@ public final class MainActivity extends FragmentActivity {
     for (TextView v : new TextView[]{title, feedback, support}) {
       fitSingleLine(v,v==title?(compact?12:14):feedbackSp(compact));
     }
-    boolean horizontalCompact=!minimal && compact && getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
+    boolean horizontalCompact=!minimal && compact && !control.equals("air") && getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
     if(minimal){
       if(nioSkin())addNioOrb(card,icon);
       else {int px=dp(compact?38:40);card.addView(icon,new LinearLayout.LayoutParams(px,px));}
     } else if (compact) {
       card.setGravity(Gravity.CENTER);
       boolean horizontal=getResources().getConfiguration().screenWidthDp>getResources().getConfiguration().screenHeightDp;
-      if(horizontal){LinearLayout heading=row();heading.setGravity(Gravity.CENTER);
+      if(control.equals("air")){
+        // PS/NIO compact air: icon and title share a horizontal baseline.
+        // The readout is attached below this row and centered independently.
+        LinearLayout heading=row();heading.setGravity(Gravity.CENTER);
+        if(nioSkin())addNioOrb(heading,icon);
+        else heading.addView(icon,new LinearLayout.LayoutParams(dp(24),dp(24)));
+        title.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams labelParams=new LinearLayout.LayoutParams(-2,-2);
+        labelParams.leftMargin=dp(5);heading.addView(title,labelParams);
+        card.addView(heading,new LinearLayout.LayoutParams(-1,-2));
+      }else if(horizontal){LinearLayout heading=row();heading.setGravity(Gravity.CENTER);
         if(nioSkin())addNioOrb(heading,icon);else {int px=dp(minimal?38:24);heading.addView(icon,new LinearLayout.LayoutParams(px,px));}
         LinearLayout words=column();words.addView(title);words.addView(feedback);heading.addView(words);card.addView(heading);}
       else {if(nioSkin())addNioOrb(card,icon);else {int px=dp(minimal?38:24);card.addView(icon,new LinearLayout.LayoutParams(px,px));}
@@ -1690,9 +1700,12 @@ public final class MainActivity extends FragmentActivity {
       if(nioAirNumber[0]!=null)
         nioAirNumber[0].setVisibility(airIdle||minimal?View.GONE:View.VISIBLE);
       String feedbackValue=ButtonFeedback.value(this,control,model.snapshot,controlFeedback(control,compact));
-      if(airIdle)feedbackValue=AirButtonMetrics.forLayout(this,feedbackValue,false);
-      feedback.setText(feedbackValue);
-      feedback.setContentDescription(airIdle?AirButtonMetrics.value(this,model.snapshot,true):feedbackValue);
+      if(airIdle&&!feedbackValue.isEmpty()){
+        CharSequence formatted=AirButtonMetrics.styled(this,model.snapshot);
+        feedback.setText(formatted);
+        feedbackValue=formatted.toString();
+      }else feedback.setText(feedbackValue);
+      feedback.setContentDescription(feedbackValue);
       feedback.setVisibility(!minimal&&AppPreferences.visible(this,"show_button_feedback",true)&&!feedbackValue.isEmpty()?View.VISIBLE:View.GONE);
       String detail = model.snapshot == null ? "" : control.equals("climate")
           ? ClimateRuntime.detail(this, model.snapshot, AppPreferences.get(this, "vehicle", ""))
@@ -1910,7 +1923,7 @@ public final class MainActivity extends FragmentActivity {
     wideActionMenu("净化",new String[]{"开启净化","关闭净化"},new String[]{"air-start","air-stop"});
   }
   private final android.os.Handler lockHoldHandler=new android.os.Handler(android.os.Looper.getMainLooper());
-  private void installLockHold(View v,String control){if(!java.util.Arrays.asList("lock","climate","windows","trunk","air").contains(control))return;final float[] down=new float[2];final boolean[] held={false,false};Runnable hold=()->{if(!v.isAttachedToWindow()||!v.isPressed()||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))return;held[0]=true;v.setPressed(false);Haptics.vehicle(this);controlChoiceMenu(control);};v.setOnTouchListener((view,e)->{switch(e.getActionMasked()){case android.view.MotionEvent.ACTION_DOWN:down[0]=e.getX();down[1]=e.getY();held[0]=false;held[1]=false;Haptics.vehicle(this);lockHoldHandler.postDelayed(hold,1000);break;case android.view.MotionEvent.ACTION_MOVE:float slop=android.view.ViewConfiguration.get(this).getScaledTouchSlop();if(Math.abs(e.getX()-down[0])>slop||Math.abs(e.getY()-down[1])>slop){held[1]=true;lockHoldHandler.removeCallbacks(hold);}break;case android.view.MotionEvent.ACTION_UP:lockHoldHandler.removeCallbacks(hold);view.setPressed(false);if(!held[0]&&!held[1])view.performClick();return true;case android.view.MotionEvent.ACTION_CANCEL:lockHoldHandler.removeCallbacks(hold);view.setPressed(false);return true;}return false;});}
+  private void installLockHold(View v,String control){if(!java.util.Arrays.asList("lock","climate","windows","trunk","air").contains(control))return;final float[] down=new float[2];final boolean[] held={false,false};Runnable hold=()->{if(!v.isAttachedToWindow()||!v.isPressed()||!getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))return;held[0]=true;v.setPressed(false);Haptics.vehicle(this);controlChoiceMenu(control);};v.setOnTouchListener((view,e)->{switch(e.getActionMasked()){case android.view.MotionEvent.ACTION_DOWN:down[0]=e.getX();down[1]=e.getY();held[0]=false;held[1]=false;Haptics.vehicle(this);lockHoldHandler.postDelayed(hold,LongPressTiming.millis(this));break;case android.view.MotionEvent.ACTION_MOVE:float slop=android.view.ViewConfiguration.get(this).getScaledTouchSlop();if(Math.abs(e.getX()-down[0])>slop||Math.abs(e.getY()-down[1])>slop){held[1]=true;lockHoldHandler.removeCallbacks(hold);}break;case android.view.MotionEvent.ACTION_UP:lockHoldHandler.removeCallbacks(hold);view.setPressed(false);if(!held[0]&&!held[1])view.performClick();return true;case android.view.MotionEvent.ACTION_CANCEL:lockHoldHandler.removeCallbacks(hold);view.setPressed(false);return true;}return false;});}
 
   private boolean repeatPending(String control){String action=model.pendingAction(control);if(action==null)return false;String vin=model.selected.vin;new HapticDialogBuilder(this).setTitle(tr("指令已发送","Command already sent")).setMessage(tr("指令正在执行或确认中，是否重复发送同一指令？","This command is being sent or verified. Send the same command again?"))
     .setPositiveButton(tr("重复发送","Send again"),(d,w)->{if(model.selected!=null&&vin.equals(model.selected.vin))authorize(ControlAuthorization.actionLabel(this,action),action,true);}).setNegativeButton(tr("不重复","Keep waiting"),null).show();return true;}
@@ -2015,6 +2028,32 @@ public final class MainActivity extends FragmentActivity {
 
   private String currentSkinLabel(){String skin=UiSkin.get(this);return UiSkin.SIMPLE.equals(skin)||UiSkin.DETAILED.equals(skin)?"VoLike · "+(UiSkin.detailedView(this)?tr("详细","Detailed"):tr("简洁","Simple")):UiSkin.label(this,skin);}
   private boolean selectedSkin(String value){return value.equals(UiSkin.get(this))||value.equals(UiSkin.SIMPLE)&&UiSkin.DETAILED.equals(UiSkin.get(this));}
+  /** Custom hold delay for the skin picker; tap and ScrollView gestures remain native. */
+  private void installSkinReorderHold(View option,String skin){
+    final float[] start=new float[2];final boolean[] fired={false},moved={false};
+    Runnable reorder=()->{
+      if(moved[0]||!option.isAttachedToWindow()||!option.isPressed())return;
+      fired[0]=true;option.setPressed(false);Haptics.tap(this);
+      option.startDragAndDrop(ClipData.newPlainText("skin",skin),new View.DragShadowBuilder(option),skin,0);
+    };
+    option.setOnTouchListener((v,event)->{
+      switch(event.getActionMasked()){
+        case android.view.MotionEvent.ACTION_DOWN:
+          start[0]=event.getX();start[1]=event.getY();fired[0]=false;moved[0]=false;
+          lockHoldHandler.postDelayed(reorder,LongPressTiming.millis(this));break;
+        case android.view.MotionEvent.ACTION_MOVE:
+          float slop=android.view.ViewConfiguration.get(this).getScaledTouchSlop();
+          if(Math.abs(event.getX()-start[0])>slop||Math.abs(event.getY()-start[1])>slop){
+            moved[0]=true;lockHoldHandler.removeCallbacks(reorder);
+          }break;
+        case android.view.MotionEvent.ACTION_UP:
+          lockHoldHandler.removeCallbacks(reorder);if(fired[0])return true;break;
+        case android.view.MotionEvent.ACTION_CANCEL:
+          lockHoldHandler.removeCallbacks(reorder);break;
+      }
+      return false;
+    });
+  }
   private void skinDialog() {
     LinearLayout panel=column();panel.setPadding(dp(8),dp(8),dp(8),dp(8));
     ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);
@@ -2039,7 +2078,7 @@ public final class MainActivity extends FragmentActivity {
         if(dialog[0]!=null)dialog[0].dismiss();
         render();
       });
-      option.setOnLongClickListener(v->{Haptics.tap(this);return v.startDragAndDrop(ClipData.newPlainText("skin",skin),new View.DragShadowBuilder(v),skin,0);});
+      installSkinReorderHold(option,skin);
       panel.addView(option);gap(panel,7);
     }
     panel.setOnDragListener((v,e)->{if(!(e.getLocalState() instanceof String)||!skinOrder().contains(e.getLocalState()))return false;if(e.getAction()==DragEvent.ACTION_DROP){View dragged=panel.findViewWithTag("skin_picker_option_"+e.getLocalState());int target=0;for(int i=0;i<panel.getChildCount();i++){View child=panel.getChildAt(i);if(child.getTag()!=null&&e.getY()>child.getY()+child.getHeight()/2)target=i+1;}int from=panel.indexOfChild(dragged);panel.removeView(dragged);if(from<target)target--;panel.addView(dragged,Math.min(target,panel.getChildCount()));List<String> order=new ArrayList<>();for(int i=0;i<panel.getChildCount();i++){Object tag=panel.getChildAt(i).getTag();if(tag instanceof String&&((String)tag).startsWith("skin_picker_option_"))order.add(((String)tag).substring(19));}AppPreferences.set(this,"skin_order",android.text.TextUtils.join(",",order));Haptics.tap(this);}return true;});
@@ -2272,7 +2311,7 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("各皮肤按钮布局 · 逐皮肤逐按钮微调","Per-skin layout · customize every control"),this::skinButtonLayoutDialog);
       setting(p,tr("各皮肤极简图标 · 大小与粗细","Per-skin minimal icons · size and weight"),this::minimalIconDialog);
       settingToggle(p,"minimal_mode",tr("极简模式 · 隐藏按钮名称并放大图标","Minimal mode · hide button names and enlarge icons"),false,false);
-      note(p,tr("极简模式","Minimal mode"),tr("可在此切换，也可长按首页车图1秒打开外观菜单后切换。图标居中放大；关闭时隐藏反馈，开启后显示状态或剩余时间，颜色保持原有规则。","Toggle here or hold the vehicle image for 1 second to open the appearance menu. Larger icons are centered; feedback appears while active, with state colors preserved."));
+      note(p,tr("极简模式","Minimal mode"),tr("可在此切换，也可按设置中的长按触发时间按住首页车辆图打开外观菜单。图标居中放大，反馈按原设置显示。","Toggle here or hold the vehicle image for the configured duration to open the appearance menu. Icon and feedback rules are unchanged."));
       setting(p,tr("数字粗细 / 按钮背景透明度","Number weight / button opacity"),this::visualControlsDialog);
       settingToggle(p,"ui_button_bold",tr("按钮文字加粗","Bold button labels"),true,false);
       settingToggle(p,"ui_data_bold",tr("数据文字加粗","Bold data values"),false,false);
@@ -2289,6 +2328,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"charging_animation",tr("充电文字框缓慢流光","Gentle charging-card sweep"),true,false);
       settingToggle(p,"page_transition",tr("底栏切换 · 左右滑动","Sliding page transition"),true,false);
        setting(p,tr("全功能测试模式 · 离线模拟，不发送指令","Test mode · offline simulation only"),()->startActivity(new Intent(this,VehicleSimulationActivity.class)));
+       setting(p,tr("长按触发时间 · ","Long-press delay · ")+LongPressTiming.label(this),this::longPressDurationDialog);
        setting(p,tr("按键震动 · 开关与强度","Button haptics · switch and strength"),this::hapticsDialog);
     });
     disclosure(root,"settings_home",tr("首页与车况数据","Home and vehicle data"),false,p->{
@@ -2350,7 +2390,7 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void choice(String title,String key,String[] keys,String[] labels,String fallback,Runnable after){
-    new HapticDialogBuilder(this).setTitle(title).setSingleChoiceItems(labels,Math.max(0,Arrays.asList(keys).indexOf(AppPreferences.get(this,key,fallback))),(d,w)->{Haptics.tap(this);AppPreferences.set(this,key,keys[w]);if(after!=null)after.run();d.dismiss();}).setNegativeButton(tr("关闭","Close"),null).show();
+    new HapticDialogBuilder(this).setTitle(title).setSingleChoiceItems(labels,Math.max(0,Arrays.asList(keys).indexOf(AppPreferences.get(this,key,fallback))),(d,w)->{Haptics.tap(this);AppPreferences.set(this,key,keys[w]);d.dismiss();if(after!=null)after.run();}).setNegativeButton(tr("关闭","Close"),null).show();
   }
   private void conditionDisplayDialog(){choice(tr("车况按钮显示","Condition button display"),"condition_display",new String[]{"bar","percent","text"},new String[]{tr("文字 + 百分比 + 进度条","Text + percentage + bar"),tr("文字 + 百分比（无进度条）","Text + percentage (no bar)"),tr("文字（隐藏百分比）","Text (hide percentage)")},"percent",()->{WidgetRenderer.refreshAll(this);render();});}
   private void metricOrderDialog(){
@@ -2444,6 +2484,15 @@ public final class MainActivity extends FragmentActivity {
         android.content.SharedPreferences.Editor edit=getSharedPreferences("preferences",0).edit();
         for(String key:keys)edit.remove(key);edit.apply();refreshSettingsChanged();
       }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void longPressDurationDialog(){
+    String[] choices={"400","500","600","700","800","1000","1200","1500"};
+    String[] labels=new String[choices.length];
+    for(int i=0;i<choices.length;i++)
+      labels[i]=String.format(java.util.Locale.US,"%.1f s",Integer.parseInt(choices[i])/1000f)
+          +(choices[i].equals("600")?tr("（默认）"," (default)"):"");
+    choice(tr("长按触发时间 · 车控按钮 / 车辆图 / 皮肤排序","Long-press delay · controls / car / skin reorder"),
+        LongPressTiming.KEY,choices,labels,"600",this::render);
   }
   private void airMetricsDialog(){
     choice(tr("净化按钮下方数据","Purification button readout"),AirButtonMetrics.KEY,

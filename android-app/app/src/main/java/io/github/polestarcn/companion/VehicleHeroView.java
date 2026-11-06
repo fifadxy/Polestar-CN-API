@@ -95,7 +95,7 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
   private final Runnable hold=()->{holdFired=true;Haptics.vehicle(getContext());if(holdAction!=null)holdAction.run();};
   @Override public boolean performClick(){return super.performClick();}
   @Override public boolean onTouchEvent(android.view.MotionEvent e){switch(e.getActionMasked()){
-    case android.view.MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();holdFired=false;moved=false;Haptics.vehicle(getContext());invalidate();touchHandler.postDelayed(hold,1000);break;
+    case android.view.MotionEvent.ACTION_DOWN:downX=e.getX();downY=e.getY();holdFired=false;moved=false;Haptics.vehicle(getContext());invalidate();touchHandler.postDelayed(hold,LongPressTiming.millis(getContext()));break;
     case android.view.MotionEvent.ACTION_MOVE:float slop=android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();if(Math.abs(e.getX()-downX)>slop||Math.abs(e.getY()-downY)>slop){moved=true;touchHandler.removeCallbacks(hold);}break;
     case android.view.MotionEvent.ACTION_UP:touchHandler.removeCallbacks(hold);setPressed(false);if(!holdFired&&!moved)performClick();return true;
     case android.view.MotionEvent.ACTION_CANCEL:touchHandler.removeCallbacks(hold);setPressed(false);return true;

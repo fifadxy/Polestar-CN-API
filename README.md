@@ -1,3 +1,5 @@
+**PsAssistant v1.0.0-beta48 / 162（2026-11-06）**：PS 默认车况图标白线加粗 45%，净化图标与标题同行、等字号空气数据细线分隔；所有主要长按统一默认 0.6 秒、支持设置；二级菜单改为稳定居中与纯透明度渐显，停车地图窗口占屏幕面积不超过 50%。[更新说明与验收](docs/PSASSISTANT_BETA48_UI_STABILITY_20261106.md)。
+
 **PsAssistant Beta47 · 净化读数/各皮肤按钮布局**：净化关闭只显示真实 AQI/PM2.5，7 套皮肤各 8 个按钮可独立调整尺寸、边框、图标/文字及焦点，带离线预览。见 [功能与验收](docs/PSASSISTANT_BETA47_SKIN_CONTROLS_20261106.md)。
 
 **PsAssistant Beta47（2026-11-06）**：净化关闭仅显示实际 AQI/PM2.5；7 套皮肤 × 8 类按钮的宽高、边框、图标、文字、焦点可分别调整。CI 已通过 564 项测试，详见 [构建验收](docs/PSASSISTANT_BETA47_BUILD_VERIFICATION_20261106.md)。

@@ -1825,9 +1825,9 @@ public final class MainActivity extends FragmentActivity {
     TextView open=button(tr("打开地图","Open map"),()->openLocation(location));open.setTag("parking_open_map");
     TextView refresh=button(tr("更新位置","Refresh"),()->locationDialog(true));refresh.setTag("parking_refresh_position");
     open.setTextSize(12);refresh.setTextSize(12);
-    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(44),1f);
+    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(48),1f);
     actions.addView(open,actionCell);
-    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(44),1f);second.leftMargin=dp(6);
+    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(48),1f);second.leftMargin=dp(6);
     actions.addView(refresh,second);panel.addView(actions);gap(panel,4);
     TextView mapOptions=text(tr("手机定位权限与刷新设置","Phone location permissions and refresh"),11,muted,false);
     mapOptions.setGravity(Gravity.CENTER);mapOptions.setMinHeight(dp(36));click(mapOptions,this::mapLocationDialog);

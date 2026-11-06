@@ -13,6 +13,7 @@ import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -30,9 +31,11 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
       {"续航 + 更新时间","Range + update","{range}{sep}{updated}"},
       {"仅更新时间","Update time only","{updated}"},
       {"电量 + 锁车状态","Battery + lock","{soc}{sep}{lock}"},
+      {"电量 + 动态状态","Battery + running timer","{soc}{sep}{dynamic}"},
       {"自定义内容","Custom wording","Polestar 2{sep}{soc}"}
   };
   private EditText templateInput,separatorInput;
+  private CheckBox dynamicStatus,previewActive;
   private TextView previewPrimary,previewShelf,previewMessage,previewSource;
   private Bundle data;
   private boolean previewUsesDemo;
@@ -71,6 +74,16 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
     previewMessage=small("");previewMessage.setTag("oppo_card_preview_status");
     previewMessage.setTextColor(ORANGE);previewPanel.addView(previewMessage);
     root.addView(previewPanel,new LinearLayout.LayoutParams(-1,-2));
+    dynamicStatus=new CheckBox(this);dynamicStatus.setTag("oppo_dynamic_status_toggle");
+    dynamicStatus.setText(tr("运行时自动切换：空调30m / 净化4m / 托管45m（默认开启）",
+        "Show active climate/air/camping countdown automatically (default on)"));
+    dynamicStatus.setTextSize(12);dynamicStatus.setTextColor(ink);
+    dynamicStatus.setChecked(AppPreferences.visible(this,"oppo_dynamic_status",true));
+    root.addView(dynamicStatus);
+    previewActive=new CheckBox(this);previewActive.setTag("oppo_dynamic_preview_test");
+    previewActive.setText(tr("预览运行中的空调（仅示例，不执行车控）","Preview running climate (sample only)"));
+    previewActive.setTextSize(11);previewActive.setTextColor(secondary);
+    root.addView(previewActive);
 
     header(tr("快速组合","Presets"));
     for(int row=0;row<PRESETS.length;row+=2){
@@ -99,7 +112,8 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
         {"电量","SOC","{soc}"},{"续航","Range","{range}"},{"更新时间","Updated","{updated}"},
         {"总里程","Odometer","{odometer}"},{"门锁","Lock","{lock}"},{"空调","Climate","{climate}"},
         {"净化","Air","{air}"},{"充电状态","Charging","{charging}"},
-        {"缓存来源","Cache source","{source}"},{"分隔符","Separator","{sep}"}
+        {"缓存来源","Cache source","{source}"},{"动态运行状态","Running timer","{dynamic}"},
+        {"分隔符","Separator","{sep}"}
     };
     for(int row=0;row<fields.length;row+=3){
       LinearLayout choices=new LinearLayout(this);
@@ -139,6 +153,7 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
     Button reset=tile(tr("恢复默认","Restore default"),()->{
       templateInput.setText(OppoCardSummary.DEFAULT_TEMPLATE);
       separatorInput.setText(OppoCardSummary.DEFAULT_SEPARATOR);
+      dynamicStatus.setChecked(true);previewActive.setChecked(false);
     });
     controls.addView(save,new LinearLayout.LayoutParams(0,dp(48),2));
     LinearLayout.LayoutParams resetParams=new LinearLayout.LayoutParams(0,dp(48),1);resetParams.leftMargin=dp(8);
@@ -154,6 +169,8 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
       public void afterTextChanged(Editable s){}
     };
     templateInput.addTextChangedListener(watcher);separatorInput.addTextChangedListener(watcher);
+    dynamicStatus.setOnCheckedChangeListener((v,on)->updatePreview());
+    previewActive.setOnCheckedChangeListener((v,on)->updatePreview());
     setContentView(scroll);updatePreview();
   }
 
@@ -190,7 +207,12 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
     String tpl=templateInput.getText().toString(),sep=separatorInput.getText().toString();
     try{
       OppoCardSummary.checkTemplate(tpl);OppoCardSummary.checkSeparator(sep);
-      String shown=OppoCardSummary.format(data,tpl,sep);
+      Bundle preview=new Bundle(data);
+      OppoRunningStatus.write(preview,this,VehicleSnapshotStore.loadChina(this));
+      preview.putBoolean("oppoDynamicStatusEnabled",dynamicStatus.isChecked());
+      if(dynamicStatus.isChecked()&&previewActive.isChecked())
+        preview.putString("oppoDynamicLabel",AppPreferences.english(this)?"Climate30m":"空调30m");
+      String shown=OppoCardSummary.format(preview,tpl,sep);
       previewPrimary.setText(shown);previewShelf.setText(shown);
       previewSource.setText(previewUsesDemo?tr("演示数据，不代表真实车辆","Sample data, not the real car"):
           tr("来自本机车辆缓存，不申请远程刷新","From local car cache, no network refresh"));
@@ -206,6 +228,8 @@ public final class OppoCardDisplaySettingsActivity extends Activity {
   private void save(){
     try{
       OppoCardSummarySettings.save(this,templateInput.getText().toString(),separatorInput.getText().toString());
+      AppPreferences.set(this,"oppo_dynamic_status",dynamicStatus.isChecked()?"on":"off");
+      OppoCardSummarySettings.changed(this);
       Toast.makeText(this,tr("已保存并通知 OPPO 卡片；如未即时变化，请重新打开负一屏或设备空间。",
           "Saved; reopen the OPPO host if it does not update immediately."),Toast.LENGTH_LONG).show();
       updatePreview();

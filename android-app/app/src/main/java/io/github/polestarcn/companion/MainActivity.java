@@ -2321,7 +2321,7 @@ public final class MainActivity extends FragmentActivity {
   private void setting(LinearLayout parent,String title,Runnable action){if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,settingsAliases(title),action);TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);GradientDrawable frame=bg(surface,12);frame.setStroke(dp(1),line);entry.setBackground(frame);entry.setPadding(dp(14),dp(12),dp(14),dp(12));entry.setMinHeight(dp(52));entry.setSingleLine(false);entry.setMaxLines(3);parent.addView(entry);gap(parent,6);}
   private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
     SwitchCompat toggle=new SwitchCompat(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(52));toggle.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable tf=bg(surface,12);tf.setStroke(dp(1),line);toggle.setBackground(tf);toggle.setThumbTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{orange,muted}));toggle.setTrackTintList(android.content.res.ColorStateList.valueOf(line));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
-    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
+    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)||key.startsWith("oppo_")){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();if(key.startsWith("oppo_"))OppoCardSummarySettings.changed(this);}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
   }
   private void themeChoice(){new HapticDialogBuilder(this).setTitle(tr("日夜模式","Day / night mode")).setItems(new String[]{tr("跟随系统","System"),tr("浅色","Light"),tr("深色","Dark")},(d,w)->{AppPreferences.set(this,"theme",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);render();}).show();}
   private void widgetFields(){String[] labels={"4×2 · 8","2×2 · 4","4×1 · 4","5×1 · 4","2×1 · 2","Data 4×4 · 8"};WidgetRenderer.Size[] sizes={WidgetRenderer.Size.LARGE,WidgetRenderer.Size.SQUARE,WidgetRenderer.Size.WIDE,WidgetRenderer.Size.EXTRA_WIDE,WidgetRenderer.Size.MINI,WidgetRenderer.Size.DATA};new HapticDialogBuilder(this).setTitle(tr("Widget 尺寸与数据","Widget size and data")).setItems(labels,(d,w)->metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),WidgetRenderer.capacity(sizes[w]),WidgetRenderer.selectionDefaults(this,sizes[w]))).show();}
@@ -2468,6 +2468,15 @@ public final class MainActivity extends FragmentActivity {
   }
   private void refreshSettingsChanged(){
     scheduleForeground();ResidentService.scheduleUpdates(this);scheduleMapRefresh();
+    if(OppoDeviceIntegration.enabled(this))OppoCardSummarySettings.changed(this);
+  }
+  private void refreshSecondsSetting(LinearLayout parent,String title,String key,int def,int[] values){
+    int selected=RefreshPolicy.minutes(this,key,def,values);
+    setting(parent,title+" · "+selected+"s",()->{
+      String[] keys=new String[values.length],labels=new String[values.length];
+      for(int i=0;i<values.length;i++){keys[i]=String.valueOf(values[i]);labels[i]=values[i]+"s";}
+      choice(title,key,keys,labels,String.valueOf(def),this::refreshSettingsChanged);
+    });
   }
   private void refreshGroup(String title,java.util.function.Consumer<LinearLayout> builder){
     LinearLayout body=detailPanel();builder.accept(body);
@@ -2507,6 +2516,21 @@ public final class MainActivity extends FragmentActivity {
         refreshSetting(panel,tr("里程能耗 · 后台","Mileage · background"),"refresh_mileage_background",60,new int[]{0,30,60,120,240});
         note(panel,tr("合并接口","Shared API"),tr("Health与保养部分字段来自同一个车端服务，必要时一起读取，但不增加独立请求。","Health and maintenance can share the same RPC result."));
       }));
+    setting(p,tr("OPPO 插件 · 动态刷新 / 操作后加速","OPPO cards · dynamic polling / command boost"),()->
+      refreshGroup(tr("OPPO 原生卡片刷新","OPPO native card refresh"),panel->{
+        settingToggle(panel,"oppo_dynamic_refresh",tr("根据门锁 / 空调 / 净化 / 托管自动加速刷新（默认开）","Adaptive reads during locks / HVAC / camping (on)"),true,false);
+        refreshSetting(panel,tr("OPPO 常规 · 前台","OPPO normal · foreground"),"oppo_refresh_foreground_minutes",10,new int[]{2,5,10,15,30});
+        refreshSetting(panel,tr("OPPO 常规 · 后台","OPPO normal · background"),"oppo_refresh_background_minutes",30,new int[]{15,30,60,120});
+        refreshSetting(panel,tr("运行中 · 前台","Active · foreground"),"oppo_active_foreground_minutes",2,new int[]{1,2,5,10});
+        refreshSetting(panel,tr("运行中 · 后台","Active · background"),"oppo_active_background_minutes",15,new int[]{15,30,60});
+        refreshSetting(panel,tr("开锁 / 关锁后加速时长","Lock / unlock boost window"),"oppo_lock_boost_minutes",3,new int[]{1,3,5,10});
+        refreshSecondsSetting(panel,tr("加速窗口前台间隔","Foreground boost interval"),"oppo_lock_boost_seconds",30,new int[]{30,60,120});
+        refreshSecondsSetting(panel,tr("OPPO 卡片手动刷新冷却","OPPO manual refresh cooldown"),"oppo_refresh_cooldown_seconds",60,new int[]{30,60,120,300});
+        settingToggle(panel,"oppo_dynamic_status",tr("动态状态 · 空调30m / 净化4m / 托管45m（默认开）","Dynamic timer labels: climate / air / camp (on)"),true,false);
+        setting(panel,tr("自定义 OPPO 卡片数据和实时预览","Edit OPPO fields and live preview"),
+          ()->startActivity(new Intent(this,OppoCardDisplaySettingsActivity.class)));
+        note(panel,tr("边界","Limits"),tr("控制指令仍先完成真实车端确认。30s只用于短暂前台加速，后台按Android最短15分钟调度；剩余时间本地计算，不增加网络请求。","Confirmed controls keep independent readback. 30s boost is foreground-only; Android may defer background jobs. Timer redraw is local."));
+      }));
     setting(p,tr("停车位置 · 前台阈值 / 地图 / 后台","Parking location · TTL / map / background"),this::mapRefreshDialog);
     setting(p,tr("普通请求合并窗口","Coalescing window")+" · "+RefreshPolicy.mergeSeconds(this)+"s",()->
       choice(tr("相同车辆请求合并","Ordinary request coalescing"),"refresh_merge_seconds",
@@ -2532,7 +2556,8 @@ public final class MainActivity extends FragmentActivity {
           "refresh_climate_foreground","refresh_climate_background","refresh_charge_foreground","refresh_charge_background",
           "refresh_air_policy","refresh_health_foreground","refresh_health_background","refresh_maintenance_foreground","refresh_maintenance_background",
           "refresh_mileage_foreground","refresh_mileage_background","refresh_merge_seconds","refresh_local_redraw","refresh_wifi_only",
-          "refresh_only_charging","map_refresh_mode","map_refresh_minutes","map_resume_minutes","map_refresh_trigger","map_refresh_background",VehiclePowerPolicy.KEY};
+          "refresh_only_charging","oppo_dynamic_refresh","oppo_dynamic_status","oppo_refresh_foreground_minutes","oppo_refresh_background_minutes",
+          "oppo_active_foreground_minutes","oppo_active_background_minutes","oppo_lock_boost_minutes","oppo_lock_boost_seconds","oppo_refresh_cooldown_seconds","map_refresh_mode","map_refresh_minutes","map_resume_minutes","map_refresh_trigger","map_refresh_background",VehiclePowerPolicy.KEY};
         android.content.SharedPreferences.Editor edit=getSharedPreferences("preferences",0).edit();
         for(String key:keys)edit.remove(key);edit.apply();refreshSettingsChanged();
       }).setNegativeButton(tr("取消","Cancel"),null).show();

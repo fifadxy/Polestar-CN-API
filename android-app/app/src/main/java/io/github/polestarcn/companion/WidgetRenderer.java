@@ -214,8 +214,11 @@ public final class WidgetRenderer {
     int hidden = Math.max(0, Math.min(capacity(size), main.size() + charging.size()) - shown.size());
     if (hidden > 0) updated += " · +" + hidden;
     boolean check=WidgetCheckHint.visible(c,s);
-    // Leave the fixed-width tiny Check symbol room on narrow 2×1 widgets.
-    if(check&&(width<360||horizontal||font>1.1f))
+    String fullUpdated=updated;
+    // A single-line footer must not be ellipsized even when Check is absent.
+    // Prefer the actual cached time (HH:mm) or date (MM-dd) on narrow widgets.
+    boolean compactStamp=horizontal||width<225||font>1.35f&&width<340;
+    if(compactStamp)
       updated=compactCheckTimestamp(updated,java.util.Calendar.getInstance());
     int checkVisibility=check?android.view.View.VISIBLE:android.view.View.GONE;
     views.setViewVisibility(R.id.widget_check_icon,checkVisibility);
@@ -230,8 +233,8 @@ public final class WidgetRenderer {
     widgetText(views,c,R.id.widget_region, updated);
     views.setTextColor(R.id.widget_region, secondary);
     views.setTextViewTextSize(R.id.widget_region, android.util.TypedValue.COMPLEX_UNIT_SP,
-        check&&width<360?Math.min(9f,8f*font):10*font);
-    views.setContentDescription(R.id.widget_region, updated+(check?AppPreferences.widgetTr(c," · 车辆异常 Check"," · Vehicle Check"):"")+AppPreferences.widgetTr(c, "，点击刷新", ". Tap to refresh"));
+        compactStamp?Math.min(9f,8f*font):10*font);
+    views.setContentDescription(R.id.widget_region, fullUpdated+(check?AppPreferences.widgetTr(c," · 车辆异常 Check"," · Vehicle Check"):"")+AppPreferences.widgetTr(c, "，点击刷新", ". Tap to refresh"));
     views.setOnClickPendingIntent(R.id.widget_region, pending(c, id, size, "refresh"));
     views.setOnClickPendingIntent(R.id.widget_refresh_row,pending(c,id,size,"refresh"));
     views.setInt(R.id.widget_refresh_icon,"setColorFilter",secondary);

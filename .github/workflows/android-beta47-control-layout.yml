@@ -1,4 +1,4 @@
-name: Android 1.1.0 Per-Skin Controls
+name: Android 1.1.0 Stable Regression
 on:
   push:
     branches:
@@ -8,12 +8,12 @@ on:
       - 'android-app/**'
       - 'knowledge/PSASSISTANT_BETA47_CONTROL_LAYOUT_20261105.md'
       - 'docs/PSASSISTANT_BETA47_CONTROL_LAYOUT_20261105.md'
-      - '.github/workflows/android-1.1.0-control-layout.yml'
+      - '.github/workflows/android-beta47-control-layout.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  1.1.0:
+  stable110:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

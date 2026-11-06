@@ -77,6 +77,14 @@ public final class Beta49HealthCheckTest {
       assertEquals("Check",((TextView)label).getText().toString());
     }
   }
+  @Test public void compactWidgetTimestampKeepsActualTimeAndAvoidsHiddenCount(){
+    java.util.Calendar today=java.util.Calendar.getInstance();
+    String md=String.format(java.util.Locale.US,"%02d-%02d",today.get(java.util.Calendar.MONTH)+1,today.get(java.util.Calendar.DAY_OF_MONTH));
+    assertEquals("05:18",WidgetRenderer.compactCheckTimestamp("Upd "+md+" 05:18 · +2",today));
+    assertEquals("05:18",WidgetRenderer.compactCheckTimestamp("更新 "+md+" 05:18",today));
+    assertEquals("--",WidgetRenderer.compactCheckTimestamp("更新时间未知",today));
+    assertEquals("04-19",WidgetRenderer.compactCheckTimestamp("Upd 04-19 09:30 · +2",today));
+  }
   @Test public void confirmedCommandLabelsAreSpecificAndNeverClaimUnverifiedHorns(){
     Context c=RuntimeEnvironment.getApplication();
     AppPreferences.set(c,"language","zh");

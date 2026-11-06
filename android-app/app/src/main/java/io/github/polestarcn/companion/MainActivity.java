@@ -1437,6 +1437,10 @@ public final class MainActivity extends FragmentActivity {
           :dp(26)+textLineHeight(14)+textLineHeight(Math.max(12,ButtonFeedback.sp(this)))+textLineHeight(11);
       if(fourAcross)height=landscape?Math.max(dp(48),Math.max(dp(nioSkin()?36:24),textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)))+dp(8)):Math.max(height,dp(nioSkin()?52:34)+textLineHeight(10)+textLineHeight(ButtonFeedback.sp(this)));
       if(fourAcross&&minimalMode())height=Math.max(dp(landscape?48:60),dp(nioSkin()?(landscape?44:50):42)+dp(8));
+      // Reserve a real caption baseline below the compact icon/title row.
+      // A 48dp fixed row can otherwise squeeze NIO air/climate feedback to 4dp.
+      if(landscape&&!minimalMode())
+        height=Math.max(height,dp(nioSkin()?28:24)+textLineHeight(feedbackSp(true))+dp(14));
       // Keep space for active-state captions; idle PM2.5/AQI now share one row.
       if(!minimalMode()&&!nioSkin()&&!landscape)height+=textLineHeight(9)+dp(5);
       // Two readings require a second baseline without overlapping adjacent buttons.

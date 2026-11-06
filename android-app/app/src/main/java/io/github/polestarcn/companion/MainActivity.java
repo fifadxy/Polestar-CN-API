@@ -1809,19 +1809,33 @@ public final class MainActivity extends FragmentActivity {
     parkingVin=model.selected==null?null:model.selected.vin;parkingPoint=location;
     String time=location.reportedAt>0?android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",location.reportedAt).toString():"--";
     LinearLayout panel=detailPanel();panel.setTag("parking_location_panel");
-    TextView report=text(tr("车辆上报时间：","Vehicle report: ")+time,13,muted,false);report.setTag("parking_report_time");panel.addView(report);
+    // A short header leaves more room for the actual parked-point map.
+    TextView report=text(tr("车辆位置更新 ","Vehicle position updated ")+time,11,muted,false);
+    report.setTag("parking_report_time");report.setGravity(Gravity.CENTER_VERTICAL);
+    panel.addView(report);
     if(location.stale){TextView stale=text(tr("位置可能不是最新，请以车辆上报时间为准。","This position may be out of date. Check the vehicle report time."),13,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
     gap(panel,6);
-    TextView mapOptions=text(tr("手机定位：","Phone location: ")+(MapLocationPermission.enabled(this)?tr("允许","allowed"):tr("关闭","off"))+tr(" · 点按设置"," · tap to change"),11,muted,false);click(mapOptions,this::mapLocationDialog);panel.addView(mapOptions);
     ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));parkingPreview=map;
-    int mapHeight=Math.max(180,Math.min(300,(int)(getResources().getConfiguration().screenHeightDp*.42f)));
-    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,8);
-    if(MapLocationPermission.enabled(this))setting(panel,tr("刷新手机位置 · 仅本次预览","Refresh phone position · this preview only"),()->map.requestPhoneLocation());
-    panel.addView(text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.6f",location.latitude)+" · "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.6f",location.longitude),12,muted,false));
-    note(panel,tr("说明","Info"),tr("这是最后停车位置，并非实时定位。地图网页由高德提供，本次停车点会用于加载地图。","Last parked position, not live tracking. The Amap page receives this parked point to display the map."));
-    AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("最后停车位置","Last parked location")).setView(panel)
-        .setPositiveButton(tr("打开地图","Open map"),(d,w)->openLocation(location))
-        .setNeutralButton(tr("重新读取车辆位置","Refresh vehicle position"),(d,w)->locationDialog(true))
+    int mapHeight=Math.max(132,Math.min(210,(int)(getResources().getConfiguration().screenHeightDp*.27f)));
+    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,5);
+    TextView coordinates=text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.5f",location.latitude)
+        +"  /  "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.5f",location.longitude),10,muted,false);
+    coordinates.setGravity(Gravity.CENTER);coordinates.setMaxLines(2);panel.addView(coordinates);gap(panel,5);
+    LinearLayout actions=row();actions.setGravity(Gravity.CENTER);
+    TextView open=button(tr("打开地图","Open map"),()->openLocation(location));open.setTag("parking_open_map");
+    TextView refresh=button(tr("更新位置","Refresh"),()->locationDialog(true));refresh.setTag("parking_refresh_position");
+    open.setTextSize(12);refresh.setTextSize(12);
+    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(44),1f);
+    actions.addView(open,actionCell);
+    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(44),1f);second.leftMargin=dp(6);
+    actions.addView(refresh,second);panel.addView(actions);gap(panel,4);
+    TextView mapOptions=text(tr("手机定位权限与刷新设置","Phone location permissions and refresh"),11,muted,false);
+    mapOptions.setGravity(Gravity.CENTER);mapOptions.setMinHeight(dp(36));click(mapOptions,this::mapLocationDialog);
+    panel.addView(mapOptions);
+    if(MapLocationPermission.enabled(this))setting(panel,tr("刷新手机位置 · 本次预览","Refresh phone position in this preview"),()->map.requestPhoneLocation());
+    note(panel,tr("说明","Info"),tr("仅显示车辆最后上报的停车点，不代表实时定位。","Displays the last reported parking position, not live vehicle tracking."));
+    HapticDialogBuilder builder=new HapticDialogBuilder(this).compactMapWindow();
+    AlertDialog dialog=builder.setTitle(tr("最后停车位置","Last parked location")).setView(panel)
         .setNegativeButton(tr("关闭","Close"),null).create();
     parkingDialog=dialog;dialog.setOnDismissListener(d->{map.close();if(parkingDialog==dialog){parkingDialog=null;parkingVin=null;parkingPoint=null;parkingPreview=null;}});dialog.show();
   }
@@ -1835,7 +1849,9 @@ public final class MainActivity extends FragmentActivity {
     setting(panel,tr("手机位置刷新时机","Phone location refresh timing"),this::phoneRefreshDialog);
     note(panel,tr("说明","Info"),tr("默认关闭。车辆停车位置不需要手机定位。开启需系统授权，可选择仅在二级预览打开时请求一次，或手动点击刷新；不在后台跟踪。距离不是步行路线。",
         "Off by default. Vehicle parking reads do not need phone location. With system permission, request once when opening the secondary map preview, or manually. No background tracking; distance is not a walking route."));
-    new HapticDialogBuilder(this).setTitle(tr("地图手机定位","Map phone location")).setView(panel).setPositiveButton(tr("完成","Done"),(d,w)->{}).show();
+    HapticDialogBuilder builder=new HapticDialogBuilder(this).compactMapWindow();
+    builder.setTitle(tr("地图手机定位","Map phone location")).setView(panel)
+        .setPositiveButton(tr("完成","Done"),(d,w)->{}).show();
   }
 
   private void openLocation(LocationSnapshot location) {
@@ -2887,7 +2903,14 @@ public final class MainActivity extends FragmentActivity {
     new HapticDialogBuilder(this).setTitle(tr("保养","Service")).setView(panel).setNegativeButton(tr("关闭","Close"),null).show();
   }
   private void carStatusDialog(){
-    if(carDialog!=null)carDialog.dismiss();final View animationRoot=findViewById(android.R.id.content);AllGoodTextView.host(animationRoot,false);LinearLayout panel=detailPanel();ScrollView scroll=new ScrollView(this);scroll.setTag("car_condition_popup");scroll.addView(panel);
+    if(carDialog!=null)carDialog.dismiss();final View animationRoot=findViewById(android.R.id.content);AllGoodTextView.host(animationRoot,false);
+    LinearLayout panel=detailPanel();ScrollView scroll=new ScrollView(this);
+    scroll.setTag("car_condition_popup");scroll.setVerticalScrollBarEnabled(false);scroll.setFillViewport(true);
+    scroll.addView(panel);
+    // Keep the dialog viewport stable when subsequent live vehicle snapshots arrive.
+    android.widget.FrameLayout fixedViewport=new android.widget.FrameLayout(this);
+    int viewportDp=Math.max(190,Math.min(440,(int)(getResources().getConfiguration().screenHeightDp*.52f)));
+    fixedViewport.addView(scroll,new android.widget.FrameLayout.LayoutParams(-1,dp(viewportDp)));
     String vin=model.selected==null?null:model.selected.vin;
     Runnable fill=()->{panel.removeAllViews();VehicleSnapshot v=model.snapshot;
       panel.addView(goodText(VehicleCondition.summary(this,v,showTires()),16,VehicleCondition.reported(v,showTires())?accentText():ink,false));
@@ -2896,7 +2919,7 @@ public final class MainActivity extends FragmentActivity {
       panel.addView(new ExteriorView(this,v),new LinearLayout.LayoutParams(-1,dp(Math.max(100,Math.min(150,getResources().getConfiguration().screenHeightDp/4)))));
       disclosure(panel,"popup_health",tr("车辆检查","Vehicle checks"),false,this::healthOverview);disclosure(panel,"popup_service",tr("保养周期","Service cycle"),false,this::serviceContents);
       if(showTires())disclosure(panel,"popup_tyres",tr("胎压状态","Tyre status"),false,this::tyreContents);
-    };final VehicleSnapshot[] displayed={model.snapshot};fill.run();AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("车辆状况 · 门窗","Vehicle condition · exterior")).setView(scroll).setNegativeButton(tr("关闭","Close"),null).create();carDialog=dialog;
+    };final VehicleSnapshot[] displayed={model.snapshot};fill.run();AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("车辆状况 · 门窗","Vehicle condition · exterior")).setView(fixedViewport).setNegativeButton(tr("关闭","Close"),null).create();carDialog=dialog;
     Runnable update=()->{if(model.selected==null||!java.util.Objects.equals(vin,model.selected.vin)){dialog.dismiss();return;}if(!model.progressOnly&&model.snapshot!=displayed[0]){displayed[0]=model.snapshot;int y=scroll.getScrollY();fill.run();scroll.post(()->scroll.scrollTo(0,y));}};model.listen(update);dialog.setOnDismissListener(d->{model.remove(update);if(carDialog==dialog)carDialog=null;AllGoodTextView.host(animationRoot,getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED));});dialog.show();
   }
 

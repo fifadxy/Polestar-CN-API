@@ -1,73 +1,105 @@
 package io.github.polestarcn.companion;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.CheckedTextView;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
-/** Gives native dialog buttons and choice rows the same app haptics as home controls. */
+/** Fixed-position, alpha-only secondary dialogs; no post-show geometry or typography changes. */
 final class HapticDialogBuilder extends AlertDialog.Builder {
   private final Context context;
+  private boolean mapCompact;
   HapticDialogBuilder(Context context){super(context);this.context=context;}
-  @Override public AlertDialog.Builder setView(android.view.View view){
+  HapticDialogBuilder compactMapWindow(){mapCompact=true;return this;}
+  @Override public AlertDialog.Builder setView(View view){
+    // Style once BEFORE first attachment/measurement to avoid font-induced layout jumps.
+    UiTypography.applyTree(view);
     if(view instanceof android.widget.LinearLayout){
-      android.widget.ScrollView sc=new android.widget.ScrollView(context);sc.setFillViewport(false);sc.setVerticalScrollBarEnabled(false);sc.setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);sc.addView(view);return super.setView(sc);
+      ScrollView sc=new ScrollView(context);
+      sc.setFillViewport(false);
+      sc.setVerticalScrollBarEnabled(false);
+      sc.setOverScrollMode(View.OVER_SCROLL_NEVER);
+      sc.addView(view);
+      return super.setView(sc);
     }
     return super.setView(view);
   }
   @Override public AlertDialog create(){
-    AlertDialog dialog = super.create();
-    android.view.Window initial=dialog.getWindow();if(initial!=null){initial.setWindowAnimations(0);initial.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);android.view.WindowManager.LayoutParams fixed=initial.getAttributes();fixed.width=Math.min((int)(360*context.getResources().getDisplayMetrics().density),(int)(context.getResources().getDisplayMetrics().widthPixels*.86f));fixed.height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT;fixed.gravity=android.view.Gravity.CENTER;initial.setAttributes(fixed);}
-    dialog.setOnShowListener(ignored -> {
-      android.view.Window window=dialog.getWindow();boolean dark=AppPreferences.dark(context);
-      if(window!=null){android.graphics.drawable.GradientDrawable glass=new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR,dark?new int[]{0xF02A3036,0xF2181D22}:new int[]{0xF8FFFFFF,0xF0EDF1F4});glass.setCornerRadius(24*context.getResources().getDisplayMetrics().density);glass.setStroke(1,dark?0x557C8993:0xAAFFFFFF);window.setBackgroundDrawable(glass);window.setDimAmount(.24f);
-        if(android.os.Build.VERSION.SDK_INT>=31){android.view.WindowManager wm=context.getSystemService(android.view.WindowManager.class);if(wm!=null&&wm.isCrossWindowBlurEnabled())window.setBackgroundBlurRadius(0);}
-        android.view.View decor=window.getDecorView();UiTypography.applyTree(decor);decor.animate().cancel();decor.setAlpha(1f);decor.setScaleX(1f);decor.setScaleY(1f);decor.setTranslationX(0f);decor.setTranslationY(0f);window.setWindowAnimations(0);window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);}
-
-      android.widget.ListView list=dialog.getListView();
-      if(list!=null) {
-        list.setOnHierarchyChangeListener(new android.view.ViewGroup.OnHierarchyChangeListener() {
-          public void onChildViewAdded(android.view.View parent,android.view.View child){ style(child); }
-          public void onChildViewRemoved(android.view.View parent,android.view.View child){}
-        });
-        style(list);
+    AlertDialog dialog=super.create();
+    Window window=dialog.getWindow();
+    if(window!=null){
+      boolean dark=AppPreferences.dark(context);
+      GradientDrawable glass=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+          dark?new int[]{0xF02A3036,0xF2181D22}:new int[]{0xF8FFFFFF,0xF0EDF1F4});
+      float density=context.getResources().getDisplayMetrics().density;
+      glass.setCornerRadius(24*density);
+      glass.setStroke(1,dark?0x557C8993:0xAAFFFFFF);
+      window.setBackgroundDrawable(glass);
+      window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+      window.setDimAmount(.24f);
+      window.setWindowAnimations(R.style.PsaDialogFadeAnimation);
+      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+          |WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+      android.util.DisplayMetrics dm=context.getResources().getDisplayMetrics();
+      int width=Math.min((int)(360*density),(int)(dm.widthPixels*.86f));
+      int height=ViewGroup.LayoutParams.WRAP_CONTENT;
+      if(mapCompact){
+        int[] size=DialogWindowGeometry.map(dm.widthPixels,dm.heightPixels,density);
+        width=size[0];height=size[1];
       }
-    });
+      WindowManager.LayoutParams attrs=window.getAttributes();
+      attrs.width=width;attrs.height=height;attrs.gravity=Gravity.CENTER;
+      window.setAttributes(attrs);
+    }
     return dialog;
   }
-  private void style(android.view.View view) {
-    UiTypography.applyTree(view);view.setHapticFeedbackEnabled(false);
-    if(view instanceof android.widget.TextView) ((android.widget.TextView)view).setTypeface(PsaDesign.regular());
-    if(view instanceof android.widget.CheckedTextView) {
-      android.widget.CheckedTextView choice=(android.widget.CheckedTextView)view;
-      choice.setCheckMarkDrawable(io.github.polestarcn.companion.R.drawable.vi_checkbox);
-      choice.setCheckMarkTintList(android.content.res.ColorStateList.valueOf(PsaDesign.accentText(AppPreferences.dark(context))));
-    }
-    if(view instanceof android.view.ViewGroup) {
-      android.view.ViewGroup group=(android.view.ViewGroup)view;
-      for(int i=0;i<group.getChildCount();i++)style(group.getChildAt(i));
-    }
+  private ArrayAdapter<CharSequence> stableAdapter(CharSequence[] items,boolean single){
+    return new ArrayAdapter<CharSequence>(context,
+        single?android.R.layout.select_dialog_singlechoice:android.R.layout.select_dialog_item,items){
+      @Override public View getView(int position,View convertView,ViewGroup parent){
+        View row=super.getView(position,convertView,parent);
+        if(row instanceof TextView)((TextView)row).setTypeface(PsaDesign.regular());
+        if(row instanceof CheckedTextView){
+          CheckedTextView check=(CheckedTextView)row;
+          check.setCheckMarkDrawable(R.drawable.vi_checkbox);
+          check.setCheckMarkTintList(ColorStateList.valueOf(
+              PsaDesign.accentText(AppPreferences.dark(context))));
+        }
+        UiTypography.applyTree(row);
+        return row;
+      }
+    };
   }
-  private DialogInterface.OnClickListener click(DialogInterface.OnClickListener listener) {
-    return (d, which) -> { Haptics.tap(context); if (listener != null) listener.onClick(d, which); };
+  private DialogInterface.OnClickListener click(DialogInterface.OnClickListener listener){
+    return (d,which)->{Haptics.tap(context);if(listener!=null)listener.onClick(d,which);};
   }
-  @Override public AlertDialog.Builder setPositiveButton(CharSequence text, DialogInterface.OnClickListener listener) {
-    return super.setPositiveButton(text, click(listener));
+  @Override public AlertDialog.Builder setPositiveButton(CharSequence text,DialogInterface.OnClickListener listener){
+    return super.setPositiveButton(text,click(listener));
   }
-  @Override public AlertDialog.Builder setNegativeButton(CharSequence text, DialogInterface.OnClickListener listener) {
-    return super.setNegativeButton(text, click(listener));
+  @Override public AlertDialog.Builder setNegativeButton(CharSequence text,DialogInterface.OnClickListener listener){
+    return super.setNegativeButton(text,click(listener));
   }
-  @Override public AlertDialog.Builder setNeutralButton(CharSequence text,DialogInterface.OnClickListener listener) {
+  @Override public AlertDialog.Builder setNeutralButton(CharSequence text,DialogInterface.OnClickListener listener){
     return super.setNeutralButton(text,click(listener));
   }
-  @Override public AlertDialog.Builder setItems(CharSequence[] items, DialogInterface.OnClickListener listener) {
-    return super.setItems(items, click(listener));
+  @Override public AlertDialog.Builder setItems(CharSequence[] items,DialogInterface.OnClickListener listener){
+    return super.setAdapter(stableAdapter(items,false),click(listener));
   }
-  @Override public AlertDialog.Builder setSingleChoiceItems(CharSequence[] items, int checked, DialogInterface.OnClickListener listener) {
-    return super.setSingleChoiceItems(items, checked, click(listener));
+  @Override public AlertDialog.Builder setSingleChoiceItems(CharSequence[] items,int checked,DialogInterface.OnClickListener listener){
+    return super.setSingleChoiceItems(stableAdapter(items,true),checked,click(listener));
   }
-  @Override public AlertDialog.Builder setMultiChoiceItems(CharSequence[] items, boolean[] checked, DialogInterface.OnMultiChoiceClickListener listener) {
-    return super.setMultiChoiceItems(items, checked, (d, which, on) -> {
-      Haptics.tap(context); if (listener != null) listener.onClick(d, which, on);
+  @Override public AlertDialog.Builder setMultiChoiceItems(CharSequence[] items,boolean[] checked,DialogInterface.OnMultiChoiceClickListener listener){
+    return super.setMultiChoiceItems(items,checked,(d,which,on)->{
+      Haptics.tap(context);if(listener!=null)listener.onClick(d,which,on);
     });
   }
 }

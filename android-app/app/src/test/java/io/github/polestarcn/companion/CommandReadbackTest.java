@@ -36,7 +36,18 @@ public final class CommandReadbackTest {
     Clock clock=new Clock();int[] reads={0},done={0};new CommandReadback(()->{reads[0]++;return state("关闭","LIVE");},Runnable::run,clock,(v,ok)->{assertFalse(ok);done[0]++;}).start("climate-start");clock.advance(26000);assertEquals(5,reads[0]);assertEquals(1,done[0]);
   }
   @Test public void readFailuresRecoverWithoutRepeatingAWrite(){
-    Clock clock=new Clock();int[] reads={0},done={0},progress={0};new CommandReadback(()->{if(++reads[0]<3)throw new Exception("offline");return state("开启","LIVE");},Runnable::run,clock,new CommandReadback.Listener(){public void progress(VehicleSnapshot v,int n){progress[0]=n;}public void finished(VehicleSnapshot v,boolean ok){assertTrue(ok);done[0]++;}}).start("climate-start");clock.advance(26000);assertEquals(3,reads[0]);assertEquals(3,progress[0]);assertEquals(1,done[0]);
+    Clock clock=new Clock();int[] reads={0},done={0},progress={0};new CommandReadback(()->{if(++reads[0]<3)throw new Exception("offline");return state("开启","LIVE");},Runnable::run,clock,new CommandReadback.Listener(){public void progress(VehicleSnapshot v,int n){progress[0]=n;}public void finished(VehicleSnapshot v,boolean ok){assertTrue(ok);done[0]++;}}).start("climate-start");clock.advance(26000);assertEquals(3,reads[0]);assertEquals(2,progress[0]);assertEquals(1,done[0]);
+  }
+  @Test public void successSkipsFinalPercentFrameAndPublishesVerifiedStateImmediately(){
+    Clock clock=new Clock();
+    java.util.ArrayList<String> events=new java.util.ArrayList<>();
+    VehicleSnapshot confirmed=state("开启","LIVE");
+    new CommandReadback(()->confirmed,Runnable::run,clock,new CommandReadback.Listener(){
+      public void progress(VehicleSnapshot v,int count){events.add("percent:"+count);}
+      public void finished(VehicleSnapshot v,boolean ok){assertTrue(ok);assertSame(confirmed,v);events.add("confirmed");}
+    }).start("climate-start");
+    clock.advance(5000);clock.advance(90000);
+    assertEquals(java.util.Collections.singletonList("confirmed"),events);
   }
   @Test public void laterMatchingStateEndsVerificationImmediately(){
     Clock clock=new Clock();int[] reads={0},done={0};

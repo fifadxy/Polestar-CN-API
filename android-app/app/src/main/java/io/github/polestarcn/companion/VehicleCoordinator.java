@@ -30,6 +30,7 @@ public final class VehicleCoordinator {
   public boolean vehicleDataConnected(){return VehicleConnectionStatus.connected(signedIn,selected!=null,lastVehicleReadOk,snapshot,System.currentTimeMillis());}
   public boolean progressOnly;
   public boolean commandPending; public int readbackPercent; public int readbackChecks;
+  public String commandResultText="";
   private long readbackStarted;
   private final Map<String, PendingCommand> pendingCommands = new LinkedHashMap<>();
   private final ExecutorService commandIO = Executors.newFixedThreadPool(2);
@@ -347,7 +348,7 @@ public final class VehicleCoordinator {
     final ChinaPolestarApi.VehicleInfo vehicle=selected;
     final Float target="climate-start".equals(action)&&ClimateTarget.enabled(context)?ClimateTarget.request(context):null;
     final PendingCommand ticket=new PendingCommand(action,vehicle,System.currentTimeMillis(),target);ticket.completion=completion;ticket.allowLockRetry=allowLockRetry;
-    pendingCommands.put(ticket.group,ticket);syncCommandStatus();OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,"SENDING");
+    pendingCommands.put(ticket.group,ticket);commandResultText="";syncCommandStatus();OppoSystemAccess.commandEvent(context,ticket.action,ticket.issued,"SENDING");
     message=tr("发送中","Sending");
     if(pendingCommands.size()==1){main.removeCallbacks(progressTick);main.post(progressTick);}
     changed();
@@ -403,6 +404,9 @@ public final class VehicleCoordinator {
       }
       public void finished(VehicleSnapshot updated,boolean reached){
         if(pendingCommands.get(ticket.group)!=ticket||selected==null||!ticket.vehicle.vin.equals(selected.vin))return;
+        // Write confirmed telemetry before clearing the pending state so the
+        // first terminal frame already contains the new button/Widget values.
+        if(reached&&updated!=null)applyReadback(ticket.vehicle,updated);
         ticket.cancelled=true;pendingCommands.remove(ticket.group);syncCommandStatus();
         boolean verified=reached&&(ticket.target==null||ClimateTarget.confirmed(updated,ticket.target,ticket.issued));
         OperationState result=momentary(ticket.action)
@@ -413,8 +417,9 @@ public final class VehicleCoordinator {
         if(reached&&"climate-stop".equals(ticket.action))ClimateRuntime.stopped(context);
         if(reached&&"air-start".equals(ticket.action))AirRuntime.started(context,identity(ticket.vehicle.vin),System.currentTimeMillis());
         if(reached&&"air-stop".equals(ticket.action))AirRuntime.stopped(context);
+        commandResultText=verified?CommandResultLabel.confirmed(context,ticket.action):"";
         message=momentary(ticket.action)?tr("寻车已发送 · 效果未确认","Find car sent · unverified")
-            :verified?tr("执行成功","Successful")
+            :verified?commandResultText
             :tr("指令已发送，请确认执行情况","Command sent. Please confirm execution.");
         complete(ticket,result);changed();dispatchQueuedRepeat(ticket);
       }

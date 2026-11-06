@@ -895,7 +895,7 @@ public final class MainActivity extends FragmentActivity {
     if(model.commandPending)return tr(model.operation==OperationState.SENDING?"发送中 ":"确认中 ",model.operation==OperationState.SENDING?"Sending ":"Verifying ")+model.readbackPercent+"%";
     if(model.quietRefresh||model.busy)return tr("正在刷新","Refreshing");
     switch(model.operation){
-      case VEHICLE_CONFIRMED:return tr("执行成功","Successful");
+      case VEHICLE_CONFIRMED:return model.commandResultText.isEmpty()?tr("执行成功","Successful"):model.commandResultText;
       case SERVER_ACCEPTED:return tr("已发送 · 效果未确认","Sent · unverified");
       case UNCONFIRMED:return tr("指令已发送，请确认执行情况","Command sent. Please confirm execution.");
       case FAILED:return tr("执行失败","Failed");

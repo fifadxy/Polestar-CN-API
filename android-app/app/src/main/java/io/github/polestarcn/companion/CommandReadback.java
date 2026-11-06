@@ -52,9 +52,14 @@ public final class CommandReadback {
         boolean confirmed=ControlAction.reached(action,state)&&extraCheck.test(state);
         completed++;
         boolean done=confirmed||completed>=checkpoints.length;if(done)ended=true;
-        listener.progress(state,completed);
-        if(done)listener.finished(latest,confirmed);
-        else if(checkpoints==LOCK_CHECKPOINT_MS&&completed==3&&retry!=null&&!retryDone){retryDone=true;retryExecutor.execute(()->{if(ended||!retryAllowed.getAsBoolean())return;try{retry.send();}catch(Exception unavailable){/* Retain unconfirmed result; never retry a second time. */}});}
+        // Never dispatch one more synthetic percent update after a verified
+        // vehicle state: terminal readback owns the first UI update.
+        if(confirmed)listener.finished(latest,true);
+        else{
+          listener.progress(state,completed);
+          if(done)listener.finished(latest,false);
+        }
+        if(!done&&checkpoints==LOCK_CHECKPOINT_MS&&completed==3&&retry!=null&&!retryDone){retryDone=true;retryExecutor.execute(()->{if(ended||!retryAllowed.getAsBoolean())return;try{retry.send();}catch(Exception unavailable){/* Retain unconfirmed result; never retry a second time. */}});}
 
       });
     });

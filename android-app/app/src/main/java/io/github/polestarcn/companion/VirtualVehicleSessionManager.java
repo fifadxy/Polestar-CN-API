@@ -48,6 +48,7 @@ final class VirtualVehicleSessionManager {
 
     Bundle profile=OppoVehicleProfileSettings.snapshot(context);
     Bundle out=new Bundle(profile);
+    OppoCardSummarySettings.write(out,context);
     out.putBoolean("requested",requested);out.putBoolean("present",present);out.putBoolean("active",active);
     out.putBoolean("commandReady",commandReady);out.putString("lifecycle",lifecycle);
     out.putBoolean("mock",mock);out.putString("mode",mock?"MOCK_TESTLAB":"MIRROR_REAL");out.putString("sessionId",sessionId);

@@ -287,19 +287,9 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
   // read CarStatusInfo from the JSON string in DeviceModel.data (17.4.15).
   // Keep the stable device ID independent of this cached-state display name.
   static String cardDisplayName(Bundle state) {
-    String name = state.getString("name", "Polestar");
-    if (name == null || name.trim().isEmpty()) name = "Polestar";
-    StringBuilder data = new StringBuilder();
-    int soc = state.getInt("batteryPercent", -1);
-    if (state.getBoolean("batteryPercentKnown") && soc >= 0 && soc <= 100)
-      data.append(soc).append('%');
-    int range = state.getInt("rangeKm", -1);
-    if (state.getBoolean("rangeKmKnown") && range >= 0) {
-      if (data.length() > 0) data.append(" · ");
-      data.append(range).append("km");
-    }
-    // State comes first because this OEM template can truncate the name.
-    return data.length() == 0 ? name + " · 暂无缓存" : data + " 缓存 · " + name;
+    // OEM cards read this field as a narrow single-line title. No auto "cache"
+    // suffix, model name or duplicated data that would trigger an ellipsis.
+    return OppoCardSummary.format(state);
   }
 
   static boolean isCharging(String value) {
@@ -312,21 +302,15 @@ public final class VehicleDeviceCardProvider extends ContentProvider {
     // The OEM renderer displays this integer directly. Never turn an unknown
     // range into 0 km or -1 km; keep the existing cached-name fallback instead.
     if (!state.getBoolean("rangeKmKnown") || range < 0) return "";
-    StringBuilder summary = new StringBuilder("缓存");
-    int soc = state.getInt("batteryPercent", -1);
-    if (state.getBoolean("batteryPercentKnown") && soc >= 0 && soc <= 100)
-      summary.append(" · ").append(soc).append('%');
-    for (String key : new String[]{"lock", "climate"}) {
-      String value = state.getString(key, "");
-      if (value != null && !value.trim().isEmpty())
-        summary.append(" · ").append("climate".equals(key) ? "空调" : "").append(value);
-    }
+    // Keep real CarStatus range in the structured property, and use the
+    // same user-selected compact text in the native CAR message slot.
+    String summary=OppoCardSummary.format(state);
     return new JSONObject()
         .put("batteryEnduranceMileage", range)
         .put("oilEnduranceMileage", -1)
         .put("totalEnduranceMileage", range)
         .put("isRefreshing", false)
-        .put("msg", new JSONObject().put("code", 0).put("text", summary.toString()))
+        .put("msg", new JSONObject().put("code", 0).put("text", summary))
         .toString();
   }
 

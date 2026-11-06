@@ -35,7 +35,10 @@ final class NativeVehicleHomeView extends LinearLayout {
     boolean dark=(getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES;
     setBackgroundColor(dark?Color.rgb(25,27,29):Color.rgb(247,247,247));
     int ink=dark?Color.WHITE:Color.rgb(25,27,29);
-    summary=new TextView(context,null,0);summary.setMinimumHeight(0);summary.setMinHeight(0);summary.setPadding(0,0,0,0);summary.setTextSize(12);summary.setIncludeFontPadding(false);summary.setTextColor(ink);addView(summary);
+    summary=new TextView(context,null,0);summary.setMinimumHeight(0);summary.setMinHeight(0);summary.setPadding(0,0,0,0);summary.setTextSize(12);summary.setIncludeFontPadding(false);summary.setTextColor(ink);
+    summary.setSingleLine(true);summary.setHorizontallyScrolling(false);summary.setEllipsize(null);
+    summary.setAutoSizeTextTypeUniformWithConfiguration(9,12,1,android.util.TypedValue.COMPLEX_UNIT_SP);
+    addView(summary);
     for(int rowIndex=0;rowIndex<2;rowIndex++) {
       LinearLayout row=new LinearLayout(context);addView(row,new LayoutParams(-1,-2));
       for(int col=0;col<2;col++) {
@@ -95,11 +98,8 @@ final class NativeVehicleHomeView extends LinearLayout {
   }
   void bindSnapshot(Bundle data){
     snapshot=new Bundle(data);
-    String battery=data.getBoolean("batteryPercentKnown")?data.getInt("batteryPercent")+"%":"—";
-    String range=data.getBoolean("rangeKmKnown")?data.getInt("rangeKm")+" km":"—";
-    long time=data.getLong("capturedAt",0);
-    String stamp=time>0?android.text.format.DateFormat.format("MM-dd HH:mm",time).toString():"时间未知";
-    summary.setText("Polestar · "+battery+" · "+range+"\n缓存 "+stamp);
+    // Native 4x2: title only, no duplicate date, model or cache suffix.
+    summary.setText(OppoCardSummary.format(data));
     String lock=data.getString("lock"),climateValue=data.getString("climate");
     String airValue=data.getString("air"),tailgate=data.getString("tailgate");
     boolean locked=stateIs(lock,"已上锁","已锁","LOCKED");

@@ -67,6 +67,9 @@ final class AssistantScreenNativeVehicleHook {
 
     Method getId=deviceInfo.getMethod("getMDeviceId");
     Method getAuthority=deviceInfo.getMethod("getMAuthority");
+    Method setName=null;
+    try{setName=deviceInfo.getMethod("setMDeviceName",String.class);}catch(NoSuchMethodException ignored){}
+    final Method updateName=setName;
     Method setType=deviceInfo.getMethod("setMDeviceType",deviceType);
     Method setConnect=deviceInfo.getMethod("setMConnectState",connectState);
     Method setTemplate=deviceInfo.getMethod("setMTemplateType",templateType);
@@ -104,6 +107,7 @@ final class AssistantScreenNativeVehicleHook {
               String authority=safe(getAuthority.invoke(device));
               if(!isOurDevice(id,authority))continue;
 
+              if(updateName!=null)updateName.invoke(device,OppoCardSummary.format(snapshot));
               setType.invoke(device,car);
               setConnect.invoke(device,connected);
               setTemplate.invoke(device,switchTemplate);
@@ -163,9 +167,8 @@ final class AssistantScreenNativeVehicleHook {
     ArrayList<Integer> batteries=new ArrayList<>();
     int soc=state.getInt("batteryPercent",-1);
     if(state.getBoolean("batteryPercentKnown")&&soc>=0&&soc<=100)batteries.add(soc);
-    String name=state.getString("name","Polestar");
-    String summary=(batteries.isEmpty()?"":soc+"%")+(state.getBoolean("rangeKmKnown")?" · "+state.getInt("rangeKm")+"km":"");
-    return ctor.newInstance("02:50:53:41:00:01","psassistant_shelf_polestar",name+" · 缓存 "+summary,car,connected,template,
+    String summary=OppoCardSummary.format(state);
+    return ctor.newInstance("02:50:53:41:00:01","psassistant_shelf_polestar",summary,car,connected,template,
         0,null,BridgeIdentity.authority(app),null,0,state.getLong("capturedAt",0),false,false,new ArrayList<>(),
         true,switches,new ArrayList<>(),batteries,new ArrayList<>());
   }

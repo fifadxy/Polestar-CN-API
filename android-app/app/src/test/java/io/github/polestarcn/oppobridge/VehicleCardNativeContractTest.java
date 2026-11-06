@@ -42,8 +42,8 @@ public class VehicleCardNativeContractTest {
     assertEquals(270, status.getInt("totalEnduranceMileage"));
     assertEquals(-1, status.getInt("oilEnduranceMileage"));
     assertFalse(status.getBoolean("isRefreshing"));
-    assertTrue(status.getJSONObject("msg").getString("text").contains("缓存"));
-    assertTrue(status.getJSONObject("msg").getString("text").contains("64%"));
+    assertEquals("64% · 270KM",status.getJSONObject("msg").getString("text"));
+    assertFalse(status.getJSONObject("msg").getString("text").contains("缓存"));
     assertEquals(123456L, row.getLong("timestamp"));
     assertFalse(status.has("state")); // No fabricated authorization or command state.
   }

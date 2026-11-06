@@ -72,6 +72,26 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
           actual.setLayout(initialWidth,initialHeight);
         }
       });
+      if(mapCompact){
+        // AlertDialog may replace the window layout AFTER its OnShow callback.
+        // Correct on pre-draw, before anything reaches the visible first frame.
+        final android.view.View decor=window.getDecorView();
+        decor.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){
+          @Override public boolean onPreDraw(){
+            if(!decor.getViewTreeObserver().isAlive())return true;
+            decor.getViewTreeObserver().removeOnPreDrawListener(this);
+            Window shown=dialog.getWindow();
+            if(shown==null)return true;
+            WindowManager.LayoutParams now=shown.getAttributes();
+            if(now.width!=initialWidth||now.height!=initialHeight||now.gravity!=Gravity.CENTER){
+              shown.setGravity(Gravity.CENTER);
+              shown.setLayout(initialWidth,initialHeight);
+              return false; // Re-measure with correct geometry before showing.
+            }
+            return true;
+          }
+        });
+      }
     }
     return dialog;
   }

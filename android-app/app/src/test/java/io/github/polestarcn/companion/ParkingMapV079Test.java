@@ -63,6 +63,9 @@ public class ParkingMapV079Test {
    AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertTrue(dialog.isShowing());View decor=dialog.getWindow().getDecorView();
     android.util.DisplayMetrics display=activity.getResources().getDisplayMetrics();
     int[] expected=DialogWindowGeometry.map(display.widthPixels,display.heightPixels,display.density);
+    // First layout is established by the window pre-draw correction, before
+    // the map becomes visible in a real OPPO host.
+    decor.getViewTreeObserver().dispatchOnPreDraw();
     android.view.WindowManager.LayoutParams attrs=dialog.getWindow().getAttributes();
     assertEquals(android.view.Gravity.CENTER,attrs.gravity);
     assertEquals(expected[0],attrs.width);assertEquals(expected[1],attrs.height);

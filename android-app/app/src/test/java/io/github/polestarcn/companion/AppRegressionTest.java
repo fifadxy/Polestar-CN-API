@@ -341,7 +341,7 @@ public final class AppRegressionTest {
     root.layout(0, 0, 360, 780);
     assertTrue(((TextView)findTagged(root,"exterior_button")).getText().toString().startsWith("保养"));
     View status=findTagged(root,"vehicle_status_button");assertNotNull(status);
-    assertTrue(status.getContentDescription().toString().contains("请检查车辆"));
+    assertTrue(status.getContentDescription().toString().contains("请检查 车门"));
     assertTrue(ExteriorView.hasOpening(model.snapshot));
     savePage(root, null, "v062-home.png");
     Method doors = MainActivity.class.getDeclaredMethod("exteriorDialog"); doors.setAccessible(true); doors.invoke(activity);

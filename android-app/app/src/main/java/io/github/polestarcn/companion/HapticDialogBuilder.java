@@ -59,6 +59,19 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
       WindowManager.LayoutParams attrs=window.getAttributes();
       attrs.width=width;attrs.height=height;attrs.gravity=Gravity.CENTER;
       window.setAttributes(attrs);
+      final int initialWidth=width,initialHeight=height;
+      // AlertDialog.show() may restore WRAP_CONTENT while installing the decor.
+      // Reapply geometry synchronously in OnShow, before the first display frame.
+      // Typography, lists, paint and animation are already fixed before show.
+      dialog.setOnShowListener(shown->{
+        Window actual=dialog.getWindow();
+        if(actual==null)return;
+        WindowManager.LayoutParams live=actual.getAttributes();
+        if(live.width!=initialWidth||live.height!=initialHeight||live.gravity!=Gravity.CENTER){
+          actual.setGravity(Gravity.CENTER);
+          actual.setLayout(initialWidth,initialHeight);
+        }
+      });
     }
     return dialog;
   }

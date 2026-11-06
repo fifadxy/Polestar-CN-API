@@ -84,6 +84,11 @@ public final class Beta48UiStabilityTest {
     assertEquals(expected[0],dialog.getWindow().getAttributes().width);
     assertEquals(expected[1],dialog.getWindow().getAttributes().height);
     assertEquals(R.style.PsaDialogFadeAnimation,dialog.getWindow().getAttributes().windowAnimations);
+    dialog.show();
+    // Native AlertDialog may change the width to WRAP_CONTENT during show().
+    assertEquals(expected[0],dialog.getWindow().getAttributes().width);
+    assertEquals(expected[1],dialog.getWindow().getAttributes().height);
+    assertEquals(Gravity.CENTER,dialog.getWindow().getAttributes().gravity);
     dialog.dismiss();
     activity.finish();
   }

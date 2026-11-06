@@ -16,7 +16,7 @@ public final class OppoCardSummary {
   public static final String DEFAULT_SEPARATOR=" · ";
   public static final int MAX_TEMPLATE_LENGTH=160,MAX_SEPARATOR_LENGTH=8,MAX_UNITS=40;
   private static final Pattern TOKEN=Pattern.compile("\\{([a-zA-Z]+)\\}");
-  public static final String[] FIELDS={"soc","range","odometer","updated","lock","climate","air","charging","source"};
+  public static final String[] FIELDS={"soc","range","odometer","updated","lock","climate","air","charging","source","dynamic"};
   private OppoCardSummary(){}
 
   public static String checkTemplate(String value) {
@@ -61,6 +61,12 @@ public final class OppoCardSummary {
   public static String format(Bundle state,String template,String separator){
     if(state==null)state=Bundle.EMPTY;
     template=safeTemplate(template);separator=safeSeparator(separator);
+    // Only the stock compact template automatically shows an active timer.
+    // User-customized wording never gets silently overwritten; use {dynamic}
+    // explicitly in custom templates to opt in to an active-status field.
+    if(DEFAULT_TEMPLATE.equals(template)&&state.getBoolean("oppoDynamicStatusEnabled",true)
+        &&!state.getString("oppoDynamicLabel","").isEmpty())
+      template="{soc}{sep}{dynamic}";
     String[] pieces=template.split(Pattern.quote("{sep}"),-1);
     ArrayList<String> segments=new ArrayList<>();
     for(String piece:pieces){
@@ -124,8 +130,13 @@ public final class OppoCardSummary {
         return ms>0?"更新 "+new SimpleDateFormat("MM-dd HH:mm",Locale.getDefault()).format(new Date(ms)):"";
       }
       case "source":return data.getBoolean("available",false)?"缓存":"";
+      case "dynamic":return data.getBoolean("oppoDynamicStatusEnabled",true)
+          ?fit(data.getString("oppoDynamicLabel",""),20):"";
       case "lock":case "climate":case "air":case "charging":{
         String raw=data.getString(key,"");
+        // OPPO card lock status is a plain state, not a new car command.
+        if("lock".equals(key)&&("已上锁".equals(raw)||"已锁".equals(raw)))return "关锁";
+        if("lock".equals(key)&&("未锁".equals(raw)||"已解锁".equals(raw)))return "开锁";
         if(raw==null)return "";
         String v=raw.trim();
         return v.length()==0||"未知".equals(v)||"UNKNOWN".equalsIgnoreCase(v)?"":fit(v,16);

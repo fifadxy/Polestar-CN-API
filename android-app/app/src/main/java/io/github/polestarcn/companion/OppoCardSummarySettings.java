@@ -16,8 +16,12 @@ public final class OppoCardSummarySettings {
     return OppoCardSummary.safeSeparator(AppPreferences.get(c,SEPARATOR,OppoCardSummary.DEFAULT_SEPARATOR));
   }
   public static void write(Bundle out,Context c){
+    write(out,c,VehicleSnapshotStore.loadChina(c));
+  }
+  public static void write(Bundle out,Context c,VehicleSnapshot state){
     out.putString(OppoCardSummary.CONFIG_TEMPLATE,template(c));
     out.putString(OppoCardSummary.CONFIG_SEPARATOR,separator(c));
+    OppoRunningStatus.write(out,c,state);
   }
   public static void save(Context c,String tpl,String sep){
     tpl=OppoCardSummary.checkTemplate(tpl);

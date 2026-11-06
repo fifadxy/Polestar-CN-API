@@ -30,6 +30,7 @@ public final class ResidentService extends Service {
     if(changed||redrawEachMinute){
       NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
       nm.notify(ID,notification(this));WidgetRenderer.refreshAll(this);
+      if(OppoDeviceIntegration.enabled(this))OppoCardSummarySettings.changed(this);
     }
     lastTimerSignature=signature;OppoFluidCloud.updateFromCache(this);scheduleTimerTick();
   };

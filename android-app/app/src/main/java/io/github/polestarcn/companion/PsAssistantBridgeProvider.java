@@ -265,7 +265,7 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       VehicleSnapshot state = BuildConfig.OPPO_SDK_MOCK?OppoCarLinkMockFixture.snapshot():coordinator.snapshot;
       if (state == null) state = VehicleSnapshotStore.loadChina(context);
       writeSnapshot(out, state, BuildConfig.OPPO_SDK_MOCK?OppoCarLinkMockFixture.VIN:(coordinator.selected == null ? null : coordinator.selected.vin));
-      OppoCardSummarySettings.write(out,context);
+      OppoCardSummarySettings.write(out,context,state);
       out.putBoolean("mock",BuildConfig.OPPO_SDK_MOCK);
       return out;
     }

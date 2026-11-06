@@ -26,6 +26,7 @@ public final class Beta49HealthCheckTest {
   }
   @Test public void allGoodWarningNamesActualReportedIssue(){
     Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,"language","zh");
     VehicleSnapshot warning=washer();
     assertTrue(VehicleCondition.problem(warning,true));
     assertEquals("请检查 玻璃水",ConditionStyle.message(c,true,warning,true));
@@ -39,6 +40,7 @@ public final class Beta49HealthCheckTest {
   }
   @Test public void customWarningCopyCanOverrideButUnknownDataIsNotAnIssue(){
     Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,"language","zh");
     assertFalse(VehicleCondition.problem(car(),true));
     assertEquals("请检查车辆",ConditionStyle.message(c,true,car(),true));
     AppPreferences.set(c,"condition_problem_text","需要检修");
@@ -57,6 +59,7 @@ public final class Beta49HealthCheckTest {
   }
   @Test public void widgetCheckIsOnByDefaultAndCanBeDisabled(){
     Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();
+    AppPreferences.set(c,"language","zh");
     assertTrue(WidgetCheckHint.visible(c,washer()));
     assertFalse(WidgetCheckHint.visible(c,car()));
     assertTrue(SettingsBackup.allowed(WidgetCheckHint.PREF));
@@ -76,6 +79,7 @@ public final class Beta49HealthCheckTest {
   }
   @Test public void confirmedCommandLabelsAreSpecificAndNeverClaimUnverifiedHorns(){
     Context c=RuntimeEnvironment.getApplication();
+    AppPreferences.set(c,"language","zh");
     assertEquals("已上锁",CommandResultLabel.confirmed(c,"lock"));
     assertEquals("净化已开启",CommandResultLabel.confirmed(c,"air-start"));
     assertEquals("尾门已关闭",CommandResultLabel.confirmed(c,"trunk-close"));

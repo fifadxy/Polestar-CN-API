@@ -690,7 +690,7 @@ public final class MainActivity extends FragmentActivity {
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==811||request==812){if(result==RESULT_OK&&data!=null&&data.getData()!=null)finishSettingsFile(request,data.getData());return;}if(request==801&&result==RESULT_OK&&data!=null&&data.getData()!=null)startActivityForResult(new Intent(this,BackgroundCropActivity.class).setData(data.getData()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),802);else if(request==802&&result==RESULT_OK)render();}
   private void allGoodDialog(){LinearLayout p=detailPanel();setting(p,tr("显示位置 · 下方 / 车辆后方","Placement · below / behind"),()->choice(tr("All Good显示位置","All Good placement"),"all_good_position",new String[]{"below","behind"},new String[]{tr("车辆下方（默认）","Below vehicle (default)"),tr("车辆后方","Behind vehicle")},"below",this::render));setting(p,tr("后方排版 · 单行 / 两行 / C方案","Backdrop · one / two lines / layout C"),()->choice(tr("All Good后方排版","All Good backdrop layout"),"all_good_lines",new String[]{"one","two","offset_c"},new String[]{tr("单行","One line"),tr("两行","Two lines"),tr("C方案","Layout C")},"one",()->{if("offset_c".equals(AppPreferences.get(this,"all_good_lines","one")))AppPreferences.set(this,"all_good_position","behind");render();}));
     p.addView(text(tr("正常时的文字（最多80字，可换行）","Healthy text (up to 80 characters, multiline)"),14,ink,false));EditText good=new EditText(this);good.setTextColor(ink);good.setText(ConditionStyle.message(this,false));good.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(80)});p.addView(good);
-    p.addView(text(tr("有问题时的文字","Problem text"),14,ink,false));EditText issue=new EditText(this);issue.setTextColor(ink);issue.setText(ConditionStyle.message(this,true));issue.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(80)});p.addView(issue);
+    p.addView(text(tr("异常时自定义文字（默认自动提示具体项目）","Custom warning text (defaults to specific issue)"),14,ink,false));EditText issue=new EditText(this);issue.setTextColor(ink);issue.setText(ConditionStyle.message(this,true));issue.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(80)});p.addView(issue);
     p.addView(text(tr("文字颜色 #RRGGBB（默认VI橙色）","Text color #RRGGBB (default VI orange)"),14,ink,false));EditText color=new EditText(this);color.setSingleLine(true);color.setTextColor(ink);color.setText(AppPreferences.get(this,"condition_color","#FF6B00"));p.addView(color);
     String[] keys={"all_good_weight","condition_line_spacing","condition_focus_x","condition_focus_y","condition_stretch","condition_size","condition_check_size"};String[] labels={tr("文字粗细","Weight"),tr("行间距 %","Line spacing %"),tr("横向焦点 %","Horizontal focus %"),tr("纵向焦点 %","Vertical focus %"),tr("横向拉伸 %","Horizontal stretch %"),tr("文字大小 sp（0跟随皮肤）","Text size sp (0 follows skin)"),tr("打钩大小 %","Checkmark size %")};int[] lows={300,50,0,0,50,0,50},highs={900,200,100,100,200,100,250},defaults={500,100,50,50,100,0,100};SeekBar[] sliders=new SeekBar[keys.length];for(int i=0;i<keys.length;i++)sliders[i]=campSlider(p,labels[i],lows[i],highs[i],EffectSettings.number(this,keys[i],defaults[i],lows[i],highs[i]),null,null);
     note(p,tr("说明","Info"),tr("仅改变显示，正常/异常仍按车辆数据判断；焦点在可用范围内移动，文字会按控件边界缩放。","Presentation only. Vehicle data still decides healthy/problem. Focus stays in available space; text fits control bounds."));new HapticDialogBuilder(this).setTitle(tr("车况文字与All Good","Condition text and All Good")).setView(p).setPositiveButton(tr("保存","Save"),(d,w)->{String hex=color.getText().toString().trim();if(!WidgetColors.validHex(hex)){toast(tr("请输入#RRGGBB颜色","Enter #RRGGBB"));return;}AppPreferences.set(this,"condition_good_text",good.getText().toString());AppPreferences.set(this,"condition_problem_text",issue.getText().toString());AppPreferences.set(this,"condition_color",hex);for(int i=0;i<keys.length;i++)AppPreferences.set(this,keys[i],String.valueOf(lows[i]+sliders[i].getProgress()));WidgetRenderer.refreshAll(this);render();}).setNeutralButton(tr("恢复本项默认","Reset this section"),(d,w)->{android.content.SharedPreferences prefs=getSharedPreferences("preferences",0);android.content.SharedPreferences.Editor e=prefs.edit();for(String key:prefs.getAll().keySet())if(key.startsWith("condition_")&&!key.equals("condition_display"))e.remove(key);e.remove("all_good_weight");e.apply();render();}).setNegativeButton(tr("取消","Cancel"),null).show();}
@@ -1226,7 +1226,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       boolean good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(good||warn?ConditionStyle.message(this,warn):tr("保养","Service"));
+      label.setText(good||warn?ConditionStyle.message(this,warn,model.snapshot,showTires()):tr("保养","Service"));
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);
       int color=warn?orange:good?voAccent():muted;symbol.setColorFilter(color);
       symbol.setVisibility(good||warn?View.VISIBLE:View.INVISIBLE);
@@ -1272,7 +1272,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       boolean warn=VehicleCondition.problem(model.snapshot,showTires());
       boolean good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(good||warn?ConditionStyle.message(this,warn):tr("保养","Service"));
+      label.setText(good||warn?ConditionStyle.message(this,warn,model.snapshot,showTires()):tr("保养","Service"));
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);
       int color=warn?orange:good?voAccent():muted;symbol.setColorFilter(color);
       symbol.setVisibility(good||warn?View.VISIBLE:View.INVISIBLE);
@@ -1481,7 +1481,7 @@ public final class MainActivity extends FragmentActivity {
     bindDashboard(()->{
       VehicleHealthSnapshot h=model.snapshot==null?VehicleHealthSnapshot.unknown():model.snapshot.health;
       boolean warn=VehicleCondition.problem(model.snapshot,showTires()),good=VehicleCondition.reported(model.snapshot,showTires())&&!warn;
-      label.setText(minimalMode()?"":good||warn?ConditionStyle.message(this,warn):tr("保养","Service"));label.setTextColor(good||warn?accentText():muted);
+      label.setText(minimalMode()?"":good||warn?ConditionStyle.message(this,warn,model.snapshot,showTires()):tr("保养","Service"));label.setTextColor(good||warn?accentText():muted);
       symbol.setImageResource(good?R.drawable.ic_check:R.drawable.ic_warning);symbol.setColorFilter(good||warn?accentText():muted);
       symbol.setVisibility(good||warn?View.VISIBLE:View.GONE);
       health.setContentDescription(tr("保养","Service")+" · "+VehicleCondition.summary(this,model.snapshot,showTires()));

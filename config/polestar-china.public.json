@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "product": "PsAssistant",
+  "region": "CN",
+  "production_release": "1.1.0",
+  "public_api_endpoints": {
+    "gateway": "https://gw.app.polestar-auto.com",
+    "discovery": "https://cnepmob.volvocars.com.cn/"
+  },
+  "authentication": {
+    "method": "china-mobile-password",
+    "implementation": "auth.ClientSignatureProvider",
+    "private_runtime_asset": "assets/client-signing.bin",
+    "private_asset_format": "PSACFG2",
+    "approved_client_fingerprint_sha256": "59e1ca066e23a43e3976ded60c6691800dd19c4b173bd94b241bee42be5a7274",
+    "public_asset_in_repository": false
+  },
+  "local_build": {
+    "env_reference": "config/polestar-china.env.example",
+    "prior_approved_full_required": true,
+    "persistent_signing_key_required": true,
+    "oppo_sdk_private_for_native_oem": true,
+    "public_ci_mode": "VALIDATION only"
+  },
+  "includes_personal_data": false,
+  "includes_authentication_secret": false,
+  "note": "Public release metadata only. This is NOT a login credential and cannot independently authenticate without the private FULL asset."
+}

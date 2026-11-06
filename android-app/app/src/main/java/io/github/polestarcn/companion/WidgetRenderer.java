@@ -406,6 +406,7 @@ public final class WidgetRenderer {
    * This never reads the wall clock as a replacement for vehicle telemetry. */
   static String compactCheckTimestamp(String formatted,java.util.Calendar today){
     if(formatted==null||formatted.isEmpty())return "";
+    if(formatted.equals("更新时间未知")||formatted.equals("Update time unknown"))return "--";
     String value=formatted.replaceFirst("^(更新\\s*|Upd\\s*)","").replaceFirst("\\s*·\\s*\\+\\d+$","").trim();
     if(value.matches("\\d{2}-\\d{2} \\d{2}:\\d{2}")){
       String monthDay=value.substring(0,5);

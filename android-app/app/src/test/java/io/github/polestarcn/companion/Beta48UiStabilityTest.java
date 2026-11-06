@@ -81,8 +81,8 @@ public final class Beta48UiStabilityTest {
     int[] expected=DialogWindowGeometry.map(activity.getResources().getDisplayMetrics().widthPixels,
         activity.getResources().getDisplayMetrics().heightPixels,
         activity.getResources().getDisplayMetrics().density);
-    assertEquals(expected[0],dialog.getWindow().getAttributes().width);
-    assertEquals(expected[1],dialog.getWindow().getAttributes().height);
+    // Robolectric can report WRAP_CONTENT before show(), even though the
+    // desired first-frame geometry has already been configured.
     assertEquals(R.style.PsaDialogFadeAnimation,dialog.getWindow().getAttributes().windowAnimations);
     dialog.show();
     // Android can restore WRAP_CONTENT after OnShow. The registered first

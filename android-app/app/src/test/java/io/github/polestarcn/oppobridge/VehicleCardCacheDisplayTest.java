@@ -11,16 +11,16 @@ import org.robolectric.annotation.Config;
 public class VehicleCardCacheDisplayTest {
   @Test public void cachedMetricsComeFirstAndDoNotInventMissingValues() {
     Bundle s=new Bundle();s.putString("name","Polestar 2");
-    assertEquals("Polestar 2 · 暂无缓存",VehicleDeviceCardProvider.cardDisplayName(s));
+    assertEquals("车况未更新",VehicleDeviceCardProvider.cardDisplayName(s));
     s.putBoolean("batteryPercentKnown",true);s.putInt("batteryPercent",64);
     s.putBoolean("rangeKmKnown",true);s.putInt("rangeKm",270);
-    assertEquals("64% · 270km 缓存 · Polestar 2",VehicleDeviceCardProvider.cardDisplayName(s));
+    assertEquals("64% · 270KM",VehicleDeviceCardProvider.cardDisplayName(s));
     s.putInt("batteryPercent",101);s.putInt("rangeKm",-1);
-    assertEquals("Polestar 2 · 暂无缓存",VehicleDeviceCardProvider.cardDisplayName(s));
+    assertEquals("车况未更新",VehicleDeviceCardProvider.cardDisplayName(s));
   }
   @Test public void zeroBatteryIsRealAndMissingRangeIsNotZero() {
     Bundle s=new Bundle();s.putString("name","Polestar 2");s.putBoolean("batteryPercentKnown",true);s.putInt("batteryPercent",0);
-    assertEquals("0% 缓存 · Polestar 2",VehicleDeviceCardProvider.cardDisplayName(s));
+    assertEquals("0%",VehicleDeviceCardProvider.cardDisplayName(s));
   }
   @Test public void summaryUsesCacheSourceTimeAndUnavailableIsExplicit() {
     Bundle s=new Bundle();assertTrue(VehicleCardDetailActivity.formatSnapshot(s).contains("车辆不可用"));

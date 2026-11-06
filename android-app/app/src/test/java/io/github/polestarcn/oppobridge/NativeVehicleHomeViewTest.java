@@ -28,7 +28,8 @@ public class NativeVehicleHomeViewTest {
     Bundle b=new Bundle();b.putBoolean("available",true);b.putBoolean("batteryPercentKnown",true);b.putInt("batteryPercent",64);b.putBoolean("rangeKmKnown",true);b.putInt("rangeKm",270);b.putString("lock","已上锁");b.putString("climate","开启");b.putString("air","关闭");b.putString("tailgate","已关闭");b.putLong("capturedAt",System.currentTimeMillis());view.bindSnapshot(b);
     List<String> labels=new ArrayList<>();StringBuilder text=new StringBuilder();
     for(View v:children(view)){if(v instanceof Button){labels.add(((Button)v).getText().toString());assertTrue(v.isEnabled());}if(v instanceof TextView)text.append(((TextView)v).getText());}
-    assertEquals(6,labels.size());assertTrue(labels.contains("解锁"));assertTrue(labels.contains("关闭空调"));assertTrue(labels.contains("净化"));assertTrue(labels.contains("开启尾门"));assertTrue(labels.contains("刷新"));assertTrue(labels.contains("更多控制"));assertTrue(text.toString().contains("64%"));assertTrue(text.toString().contains("270 km"));assertTrue(text.toString().contains("缓存"));
+    assertEquals(6,labels.size());assertTrue(labels.contains("解锁"));assertTrue(labels.contains("关闭空调"));assertTrue(labels.contains("净化"));assertTrue(labels.contains("开启尾门"));assertTrue(labels.contains("刷新"));assertTrue(labels.contains("更多控制"));assertTrue(text.toString().contains("64% · 270KM"));
+    assertFalse(text.toString().contains("缓存 · Polestar"));
     b.putBoolean("demo",true);view.bindSnapshot(b);
     for(View v:children(view))if(v instanceof Button){String label=((Button)v).getText().toString();if(!label.equals("刷新")&&!label.equals("更多控制"))assertFalse(v.isEnabled());}
   }
@@ -63,6 +64,6 @@ public class NativeVehicleHomeViewTest {
     assertTrue(found);
   }
   @Test public void missingValuesNeverBecomeZero(){
-    NativeVehicleHomeView view=new NativeVehicleHomeView(RuntimeEnvironment.getApplication());StringBuilder text=new StringBuilder();for(View v:children(view))if(v instanceof TextView)text.append(((TextView)v).getText());assertFalse(text.toString().contains("0%"));assertFalse(text.toString().contains("0 km"));assertTrue(text.toString().contains("时间未知"));
+    NativeVehicleHomeView view=new NativeVehicleHomeView(RuntimeEnvironment.getApplication());StringBuilder text=new StringBuilder();for(View v:children(view))if(v instanceof TextView)text.append(((TextView)v).getText());assertFalse(text.toString().contains("0%"));assertFalse(text.toString().contains("0KM"));assertTrue(text.toString().contains("车况未更新"));
   }
 }

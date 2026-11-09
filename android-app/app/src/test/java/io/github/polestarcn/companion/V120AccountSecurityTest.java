@@ -1,0 +1,37 @@
+package io.github.polestarcn.companion;
+
+import static org.junit.Assert.*;
+import android.content.Context;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
+
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
+public final class V120AccountSecurityTest {
+  @Test public void optInDefaultsOffAndCredentialKeysCannotBeExported(){
+    Context c=RuntimeEnvironment.getApplication();
+    c.getSharedPreferences("preferences",0).edit().clear().commit();
+    assertFalse(AppPreferences.visible(c,"remember_credentials_optin",false));
+    for(String key:new String[]{"remember_credentials_optin","psa_cn_saved_login_v1","encrypted_account_v1",
+        "session_blob_v1","password","accessToken","refreshToken"})
+      assertFalse(key,SettingsBackup.allowed(key));
+  }
+  @Test public void safeAggregateMetricsAreProcessLocalAndUnidentified(){
+    TelemetryDiagnostics.reset();
+    TelemetryDiagnostics.recordLogin(true,500);
+    TelemetryDiagnostics.recordScoped(false,1000);
+    String report=TelemetryDiagnostics.report();
+    assertTrue(report.contains("1/0"));assertTrue(report.contains("0/1"));
+    assertTrue(report.contains("750ms"));
+    assertFalse(report.contains("password"));assertFalse(report.contains("VIN="));
+    TelemetryDiagnostics.reset();assertTrue(TelemetryDiagnostics.report().contains("0ms"));
+  }
+  @Test public void diagnosticLogRedactsAccountSecretsAndTokens(){
+    DiagnosticLog.add("password=ABC12345 accessToken=SECRET123 refresh_token=SECRET456");
+    String exported=DiagnosticLog.export();
+    for(String forbidden:new String[]{"ABC12345","SECRET123","SECRET456"})assertFalse(exported.contains(forbidden));
+    assertTrue(exported.contains("[redacted]"));
+  }
+}

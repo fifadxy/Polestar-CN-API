@@ -28,6 +28,15 @@ public final class V120AccountSecurityTest {
     assertFalse(report.contains("password"));assertFalse(report.contains("VIN="));
     TelemetryDiagnostics.reset();assertTrue(TelemetryDiagnostics.report().contains("0ms"));
   }
+  @Test public void signOutRecoveryCanLogInButActiveCampAccountSwitchCannot(){
+    assertTrue(LoginSafetyGate.canBegin(false,false,false,true,true,true));
+    assertFalse(LoginSafetyGate.canBegin(true,false,false,true,false,false));
+    assertFalse(LoginSafetyGate.canBegin(true,false,false,false,true,false));
+    assertFalse(LoginSafetyGate.canBegin(true,false,false,false,false,true));
+    assertFalse(LoginSafetyGate.canBegin(false,true,false,false,false,false));
+    assertFalse(LoginSafetyGate.canBegin(false,false,true,false,false,false));
+    assertTrue(LoginSafetyGate.canBegin(true,false,false,false,false,false));
+  }
   @Test public void diagnosticLogRedactsAccountSecretsAndTokens(){
     DiagnosticLog.add("password=ABC12345 accessToken=SECRET123 refresh_token=SECRET456");
     String exported=DiagnosticLog.export();

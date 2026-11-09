@@ -14,16 +14,19 @@ final class AccountLoginController {
   private final VehicleCoordinator vehicle;
   private final java.util.function.Consumer<String> notice;
   private BiometricPrompt prompt;
+  private boolean authenticating;
   private int generation;
   private char[] pendingSecret;
   AccountLoginController(FragmentActivity activity,VehicleCoordinator coordinator,java.util.function.Consumer<String> notice){
     this.activity=activity;vehicle=coordinator;this.notice=notice;
   }
   boolean hasSaved(){return SecureCredentialStore.hasSaved(activity);}
+  boolean authenticationInProgress(){return authenticating;}
   void clear(){cancel();SecureCredentialStore.clear(activity);}
   void cancel(){
     generation++;
-    if(prompt!=null)prompt.cancelAuthentication();
+    authenticating=false;
+    if(prompt!=null){prompt.cancelAuthentication();prompt=null;}
     if(pendingSecret!=null){Arrays.fill(pendingSecret,'\0');pendingSecret=null;}
   }
   void storeAfterVerifiedLogin(String phone,char[] password){
@@ -70,14 +73,15 @@ final class AccountLoginController {
       return;
     }
     int current=++generation;
+    authenticating=true;
     prompt=new BiometricPrompt(activity,command->activity.runOnUiThread(command),new BiometricPrompt.AuthenticationCallback(){
       @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){
         if(current!=generation||activity.isFinishing()||activity.isDestroyed())return;
-        generation++;success.run();
+        generation++;authenticating=false;prompt=null;success.run();
       }
       @Override public void onAuthenticationError(int code,CharSequence text){
         if(current!=generation)return;
-        generation++;cancelled.run();
+        generation++;authenticating=false;prompt=null;cancelled.run();
         if(code!=BiometricPrompt.ERROR_USER_CANCELED&&code!=BiometricPrompt.ERROR_NEGATIVE_BUTTON&&code!=BiometricPrompt.ERROR_CANCELED)
           notice.accept(AppPreferences.tr(activity,"身份验证没有完成","Device authentication was not completed"));
       }
@@ -87,6 +91,12 @@ final class AccountLoginController {
         .setSubtitle(AppPreferences.tr(activity,"密码仅解密于当前进程，不会提供给插件","Credentials are never exposed to plugins"))
         .setAllowedAuthenticators(allowed);
     if(Build.VERSION.SDK_INT<30)info.setNegativeButtonText(AppPreferences.tr(activity,"取消","Cancel"));
-    prompt.authenticate(info.build());
+    try{prompt.authenticate(info.build());}
+    catch(RuntimeException unavailable){
+      if(current==generation){
+        authenticating=false;prompt=null;generation++;cancelled.run();
+        notice.accept(AppPreferences.tr(activity,"系统身份验证暂时不可用","Device authentication unavailable"));
+      }
+    }
   }
 }

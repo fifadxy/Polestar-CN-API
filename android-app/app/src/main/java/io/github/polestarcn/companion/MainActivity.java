@@ -270,7 +270,10 @@ public final class MainActivity extends FragmentActivity {
   protected void onStop() {
     displayHandler.removeCallbacks(mapRefreshTick);displayHandler.removeCallbacks(resumeParking);dismissParking();if(carDialog!=null)carDialog.dismiss();
     if (model != null) model.remove(listener);
-    if(accountLogin!=null)accountLogin.cancel();
+    // External Android device-credential verification may temporarily stop the
+    // Activity. Keep its pending BiometricPrompt alive; cancel on true destroy
+    // or explicit user cancellation instead of aborting a valid auth handoff.
+    if(accountLogin!=null&&!accountLogin.authenticationInProgress())accountLogin.cancel();
     if(password!=null)password.getText().clear();
     resumeRender = true;
     if (biometric != null && authPending) {

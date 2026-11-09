@@ -708,6 +708,7 @@ public final class VehicleCoordinator {
     if (s == null) s = e.getClass().getSimpleName();
     s =
         s.replaceAll("(?i)Bearer\\s+[^\\s]+", "[redacted]")
+            .replaceAll("(?i)(password|access_token|refresh_token|accessToken|refreshToken|secret|authorization)\\s*[:=]\\s*[^,; ]+", "$1=[redacted]")
             .replaceAll("[A-HJ-NPR-Z0-9]{17}", "[VIN]")
             .replaceAll("(?<![0-9])1[3-9][0-9]{9}(?![0-9])", "[phone]");
     return s.length() > 150 ? s.substring(0, 150) : s;

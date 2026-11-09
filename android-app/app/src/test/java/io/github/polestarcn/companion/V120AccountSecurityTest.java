@@ -37,6 +37,12 @@ public final class V120AccountSecurityTest {
     assertFalse(LoginSafetyGate.canBegin(false,false,true,false,false,false));
     assertTrue(LoginSafetyGate.canBegin(true,false,false,false,false,false));
   }
+  @Test public void loginErrorMessagesCannotExposePlainCredentials(){
+    String sanitized=VehicleCoordinator.safe(new Exception("password=SECRET-PASS refresh_token=SECRET-TOKEN"));
+    assertFalse(sanitized.contains("SECRET-PASS"));
+    assertFalse(sanitized.contains("SECRET-TOKEN"));
+    assertTrue(sanitized.contains("[redacted]"));
+  }
   @Test public void diagnosticLogRedactsAccountSecretsAndTokens(){
     DiagnosticLog.add("password=ABC12345 accessToken=SECRET123 refresh_token=SECRET456");
     String exported=DiagnosticLog.export();

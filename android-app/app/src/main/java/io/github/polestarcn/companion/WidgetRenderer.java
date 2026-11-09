@@ -21,6 +21,8 @@ public final class WidgetRenderer {
 
   public static void refreshAll(Context context) {
     AppWidgetManager m = AppWidgetManager.getInstance(context);
+    // Nothing is rendered or loaded if no widgets are installed.
+    if(!hasWidgets(context))return;
     VehicleSnapshot snapshot = VehicleSnapshotStore.loadChina(context);
     refresh(context, m, VehicleWidgetProvider.class, Size.LARGE, snapshot);
     refresh(context, m, CompactWidgetProvider.class, Size.SQUARE, snapshot);

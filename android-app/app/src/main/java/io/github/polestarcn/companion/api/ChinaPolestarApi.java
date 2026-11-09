@@ -121,7 +121,7 @@ public final class ChinaPolestarApi {
 
   public Session login(String phone, String password) throws Exception {
     final long loginEpoch;
-    synchronized(SESSION_STATE_LOCK){loginEpoch=sessionEpoch;}
+    synchronized(SESSION_STATE_LOCK){loginEpoch=++sessionEpoch;}
     if (phone == null || phone.trim().isEmpty()) throw new IllegalArgumentException("请输入手机号");
     if (password == null || password.isEmpty()) throw new IllegalArgumentException("请输入密码");
     if (!signatureProvider.isReady())
@@ -192,6 +192,8 @@ public final class ChinaPolestarApi {
     s.revision = System.currentTimeMillis();
     synchronized(SESSION_STATE_LOCK){
       if(sessionEpoch!=loginEpoch)throw new IllegalStateException("Login cancelled by sign-out");
+      // Invalidate refresh callbacks started while the interactive login was in flight.
+      sessionEpoch++;
       healthCache.clear();targetSocUnavailableUntil.clear();
       SecureSessionStore.save(context,s);
     }

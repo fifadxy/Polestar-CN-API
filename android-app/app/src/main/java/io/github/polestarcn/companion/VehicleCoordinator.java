@@ -196,31 +196,48 @@ public final class VehicleCoordinator {
     completions.clear();
   }
 
-  public void login(String phone, String password) {
-    if(!FirstUseConsent.accepted(context))return;
-    if (busy || commandPending) return;
-    busy = true; exclusive=true;
-    message = tr("正在登录…", "Signing in…");
-    changed();
-    io.execute(
-        () -> {
-          try {
-            api.login(phone, password);
-            main.post(
-                () -> {
-                  SecureVehicleSelection.clear(context);
-                  signedIn = true;OppoCarLinkModels.account(context,phone);
-                  busy = false;exclusive=false;
-                  refresh(null);
-                });
-          } catch (Exception e) {
-            main.post(
-                () -> {
-                  message = tr("登录失败：", "Sign-in failed: ") + safe(e);
-                  finish();
-                });
+  /** Prior login API stays compatible; callbacks run on the main thread. */
+  public void login(String phone,String password){login(phone,password,null);}
+
+  /** Reauthentication never interrupts running controls, refresh or camping. */
+  public boolean canReauthenticate(){
+    return !busy&&!commandPending&&!CampModeManager.active(context)
+        &&!CampModeManager.pendingStop(context)&&!"STOPPING".equals(CampModeManager.phase(context));
+  }
+  public boolean login(String phone,String password,java.util.function.Consumer<Boolean> completion){
+    if(!FirstUseConsent.accepted(context)||!canReauthenticate())return false;
+    final long generation=++sessionGeneration;
+    final long loginStarted=android.os.SystemClock.elapsedRealtime();
+    final String previous=context.getSharedPreferences("oppo-carlink-identity",0).getString("account","");
+    final boolean sameAccount=!previous.isEmpty()
+        &&previous.equals(identity("psa-oppo-account:"+phone.trim()));
+    busy=true;exclusive=true;message=tr("正在登录…","Signing in…");changed();
+    io.execute(()->{
+      try{
+        api.login(phone,password);
+        main.post(()->{
+          if(generation!=sessionGeneration){if(completion!=null)completion.accept(false);return;}
+          if(!sameAccount){
+            SecureVehicleSelection.clear(context);selected=null;cars.clear();
+            snapshot=null;lastVehicleReadOk=false;vehiclesDiscoveredAt=0;
           }
+          signedIn=true;OppoCarLinkModels.account(context,phone);
+          TelemetryDiagnostics.recordLogin(true,android.os.SystemClock.elapsedRealtime()-loginStarted);
+          busy=false;exclusive=false;
+          if(completion!=null)completion.accept(true);
+          refresh(null);
         });
+      }catch(Exception error){
+        main.post(()->{
+          if(generation!=sessionGeneration){if(completion!=null)completion.accept(false);return;}
+          TelemetryDiagnostics.recordLogin(false,android.os.SystemClock.elapsedRealtime()-loginStarted);
+          message=tr("登录失败：","Sign-in failed: ")+safe(error);
+          if(completion!=null)completion.accept(false);
+          finish();
+        });
+      }
+    });
+    return true;
   }
 
   public void refreshUser(Runnable done) {
@@ -245,6 +262,7 @@ public final class VehicleCoordinator {
     message = tr("正在更新车辆…", "Updating vehicle…");
     changed();
     final long requestGeneration=sessionGeneration;
+    final long fullStarted=android.os.SystemClock.elapsedRealtime();
     final String wanted = AppPreferences.get(context, "vehicle", "");
     final List<ChinaPolestarApi.VehicleInfo> known = new ArrayList<>(cars);
     final boolean discover = known.isEmpty() || System.currentTimeMillis() - vehiclesDiscoveredAt >= 15 * 60_000L;
@@ -270,6 +288,7 @@ public final class VehicleCoordinator {
                   if(selectionChanged)SecureVehicleSelection.save(context,pick);
                   AppPreferences.set(context, "vehicle", identity(pick.vin));
                   snapshot = live;lastVehicleReadOk=true;
+                  TelemetryDiagnostics.recordFull(true,android.os.SystemClock.elapsedRealtime()-fullStarted);
                   VehicleRefreshManager.get(context).onFullRead(pick.vin);
                   protectCamp(pick.vin, live);
                   message = tr("车辆状态已更新", "Vehicle updated");
@@ -280,6 +299,7 @@ public final class VehicleCoordinator {
             main.post(
                 () -> {
                   if(requestGeneration!=sessionGeneration||!signedIn)return;
+                  TelemetryDiagnostics.recordFull(false,android.os.SystemClock.elapsedRealtime()-fullStarted);
                   lastVehicleReadOk=false;message = tr("更新失败：", "Update failed: ") + safe(e);
                   finish();
                 });
@@ -296,6 +316,7 @@ public final class VehicleCoordinator {
     if(busy||commandPending){if(done!=null)done.run();return;}
     busy=true;quietRefresh=true;changed();
     final long generation=sessionGeneration;
+    final long scopedStarted=android.os.SystemClock.elapsedRealtime();
     final ChinaPolestarApi.VehicleInfo vehicle=selected;
     final VehicleSnapshot previous=snapshot;
     io.execute(()->{
@@ -309,6 +330,7 @@ public final class VehicleCoordinator {
           }
           boolean updated=RefreshDisplay.changed(previous,fresh);
           snapshot=fresh;lastVehicleReadOk=true;
+          TelemetryDiagnostics.recordScoped(true,android.os.SystemClock.elapsedRealtime()-scopedStarted);
           lastScopedRefreshed=java.util.EnumSet.copyOf(reported);
           VehicleSnapshotStore.saveChina(context,fresh);
           if(scopes.contains(RefreshDomain.CORE)||scopes.contains(RefreshDomain.MILEAGE))
@@ -324,6 +346,7 @@ public final class VehicleCoordinator {
           if(generation!=sessionGeneration||!signedIn||selected==null||!vehicle.vin.equals(selected.vin)){
             if(done!=null)done.run();return;
           }
+          TelemetryDiagnostics.recordScoped(false,android.os.SystemClock.elapsedRealtime()-scopedStarted);
           lastVehicleReadOk=false;DiagnosticLog.add("Scoped telemetry unavailable");
           if(done!=null)completions.add(done);
           finish();

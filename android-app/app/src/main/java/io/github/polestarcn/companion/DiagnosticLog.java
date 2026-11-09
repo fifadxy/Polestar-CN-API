@@ -13,9 +13,13 @@ public final class DiagnosticLog {
 
   public static synchronized void add(String event) {
     if (MESSAGES.size() >= 60) MESSAGES.removeFirst();
+    if(event==null)event="";
+    event=event.replace('\n',' ').replace('\r',' ');
+    if(event.length()>1500)event=event.substring(0,1500);
     event =
         event
             .replaceAll("(?i)Bearer\\s+[^\\s]+", "Bearer [redacted]")
+            .replaceAll("(?i)(password|access_token|refresh_token|accessToken|refreshToken|secret|authorization)\\s*[:=]\\s*[^,; ]+", "$1=[redacted]")
             .replaceAll("[A-HJ-NPR-Z0-9]{17}", "[VIN]")
             .replaceAll("(?<![0-9])1[3-9][0-9]{9}(?![0-9])", "[phone]")
             .replaceAll("eyJ[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+\\.[A-Za-z0-9_\\-]+", "[token]");
@@ -24,6 +28,7 @@ public final class DiagnosticLog {
 
   public static synchronized String export() {
     StringBuilder out = new StringBuilder("PsAssistant diagnostics\n");
+    out.append(TelemetryDiagnostics.report()).append('\n');
     out.append("build=").append(BuildConfig.VERSION_NAME)
         .append("; mainUi=control; chinaRemote=biometric; camp=optional; globalApi=off\n");
     for (String e : MESSAGES) out.append(e).append('\n');

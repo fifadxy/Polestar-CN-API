@@ -483,6 +483,10 @@ public final class MainActivity extends FragmentActivity {
     }
     dashboardReady = false;
     dashboardBindings.clear();lineHeightCache.clear();
+    // Protect password entry and saved-login device-auth flows from screen capture
+    // and the recent-apps task preview. Never block normal signed-in dashboards.
+    if(!model.hasSession())getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
     palette();
     setTheme(AppPreferences.dark(this) ? R.style.AppThemeDark : R.style.AppThemeLight);
     shell = column();
@@ -2518,6 +2522,10 @@ public final class MainActivity extends FragmentActivity {
     });
     disclosure(root,"settings_account",tr("账号与安全、诊断与关于","Account security, diagnostics and about"),false,p->{
       note(p,tr("会话状态","Session"),model.hasSession()?tr("已登录；Token 单独加密","Signed in, encrypted session"):tr("未登录","Signed out"));
+      long refreshed=io.github.polestarcn.companion.auth.SecureSessionStore.refreshedAt(this);
+      note(p,tr("Token 最近更新","Last session token update"),
+          refreshed>0?new java.text.SimpleDateFormat("MM-dd HH:mm",java.util.Locale.getDefault())
+              .format(new java.util.Date(refreshed)):tr("未记录","Not available"));
       note(p,tr("加密账号","Encrypted saved account"),accountLogin.hasSaved()?
           tr("已保存；使用前需系统身份验证","Saved; device authentication required"):
           tr("未保存（默认）","Not saved (default)"));

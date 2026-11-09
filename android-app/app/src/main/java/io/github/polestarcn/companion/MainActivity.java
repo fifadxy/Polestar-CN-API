@@ -40,7 +40,8 @@ public final class MainActivity extends FragmentActivity {
   private boolean handlingWidget;
   private BiometricPrompt biometric;
   private EditText phone, password;
-  private String inputPhone = "", inputPassword = "";
+  private String inputPhone = "";
+  private AccountLoginController accountLogin;
   private int campHours = 1;
   private boolean campKeepAir;
   private boolean resumeRender;
@@ -166,6 +167,7 @@ public final class MainActivity extends FragmentActivity {
     String previousHome="vehicle_status,odometer,ta_distance,tm_distance,ta_speed,tm_speed,tm_consumption,temperature,aqi,charge_power";
     if(previousHome.equals(AppPreferences.get(this,"home_metrics","")))AppPreferences.set(this,"home_metrics",HOME_DEFAULTS);
     model = VehicleCoordinator.get(this);
+    accountLogin=new AccountLoginController(this,model,this::toast);
     model.listen(listener);
     render();
     if(FirstUseConsent.accepted(this))startConsented();else FirstUseConsent.show(this,this::startConsented);
@@ -245,6 +247,7 @@ public final class MainActivity extends FragmentActivity {
     displayHandler.removeCallbacks(openingRefresh);displayHandler.removeCallbacks(displayTick);displayHandler.removeCallbacks(foregroundRefresh);
     displayHandler.removeCallbacks(mapRefreshTick);displayHandler.removeCallbacks(resumeParking);dismissParking();if(carDialog!=null)carDialog.dismiss();if(backdrop!=null)backdrop.release();
     model.remove(listener);
+    if(accountLogin!=null)accountLogin.cancel();
     authGeneration++; authPending = false;
     if (biometric != null) biometric.cancelAuthentication();
     stopCampingNetworkMonitor();super.onDestroy();
@@ -267,6 +270,8 @@ public final class MainActivity extends FragmentActivity {
   protected void onStop() {
     displayHandler.removeCallbacks(mapRefreshTick);displayHandler.removeCallbacks(resumeParking);dismissParking();if(carDialog!=null)carDialog.dismiss();
     if (model != null) model.remove(listener);
+    if(accountLogin!=null)accountLogin.cancel();
+    if(password!=null)password.getText().clear();
     resumeRender = true;
     if (biometric != null && authPending) {
       authGeneration++; authPending = false; biometric.cancelAuthentication();
@@ -471,10 +476,10 @@ public final class MainActivity extends FragmentActivity {
     captureScrolls();
     if (isFinishing() || isDestroyed()) return;
     if (phone != null) {
-      inputPhone = phone.getText().toString();
-      inputPassword = password.getText().toString();
-      phone = null;
-      password = null;
+      inputPhone=phone.getText().toString();
+      // Never copy a password to an Activity field on a page rebuild.
+      password.getText().clear();
+      phone=null;password=null;
     }
     dashboardReady = false;
     dashboardBindings.clear();lineHeightCache.clear();
@@ -616,11 +621,31 @@ public final class MainActivity extends FragmentActivity {
     phone = field(tr("手机号", "Phone number"), false);
     phone.setText(inputPhone);
     password = field(tr("密码", "Password"), true);
-    password.setText(inputPassword);
+    password.setSaveEnabled(false);
+    password.setFreezesText(false);
+    password.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
     v.addView(phone, new LinearLayout.LayoutParams(-1, dp(54)));
     gap(v, 12);
     v.addView(password, new LinearLayout.LayoutParams(-1, dp(54)));
-    gap(v, 20);
+    CheckBox reveal=new CheckBox(this);reveal.setText(tr("显示密码","Show password"));
+    reveal.setTextSize(12);reveal.setTextColor(muted);
+    reveal.setOnCheckedChangeListener((view,on)->{
+      int position=password.getSelectionStart();
+      password.setInputType(InputType.TYPE_CLASS_TEXT|
+          (on?InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD:InputType.TYPE_TEXT_VARIATION_PASSWORD));
+      password.setTypeface(regular);
+      if(position>=0&&position<=password.length())password.setSelection(position);
+    });
+    v.addView(reveal);
+    gap(v, 12);
+    CheckBox remember=new CheckBox(this);
+    remember.setTag("remember_login");
+    remember.setText(tr("记住账号和密码到本机（加密，需系统身份验证）",
+        "Save account/password on device (encrypted, authentication required)"));
+    remember.setTextSize(13);remember.setTextColor(muted);
+    remember.setChecked(AppPreferences.visible(this,"remember_credentials_optin",false));
+    remember.setOnCheckedChangeListener((view,on)->AppPreferences.set(this,"remember_credentials_optin",on?"on":"off"));
+    v.addView(remember);gap(v,12);
     TextView sign =
         button(
             model.busy ? tr("正在连接…", "Connecting…") : tr("登录并连接车辆", "Sign in and connect"),
@@ -638,25 +663,45 @@ public final class MainActivity extends FragmentActivity {
                         "This verification build has no account client configuration. Install the complete signed version; no other APK is needed."));
                 return;
               }
-              inputPassword = "";
-              password.setText("");
-              model.login(p, s);
+              char[] proposed=remember.isChecked()?s.toCharArray():null;
+              password.getText().clear();
+              boolean started=model.login(p,s,passed->{
+                if(proposed==null)return;
+                if(passed&&!isFinishing()&&!isDestroyed()
+                    &&getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED))
+                  accountLogin.storeAfterVerifiedLogin(p,proposed);
+                else java.util.Arrays.fill(proposed,'\0');
+              });
+              if(!started){
+                if(proposed!=null)java.util.Arrays.fill(proposed,'\0');
+                toast(tr("当前有登录或车辆操作，暂不可重新登录","Wait for the active login or vehicle operation"));
+              }
             });
+    sign.setTag("login_submit");
     sign.setBackground(bg(orange, 8));
     sign.setTextColor(Color.BLACK);
     sign.setEnabled(!(model.busy&&!model.quietRefresh));
     v.addView(sign, new LinearLayout.LayoutParams(-1, dp(54)));
-    gap(v, 12);
-    v.addView(text(model.message, 13, muted, false));
-    gap(v, 20);
+    if(accountLogin.hasSaved()){
+      gap(v,8);
+      TextView again=button(tr("使用本机保存的账号一键重新登录","One-tap sign-in with saved account"),
+          this::confirmSavedRelogin);
+      again.setTag("one_click_relogin");
+      again.setEnabled(!model.busy&&!model.commandPending);
+      v.addView(again,new LinearLayout.LayoutParams(-1,dp(50)));
+    }
+    gap(v,12);
+    TextView loginMessage=text(model.message,13,muted,false);
+    loginMessage.setTag("login_status");v.addView(loginMessage);
+    gap(v,20);
     v.addView(text(tr("独立版本 · 无需其他 APK", "Standalone version · no other APK required"),12,muted,false));
     gap(v, 8);
     v.addView(
         text(
             tr(
-                "仅在本机加密保存兼容参数与登录会话，密码不保存。",
-                "Compatibility data and session stay encrypted on this phone. Your password is not"
-                    + " stored."),
+                "Token 使用独立密钥加密；仅勾选并验证后才保存密码，可随时删除。",
+                "Session tokens use a separate encrypted key. Password storage is optional,"
+                    + " requires device verification and can be deleted anytime."),
             12,
             muted,
             false));
@@ -849,6 +894,18 @@ public final class MainActivity extends FragmentActivity {
     if(statusDockBinding!=null)statusDockBinding.run();
     if(model.progressOnly){TextView label=contentRoot.findViewWithTag("status_update");if(label!=null)label.setText(dashboardStamp());return;}
     if(page==2&&model.hasSession())return;
+    if(page==0&&!model.hasSession()&&phone!=null&&password!=null){
+      // Update only text while credentials are being edited; never re-inflate
+      // the login form and never copy secrets into Activity fields.
+      TextView status=contentRoot.findViewWithTag("login_status");
+      if(status!=null)status.setText(model.message);
+      TextView submit=contentRoot.findViewWithTag("login_submit");
+      if(submit!=null){
+        submit.setText(model.busy?tr("正在连接…","Connecting…"):tr("登录并连接车辆","Sign in and connect"));
+        submit.setEnabled(!model.busy);
+      }
+      return;
+    }
     if(parkingDialog!=null&&(!model.hasSession()||model.selected==null||!java.util.Objects.equals(parkingVin,model.selected.vin)))dismissParking();
     scheduleOpeningLocation();if(mapHost==null&&AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){render();return;}updateBackdrop();
     if (dashboardReady && page == 0 && model.hasSession()) {
@@ -2332,15 +2389,43 @@ public final class MainActivity extends FragmentActivity {
     note(p,tr("说明","Info"),tr("静默显示电量、充电、空调/净化与更新时间。刷新周期在下方独立设置，Android省电限制可能延迟；锁屏隐藏详情。","Silent battery, charging, climate/air and update time. Configure refresh below; Android battery restrictions can delay it. Lock-screen details stay private."));
     setting(p,tr("后台与电池设置","Background and battery settings"),()->startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,android.net.Uri.parse("package:"+getPackageName()))));
   }
+  private void confirmSavedRelogin(){
+    if(authPending||!model.canReauthenticate()){
+      toast(tr("请先完成正在执行的车控、验证、刷新或托管任务",
+          "Finish active controls, authorization, reads or camping first"));return;
+    }
+    new HapticDialogBuilder(this).setTitle(tr("一键重新登录","One-tap sign-in"))
+      .setMessage(tr("使用本机加密保存的中国区账号重新登录，需完成系统身份验证。如保存的是其他账号，可能切换车辆。不会自动发送远程指令。",
+          "Re-login using encrypted credentials after device verification. It may change accounts; no remote controls are sent."))
+      .setPositiveButton(tr("继续验证","Continue"),(d,w)->accountLogin.oneClickRelogin())
+      .setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void deleteSavedLogin(){
+    new HapticDialogBuilder(this).setTitle(tr("删除保存的账号密码","Delete saved credentials"))
+      .setMessage(tr("只删除本机的加密账号、密码和专用密钥；当前 Token 会话不受影响。",
+          "Remove local encrypted credentials and their key only; the current token session remains."))
+      .setPositiveButton(tr("确认删除","Delete"),(d,w)->{
+        accountLogin.clear();toast(tr("已删除保存的账号密码","Saved account removed"));render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void signOutAndDeleteAll(){
+    new HapticDialogBuilder(this).setTitle(tr("退出并清除所有登录数据","Sign out and erase login data"))
+      .setMessage(tr("清除会话 Token、加密账号密码与本机登录状态。待核实的远程托管停止记录仍由原安全流程保护。",
+          "Clear tokens and saved credentials. Pending remote camp-stop safety records remain protected."))
+      .setPositiveButton(tr("清除并退出","Erase and sign out"),(d,w)->{
+        accountLogin.clear();inputPhone="";model.logout();page=0;render();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
   private void signOut(){
     boolean camping=CampModeManager.active(this)||CampModeManager.pendingStop(this);
     String message=camping
       ?tr("可以立即退出并停止本地托管。待核实的远程停止记录会安全保留；以后重新登录同一辆车并确认联网后，先刷新车况再核实是否停止。退出期间无法自动控制车辆，请通过官方 App 或车辆确认。",
           "You can sign out and stop local camping. A pending remote-stop record remains encrypted; after signing back into the same car, a fresh authenticated read is required before verifying shutdown. No remote control occurs while signed out; check the official app or vehicle.")
-      :tr("退出并清除本机登录会话？正在发送的指令可能仍在车端完成。",
-          "Sign out and clear local credentials? An in-flight vehicle command might still complete remotely.");
+      :tr("退出并清除当前 Token 会话？以前选择保存的加密密码仍留在本机，直到主动删除。",
+          "Sign out and clear token session? Previously saved encrypted credentials remain until explicitly deleted.");
     new HapticDialogBuilder(this).setTitle(tr("退出登录","Sign out")).setMessage(message)
-      .setPositiveButton(tr("确认退出","Sign out"),(d,w)->{        inputPhone="";inputPassword="";model.logout();page=0;render();
+      .setPositiveButton(tr("确认退出","Sign out"),(d,w)->{
+        inputPhone="";model.logout();page=0;render();
       }).setNegativeButton(tr("取消","Cancel"),null).show();
   }
   boolean showingSettings(){return page==2;}
@@ -2431,9 +2516,29 @@ public final class MainActivity extends FragmentActivity {
       setting(p,tr("手表皮肤 · ","Watch skin · ")+watchSkinLabel()+tr(" · 圆屏 / 方屏"," · round / square"),this::watchPreview);
       note(p,tr("手表联动设置","Watch integration"),tr("OPPO Watch Indicator 与流体云测试已统一归入 OPPO 系统兼容。","OPPO Watch Indicator and Fluid Cloud tests are under OPPO system compatibility."));
     });
-    disclosure(root,"settings_account",tr("账户、诊断与关于","Account, diagnostics and about"),false,p->{
+    disclosure(root,"settings_account",tr("账号与安全、诊断与关于","Account security, diagnostics and about"),false,p->{
+      note(p,tr("会话状态","Session"),model.hasSession()?tr("已登录；Token 单独加密","Signed in, encrypted session"):tr("未登录","Signed out"));
+      note(p,tr("加密账号","Encrypted saved account"),accountLogin.hasSaved()?
+          tr("已保存；使用前需系统身份验证","Saved; device authentication required"):
+          tr("未保存（默认）","Not saved (default)"));
+      settingToggle(p,"remember_credentials_optin",tr("下次登录可选保存密码（默认关）",
+          "Offer encrypted password storage on next sign-in (off)"),false,false);
+      setting(p,tr("一键重新登录 · 指纹 / 系统锁屏",
+          "One-tap re-login · biometrics or device credentials"),this::confirmSavedRelogin);
+      setting(p,tr("重新验证当前 Session 和车况","Revalidate current session and vehicle"),()->{
+        if(!model.hasSession())toast(tr("请先登录","Sign in first"));
+        else if(model.busy||model.commandPending)toast(tr("当前有任务执行中","An operation is active"));
+        else model.refreshUser(null);
+      });
+      setting(p,tr("删除本机保存的账号和密码","Delete saved account/password"),this::deleteSavedLogin);
+      setting(p,tr("退出并删除全部登录数据","Sign out and erase login data"),this::signOutAndDeleteAll);
+      note(p,tr("安全保护","Credential protection"),
+          tr("独立 Android Keystore AES-256-GCM 加密，读取前须系统验证；密码不提供给 Widget、OPPO Bridge、日志或备份。Root/LSPosed 环境仍有运行时风险。",
+             "Dedicated user-authenticated Android Keystore AES-256-GCM. No passwords in Widgets, OPPO Bridge, logs or backups. Root/LSPosed poses runtime risk."));
       note(p,tr("独立运行说明","Standalone build"),new ClientSignatureProvider(this).isReady()?tr("完整独立构建 · 无需其他APK","Complete standalone build · no other APK needed"):tr("开发验证构建缺少登录配置，请安装完整签名版。","This developer verification build needs client configuration; install the complete signed APK."));
       setting(p,tr("免责声明","Disclaimer"),()->info(tr("免责声明","Disclaimer"),FirstUseConsent.text(this)));
+      setting(p,tr("请求诊断统计 · 不含账号与车辆标识","Request diagnostics · no account/vehicle IDs"),
+        ()->info(tr("本机请求统计","Local request statistics"),TelemetryDiagnostics.report()));
       setting(p,tr("复制诊断日志","Copy diagnostic log"),()->{ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);cm.setPrimaryClip(ClipData.newPlainText("Diagnostics",DiagnosticLog.export()));toast(tr("已复制","Copied"));});
       setting(p,tr("退出登录","Sign out"),this::signOut);p.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立开发的非官方客户端","Independent unofficial client"),12,muted,false));
     });

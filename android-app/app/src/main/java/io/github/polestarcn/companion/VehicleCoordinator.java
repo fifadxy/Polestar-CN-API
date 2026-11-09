@@ -201,8 +201,11 @@ public final class VehicleCoordinator {
 
   /** Reauthentication never interrupts running controls, refresh or camping. */
   public boolean canReauthenticate(){
-    return !busy&&!commandPending&&!CampModeManager.active(context)
-        &&!CampModeManager.pendingStop(context)&&!"STOPPING".equals(CampModeManager.phase(context));
+    // A user who signed out while a camp-stop record is pending MUST be able
+    // to sign back in and recover that record with the original same-VIN gate.
+    // Only an already signed-in account is blocked from switching mid-camp.
+    return !busy&&!commandPending&&(!signedIn||(!CampModeManager.active(context)
+        &&!CampModeManager.pendingStop(context)&&!"STOPPING".equals(CampModeManager.phase(context))));
   }
   public boolean login(String phone,String password,java.util.function.Consumer<Boolean> completion){
     if(!FirstUseConsent.accepted(context)||!canReauthenticate())return false;

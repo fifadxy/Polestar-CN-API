@@ -1,3 +1,5 @@
+**PsAssistant 1.2.0 / 165（账号与稳定性正式版，2026-11-09）**：自愿保存中国区账号密码（独立 Android Keystore AES-256-GCM、系统身份验证、与 Token 隔离）、一键重新登录、Token 会话重新验证、退出并彻底清除凭据。修复旧会话回调竞态、消除 Activity 中密码缓存；优化 Widget 空宿主渲染与无个人信息请求诊断。**OPPO Bridge / LSPosed / Hook 2.6.0 /39 完全不修改。** [本版说明](docs/PSASSISTANT_V1_2_0_ACCOUNT_SECURITY_20261109.md)。
+
 **PsAssistant 1.1.0 / 164（正式主版本，2026-11-06）**：OPPO 卡片支持运行状态动态替换（空调30m／净化4m／托管45m）与开锁／关锁状态；新增常规、运行中、门锁操作后的动态刷新时间设置，并根据同次 RPC 实际返回的数据同步顺延对应刷新期限。Bridge 2.6.0 /39；源码已合并至 Android 主线。公开仓库只存放不含凭据的中国区配置说明，独立登录 FULL 的内置认证资源与签名仍保持私有。[完整更新说明](docs/PSASSISTANT_V1_1_0_RELEASE_20261106.md)。
 
 **PsAssistant v1.0.0-beta49 / 163（2026-11-06）**：OPPO 负一屏/设备空间卡片默认只显示电量·续航并支持完整自定义与实时预览；All Good 明确提示检查项目；指令成功回读立即结束进度并更新按钮；Widget 更新时间旁增加可关闭的 VI 橙色 Check。Bridge 2.5.0 / 38。公开 Debug 包不等于可独立登录的正式 FULL；详见 [更新说明与验收](docs/PSASSISTANT_BETA49_OPPO_CARD_HEALTH_COMMANDS_20261106.md)。

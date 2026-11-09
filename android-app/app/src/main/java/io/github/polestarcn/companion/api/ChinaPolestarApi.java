@@ -227,6 +227,8 @@ public final class ChinaPolestarApi {
       if (current.refresh == null || current.refresh.isEmpty())
         throw new Exception("访问令牌已过期且没有可用的 refresh token，请重新登录");
 
+      long started=android.os.SystemClock.elapsedRealtime();
+      try{
       JSONObject body = new JSONObject().put("refreshToken", current.refresh);
       JSONObject response = postAccount("/user/api/v2/oauth/refresh-global-token", body);
       int code = response.optInt("code", 200);
@@ -288,8 +290,13 @@ public final class ChinaPolestarApi {
         if(sessionEpoch!=refreshEpoch)throw new IllegalStateException("Session ended during refresh");
         SecureSessionStore.save(context,current);
       }
+      io.github.polestarcn.companion.TelemetryDiagnostics.recordToken(true,android.os.SystemClock.elapsedRealtime()-started);
       DiagnosticLog.add("China access token refreshed");
       return current;
+      }catch(Exception rejected){
+        io.github.polestarcn.companion.TelemetryDiagnostics.recordToken(false,android.os.SystemClock.elapsedRealtime()-started);
+        throw rejected;
+      }
     }
   }
 

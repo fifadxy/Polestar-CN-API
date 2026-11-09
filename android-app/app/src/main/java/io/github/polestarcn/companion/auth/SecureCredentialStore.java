@@ -95,6 +95,6 @@ public final class SecureCredentialStore {
     }else{
       spec.setUserAuthenticationValidityDurationSeconds(60);
     }
-    generator.init(spec);return generator.generateKey();
+    generator.init(spec.build());return generator.generateKey();
   }
 }

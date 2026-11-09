@@ -18,6 +18,14 @@ public final class V120AccountSecurityTest {
         "session_blob_v1","password","accessToken","refreshToken"})
       assertFalse(key,SettingsBackup.allowed(key));
   }
+  @Test public void resetSettingsDisablesFuturePasswordOptInWithoutExportingSecrets(){
+    Context c=RuntimeEnvironment.getApplication();
+    AppPreferences.set(c,"remember_credentials_optin","on");
+    assertTrue(AppPreferences.visible(c,"remember_credentials_optin",false));
+    SettingsBackup.reset(c);
+    assertFalse(AppPreferences.visible(c,"remember_credentials_optin",false));
+    assertFalse(SettingsBackup.allowed("remember_credentials_optin"));
+  }
   @Test public void safeAggregateMetricsAreProcessLocalAndUnidentified(){
     TelemetryDiagnostics.reset();
     TelemetryDiagnostics.recordLogin(true,500);

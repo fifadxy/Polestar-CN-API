@@ -18,10 +18,16 @@ public final class EnergyActivity extends Activity {
   private void showCurrentTm(){VehicleCoordinator coordinator=VehicleCoordinator.get(this);
     VehicleSnapshot snapshot=coordinator.snapshot;
     if(vehicle==null||coordinator.selected==null||!vehicle.equals(VehicleCoordinator.identity(coordinator.selected.vin)))snapshot=null;
-    Double kwh=TmCost.kwh(snapshot,System.currentTimeMillis());
-    if(kwh==null){results.addView(text(tr("当前 TM：暂无有效的实时里程与百公里能耗，请先刷新车况","Current TM: no fresh distance and consumption; refresh vehicle first"),15));return;}
-    double tariff=EnergyLog.price(this);
-    results.addView(text(tr("当前 TM 累计行驶估算","Current TM trip estimate")+String.format(Locale.getDefault()," · %.2f kWh",kwh),18));
+     MileageSnapshot mileage=snapshot==null||snapshot.isDemo?null:snapshot.mileage;
+     Double distance=mileage==null?null:mileage.manualKm;
+     Double average=mileage==null?null:mileage.manualConsumption;
+     Double kwh=TmCost.kwh(distance,average);
+     if(kwh==null){results.addView(text(tr("本次 TM 行程 · 里程 ","Current TM · distance ")
+         +(distance==null?"--":String.format(Locale.getDefault(),"%.1f km",distance))
+         +tr(" · 平均能耗 "," · average consumption ")
+         +(average==null?"--":String.format(Locale.getDefault(),"%.1f kWh/100km",average)),15));return;}
+     double tariff=EnergyLog.price(this);
+     results.addView(text(tr("本次 TM 累计行驶估算（可能为缓存）","Current TM estimate (may be cached)")+String.format(Locale.getDefault()," · %.2f kWh",kwh),18));
     results.addView(text(tariff>0?String.format(Locale.getDefault(),"%.2f %s · %.2f %s/kWh",TmCost.cost(kwh,tariff),tr("元","CNY"),tariff,tr("元","CNY")):tr("尚未设置电价；请在下方设置元/kWh","Tariff not set; configure CNY/kWh below"),17));
     HelpDisclosure.add(results,this,tr("计算说明","Calculation notes"),tr("按本次 TM 里程 × TM 百公里均耗计算；非充电费用、非当日费用，不与历史采样累加。","Calculated from current TM distance × average consumption. Not a charging meter or daily cost; never added to sampled history."));
   }

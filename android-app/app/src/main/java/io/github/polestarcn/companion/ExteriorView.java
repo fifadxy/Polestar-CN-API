@@ -75,12 +75,17 @@ public final class ExteriorView extends View {
     word(canvas, english ? "FRONT ↑" : "车头 ↑", 11 * text, mid, 18 * text, muted, Paint.Align.CENTER);
     canvas.save(); canvas.translate(mid, cy); canvas.rotate(-90);
     int half = (int) Math.min(h * .46f, w * .53f);
-    vehicle.setBounds(-half, (int)(-half * .5625f), half, (int)(half * .5625f));
-    vehicle.draw(canvas); canvas.restore();
-    float cw = w * .30f, ch = 65 * text;
+    if (vehicle != null) {
+      vehicle.setBounds(-half, (int)(-half * .5625f), half, (int)(half * .5625f));
+      vehicle.draw(canvas);
+    }
+    canvas.restore();
+    float[] callout = ExteriorCalloutLayout.rows(h, d, getResources().getConfiguration().fontScale);
+    float cw = Math.min(w * .42f, Math.max(68 * d, Math.min(116 * d, w * .30f)));
+    float ch = callout[2];
     for (int i = 0; i < 4; i++) {
       boolean left = i % 2 == 0, front = i < 2;
-      float x = left ? 0 : w - cw, y = h * (front ? .22f : .57f);
+      float x = left ? 0 : w - cw, y = front ? callout[0] : callout[1];
       int door = value(false, i), window = value(true, i);
       boolean open = door == 1 || door == 3 || window == 1 || window == 3;
       paint.setStyle(Paint.Style.FILL); paint.setColor(surface);
@@ -93,9 +98,10 @@ public final class ExteriorView extends View {
       paint.setStyle(Paint.Style.FILL); paint.setColor(open ? orange : line);
       canvas.drawCircle(anchorX, anchorY, 3 * d, paint);
       canvas.save();canvas.clipRect(x,y,x+cw,y+ch);
-      boundedWord(canvas,cw-14*d, position(i) + (open ? " !" : ""), 10 * text, x + 7 * d, y + 16 * text, muted, Paint.Align.LEFT);
-      boundedWord(canvas,cw-14*d, (english ? "Door · " : "门 · ") + status(door), 11 * text, x + 7 * d, y + 36 * text, color(door), Paint.Align.LEFT);
-      boundedWord(canvas,cw-14*d, (english ? "Win · " : "窗 · ") + status(window), 11 * text, x + 7 * d, y + 54 * text, color(window), Paint.Align.LEFT);canvas.restore();
+      float labelFont = Math.min(10 * text, Math.max(6 * d, ch * .23f));
+      boundedWord(canvas,cw-14*d, position(i) + (open ? " !" : ""), labelFont, x + 7 * d, y + ch * .26f, muted, Paint.Align.LEFT);
+      boundedWord(canvas,cw-14*d, (english ? "Door · " : "门 · ") + status(door), labelFont, x + 7 * d, y + ch * .55f, color(door), Paint.Align.LEFT);
+      boundedWord(canvas,cw-14*d, (english ? "Win · " : "窗 · ") + status(window), labelFont, x + 7 * d, y + ch * .84f, color(window), Paint.Align.LEFT);canvas.restore();
     }
     boolean tailOpen = state != null && ("已打开".equals(state.tailgate) || "未关严".equals(state.tailgate));
     word(canvas, (english ? "Tailgate · " : "尾箱 · ") + (state == null ? "--" : AppPreferences.status(getContext(), state.tailgate)),

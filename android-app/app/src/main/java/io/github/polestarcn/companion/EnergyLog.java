@@ -32,13 +32,22 @@ public final class EnergyLog extends SQLiteOpenHelper {
   }finally{db.endTransaction();}}
  private void prune(SQLiteDatabase db){Calendar cal=Calendar.getInstance();cal.add(Calendar.MONTH,-months(c));db.delete("samples","t<?",new String[]{""+cal.getTimeInMillis()});db.execSQL("DELETE FROM samples WHERE rowid IN (SELECT rowid FROM samples ORDER BY t DESC LIMIT -1 OFFSET 249712)");}
  public synchronized void prune(){prune(getWritableDatabase());}public synchronized void clear(){getWritableDatabase().delete("samples",null,null);getWritableDatabase().execSQL("VACUUM");try(Cursor checkpoint=getWritableDatabase().rawQuery("PRAGMA wal_checkpoint(TRUNCATE)",null)){checkpoint.moveToFirst();}}
- public static final class Point{public long t;public Double soc,cons,speed;public double ac,drive;public int count;}
- public static final class Report{public final List<Point> points=new ArrayList<>();public double ac,drive;public int count;}
+ public static final class Point{public long t;public Double soc,cons,speed;public double ac,drive,distanceKm;public int count;}
+ public static final class Report{public final List<Point> points=new ArrayList<>();public double ac,drive,distanceKm;public int count;}
  public synchronized Report read(String vehicle,int range){return read(vehicle,range,System.currentTimeMillis());}
  public synchronized Report read(String vehicle,int range,long until){prune(getWritableDatabase());long now=Math.min(until,System.currentTimeMillis());Calendar cal=Calendar.getInstance();cal.setTimeInMillis(now);long bucket;
   if(range==0){cal.add(Calendar.DAY_OF_YEAR,-7);bucket=43200000L;}else if(range==1){cal.add(Calendar.DAY_OF_YEAR,-31);bucket=86400000L;}else if(range==2){cal.add(Calendar.MONTH,-12);bucket=2678400000L;}else{cal.add(Calendar.MONTH,-24);bucket=31622400000L;}
-  Report out=new Report();Map<Long,Point> grouped=new LinkedHashMap<>();try(Cursor r=getReadableDatabase().rawQuery("SELECT t,soc,cons,speed,ac,drive,acvalid FROM samples WHERE vehicle=? AND t>=? AND t<=? ORDER BY t",new String[]{vehicle,""+cal.getTimeInMillis(),""+now})){while(r.moveToNext()){long t=r.getLong(0);long key;
+  Report out=new Report();Map<Long,Point> grouped=new LinkedHashMap<>();Double lastOdo=null,lastTm=null;long lastSampleAt=0;try(Cursor r=getReadableDatabase().rawQuery("SELECT t,soc,cons,speed,ac,drive,acvalid,odo,tm FROM samples WHERE vehicle=? AND t>=? AND t<=? ORDER BY t",new String[]{vehicle,""+cal.getTimeInMillis(),""+now})){while(r.moveToNext()){long t=r.getLong(0);long key;
     if(range>=2){Calendar date=Calendar.getInstance();date.setTimeInMillis(t);key=range==2?date.get(Calendar.YEAR)*12L+date.get(Calendar.MONTH):date.get(Calendar.YEAR);}else key=(t+TimeZone.getDefault().getOffset(t))/bucket;
-    Point p=grouped.get(key);if(p==null){p=new Point();grouped.put(key,p);}p.t=t;if(r.getInt(6)==1)p.soc=number(r,1);p.cons=number(r,2);p.speed=number(r,3);p.ac+=r.getDouble(4);p.drive+=r.getDouble(5);p.count++;out.ac+=r.getDouble(4);out.drive+=r.getDouble(5);out.count++;}}
+     Double currentOdo=number(r,7),currentTm=number(r,8);
+     double increment=0;
+     if(lastSampleAt>0&&t>lastSampleAt&&t-lastSampleAt<=3600000L){
+       Double delta=currentOdo!=null&&lastOdo!=null?currentOdo-lastOdo:
+           currentTm!=null&&lastTm!=null?currentTm-lastTm:null;
+       double plausibleLimit=200.0*(t-lastSampleAt)/3600000.0+0.1;
+       if(delta!=null&&Double.isFinite(delta)&&delta>0&&delta<=plausibleLimit)increment=delta;
+     }
+     lastOdo=currentOdo;lastTm=currentTm;lastSampleAt=t;
+     Point p=grouped.get(key);if(p==null){p=new Point();grouped.put(key,p);}p.t=t;p.distanceKm+=increment;out.distanceKm+=increment;if(r.getInt(6)==1)p.soc=number(r,1);p.cons=number(r,2);p.speed=number(r,3);p.ac+=r.getDouble(4);p.drive+=r.getDouble(5);p.count++;out.ac+=r.getDouble(4);out.drive+=r.getDouble(5);out.count++;}}
   out.points.addAll(grouped.values());return out;}
 }

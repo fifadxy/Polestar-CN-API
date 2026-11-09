@@ -1261,7 +1261,7 @@ public final class MainActivity extends FragmentActivity {
       value.setGravity(Gravity.CENTER);value.setTag("home_value_"+metric.id);
       cell.addView(label,new LinearLayout.LayoutParams(-1,-2));
       cell.addView(value,new LinearLayout.LayoutParams(-1,-2));
-      click(cell,()->info(metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this))));
+      click(cell,()->metricDetails(metric));
       rail.addView(cell,new LinearLayout.LayoutParams(-1,0,1));
     }
     return rail;
@@ -1372,7 +1372,7 @@ public final class MainActivity extends FragmentActivity {
           value.setTag("home_value_"+metric.id);value.setGravity(Gravity.CENTER);TextView label=text(metric.shortLabel(AppPreferences.english(this)),landscape?7:8,muted,false);
           label.setGravity(Gravity.CENTER);label.setSingleLine(true);label.setEllipsize(android.text.TextUtils.TruncateAt.END);
           cell.addView(value,new LinearLayout.LayoutParams(-1,0,1));cell.addView(label,new LinearLayout.LayoutParams(-1,textLineHeight(landscape?7:8)));
-          click(cell,()->info(metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this))));
+          click(cell,()->metricDetails(metric));
         }
         row.addView(cell,new LinearLayout.LayoutParams(0,-1,1));
       }
@@ -1873,9 +1873,7 @@ public final class MainActivity extends FragmentActivity {
           cell.addView(label, new LinearLayout.LayoutParams(-1, captionHeight * captionLines)); cell.addView(value,new LinearLayout.LayoutParams(-1,valueHeight));
           bindDashboard(() -> cell.setContentDescription(metric.label(AppPreferences.english(this))
               + " · " + metric.value(this, model.snapshot, true, AppPreferences.english(this))));
-          click(cell, () -> info(metric.label(AppPreferences.english(this)),
-              metric.value(this, model.snapshot, true, AppPreferences.english(this))
-                  + (metric.name().startsWith("SERVICE_") ? tr("\n车辆上报的剩余值；百分比仅为参考周期比例", "\nVehicle-reported remaining value; percentages use a reference cycle") : "")));
+          click(cell, () -> metricDetails(metric));
         }
         metricRow.addView(cell, new LinearLayout.LayoutParams(0, -1, 1));
       }
@@ -2073,6 +2071,27 @@ public final class MainActivity extends FragmentActivity {
     new HapticDialogBuilder(this).setTitle(tr("车控验证方式","Control authorization")).setView(scroll).setPositiveButton(tr("完成","Done"),null).show();
   }
 
+  private void metricDetails(DisplayMetric metric) {
+    if(metric==DisplayMetric.TA_CONSUMPTION||metric==DisplayMetric.TM_CONSUMPTION
+        ||metric==DisplayMetric.SINCE_CHARGE_CONSUMPTION){energySummaryPopup();return;}
+    info(metric.label(AppPreferences.english(this)),metric.value(this,model.snapshot,true,AppPreferences.english(this))
+        +(metric.name().startsWith("SERVICE_")?tr("\n车辆上报的剩余值；百分比仅为参考周期比例", "\nVehicle-reported remaining value; percentages use a reference cycle"):""));
+  }
+  private void energySummaryContents(LinearLayout panel) {
+    String id=model.selected==null?AppPreferences.get(this,"vehicle",""):VehicleCoordinator.identity(model.selected.vin);
+    panel.addView(new EnergySummaryPanel(this,model.snapshot,id),new LinearLayout.LayoutParams(-1,-2));
+  }
+  private void energySummaryPopup() {
+    LinearLayout panel=detailPanel();ScrollView scroll=new ScrollView(this);
+    scroll.setTag("energy_summary_popup");scroll.addView(panel);
+    android.widget.FrameLayout viewport=new android.widget.FrameLayout(this);
+    int size=Math.max(260,Math.min(540,(int)(getResources().getConfiguration().screenHeightDp*.63f)));
+    viewport.addView(scroll,new android.widget.FrameLayout.LayoutParams(-1,dp(size)));
+    energySummaryContents(panel);
+    new HapticDialogBuilder(this).setTitle(tr("平均能耗与费用","Average consumption & cost"))
+        .setView(viewport).setNegativeButton(tr("关闭","Close"),null).show();
+  }
+
   private void detailSection(LinearLayout parent, String title) {
     gap(parent,16); TextView label=text(title,13,ink,false);label.setTag("detail_section");label.setPadding(dp(2),0,0,dp(7));parent.addView(label);
     View rule=new View(this);rule.setBackgroundColor(line);parent.addView(rule,new LinearLayout.LayoutParams(-1,dp(1)));gap(parent,6);
@@ -2113,7 +2132,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout panel=scrollBody();((ScrollView)panel.getParent()).setTag("data_scroll");VehicleSnapshot v=model.snapshot;
     panel.addView(text(tr("车辆数据","Vehicle data"),24,ink,false));if(v==null){panel.addView(text(tr("暂无车况，请连接车辆后刷新。","No vehicle snapshot. Connect and refresh first."),14,muted,false));setting(panel,tr("刷新车辆","Refresh vehicle"),()->model.refreshUser(null));return;}
     detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.BATTERY_12V,DisplayMetric.SERVICE_CYCLE);if(v.chargingDetails.targetPercent!=null)metricRows(panel,DisplayMetric.CHARGE_LIMIT);
-    setting(panel,tr("行驶 / 空调能耗","Driving / parked climate energy"),this::energyHistory);
+    disclosure(panel,"data_energy",tr("能耗统计 · 行驶 / 空调 / 里程 / 费用","Energy · driving / climate / distance / cost"),true,this::energySummaryContents);
     disclosure(panel,"data_health",tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),true,this::healthOverview);
     disclosure(panel,"data_exterior",tr("车门 / 车窗 / 尾箱","Doors / windows / tailgate"),false,this::exteriorContents);
     if(showTires())disclosure(panel,"data_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
@@ -3054,7 +3073,7 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(text(tr("车辆状况","Vehicle condition"),24,ink,true));panel.addView(text(VehicleCondition.summary(this,model.snapshot,showTires()),16,VehicleCondition.problem(model.snapshot,showTires())?accentText():ink,false));
     TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!(model.busy&&!model.quietRefresh)&&model.hasSession());panel.addView(refresh);gap(panel,12);
     healthOverview(panel);
-    disclosure(panel,"status_energy",tr("行驶 / 空调能耗","Driving / parked climate energy"),false,p->{setting(p,tr("能耗记录与曲线","Energy history and charts"),this::energyHistory);});
+    disclosure(panel,"status_energy",tr("能耗统计 · 行驶 / 空调 / 里程 / 费用","Energy · driving / climate / distance / cost"),true,this::energySummaryContents);
     disclosure(panel,"status_service",tr("保养周期与原始上报值","Service cycle and reported values"),false,this::serviceContents);
     disclosure(panel,"status_exterior",tr("车门 / 车窗 / 尾箱位置状态","Doors / windows / tailgate positions")+(model.snapshot!=null&&ExteriorView.hasOpening(model.snapshot)?" !":""),false,this::exteriorContents);
     if(showTires())disclosure(panel,"status_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
@@ -3093,7 +3112,7 @@ public final class MainActivity extends FragmentActivity {
       panel.addView(goodText(VehicleCondition.summary(this,v,showTires()),16,VehicleCondition.reported(v,showTires())?accentText():ink,false));
       TextView stamp=text(dashboardStamp(),10,muted,false);stamp.setSingleLine(true);stamp.setEllipsize(android.text.TextUtils.TruncateAt.END);panel.addView(stamp);
       if(v==null){note(panel,tr("说明","Info"),tr("暂无门窗数据，请刷新车辆。","No exterior data. Refresh the vehicle."));return;}
-      panel.addView(new ExteriorView(this,v),new LinearLayout.LayoutParams(-1,dp(Math.max(100,Math.min(150,getResources().getConfiguration().screenHeightDp/4)))));
+      panel.addView(new ExteriorView(this,v),new LinearLayout.LayoutParams(-1,dp(Math.max(205,Math.min(250,getResources().getConfiguration().screenHeightDp/3)))));
       disclosure(panel,"popup_health",tr("车辆检查","Vehicle checks"),false,this::healthOverview);disclosure(panel,"popup_service",tr("保养周期","Service cycle"),false,this::serviceContents);
       if(showTires())disclosure(panel,"popup_tyres",tr("胎压状态","Tyre status"),false,this::tyreContents);
     };final VehicleSnapshot[] displayed={model.snapshot};fill.run();AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("车辆状况 · 门窗","Vehicle condition · exterior")).setView(fixedViewport).setNegativeButton(tr("关闭","Close"),null).create();carDialog=dialog;

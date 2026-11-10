@@ -33,8 +33,12 @@ public final class BridgeSettings {
     SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     Bundle out = defaults();
     for (String key : BOOLEAN_KEYS) out.putBoolean(key, prefs.getBoolean(key, true));
-    out.putString(MODE,validMode(prefs.getString(MODE,MODE_STABLE)));
-    out.putString(RPK_MODE,validRpkMode(prefs.getString(RPK_MODE,RPK_EXACT)));
+    String selectedMode=validMode(prefs.getString(MODE,MODE_STABLE));
+    out.putString(MODE,selectedMode);
+    // New mode uses verified structural feature detection by default.
+    // Stable keeps exact SHA matching; explicit user choices always prevail.
+    String defaultRpk=MODE_NEW.equals(selectedMode)?RPK_FEATURE:RPK_EXACT;
+    out.putString(RPK_MODE,validRpkMode(prefs.getString(RPK_MODE,defaultRpk)));
     out.putString("moduleVersion", BridgeBuild.VERSION_NAME);
     out.putInt("settingsVersion", 3);
     return out;

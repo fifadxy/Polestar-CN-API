@@ -177,17 +177,16 @@ final class AssistantScreenNativeVehicleHook {
     ArrayList<Object> out=new ArrayList<>(4);
     boolean locked=contains(state.getString("lock"),"已上锁","已锁","LOCKED");
     boolean climate=contains(state.getString("climate"),"开启","运行中","ON","ACTIVE","RUNNING");
-    boolean air=contains(state.getString("air"),"开启","运行中","ON","ACTIVE","RUNNING");
-    boolean trunk=contains(state.getString("tailgate"),"已打开","未关严","OPEN");
-
+    // Confirmed four-button set: lock, climate, flash, horn. Flash/horn are
+    // momentary commands; never project them as persistent ON/OFF states.
     out.add(ctor.newInstance("1","车锁","车锁",0,0,locked,
         scheme+"://command?action=lock-toggle"));
     out.add(ctor.newInstance("2","空调","空调",0,0,climate,
         scheme+"://command?action=climate-toggle"));
-    out.add(ctor.newInstance("3","净化","净化",0,0,air,
-        scheme+"://command?action=air-toggle"));
-    out.add(ctor.newInstance("4","尾门","尾门",0,0,trunk,
-        scheme+"://command?action=trunk-toggle"));
+    out.add(ctor.newInstance("3","闪灯","闪灯",0,0,false,
+        scheme+"://command?action=flash"));
+    out.add(ctor.newInstance("4","鸣笛","鸣笛",0,0,false,
+        scheme+"://command?action=honk"));
     return out;
   }
 

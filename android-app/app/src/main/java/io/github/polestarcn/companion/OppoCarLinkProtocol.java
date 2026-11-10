@@ -87,7 +87,16 @@ final class OppoCarLinkProtocol {
   if(action==null)return reject("unsupported-or-incomplete-event");
   if(in.containsKey("target_temp"))return reject("request-temperature-not-supported");
   VehicleCoordinator model=VehicleCoordinator.get(c);Bundle gate=VehicleProtocolGateway.resolve(c,model,action);
-  if(!gate.getBoolean("accepted",false))return gate;
+  if(!gate.getBoolean("accepted",false)){
+   // A stale cache keeps the vehicle card visible but MUST NOT dispatch a
+   // command. Request one real refresh; the next user action is revalidated.
+   if("fresh-vehicle-state-required".equals(gate.getString("reason",""))){
+    MAIN.post(()->{if(OppoDeviceIntegration.enabled(c)&&model.hasSession())
+     VehicleRefreshManager.get(c).requestBridge(null);});
+    gate.putBoolean("refreshRequested",true);
+   }
+   return gate;
+  }
   if(!FirstUseConsent.accepted(c)||!model.canCommand(action))return reject("vehicle-not-ready");
   String id=in.getString(CarLinkBridgeContract.REQUEST,"");if(id.isEmpty())id=UUID.randomUUID().toString();
   if(!id.matches("[A-Za-z0-9_.:-]{1,128}"))return reject("invalid-request-id");

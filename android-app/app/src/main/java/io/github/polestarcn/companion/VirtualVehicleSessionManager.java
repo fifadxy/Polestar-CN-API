@@ -42,7 +42,9 @@ final class VirtualVehicleSessionManager {
     String carId=selected?OppoCarLinkModels.carId(vin):"";
     long age=state==null||state.timestampMillis<=0?Long.MAX_VALUE:Math.max(0L,now-state.timestampMillis);
     boolean present=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected&&live;
-    boolean active=present&&age<=STALE_MS;
+    // Display cached vehicle identity/status even if stale. Staleness MUST NOT grant
+    // command authorization: writes still require a recent, verified snapshot.
+    boolean active=present;
     boolean commandReady=present&&PsAssistantBridgeProvider.commandStateReady(state,now);
     String lifecycle=!requested?"DISABLED":!signedIn?"DISCOVERED":!selected?"BOUND":!live?"READY":age>STALE_MS?"STALE":"ACTIVE";
 
@@ -50,7 +52,9 @@ final class VirtualVehicleSessionManager {
     Bundle out=new Bundle(profile);
     OppoCardSummarySettings.write(out,context);
     out.putBoolean("requested",requested);out.putBoolean("present",present);out.putBoolean("active",active);
-    out.putBoolean("commandReady",commandReady);out.putString("lifecycle",lifecycle);
+    out.putBoolean("commandReady",commandReady);
+    out.putBoolean("cacheOnly",present&&!commandReady);
+    out.putString("lifecycle",lifecycle);
     out.putBoolean("mock",mock);out.putString("mode",mock?"MOCK_TESTLAB":"MIRROR_REAL");out.putString("sessionId",sessionId);
     out.putString("providerCode",OppoVehicleProfileSettings.PROVIDER_CODE);out.putString("deviceType",OppoVehicleProfileSettings.DEVICE_TYPE);
     out.putString("vehicleKey",vehicleKey);out.putString("virtualCarId",carId);
@@ -58,7 +62,8 @@ final class VirtualVehicleSessionManager {
     out.putLong("snapshotAt",state==null?0L:state.timestampMillis);
     out.putLong("snapshotAgeMs",age==Long.MAX_VALUE?-1L:age);
     out.putBoolean("syntheticIdentifiers",true);out.putBoolean("rawVinExposed",false);
-    out.putBoolean("hardwareMacExposed",false);out.putBoolean("online",active);
+    out.putBoolean("hardwareMacExposed",false);
+    out.putBoolean("online",present&&age<=STALE_MS);
     if(state!=null){
       if(state.batteryPercent!=null){out.putBoolean("batteryPercentKnown",true);out.putInt("batteryPercent",state.batteryPercent);}
       if(state.rangeKm!=null){out.putBoolean("rangeKmKnown",true);out.putInt("rangeKm",state.rangeKm);}

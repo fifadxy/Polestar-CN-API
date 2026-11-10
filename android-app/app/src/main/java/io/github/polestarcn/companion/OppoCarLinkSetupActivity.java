@@ -70,7 +70,8 @@ public final class OppoCarLinkSetupActivity extends Activity {
       +" · 事件时间="+host.getLong("carEventReceivedAt",0)+" · 已拦截="+host.getBoolean("carDispatchIntercepted",false)
       +"\nPendingIntent="+host.getBoolean("pendingIntentSent",false)+" · 命令受理="+host.getBoolean("lastCommandAccepted",false)
       +" · 原因="+host.getString("lastCommandReason","")+" · 命令时间="+host.getLong("lastCommandAt",0);
-    status.setText(OppoCarLinkRuntime.get(this).describe()+extra+"\n\n"+OppoOfficialCarLink.describe(this));
+    status.setText(OppoDualPathStatus.readable(this)+"\n\n"
+        +OppoCarLinkRuntime.get(this).describe()+extra+"\n\n"+OppoOfficialCarLink.describe(this));
   }
   @Override protected void onDestroy(){work.shutdownNow();super.onDestroy();}
 }

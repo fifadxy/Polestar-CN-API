@@ -2041,8 +2041,9 @@ public final class MainActivity extends FragmentActivity {
       // or accessibility-font viewport can be shorter than the fixed map + controls.
       // Keep the one-page layout normally; permit scrolling only if it cannot fit.
       android.util.DisplayMetrics dm=getResources().getDisplayMetrics();
-      int[] bounds=DialogWindowGeometry.parkingPreview(dm.widthPixels,dm.heightPixels,dm.density);
-      float usableDp=bounds[1]/Math.max(.1f,dm.density);
+      // Only a genuinely short viewport needs scroll protection. The normal parking
+      // window wraps its map and controls instead of reserving 88% screen height.
+      float usableDp=dm.heightPixels*.88f/Math.max(.1f,dm.density);
       if(usableDp<mapHeight+232f)builder.allowParkingOverflowScroll();
     }else builder.compactMapWindow();
     AlertDialog dialog=builder.setTitle(tr("最后停车位置","Last parked location")).setView(panel)

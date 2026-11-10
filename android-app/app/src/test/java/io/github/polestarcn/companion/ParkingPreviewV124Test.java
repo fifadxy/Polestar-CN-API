@@ -7,15 +7,16 @@ public final class ParkingPreviewV124Test {
       int[] viewport=DialogWindowGeometry.parkingPreview(screen[0],screen[1],1);
       int map=ParkingPreviewLayout.mapHeightDp(screen[1],true);
       assertTrue(viewport[0]>screen[0]*.88);
-      assertTrue(viewport[1]>screen[1]*.85);
+      assertEquals("No fixed-height lower blank region",android.view.ViewGroup.LayoutParams.WRAP_CONTENT,viewport[1]);
       assertTrue("Main map is not a thumbnail",map>=145);
-      assertTrue("Map, controls and dialog footer fit",map+210<viewport[1]);
+      assertTrue("Map remains useful without inflating the window",map<=320);
     }
   }
   @Test public void smallMapSettingsStayCompactAndUnchanged(){
     int[] settings=DialogWindowGeometry.map(360,640,1);
     int[] parking=DialogWindowGeometry.parkingPreview(360,640,1);
-    assertTrue(settings[0]<parking[0]);assertTrue(settings[1]<parking[1]);
+    assertTrue(settings[0]<parking[0]);
+    assertEquals(android.view.ViewGroup.LayoutParams.WRAP_CONTENT,parking[1]);
     assertTrue(settings[0]*settings[1]<360*640/2);
   }
 }

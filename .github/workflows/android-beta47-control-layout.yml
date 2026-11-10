@@ -1,4 +1,4 @@
-name: Android 1.2.4 Stable Regression
+name: Android 1.2.5 Stable Regression
 on:
   push:
     branches:
@@ -29,40 +29,40 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
           test -n "$SDKMANAGER"
           "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Compile and lint 1.2.4 app and LSPosed Bridge
+      - name: Compile and lint 1.2.5 app and LSPosed Bridge
         working-directory: android-app
         run: |
           gradle --no-daemon --stacktrace \
             :app:assembleDebug :oppoBridge:assembleDebug :app:lintDebug
-      - name: Verify 1.2.4 APKs and size
+      - name: Verify 1.2.5 APKs and size
         run: |
-          grep -q 'versionCode 169' android-app/app/build.gradle
-          grep -q "versionName '1.2.4'" android-app/app/build.gradle
+          grep -q 'versionCode 170' android-app/app/build.gradle
+          grep -q "versionName '1.2.5'" android-app/app/build.gradle
           test -s android-app/app/build/outputs/apk/debug/app-debug.apk
           test -s android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk
           # Lossless APK re-compression keeps every resource and byte of executable content,
           # then re-signs the VALIDATION debug package with its ephemeral debug key.
           python3 scripts/compact_debug_apk.py android-app/app/build/outputs/apk/debug/app-debug.apk --apksigner "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" --keystore "$HOME/.android/debug.keystore"
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v1.2.4-VALIDATION-debug.apk
-          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-1.2.4-debug.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v1.2.5-VALIDATION-debug.apk
+          cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-1.2.5-debug.apk
           python3 - <<'PY'
           import pathlib,zipfile,hashlib
-          for f in ["PsAssistant-v1.2.4-VALIDATION-debug.apk","PsAssistant-OPPO-Bridge-1.2.4-debug.apk"]:
+          for f in ["PsAssistant-v1.2.5-VALIDATION-debug.apk","PsAssistant-OPPO-Bridge-1.2.5-debug.apk"]:
               file=pathlib.Path(f)
               with zipfile.ZipFile(file) as z:
                   assert z.testzip() is None and "AndroidManifest.xml" in z.namelist()
               print(f,file.stat().st_size,hashlib.sha256(file.read_bytes()).hexdigest())
-          assert pathlib.Path("PsAssistant-v1.2.4-VALIDATION-debug.apk").stat().st_size<10_000_000
+          assert pathlib.Path("PsAssistant-v1.2.5-VALIDATION-debug.apk").stat().st_size<10_000_000
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-v1.2.4-VALIDATION-debug
-          path: PsAssistant-v1.2.4-VALIDATION-debug.apk
+          name: PsAssistant-v1.2.5-VALIDATION-debug
+          path: PsAssistant-v1.2.5-VALIDATION-debug.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
-          name: PsAssistant-OPPO-Bridge-1.2.4-debug
-          path: PsAssistant-OPPO-Bridge-1.2.4-debug.apk
+          name: PsAssistant-OPPO-Bridge-1.2.5-debug
+          path: PsAssistant-OPPO-Bridge-1.2.5-debug.apk
           if-no-files-found: error
       - name: Full Android and Bridge regression tests
         working-directory: android-app
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: PsAssistant-1.2.4-UI-Test-Reports
+          name: PsAssistant-1.2.5-UI-Test-Reports
           path: |
             android-app/app/build/test-results/testDebugUnitTest/
             android-app/oppoBridge/build/test-results/testDebugUnitTest/

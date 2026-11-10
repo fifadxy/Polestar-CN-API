@@ -74,10 +74,18 @@ public class ParkingMapV079Test {
     assertEquals(expected[0],attrs.width);assertEquals(expected[1],attrs.height);
     if(portrait){
       assertTrue(attrs.width>=display.widthPixels*.88);
-      assertTrue(attrs.height>=display.heightPixels*.78);
+      assertEquals("Parking popup must wrap content to avoid blank space",
+          ViewGroup.LayoutParams.WRAP_CONTENT,attrs.height);
     }else assertTrue((double)attrs.width*attrs.height<=display.widthPixels*display.heightPixels*.5d);
-    int w=attrs.width,h=attrs.height;
-    decor.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));decor.layout(0,0,w,h);
+    int w=attrs.width;
+    int maxPortraitHeight=Math.max(1,Math.round(display.heightPixels*.88f));
+    int heightSpec=portrait?View.MeasureSpec.makeMeasureSpec(maxPortraitHeight,View.MeasureSpec.AT_MOST)
+        :View.MeasureSpec.makeMeasureSpec(attrs.height,View.MeasureSpec.EXACTLY);
+    decor.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),heightSpec);
+    int h=portrait?decor.getMeasuredHeight():attrs.height;
+    assertTrue("Popup must measure within available height",h>0);
+    if(portrait)assertTrue("Popup must not exceed the viewport cap",h<=maxPortraitHeight);
+    decor.layout(0,0,w,h);
    View entry=decor.findViewWithTag("parking_web_preview");assertNotNull(entry);
    int required=ParkingPreviewLayout.mapHeightDp(size[1],portrait);
    assertEquals(required,entry.getLayoutParams().height);
@@ -111,7 +119,7 @@ public class ParkingMapV079Test {
     View panel=decor.findViewWithTag("parking_location_panel");
     assertNotNull(panel);
     if(portrait){
-      boolean requiresOverflow=expected[1]/Math.max(.1f,display.density)<required+232f;
+      boolean requiresOverflow=display.heightPixels*.88f/Math.max(.1f,display.density)<required+232f;
       assertEquals("Only space-constrained portrait dialogs may use overflow fallback",
           requiresOverflow,panel.getParent() instanceof ScrollView);
     }

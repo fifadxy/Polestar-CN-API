@@ -2004,7 +2004,7 @@ public final class MainActivity extends FragmentActivity {
         if(parkingPreview!=null)parkingPreview.refreshPhoneLocation();
       }
     });
-    phone.addView(mapLocationSwitch,new LinearLayout.LayoutParams(0,dp(38),1.3f));
+    phone.addView(mapLocationSwitch,new LinearLayout.LayoutParams(0,dp(48),1.3f));
     TextView phoneRefresh=button(tr("刷新手机位置","Refresh phone"),()->{
       if(MapLocationPermission.enabled(this))map.requestPhoneLocation();
       else toast(tr("请先开启手机定位","Enable phone location first"));

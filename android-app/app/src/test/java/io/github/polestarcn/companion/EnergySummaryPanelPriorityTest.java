@@ -33,7 +33,7 @@ public class EnergySummaryPanelPriorityTest {
     assertEquals("energy_ta_estimation_details",p.getChildAt(6).getTag());
     assertEquals("energy_chart_heading",p.getChildAt(7).getTag());
     assertEquals("energy_history_chart",p.getChildAt(8).getTag());
-    assertEquals("tm_average_consumption_secondary",p.getChildAt(11).getTag());
+    assertEquals("tm_average_consumption_secondary",p.getChildAt(13).getTag());
     TextView distance=(TextView)((LinearLayout)p.getChildAt(1)).getChildAt(1);
     TextView energy=(TextView)((LinearLayout)p.getChildAt(2)).getChildAt(1);
     TextView cost=(TextView)((LinearLayout)p.getChildAt(3)).getChildAt(1);

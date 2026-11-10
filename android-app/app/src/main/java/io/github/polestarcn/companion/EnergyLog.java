@@ -35,9 +35,27 @@ public final class EnergyLog extends SQLiteOpenHelper {
  public static final class Point{public long t;public Double soc,cons,speed;public double ac,drive,distanceKm;public int count;}
  public static final class Report{public final List<Point> points=new ArrayList<>();public double ac,drive,distanceKm;public int count;}
  public synchronized Report read(String vehicle,int range){return read(vehicle,range,System.currentTimeMillis());}
- public synchronized Report read(String vehicle,int range,long until){prune(getWritableDatabase());long now=Math.min(until,System.currentTimeMillis());Calendar cal=Calendar.getInstance();cal.setTimeInMillis(now);long bucket;
+ public synchronized Report read(String vehicle,int range,long until){long now=Math.min(until,System.currentTimeMillis());Calendar cal=Calendar.getInstance();cal.setTimeInMillis(now);long bucket;
   if(range==0){cal.add(Calendar.DAY_OF_YEAR,-7);bucket=43200000L;}else if(range==1){cal.add(Calendar.DAY_OF_YEAR,-31);bucket=86400000L;}else if(range==2){cal.add(Calendar.MONTH,-12);bucket=2678400000L;}else{cal.add(Calendar.MONTH,-24);bucket=31622400000L;}
-  Report out=new Report();Map<Long,Point> grouped=new LinkedHashMap<>();Double lastOdo=null,lastTm=null;long lastSampleAt=0;try(Cursor r=getReadableDatabase().rawQuery("SELECT t,soc,cons,speed,ac,drive,acvalid,odo,tm FROM samples WHERE vehicle=? AND t>=? AND t<=? ORDER BY t",new String[]{vehicle,""+cal.getTimeInMillis(),""+now})){while(r.moveToNext()){long t=r.getLong(0);long key;
+  return readWindow(vehicle,range,cal.getTimeInMillis(),now,bucket);
+ }
+ /** Rolling 3/7/31-day periods; never replaces the existing EnergyActivity range numbering. */
+ public synchronized Report readRecentDays(String vehicle,int days){
+  if(days!=3&&days!=7&&days!=31)throw new IllegalArgumentException("Supported periods: 3, 7, 31");
+  long now=System.currentTimeMillis();Calendar start=Calendar.getInstance();start.setTimeInMillis(now);start.add(Calendar.DAY_OF_YEAR,-days);
+  return readWindow(vehicle,-1,start.getTimeInMillis(),now,days<=3?43200000L:86400000L);
+ }
+ /** Custom inclusive interval, limited to local data retention and current time. */
+ public synchronized Report readBetween(String vehicle,long start,long until){
+  long now=Math.min(until,System.currentTimeMillis());Calendar retained=Calendar.getInstance();retained.add(Calendar.MONTH,-months(c));
+  start=Math.max(start,retained.getTimeInMillis());
+  if(start<=0||start>now)return new Report();
+  long span=now-start;
+  return readWindow(vehicle,-1,start,now,span<=7L*86400000L?43200000L:86400000L);
+ }
+ private Report readWindow(String vehicle,int range,long start,long now,long bucket){
+  prune(getWritableDatabase());
+  Report out=new Report();Map<Long,Point> grouped=new LinkedHashMap<>();Double lastOdo=null,lastTm=null;long lastSampleAt=0;try(Cursor r=getReadableDatabase().rawQuery("SELECT t,soc,cons,speed,ac,drive,acvalid,odo,tm FROM samples WHERE vehicle=? AND t>=? AND t<=? ORDER BY t",new String[]{vehicle,""+start,""+now})){while(r.moveToNext()){long t=r.getLong(0);long key;
     if(range>=2){Calendar date=Calendar.getInstance();date.setTimeInMillis(t);key=range==2?date.get(Calendar.YEAR)*12L+date.get(Calendar.MONTH):date.get(Calendar.YEAR);}else key=(t+TimeZone.getDefault().getOffset(t))/bucket;
      Double currentOdo=number(r,7),currentTm=number(r,8);
      double increment=0;

@@ -560,7 +560,16 @@ public final class MainActivity extends FragmentActivity {
     }
     shell.addView(nav, new LinearLayout.LayoutParams(-1, dp(compactNav ? 52 : 64)));
     applyButtonHierarchy(shell);disableSystemHaptics(shell);
-    if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){
+    if(controlDashboard&&AppPreferences.visible(this,EnergyBackdropView.ENABLED,false)){
+      if(backdrop!=null)backdrop.release();backdrop=null;mapHost=null;backdropPoint=null;
+      FrameLayout backgroundHost=new FrameLayout(this);
+      String identity=model.selected==null?null:VehicleCoordinator.identity(model.selected.vin);
+      EnergyBackdropView energyImage=new EnergyBackdropView(this,identity);
+      backgroundHost.addView(energyImage,new FrameLayout.LayoutParams(-1,-1));
+      shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);applyButtonOpacity(shell);
+      backgroundHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));
+      setContentView(backgroundHost);
+    }else if(AppPreferences.visible(this,"map_backdrop",false)&&model.parkedLocation!=null){
       if(mapHost==null){mapHost=new FrameLayout(this);setContentView(mapHost);}
       for(int i=mapHost.getChildCount()-1;i>=0;i--)if(mapHost.getChildAt(i)!=backdrop)mapHost.removeViewAt(i);
       shell.setBackgroundColor(Color.TRANSPARENT);softenMapCards(shell);applyButtonOpacity(shell);mapHost.addView(shell,new FrameLayout.LayoutParams(-1,-1));updateBackdrop();
@@ -738,7 +747,40 @@ public final class MainActivity extends FragmentActivity {
   private final Runnable mapRefreshTick=()->{if(VehiclePowerPolicy.automaticReads(this)&&model.hasSession()&&model.selected!=null&&AppPreferences.visible(this,"map_backdrop",false))model.readLastParkedLocation(false,(point,error)->scheduleMapRefresh());else scheduleMapRefresh();};
   private void scheduleMapRefresh(){displayHandler.removeCallbacks(mapRefreshTick);long delay=model==null?-1:model.parkingRefreshDelay();if(mapRefreshHostActive&&delay>=0&&AppPreferences.visible(this,"map_backdrop",false))displayHandler.postDelayed(mapRefreshTick,Math.max(1000,delay));}
 
-  private void backgroundChoice(){new HapticDialogBuilder(this).setTitle(tr("界面背景","UI background")).setItems(new String[]{tr("纯色","Solid"),tr("高德停车地图","Amap parking map"),tr("选择本机图片并裁切","Choose and crop local image")},(d,w)->{if(w!=2){AppPreferences.set(this,"background_image_enabled","off");AppPreferences.set(this,"map_backdrop",w==1?"on":"off");}if(w==2){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivityForResult(i,801);}else render();}).show();}
+  private void backgroundChoice(){
+    String[] labels={tr("纯色","Solid"),tr("高德停车地图（实验）","Amap parking map (experimental)"),
+        tr("选择本机图片并裁切","Choose & crop local image"),tr("行驶与能耗费用统计图（实验）","Driving & energy statistics backdrop (experimental)")};
+    new HapticDialogBuilder(this).setTitle(tr("试验性背景 · 地图 / 能耗","Experimental background · map / energy"))
+        .setItems(labels,(d,w)->{
+          // Exactly one of background image, map and energy chart can be active.
+          AppPreferences.set(this,"background_image_enabled","off");
+          AppPreferences.set(this,"map_backdrop",w==1?"on":"off");
+          AppPreferences.set(this,EnergyBackdropView.ENABLED,w==3?"on":"off");
+          if(w==2){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*")
+              .addCategory(Intent.CATEGORY_OPENABLE);
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);startActivityForResult(i,801);
+          }else{render();scheduleMapRefresh();}
+        }).show();
+  }
+  private void energyBackdropSettings(){
+    LinearLayout panel=detailPanel();
+    setting(panel,tr("背景来源 · 纯色 / 地图 / 图片 / 能耗","Backdrop · solid / map / photo / energy"),this::backgroundChoice);
+    setting(panel,tr("图表内容 · 行驶能耗 / 驻车空调 / 行驶里程 / 能耗费","Chart content · driving energy / parked climate / mileage / cost"),()->
+        choice(tr("背景图表内容","Background chart metric"),EnergyBackdropView.METRIC,
+            new String[]{"drive","climate","distance","cost"},
+            new String[]{tr("行驶能耗","Driving energy"),tr("驻车空调","Parked climate"),tr("行驶里程","Mileage"),tr("能耗费","Energy cost")},"drive",this::render));
+    setting(panel,tr("图表类型 · 柱状 / 波浪 / 叠加","Chart style · bars / curve / overlay"),()->
+        choice(tr("背景图表类型","Background chart style"),EnergyBackdropView.STYLE,
+            new String[]{"bars","curve","both"},
+            new String[]{tr("柱状图","Bars"),tr("波浪曲线","Curve"),tr("叠加","Overlay")},"curve",this::render));
+    setting(panel,tr("跨度 · 天 / 周 / 月","Grouping · day / week / month"),()->
+        choice(tr("能耗背景时间跨度","Energy background interval"),EnergyBackdropView.STEP,
+            new String[]{"day","week","month"},
+            new String[]{tr("每天","Daily"),tr("每周","Weekly"),tr("每月","Monthly")},"day",this::render));
+    note(panel,tr("说明","Info"),tr("实验背景只读取本机最近31天真实记录，采用VI橙色轻量绘制；不触发车辆刷新。没有历史数据时背景不绘制曲线。","The experimental energy backdrop uses real locally stored records from the last 31 days only. It does not fetch vehicle data or invent history."));
+    new HapticDialogBuilder(this).setTitle(tr("行驶与能耗费用统计 · 背景试验","Statistics background experiment"))
+        .setView(panel).setPositiveButton(tr("完成","Done"),null).show();
+  }
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==811||request==812){if(result==RESULT_OK&&data!=null&&data.getData()!=null)finishSettingsFile(request,data.getData());return;}if(request==801&&result==RESULT_OK&&data!=null&&data.getData()!=null)startActivityForResult(new Intent(this,BackgroundCropActivity.class).setData(data.getData()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),802);else if(request==802&&result==RESULT_OK)render();}
   private void allGoodDialog(){LinearLayout p=detailPanel();setting(p,tr("显示位置 · 下方 / 车辆后方","Placement · below / behind"),()->choice(tr("All Good显示位置","All Good placement"),"all_good_position",new String[]{"below","behind"},new String[]{tr("车辆下方（默认）","Below vehicle (default)"),tr("车辆后方","Behind vehicle")},"below",this::render));setting(p,tr("后方排版 · 单行 / 两行 / C方案","Backdrop · one / two lines / layout C"),()->choice(tr("All Good后方排版","All Good backdrop layout"),"all_good_lines",new String[]{"one","two","offset_c"},new String[]{tr("单行","One line"),tr("两行","Two lines"),tr("C方案","Layout C")},"one",()->{if("offset_c".equals(AppPreferences.get(this,"all_good_lines","one")))AppPreferences.set(this,"all_good_position","behind");render();}));
     p.addView(text(tr("正常时的文字（最多80字，可换行）","Healthy text (up to 80 characters, multiline)"),14,ink,false));EditText good=new EditText(this);good.setTextColor(ink);good.setText(ConditionStyle.message(this,false));good.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(80)});p.addView(good);
@@ -752,7 +794,7 @@ public final class MainActivity extends FragmentActivity {
   private void resetSettings(){new HapticDialogBuilder(this).setTitle(tr("全部恢复默认设置","Reset all settings")).setMessage(tr("重置显示与功能偏好，保留账号、车辆与能耗记录；不改变车端运行状态。","Reset display and feature preferences; keep account, vehicle and energy history. Vehicle operation is unchanged.")).setPositiveButton(tr("恢复默认","Reset"),(d,w)->{SettingsBackup.reset(this);applyRestoredSettings();}).setNegativeButton(tr("取消","Cancel"),null).show();}
   private void applyRestoredSettings(){settingsScrollY=0;AppIcons.sync(this);WidgetRenderer.refreshAll(this);ResidentService.apply(this);scheduleForeground();scheduleMapRefresh();recreate();}
   private void mapThemeChoice(){String[] modes={"system","light","dark"};int selected=Arrays.asList(modes).indexOf(MapAppearance.mode(this));new HapticDialogBuilder(this).setTitle(tr("地图显示模式","Map appearance")).setSingleChoiceItems(new String[]{tr("跟随系统","Follow system"),tr("白天地图","Day map"),tr("黑夜地图","Night map")},selected,(d,w)->{AppPreferences.set(this,"map_theme",modes[w]);d.dismiss();render();}).setNegativeButton(tr("取消","Cancel"),null).show();}
-  private void mapBackdropDialog(){LinearLayout p=detailPanel();setting(p,tr("地图模式 · 白天 / 黑夜 / 跟随系统","Map theme · day / night / system"),this::mapThemeChoice);setting(p,tr("背景来源 · 纯色 / 高德 / 本机图片","Background · solid / Amap / local image"),this::backgroundChoice);SeekBar zoom=campSlider(p,tr("高德地图缩放","Amap zoom"),3,20,EffectSettings.number(this,"map_backdrop_zoom",16,3,20),null,null);settingToggle(p,"map_backdrop",tr("试验性高德地图背景","Experimental Amap backdrop"),false,false);SeekBar blur=campSlider(p,tr("模糊强度","Blur strength"),0,80,EffectSettings.number(this,"map_backdrop_blur",12,0,80),null,null);SeekBar spread=campSlider(p,tr("渐变模糊外扩比例 %","Blur spread %"),0,300,EffectSettings.number(this,"map_backdrop_spread",60,0,300),null,null);MapMarkerSettings pin=new MapMarkerSettings(this);SeekBar cropX=campSlider(p,tr("地图裁切焦点 · 横向 %","Map crop focus · horizontal %"),0,100,pin.cropX,null,null);SeekBar cropY=campSlider(p,tr("地图裁切焦点 · 纵向 %","Map crop focus · vertical %"),0,100,pin.cropY,null,null);SeekBar size=campSlider(p,tr("定位标记大小 %","Location marker size %"),25,300,pin.size,null,null);p.addView(text(tr("定位标记颜色 #RRGGBB（默认VI橙色）","Marker color #RRGGBB (default VI orange)"),14,ink,false));EditText color=new EditText(this);color.setSingleLine(true);color.setTextColor(ink);color.setText(pin.color);p.addView(color);SeekBar x=campSlider(p,tr("定位焦点 · 横向 %","Location focus · horizontal %"),0,100,pin.focusX,null,null);SeekBar y=campSlider(p,tr("定位焦点 · 纵向 %","Location focus · vertical %"),0,100,pin.focusY,null,null);note(p,tr("说明","Info"),tr("裁切焦点默认50%/50%，用于移动地图取景。定位标记随道路一起移动；边缘会限制取景，避免露底。不修改车辆经纬度，不调用手机定位；调整时复用地图。","Crop focus defaults to 50%/50% and moves the map framing. Marker and roads move together; edge limits prevent blank margins. Vehicle coordinates and phone location are unchanged. Updates reuse the map."));AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("地图背景与定位标记","Map backdrop and location marker")).setView(p).setPositiveButton(tr("应用","Apply"),null).setNeutralButton(tr("恢复取景与标记","Reset crop and marker"),(d,w)->{android.content.SharedPreferences.Editor e=getSharedPreferences("preferences",0).edit();e.remove("map_crop_focus_x").remove("map_crop_focus_y").remove("map_pin_size_percent").remove("map_pin_color").remove("map_pin_focus_x").remove("map_pin_focus_y").apply();render();}).setNegativeButton(tr("取消","Cancel"),null).create();dialog.show();dialog.getButton(-1).setOnClickListener(v->{String hex=color.getText().toString().trim();if(!WidgetColors.validHex(hex)){color.setError("#RRGGBB");return;}android.content.SharedPreferences.Editor e=getSharedPreferences("preferences",0).edit();e.putString("map_crop_focus_x",String.valueOf(cropX.getProgress())).putString("map_crop_focus_y",String.valueOf(cropY.getProgress())).putString("map_backdrop_zoom",String.valueOf(zoom.getProgress()+3)).putString("map_backdrop_blur",String.valueOf(blur.getProgress())).putString("map_backdrop_spread",String.valueOf(spread.getProgress())).putString("map_pin_size_percent",String.valueOf(size.getProgress()+25)).putString("map_pin_color",hex).putString("map_pin_focus_x",String.valueOf(x.getProgress())).putString("map_pin_focus_y",String.valueOf(y.getProgress())).apply();dialog.dismiss();render();});}
+  private void mapBackdropDialog(){LinearLayout p=detailPanel();setting(p,tr("地图模式 · 白天 / 黑夜 / 跟随系统","Map theme · day / night / system"),this::mapThemeChoice);setting(p,tr("背景来源 · 纯色 / 高德 / 图片 / 能耗","Background · solid / map / image / energy"),this::backgroundChoice);setting(p,tr("行驶与能耗费用统计 · 背景试验","Driving & Energy Cost Statistics backdrop experiment"),this::energyBackdropSettings);SeekBar zoom=campSlider(p,tr("高德地图缩放","Amap zoom"),3,20,EffectSettings.number(this,"map_backdrop_zoom",16,3,20),null,null);settingToggle(p,"map_backdrop",tr("试验性高德地图背景","Experimental Amap backdrop"),false,false);SeekBar blur=campSlider(p,tr("模糊强度","Blur strength"),0,80,EffectSettings.number(this,"map_backdrop_blur",12,0,80),null,null);SeekBar spread=campSlider(p,tr("渐变模糊外扩比例 %","Blur spread %"),0,300,EffectSettings.number(this,"map_backdrop_spread",60,0,300),null,null);MapMarkerSettings pin=new MapMarkerSettings(this);SeekBar cropX=campSlider(p,tr("地图裁切焦点 · 横向 %","Map crop focus · horizontal %"),0,100,pin.cropX,null,null);SeekBar cropY=campSlider(p,tr("地图裁切焦点 · 纵向 %","Map crop focus · vertical %"),0,100,pin.cropY,null,null);SeekBar size=campSlider(p,tr("定位标记大小 %","Location marker size %"),25,300,pin.size,null,null);p.addView(text(tr("定位标记颜色 #RRGGBB（默认VI橙色）","Marker color #RRGGBB (default VI orange)"),14,ink,false));EditText color=new EditText(this);color.setSingleLine(true);color.setTextColor(ink);color.setText(pin.color);p.addView(color);SeekBar x=campSlider(p,tr("定位焦点 · 横向 %","Location focus · horizontal %"),0,100,pin.focusX,null,null);SeekBar y=campSlider(p,tr("定位焦点 · 纵向 %","Location focus · vertical %"),0,100,pin.focusY,null,null);note(p,tr("说明","Info"),tr("裁切焦点默认50%/50%，用于移动地图取景。定位标记随道路一起移动；边缘会限制取景，避免露底。不修改车辆经纬度，不调用手机定位；调整时复用地图。","Crop focus defaults to 50%/50% and moves the map framing. Marker and roads move together; edge limits prevent blank margins. Vehicle coordinates and phone location are unchanged. Updates reuse the map."));AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("试验性背景 · 地图与能耗","Experimental backdrops · map and energy")).setView(p).setPositiveButton(tr("应用","Apply"),null).setNeutralButton(tr("恢复取景与标记","Reset crop and marker"),(d,w)->{android.content.SharedPreferences.Editor e=getSharedPreferences("preferences",0).edit();e.remove("map_crop_focus_x").remove("map_crop_focus_y").remove("map_pin_size_percent").remove("map_pin_color").remove("map_pin_focus_x").remove("map_pin_focus_y").apply();render();}).setNegativeButton(tr("取消","Cancel"),null).create();dialog.show();dialog.getButton(-1).setOnClickListener(v->{String hex=color.getText().toString().trim();if(!WidgetColors.validHex(hex)){color.setError("#RRGGBB");return;}android.content.SharedPreferences.Editor e=getSharedPreferences("preferences",0).edit();e.putString("map_crop_focus_x",String.valueOf(cropX.getProgress())).putString("map_crop_focus_y",String.valueOf(cropY.getProgress())).putString("map_backdrop_zoom",String.valueOf(zoom.getProgress()+3)).putString("map_backdrop_blur",String.valueOf(blur.getProgress())).putString("map_backdrop_spread",String.valueOf(spread.getProgress())).putString("map_pin_size_percent",String.valueOf(size.getProgress()+25)).putString("map_pin_color",hex).putString("map_pin_focus_x",String.valueOf(x.getProgress())).putString("map_pin_focus_y",String.valueOf(y.getProgress())).apply();dialog.dismiss();render();});}
 
   private List<String> skinOrder(){List<String> values=new ArrayList<>();List<String> valid=Arrays.asList(UiSkin.pickerChoices());for(String key:AppPreferences.get(this,"skin_order","").split(","))if(valid.contains(key)&&!values.contains(key))values.add(key);for(String key:valid)if(!values.contains(key))values.add(key);return values;}
   private void vehicleAppearanceMenu(){new HapticDialogBuilder(this).setTitle(tr("车辆外观快捷设置","Vehicle appearance"))
@@ -1916,42 +1958,106 @@ public final class MainActivity extends FragmentActivity {
         tr("车辆最后上报的停车点 · 非实时追踪","Last vehicle parking report · not live tracking"));
     panel.addView(locationHeader);
     if(location.stale){TextView stale=text(tr("停车位置可能过期 · 以车辆时间为准","Parking location may be stale"),11,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
-    ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));parkingPreview=map;
-    // Compact map and a single action area fit inside the half-area window without scrolling.
-    int mapHeight=Math.max(50,Math.min(90,(int)(getResources().getConfiguration().screenHeightDp*.112f)));
-    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,2);
-    TextView coordinates=text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.5f",location.latitude)
-        +"  /  "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.5f",location.longitude),10,muted,false);
-    coordinates.setGravity(Gravity.CENTER);coordinates.setMaxLines(1);coordinates.setSingleLine(true);coordinates.setTextSize(10);panel.addView(coordinates);gap(panel,2);
-    LinearLayout actions=row();actions.setGravity(Gravity.CENTER);
-    TextView open=button(tr("打开地图","Open map"),()->openLocation(location));open.setTag("parking_open_map");
-    TextView refresh=button(tr("更新位置","Refresh"),()->locationDialog(true));refresh.setTag("parking_refresh_position");
-    open.setTextSize(12);refresh.setTextSize(12);
-    open.setMinHeight(dp(32));refresh.setMinHeight(dp(32));
-    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(34),1f);
-    actions.addView(open,actionCell);
-    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(34),1f);second.leftMargin=dp(4);
-    actions.addView(refresh,second);panel.addView(actions);gap(panel,2);
-    LinearLayout phone=row();phone.setGravity(Gravity.CENTER_VERTICAL);
-    TextView mapOptions=button(tr("手机定位设置","Phone location settings"),this::mapLocationDialog);
-    mapOptions.setTag("parking_phone_settings");mapOptions.setTextSize(11);mapOptions.setMinHeight(dp(31));
-    phone.addView(mapOptions,new LinearLayout.LayoutParams(0,dp(31),1));
-    if(MapLocationPermission.enabled(this)){
-      TextView phoneRefresh=button(tr("刷新手机位置","Refresh phone location"),()->map.requestPhoneLocation());
-      phoneRefresh.setTag("parking_refresh_phone_location");phoneRefresh.setTextSize(11);phoneRefresh.setMinHeight(dp(31));
-      LinearLayout.LayoutParams phoneRefreshCell=new LinearLayout.LayoutParams(0,dp(31),1);
-      phoneRefreshCell.leftMargin=dp(4);phone.addView(phoneRefresh,phoneRefreshCell);
+    ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->{});parkingPreview=map;
+    // Use the actual map as the primary content, not the old 50-90dp thumbnail strip.
+    // Compact landscape still has a scroll fallback; normal portrait fits on one page.
+    boolean portrait=getResources().getConfiguration().screenWidthDp<=getResources().getConfiguration().screenHeightDp;
+    int mapHeight=ParkingPreviewLayout.mapHeightDp(getResources().getConfiguration().screenHeightDp,portrait);
+    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));
+    final TextView[] coordinatesRef={null};
+    // Inline toolbar avoids tertiary windows; gestures directly operate the embedded Amap.
+    LinearLayout mapTools=row();mapTools.setTag("parking_inline_map_controls");mapTools.setGravity(Gravity.CENTER);
+    String[] captions={tr("－","−"),tr("＋","+"),tr("回到车辆","Center"),tr("更新位置","Refresh")};
+    Runnable[] callbacks={()->map.adjustZoom(-1),()->map.adjustZoom(1),map::recenter,
+        ()->refreshParkingInPlace(map,report,coordinatesRef[0])};
+    // Keep the current dialog and its coordinate view during an in-place refresh.
+    LinearLayout.LayoutParams toolCell;
+    for(int i=0;i<captions.length;i++){
+      TextView action=button(captions[i],callbacks[i]);
+      action.setTag(new String[]{"parking_zoom_out","parking_zoom_in","parking_center_vehicle","parking_refresh_position"}[i]);
+      action.setTextSize(i<2?17:11);action.setMinHeight(dp(32));
+      toolCell=new LinearLayout.LayoutParams(0,dp(36),i<2?.65f:1.15f);
+      if(i>0)toolCell.leftMargin=dp(3);
+      mapTools.addView(action,toolCell);
     }
+    panel.addView(mapTools);gap(panel,1);
+    // Both location modes are managed inline: the preview never opens third-level menus.
+    LinearLayout coordinatesRow=row();coordinatesRow.setGravity(Gravity.CENTER_VERTICAL);
+    TextView coordinates=text(parkingCoordinates(location),10,muted,false);
+    coordinatesRef[0]=coordinates;coordinates.setTag("parking_coordinates");coordinates.setGravity(Gravity.CENTER_VERTICAL);
+    coordinates.setSingleLine(true);coordinates.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    coordinatesRow.addView(coordinates,new LinearLayout.LayoutParams(0,-2,1));
+    TextView mapHint=text(tr("拖动 / 双指缩放","Drag / pinch to zoom"),10,muted,false);
+    mapHint.setTag("parking_map_gesture_hint");mapHint.setSingleLine(true);
+    coordinatesRow.addView(mapHint,new LinearLayout.LayoutParams(-2,-2));
+    panel.addView(coordinatesRow);
+    LinearLayout phone=row();phone.setGravity(Gravity.CENTER_VERTICAL);
+    mapLocationSwitch=new SwitchCompat(this);mapLocationSwitch.setTag("parking_phone_location_toggle");
+    mapLocationSwitch.setText(tr("手机定位","Phone location"));mapLocationSwitch.setTextColor(ink);
+    mapLocationSwitch.setTextSize(11);mapLocationSwitch.setChecked(MapLocationPermission.enabled(this));
+    mapLocationSwitch.setOnCheckedChangeListener((button,on)->{
+      Haptics.tap(this);
+      if(on&&!MapLocationPermission.granted(this)){
+        requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION},MAP_LOCATION);
+      }else{
+        AppPreferences.set(this,MapLocationPermission.KEY,on?"on":"off");
+        if(parkingPreview!=null)parkingPreview.refreshPhoneLocation();
+      }
+    });
+    phone.addView(mapLocationSwitch,new LinearLayout.LayoutParams(0,dp(38),1.3f));
+    TextView phoneRefresh=button(tr("刷新手机位置","Refresh phone"),()->{
+      if(MapLocationPermission.enabled(this))map.requestPhoneLocation();
+      else toast(tr("请先开启手机定位","Enable phone location first"));
+    });
+    phoneRefresh.setTag("parking_refresh_phone_location");phoneRefresh.setTextSize(11);
+    phoneRefresh.setSingleLine(true);phoneRefresh.setPadding(dp(4),0,dp(4),0);
+    phone.addView(phoneRefresh,new LinearLayout.LayoutParams(0,dp(35),1));
+    // Optional external navigation stays available as a SMALL accessory action.
+    // The actual map above is fully browsable; opening a map app is never required.
+    TextView externalMap=button(tr("打开地图","Open map"),
+        ()->openLocation(parkingPoint!=null?parkingPoint:location));
+    externalMap.setTag("parking_open_map");
+    externalMap.setContentDescription(tr("使用地图应用打开停车位置","Open parked position in a map app"));
+    externalMap.setTextSize(10);externalMap.setSingleLine(true);
+    externalMap.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    externalMap.setPadding(dp(3),0,dp(3),0);externalMap.setMinHeight(dp(28));
+    LinearLayout.LayoutParams compactMapButton=new LinearLayout.LayoutParams(0,dp(32),.78f);
+    compactMapButton.leftMargin=dp(3);
+    phone.addView(externalMap,compactMapButton);
     panel.addView(phone);
 
     HapticDialogBuilder builder=new HapticDialogBuilder(this);
     if(getResources().getConfiguration().screenHeightDp>=480
         &&getResources().getConfiguration().screenWidthDp<=getResources().getConfiguration().screenHeightDp)
-      builder.singlePageMap();
+      builder.parkingPreviewWindow();
     else builder.compactMapWindow();
     AlertDialog dialog=builder.setTitle(tr("最后停车位置","Last parked location")).setView(panel)
         .setNegativeButton(tr("关闭","Close"),null).create();
     parkingDialog=dialog;dialog.setOnDismissListener(d->{map.close();if(parkingDialog==dialog){parkingDialog=null;parkingVin=null;parkingPoint=null;parkingPreview=null;}});dialog.show();
+  }
+
+  private String parkingCoordinates(LocationSnapshot position){
+    return tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.5f",position.latitude)
+        +"  /  "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.5f",position.longitude);
+  }
+  /** Refresh in the same popup: no dismissal, re-opening or extra modal. */
+  private void refreshParkingInPlace(ParkingWebPreview map,TextView timestamp,TextView coordinates){
+    if(model.selected==null||parkingDialog==null||!parkingDialog.isShowing())return;
+    String currentVin=parkingVin;
+    toast(tr("正在更新停车位置…","Refreshing parked location…"));
+    model.readLastParkedLocation(true,(updated,error)->{
+      if(isFinishing()||isDestroyed()||parkingDialog==null||!parkingDialog.isShowing()
+          ||!java.util.Objects.equals(currentVin,parkingVin)||map!=parkingPreview)return;
+      if(updated==null||!updated.valid()){
+        toast(tr("未获得新的停车位置，保留当前地图","No new parked position; keeping the current map"));return;
+      }
+      parkingPoint=updated;
+      map.updateParkedPoint(updated);
+      String when=updated.reportedAt>0?android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",updated.reportedAt).toString():"--";
+      timestamp.setText(tr("车辆位置更新 ","Vehicle position updated ")+when);
+      if(coordinates!=null)coordinates.setText(parkingCoordinates(updated));
+      toast(tr("停车位置已更新","Parking location updated"));
+    });
   }
 
   private void mapLocationDialog(){
@@ -2107,7 +2213,7 @@ public final class MainActivity extends FragmentActivity {
     int size=Math.max(260,Math.min(580,(int)(getResources().getConfiguration().screenHeightDp*.70f)));
     viewport.addView(scroll,new android.widget.FrameLayout.LayoutParams(-1,dp(size)));
     energySummaryContents(panel);
-    new HapticDialogBuilder(this).setTitle(tr("平均能耗与费用","Average consumption & cost"))
+    new HapticDialogBuilder(this).setTitle(tr("行驶与能耗费用统计","Driving & Energy Cost Statistics"))
         .setView(viewport).setNegativeButton(tr("关闭","Close"),null).show();
   }
 
@@ -2151,7 +2257,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout panel=scrollBody();((ScrollView)panel.getParent()).setTag("data_scroll");VehicleSnapshot v=model.snapshot;
     panel.addView(text(tr("车辆数据","Vehicle data"),24,ink,false));if(v==null){panel.addView(text(tr("暂无车况，请连接车辆后刷新。","No vehicle snapshot. Connect and refresh first."),14,muted,false));setting(panel,tr("刷新车辆","Refresh vehicle"),()->model.refreshUser(null));return;}
     detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.BATTERY_12V,DisplayMetric.SERVICE_CYCLE);if(v.chargingDetails.targetPercent!=null)metricRows(panel,DisplayMetric.CHARGE_LIMIT);
-    disclosure(panel,"data_energy",tr("能耗统计 · 行驶 / 空调 / 里程 / 费用","Energy · driving / climate / distance / cost"),true,this::energySummaryContents);
+    disclosure(panel,"data_energy",tr("行驶与能耗费用统计","Driving & Energy Cost Statistics"),true,this::energySummaryContents);
     disclosure(panel,"data_health",tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),true,this::healthOverview);
     disclosure(panel,"data_exterior",tr("车门 / 车窗 / 尾箱","Doors / windows / tailgate"),false,this::exteriorContents);
     if(showTires())disclosure(panel,"data_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);
@@ -2430,7 +2536,7 @@ public final class MainActivity extends FragmentActivity {
   private void setting(LinearLayout parent,String title,Runnable action){if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,settingsAliases(title),action);TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);GradientDrawable frame=bg(surface,12);frame.setStroke(dp(1),line);entry.setBackground(frame);entry.setPadding(dp(11),dp(7),dp(11),dp(7));entry.setMinHeight(dp(45));entry.setSingleLine(false);entry.setMaxLines(3);parent.addView(entry);gap(parent,MenuSpacing.dp(this));}
   private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
     SwitchCompat toggle=new SwitchCompat(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(46));toggle.setPadding(dp(10),dp(5),dp(10),dp(5));GradientDrawable tf=bg(surface,12);tf.setStroke(dp(1),line);toggle.setBackground(tf);toggle.setThumbTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{orange,muted}));toggle.setTrackTintList(android.content.res.ColorStateList.valueOf(line));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
-    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)||key.startsWith("oppo_")){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();if(key.startsWith("oppo_"))OppoCardSummarySettings.changed(this);}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);gap(parent,MenuSpacing.dp(this));
+    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if("map_backdrop".equals(key)&&on){AppPreferences.set(this,EnergyBackdropView.ENABLED,"off");AppPreferences.set(this,"background_image_enabled","off");}if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)||key.startsWith("oppo_")){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();if(key.startsWith("oppo_"))OppoCardSummarySettings.changed(this);}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);gap(parent,MenuSpacing.dp(this));
   }
   private void themeChoice(){new HapticDialogBuilder(this).setTitle(tr("日夜模式","Day / night mode")).setItems(new String[]{tr("跟随系统","System"),tr("浅色","Light"),tr("深色","Dark")},(d,w)->{AppPreferences.set(this,"theme",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);render();}).show();}
   private void widgetFields(){String[] labels={"4×2 · 8","2×2 · 4","4×1 · 4","5×1 · 4","2×1 · 2","Data 4×4 · 8"};WidgetRenderer.Size[] sizes={WidgetRenderer.Size.LARGE,WidgetRenderer.Size.SQUARE,WidgetRenderer.Size.WIDE,WidgetRenderer.Size.EXTRA_WIDE,WidgetRenderer.Size.MINI,WidgetRenderer.Size.DATA};new HapticDialogBuilder(this).setTitle(tr("Widget 尺寸与数据","Widget size and data")).setItems(labels,(d,w)->metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),WidgetRenderer.capacity(sizes[w]),WidgetRenderer.selectionDefaults(this,sizes[w]))).show();}
@@ -2486,7 +2592,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout root=scrollBody();((ScrollView)root.getParent()).setTag("settings_scroll");root.addView(text(tr("设置","Settings"),24,ink,false));root.addView(text("v"+BuildConfig.VERSION_NAME+" · "+tr("独立版本","Standalone version"),12,muted,false));gap(root,8);final ScrollView settingsScroll=(ScrollView)root.getParent();settingsSearch=new SettingsSearch(this,root);LinearLayout groups=column();root.addView(groups);root=groups;indexSettings=true;
     disclosure(root,"settings_appearance",tr("外观与交互","Appearance and interaction"),true,p->{
       setting(p,tr("界面皮肤 · ","UI skin · ")+currentSkinLabel(),this::skinDialog);
-      setting(p,tr("日夜模式 · 跟随系统 / 浅色 / 深色","Day/night · system / light / dark"),this::themeChoice);setting(p,tr("地图背景 · 试验性 / 模糊与外扩","Map backdrop · experimental / blur and spread"),this::mapBackdropDialog);
+      setting(p,tr("日夜模式 · 跟随系统 / 浅色 / 深色","Day/night · system / light / dark"),this::themeChoice);setting(p,tr("背景实验 · 地图BGM / 能耗图","Background experiments · map / energy chart"),this::mapBackdropDialog);
       setting(p,tr("程序与通知图标 · ","App and notification icon · ")+AppIcons.label(this,AppIcons.style(this)),this::appIconDialog);
       setting(p,tr("尾门图标 · 新款 / 旧款 / 门锁","Tailgate icon · new / previous / lock"),()->choice(tr("尾门图标","Tailgate icon"),"trunk_icon",new String[]{"detail","car","door"},new String[]{tr("新尾门细节（默认）","New hatch detail (default)"),tr("旧车辆轮廓","Previous car outline"),tr("门锁图标","Door lock icon")},"detail",()->{WidgetRenderer.refreshAll(this);render();}));
       setting(p,tr("程序语言 / Language","App language / 语言"),this::languageDialog);
@@ -2544,6 +2650,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"widget_bold",tr("Widget 加粗字体（所有风格）","Bold widget text (all styles)"),false,true);
       settingToggle(p,"widget_check_hint",tr("Widget 更新时间旁 · 橙色警告三角 Check","Widget timestamp · orange Check warning"),true,true);
       setting(p,tr("Widget 语言 · 中文 / English","Widget language · 中文 / English"),this::widgetLanguageDialog);
+      setting(p,tr("Widget 更新日期 · ","Widget update date · ")+WidgetTimestampFormat.pattern(this),this::widgetTimestampFormatDialog);
       setting(p,tr("Widget 车辆图片 / 透明程序图标","Widget vehicle / transparent icon"),this::widgetVisualDialog);
       setting(p,tr("背景样式 · 不透明 / 透明","Background · opaque / transparent"),()->new HapticDialogBuilder(this).setTitle(tr("Widget 背景","Widget background")).setItems(new String[]{tr("不透明","Opaque"),tr("透明","Transparent")},(d,w)->{AppPreferences.set(this,"widget_style",w==0?"opaque":"transparent");WidgetRenderer.refreshAll(this);}).show());
       setting(p,tr("Widget 文字/边框/按钮 · 分别设置颜色透明度粗细","Widget text/border/buttons · independent style"),this::widgetAppearanceDialog);
@@ -2926,6 +3033,35 @@ public final class MainActivity extends FragmentActivity {
     dialog[0].show();
   }
 
+  private void widgetTimestampFormatDialog(){
+    String[] keys=WidgetTimestampFormat.PRESETS;
+    String[] labels={tr("月-日 时:分（默认）","Month-day hour:minute (default)"),
+        tr("月/日 时:分","Month/day hour:minute"),tr("月-日","Month-day"),
+        tr("时:分","Hour:minute"),tr("年-月-日 时:分","Year-month-day hour:minute"),
+        tr("自定义格式…","Custom format…")};
+    String selected=WidgetTimestampFormat.pattern(this);int selection=keys.length;
+    for(int i=0;i<keys.length;i++)if(keys[i].equals(selected)){selection=i;break;}
+    new HapticDialogBuilder(this).setTitle(tr("Widget 更新时间格式","Widget update timestamp"))
+        .setSingleChoiceItems(labels,selection,(dialog,which)->{
+          dialog.dismiss();if(which==keys.length){customWidgetTimestampDialog();return;}
+          AppPreferences.set(this,WidgetTimestampFormat.KEY,keys[which]);WidgetRenderer.refreshAll(this);render();
+        }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
+  private void customWidgetTimestampDialog(){
+    LinearLayout box=column();
+    box.addView(text(tr("支持 yyyy、yy、MM、dd、HH、mm，可使用 - / : 空格与年月日。","Supported tokens: yyyy, yy, MM, dd, HH, mm, with separators."),13,muted,false));
+    EditText pattern=new EditText(this);pattern.setSingleLine(true);pattern.setTextColor(ink);
+    pattern.setHint("MM-dd HH:mm");pattern.setText(WidgetTimestampFormat.pattern(this));
+    pattern.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(30)});
+    box.addView(pattern,new LinearLayout.LayoutParams(-1,dp(48)));
+    AlertDialog d=new HapticDialogBuilder(this).setTitle(tr("自定义 Widget 日期显示","Custom Widget date display"))
+        .setView(box).setPositiveButton(tr("保存","Save"),null).setNegativeButton(tr("取消","Cancel"),null).create();
+    d.show();d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+      String value=pattern.getText().toString().trim();
+      if(!WidgetTimestampFormat.valid(value)){pattern.setError(tr("格式无效（最多30个字符）","Invalid date format (maximum 30 characters)"));return;}
+      AppPreferences.set(this,WidgetTimestampFormat.KEY,value);WidgetRenderer.refreshAll(this);d.dismiss();render();
+    });
+  }
   private void widgetLanguageDialog() {
     new HapticDialogBuilder(this).setTitle("Widget 语言 / Language")
       .setItems(new String[]{"跟随系统 / System", "简体中文", "English"},
@@ -3106,7 +3242,7 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(text(tr("车辆状况","Vehicle condition"),24,ink,true));panel.addView(text(VehicleCondition.summary(this,model.snapshot,showTires()),16,VehicleCondition.problem(model.snapshot,showTires())?accentText():ink,false));
     TextView update=text(dashboardStamp(),10,muted,false);update.setTag("status_update");panel.addView(update);TextView refresh=button(tr("刷新车况","Refresh condition"),()->model.refreshUser(null));refresh.setTag("condition_refresh");refresh.setEnabled(!(model.busy&&!model.quietRefresh)&&model.hasSession());panel.addView(refresh);gap(panel,12);
     healthOverview(panel);
-    disclosure(panel,"status_energy",tr("能耗统计 · 行驶 / 空调 / 里程 / 费用","Energy · driving / climate / distance / cost"),true,this::energySummaryContents);
+    disclosure(panel,"status_energy",tr("行驶与能耗费用统计","Driving & Energy Cost Statistics"),true,this::energySummaryContents);
     disclosure(panel,"status_service",tr("保养周期与原始上报值","Service cycle and reported values"),false,this::serviceContents);
     disclosure(panel,"status_exterior",tr("车门 / 车窗 / 尾箱位置状态","Doors / windows / tailgate positions")+(model.snapshot!=null&&ExteriorView.hasOpening(model.snapshot)?" !":""),false,this::exteriorContents);
     if(showTires())disclosure(panel,"status_tyres",tr("四轮 iTPMS 状态","Four-wheel iTPMS status"),false,this::tyreContents);

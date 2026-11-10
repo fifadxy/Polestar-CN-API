@@ -19,9 +19,11 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
   private final Context context;
   private boolean mapCompact;
   private boolean singlePageMap;
+  private boolean largeParkingPreview;
   HapticDialogBuilder(Context context){super(context);this.context=context;}
   HapticDialogBuilder compactMapWindow(){mapCompact=true;return this;}
   HapticDialogBuilder singlePageMap(){mapCompact=true;singlePageMap=true;return this;}
+  HapticDialogBuilder parkingPreviewWindow(){mapCompact=true;singlePageMap=true;largeParkingPreview=true;return this;}
   @Override public AlertDialog.Builder setView(View view){
     // Style once BEFORE first attachment/measurement to avoid font-induced layout jumps.
     UiTypography.applyTree(view);
@@ -55,7 +57,9 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
       int width=Math.min((int)(360*density),(int)(dm.widthPixels*.86f));
       int height=ViewGroup.LayoutParams.WRAP_CONTENT;
       if(mapCompact){
-        int[] size=DialogWindowGeometry.map(dm.widthPixels,dm.heightPixels,density);
+        int[] size=largeParkingPreview
+            ?DialogWindowGeometry.parkingPreview(dm.widthPixels,dm.heightPixels,density)
+            :DialogWindowGeometry.map(dm.widthPixels,dm.heightPixels,density);
         width=size[0];height=size[1];
       }
       WindowManager.LayoutParams attrs=window.getAttributes();

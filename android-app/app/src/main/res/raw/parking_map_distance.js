@@ -37,12 +37,15 @@
   }
   function show(parkLat,parkLon,english,enabled) {
     function label(message,attempt) {
-      const box=root.document.querySelector('.common_bottom .gallery_card_outer');
+      // New keyless embed pages have no share-card. Show optional phone-distance
+      // as a small non-interactive overlay on the map, never above provider attribution.
+      const card=root.document.querySelector('.common_bottom .gallery_card_outer');
+      const box=card||root.document.querySelector('.amap-container')||root.document.body;
       if (!box) { if(attempt<10)root.setTimeout(function(){label(message,attempt+1);},250);return; }
-      const old=box.querySelector('.distance');if(old)old.style.display='none';
+      const old=card&&card.querySelector('.distance');if(old)old.style.display='none';
       let text=box.querySelector('.psa-phone-distance');
       if(!text){text=root.document.createElement('div');text.className='psa-phone-distance';box.appendChild(text);}
-      text.style.cssText='font-size:11px;line-height:16px;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#626560';
+      text.style.cssText=(card?'':'position:absolute;top:46px;left:8px;z-index:10;max-width:80%;background:#ffffffde;border-radius:5px;padding:0 5px;pointer-events:none;')+'font-size:11px;line-height:16px;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#626560';
       text.textContent=message;
     }
     if(!enabled){label(english?'Phone location off':'手机定位未开启',0);return;}

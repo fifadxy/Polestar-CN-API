@@ -30,6 +30,17 @@ public final class ParkingMapLinks {
         .appendQueryParameter("name", title).appendQueryParameter("src", "PsAssistant")
         .appendQueryParameter("coordinate", "gaode").appendQueryParameter("callnative", "0").build();
   }
+  /** Keyless official interactive place embed; independent of the external marker URI. */
+  static Uri embeddedPlaceUri(LocationSnapshot point, String title, int zoom) {
+    if(point==null||!point.valid())throw new IllegalArgumentException("Invalid parked point");
+    return Uri.parse("https://www.amap.com/ssr/embed/place").buildUpon()
+        .appendQueryParameter("lng",number(point.longitude))
+        .appendQueryParameter("lat",number(point.latitude))
+        .appendQueryParameter("name",title)
+        .appendQueryParameter("zoom",Integer.toString(Math.max(3,Math.min(19,zoom))))
+        .appendQueryParameter("platform","pc")
+        .appendQueryParameter("src","PsAssistant").build();
+  }
   public static Uri geoUri(LocationSnapshot point, String title) {
     String pair = number(point.latitude) + "," + number(point.longitude);
     return Uri.parse("geo:" + pair + "?q=" + pair + "(" + Uri.encode(title) + ")");

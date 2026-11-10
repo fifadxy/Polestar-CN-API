@@ -1,6 +1,14 @@
 package io.github.polestarcn.companion;
 
 import android.content.Context;
+import android.app.AlertDialog;
+import android.app.DatePickerDialog;
+import android.text.InputType;
+import android.widget.EditText;
+import android.widget.HorizontalScrollView;
+import java.util.Calendar;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.GradientDrawable;
@@ -16,12 +24,22 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final Context context;
   private final String vehicle;
   private final int ink, muted;
-  private final TextView historyTitle, historyValues, note, chartToggle;
+  private final TextView historyTitle, historyValues, distanceSummary, note, chartToggle, trendToggle;
+  private final HorizontalScrollView chartScroller;
+  private final TextView[] groupTabs=new TextView[3], styleTabs=new TextView[3];
+  private int groupStep, chartStyle, compareDays;
+  private int trendRequest;
+  private static final String GROUP_KEY="energy_chart_step",STYLE_KEY="energy_chart_style",TREND_KEY="energy_chart_compare_days";
   private TextView rateToggle;
-  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[2];
+  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[4];
   private boolean showPer100Km=true;
   private final Trend chart;
-  private int range = 0, metric = 0;
+  private int range = 1, metric = 0; // default: 7 days
+  private EnergyLog.Report currentHistory, history7;
+  private long displayedSpanMillis=7L*86400000L;
+  private long customStart, customEnd;
+  private static final String CUSTOM_END_KEY="energy_custom_end";
+  private static final String CUSTOM_DATE_KEY="energy_custom_start";
   private Double currentTmEnergy,tmAverage;
   private boolean chartExpanded = true;
   private int generation;
@@ -30,6 +48,11 @@ public final class EnergySummaryPanel extends LinearLayout {
     super(context);
     this.context = context;
     vehicle = EnergyLog.validVehicle(vehicleId) ? vehicleId : null;
+    customStart=readCustomStart();
+    customEnd=readCustomEnd();
+    groupStep=EnergyChartSeries.granularity(AppPreferences.get(context,GROUP_KEY,"day"));
+    chartStyle=EnergyChartSeries.style(AppPreferences.get(context,STYLE_KEY,"bars"));
+    compareDays=readCompareDays();
     boolean dark = AppPreferences.dark(context);
     ink = PsaDesign.ink(dark);
     muted = PsaDesign.muted(dark);
@@ -38,17 +61,26 @@ public final class EnergySummaryPanel extends LinearLayout {
     setPadding(dp(4), dp(2), dp(4), dp(4));
     addView(title(tr("TM 行程与费用估算", "TM trip & cost estimates"), 16));
     currentTrip(snapshot);
-    TextView heading=title(tr("能耗图表 · 本机历史", "Energy chart · local history"), 15);
-    heading.setTag("energy_chart_heading");addView(heading);
+    LinearLayout heading=rowLayout();heading.setTag("energy_chart_heading");
+    heading.addView(title(tr("行驶与能耗费用统计", "Driving & Energy Cost Statistics"),15),new LayoutParams(0,-2,1));
+    trendToggle=modeTab("",this::cycleComparison);trendToggle.setTag("energy_compare_toggle");
+    trendToggle.setTextColor(PsaDesign.ORANGE);trendToggle.setTextSize(11);
+    heading.addView(trendToggle,new LayoutParams(-2,dp(33)));
+    addView(heading);
     chart = new Trend(context);
-    addView(chart, new LayoutParams(-1, dp(165)));
+    chartScroller=new HorizontalScrollView(context);chartScroller.setTag("energy_history_chart");
+    chartScroller.setHorizontalScrollBarEnabled(false);chartScroller.setFillViewport(true);
+    chartScroller.addView(chart,new android.widget.FrameLayout.LayoutParams(-2,dp(165)));
+    addView(chartScroller, new LayoutParams(-1, dp(165)));
     LinearLayout tabs = new LinearLayout(context);
     tabs.setOrientation(HORIZONTAL);
-    String[] zh = {"行驶", "空调", "里程", "费用"};
-    String[] en = {"Driving", "Climate", "Distance", "Cost"};
+    String[] zh = {"行驶能耗", "驻车空调", "行驶里程", "能耗费"};
+    String[] en = {"Drive kWh", "Parked AC", "Distance", "Energy ¥"};
     for (int i = 0; i < 4; i++) {
       final int selected = i;
       metricTabs[i]=modeTab(tr(zh[i],en[i]),()->changeMetric(selected));
+      metricTabs[i].setTextSize(12);
+      metricTabs[i].setSingleLine(true);
       LayoutParams cell=new LayoutParams(0,dp(38),1);cell.setMargins(dp(2),0,dp(2),0);
       tabs.addView(metricTabs[i],cell);
     }
@@ -56,18 +88,39 @@ public final class EnergySummaryPanel extends LinearLayout {
     chartToggle = action(tr("收起图表  ⌃", "Collapse chart  ⌃"), this::toggleChart);
     chartToggle.setGravity(Gravity.CENTER_VERTICAL);
     addView(chartToggle);
+    LinearLayout byTime=rowLayout();byTime.setTag("energy_bucket_controls");
+    String[] bucketZh={"按天","按周","按月"},bucketEn={"Day","Week","Month"};
+    for(int i=0;i<3;i++){final int index=i;
+      groupTabs[i]=modeTab(tr(bucketZh[i],bucketEn[i]),()->setGroupStep(index));
+      groupTabs[i].setTag("energy_bucket_"+i);
+      LayoutParams item=new LayoutParams(0,dp(34),1);item.setMargins(dp(2),0,dp(2),0);byTime.addView(groupTabs[i],item);
+    }
+    addView(byTime);
+    LinearLayout byStyle=rowLayout();byStyle.setTag("energy_style_controls");
+    String[] styleZh={"柱状","波浪","叠加"},styleEn={"Bars","Curve","Both"};
+    for(int i=0;i<3;i++){final int index=i;
+      styleTabs[i]=modeTab(tr(styleZh[i],styleEn[i]),()->setChartStyle(index));
+      styleTabs[i].setTag("energy_style_"+i);
+      LayoutParams item=new LayoutParams(0,dp(34),1);item.setMargins(dp(2),0,dp(2),0);byStyle.addView(styleTabs[i],item);
+    }
+    addView(byStyle);
     tripDetails(snapshot);
     row(tr("本机历史采样", "Local recorded history"), "");
     LinearLayout periods = new LinearLayout(context);
     periods.setOrientation(HORIZONTAL);
-    rangeTabs[0]=modeTab(tr("最近 7 天", "Last 7 days"), () -> changeRange(0));
-    rangeTabs[1]=modeTab(tr("最近 31 天", "Last 31 days"), () -> changeRange(1));
-    for(int i=0;i<2;i++){LayoutParams cell=new LayoutParams(0,dp(36),1);cell.setMargins(dp(2),0,dp(2),0);periods.addView(rangeTabs[i],cell);}
+    rangeTabs[0]=modeTab(tr("3天", "3d"), () -> changeRange(0));
+    rangeTabs[1]=modeTab(tr("7天", "7d"), () -> changeRange(1));
+    rangeTabs[2]=modeTab(tr("31天", "31d"), () -> changeRange(2));
+    rangeTabs[3]=modeTab(tr("自定义", "Custom"), this::customRangeDialog);
+    for(int i=0;i<rangeTabs.length;i++){LayoutParams cell=new LayoutParams(0,dp(38),1);cell.setMargins(dp(2),0,dp(2),0);periods.addView(rangeTabs[i],cell);}
+    periods.setTag("energy_range_periods");
     addView(periods);
     historyTitle = title(tr("读取本机采样…", "Loading local observations…"), 13);
     addView(historyTitle);
     historyValues = title("", 14);
     addView(historyValues);
+    distanceSummary=title("",12);distanceSummary.setTag("energy_mileage_statistics");
+    distanceSummary.setTextColor(muted);distanceSummary.setVisibility(GONE);addView(distanceSummary);
     note = title(tr("历史为本机有效采样的估算值，并非充电账单。", "History estimates use local samples, not charging invoices."), 12);
     note.setTextColor(muted);addView(note);
     addView(action(tr("设置电价 / 电池容量 / 保存期限", "Tariff / capacity / retention"), () -> {
@@ -77,9 +130,11 @@ public final class EnergySummaryPanel extends LinearLayout {
       context.startActivity(intent);
     }), new LayoutParams(-1, dp(44)));
     refreshTabStyles();
+    refreshTrendLabel(null);
     load();
   }
 
+  private LinearLayout rowLayout(){LinearLayout line=new LinearLayout(context);line.setOrientation(HORIZONTAL);line.setGravity(Gravity.CENTER_VERTICAL);return line;}
   private int dp(float value) { return (int)(value * getResources().getDisplayMetrics().density + 0.5f); }
   private String tr(String zh, String en) { return AppPreferences.tr(context, zh, en); }
   private TextView title(String value, int sp) {
@@ -114,6 +169,8 @@ public final class EnergySummaryPanel extends LinearLayout {
   private void refreshTabStyles(){
     for(int i=0;i<metricTabs.length;i++)highlight(metricTabs[i],metric==i);
     for(int i=0;i<rangeTabs.length;i++)highlight(rangeTabs[i],range==i);
+    for(int i=0;i<groupTabs.length;i++)highlight(groupTabs[i],groupStep==i);
+    for(int i=0;i<styleTabs.length;i++)highlight(styleTabs[i],chartStyle==i);
   }
   private void row(String label, String value) {
     LinearLayout r = new LinearLayout(context);r.setOrientation(HORIZONTAL);
@@ -193,30 +250,199 @@ public final class EnergySummaryPanel extends LinearLayout {
     }
   }
   private void changeRange(int value) { range = value; refreshTabStyles(); load(); }
-  private void changeMetric(int value) { metric = value; refreshTabStyles(); chart.setMetric(metric); }
+  static long startOfDate(int year,int month,int day) {
+    Calendar cal=Calendar.getInstance();cal.setLenient(false);cal.clear();cal.set(year,month-1,day,0,0,0);
+    if(year<2000||year>2100)throw new IllegalArgumentException("year");
+    return cal.getTimeInMillis();
+  }
+  private long readCustomStart(){
+    String value=AppPreferences.get(context,CUSTOM_DATE_KEY,"");
+    try {String[] fields=value.split("-");if(fields.length==3)return startOfDate(Integer.parseInt(fields[0]),Integer.parseInt(fields[1]),Integer.parseInt(fields[2]));}
+    catch(Exception ignored){}
+    Calendar cal=Calendar.getInstance();cal.add(Calendar.MONTH,-1);
+    return startOfDate(cal.get(Calendar.YEAR),cal.get(Calendar.MONTH)+1,cal.get(Calendar.DAY_OF_MONTH));
+  }
+  static long endOfDate(int year,int month,int day){
+    Calendar end=Calendar.getInstance();end.setTimeInMillis(startOfDate(year,month,day));
+    end.add(Calendar.DAY_OF_YEAR,1);return end.getTimeInMillis()-1;
+  }
+  private long readCustomEnd(){
+    String saved=AppPreferences.get(context,CUSTOM_END_KEY,"");
+    try{String[] parts=saved.split("-");if(parts.length==3)
+      return endOfDate(Integer.parseInt(parts[0]),Integer.parseInt(parts[1]),Integer.parseInt(parts[2]));
+    }catch(Exception ignored){}
+    Calendar today=Calendar.getInstance();return endOfDate(today.get(Calendar.YEAR),today.get(Calendar.MONTH)+1,today.get(Calendar.DAY_OF_MONTH));
+  }
+  private String formatDay(long time){return new SimpleDateFormat("yyyy-MM-dd",Locale.getDefault()).format(new Date(time));}
+  private TextView monthShortcut(String title,int delta,EditText y,EditText m,EditText d){
+    return action(title,()->{
+      try {
+        Calendar selected=Calendar.getInstance();selected.setTimeInMillis(startOfDate(Integer.parseInt(y.getText().toString()),Integer.parseInt(m.getText().toString()),Integer.parseInt(d.getText().toString())));
+        selected.add(Calendar.MONTH,delta);
+        fillDate(selected,y,m,d);
+      } catch(Exception e){y.setError(tr("请输入有效日期","Enter a valid date"));}
+    });
+  }
+  private void fillDate(Calendar cal,EditText year,EditText month,EditText day){
+    year.setText(String.valueOf(cal.get(Calendar.YEAR)));month.setText(String.valueOf(cal.get(Calendar.MONTH)+1));day.setText(String.valueOf(cal.get(Calendar.DAY_OF_MONTH)));
+  }
+  private void customRangeDialog(){
+    Calendar selected=Calendar.getInstance();selected.setTimeInMillis(customStart);
+    LinearLayout form=new LinearLayout(context);form.setOrientation(VERTICAL);form.setPadding(dp(10),dp(4),dp(10),dp(4));
+    form.addView(title(tr("开始日期 · 年／月／日","Start date · year / month / day"),13));
+    LinearLayout fields=new LinearLayout(context);fields.setOrientation(HORIZONTAL);
+    EditText y=new EditText(context),m=new EditText(context),d=new EditText(context);
+    EditText[] inputs={y,m,d};String[] hints={tr("年","Year"),tr("月","Month"),tr("日","Day")};
+    for(int i=0;i<inputs.length;i++){
+      inputs[i].setSingleLine(true);inputs[i].setInputType(InputType.TYPE_CLASS_NUMBER);inputs[i].setHint(hints[i]);inputs[i].setTextColor(ink);inputs[i].setTextSize(16);
+      fields.addView(inputs[i],new LayoutParams(0,dp(50),i==0?1.45f:1f));
+    }
+    fillDate(selected,y,m,d);form.addView(fields);
+    TextView picker=action(tr("选择日期  ▾","Pick a date  ▾"),()->{
+      Calendar current=Calendar.getInstance();try{current.setTimeInMillis(startOfDate(Integer.parseInt(y.getText().toString()),Integer.parseInt(m.getText().toString()),Integer.parseInt(d.getText().toString())));}catch(Exception ignored){}
+      DatePickerDialog dialog=new DatePickerDialog(context,(view,year,month,day)->{
+        Calendar chosen=Calendar.getInstance();chosen.set(year,month,day);fillDate(chosen,y,m,d);
+      },current.get(Calendar.YEAR),current.get(Calendar.MONTH),current.get(Calendar.DAY_OF_MONTH));
+      Calendar earliest=Calendar.getInstance();earliest.add(Calendar.MONTH,-EnergyLog.months(context));
+      dialog.getDatePicker().setMinDate(earliest.getTimeInMillis());dialog.getDatePicker().setMaxDate(System.currentTimeMillis());dialog.show();
+    });form.addView(picker,new LayoutParams(-1,dp(40)));
+    String[][] months={{"−1月","+1月","−3月"},{"+3月","−6月","+6月"}};
+    int[][] delta={{-1,1,-3},{3,-6,6}};
+    for(int i=0;i<months.length;i++){
+      LinearLayout row=new LinearLayout(context);row.setOrientation(HORIZONTAL);
+      for(int j=0;j<months[i].length;j++){
+        String text=tr(months[i][j],months[i][j].replace("月"," mo"));
+        row.addView(monthShortcut(text,delta[i][j],y,m,d),new LayoutParams(0,dp(38),1));
+      }
+      form.addView(row);
+    }
+    form.addView(title(tr("结束日期 · 年／月／日（默认今天）","End date · year / month / day (defaults to today)"),13));
+    LinearLayout untilFields=new LinearLayout(context);untilFields.setOrientation(HORIZONTAL);
+    EditText y2=new EditText(context),m2=new EditText(context),d2=new EditText(context);
+    EditText[] ends={y2,m2,d2};
+    for(int i=0;i<ends.length;i++){
+      ends[i].setSingleLine(true);ends[i].setInputType(InputType.TYPE_CLASS_NUMBER);
+      ends[i].setHint(hints[i]);ends[i].setTextColor(ink);ends[i].setTextSize(16);
+      untilFields.addView(ends[i],new LayoutParams(0,dp(48),i==0?1.45f:1f));
+    }
+    Calendar until=Calendar.getInstance();until.setTimeInMillis(Math.min(System.currentTimeMillis(),customEnd));
+    fillDate(until,y2,m2,d2);form.addView(untilFields);
+    TextView endPicker=action(tr("选择结束日期 ▾","Pick end date ▾"),()->{
+      Calendar current=Calendar.getInstance();
+      try{current.setTimeInMillis(startOfDate(Integer.parseInt(y2.getText().toString()),Integer.parseInt(m2.getText().toString()),Integer.parseInt(d2.getText().toString())));}catch(Exception ignored){}
+      DatePickerDialog dateDialog=new DatePickerDialog(context,(view,year,month,day)->{
+        Calendar chosen=Calendar.getInstance();chosen.set(year,month,day);fillDate(chosen,y2,m2,d2);
+      },current.get(Calendar.YEAR),current.get(Calendar.MONTH),current.get(Calendar.DAY_OF_MONTH));
+      Calendar earliest=Calendar.getInstance();earliest.add(Calendar.MONTH,-EnergyLog.months(context));
+      dateDialog.getDatePicker().setMinDate(earliest.getTimeInMillis());
+      dateDialog.getDatePicker().setMaxDate(System.currentTimeMillis());dateDialog.show();
+    });form.addView(endPicker,new LayoutParams(-1,dp(38)));
+    LinearLayout endShortcuts=rowLayout();
+    endShortcuts.addView(monthShortcut(tr("结束−1月","End −1 mo"),-1,y2,m2,d2),new LayoutParams(0,dp(35),1));
+    endShortcuts.addView(monthShortcut(tr("结束+1月","End +1 mo"),1,y2,m2,d2),new LayoutParams(0,dp(35),1));
+    form.addView(endShortcuts);
+    form.addView(title(tr("开始与结束日期均包含在查询内，仅统计本机有效采样。","Both dates are inclusive. Only real retained samples are used."),11));
+    android.widget.ScrollView scroller=new android.widget.ScrollView(context);
+    scroller.addView(form);
+    AlertDialog pickerDialog=new HapticDialogBuilder(context).setTitle(tr("自定义日期区间","Custom date range"))
+        .setView(scroller).setPositiveButton(tr("查看","Apply"),null).setNegativeButton(tr("取消","Cancel"),null).create();
+    pickerDialog.show();pickerDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+      try{
+        long start=startOfDate(Integer.parseInt(y.getText().toString()),Integer.parseInt(m.getText().toString()),Integer.parseInt(d.getText().toString()));
+        long end=endOfDate(Integer.parseInt(y2.getText().toString()),Integer.parseInt(m2.getText().toString()),Integer.parseInt(d2.getText().toString()));
+        Calendar earliest=Calendar.getInstance();earliest.add(Calendar.MONTH,-EnergyLog.months(context));
+        if(start>end||start>System.currentTimeMillis()||end>System.currentTimeMillis()+86400000L
+            ||start<earliest.getTimeInMillis()-86400000L){
+          d2.setError(tr("检查日期顺序与有效记录期限","Check date order and retention period"));return;
+        }
+        customStart=start;customEnd=end;
+        AppPreferences.set(context,CUSTOM_DATE_KEY,formatDay(start));
+        AppPreferences.set(context,CUSTOM_END_KEY,formatDay(end));
+        pickerDialog.dismiss();changeRange(3);
+      }catch(Exception e){d.setError(tr("请输入有效的年月日","Enter a valid calendar date"));}
+    });
+  }
+  private void changeMetric(int value) { metric = value; refreshTabStyles(); chart.setMetric(metric);
+    updateDistanceSummary();loadTrend(); }
+  private void setGroupStep(int value) {
+    groupStep=value;
+    AppPreferences.set(context,GROUP_KEY,value==0?"day":value==1?"week":"month");
+    refreshTabStyles();chart.setGrouping(value);
+  }
+  private void setChartStyle(int value) {
+    chartStyle=value;
+    AppPreferences.set(context,STYLE_KEY,value==0?"bars":value==1?"curve":"both");
+    refreshTabStyles();chart.setStyle(value);
+  }
+  private int readCompareDays(){String days=AppPreferences.get(context,TREND_KEY,"7");
+    if("31".equals(days))return 31;if("3".equals(days))return 3;
+    if("off".equals(days))return 0;return 7;
+  }
+  private void cycleComparison(){
+    compareDays=compareDays==7?31:compareDays==31?3:compareDays==3?0:7;
+    AppPreferences.set(context,TREND_KEY,compareDays==0?"off":""+compareDays);
+    refreshTrendLabel(null);loadTrend();
+  }
+  private void refreshTrendLabel(Double percent){
+    if(compareDays==0){trendToggle.setText(tr("趋势：不显示 ↻","Trend: off ↻"));return;}
+    String prefix=tr("对比前"+compareDays+"天", "vs prior "+compareDays+"d");
+    String value=percent==null?tr("采样不足","not enough data")
+        :String.format(Locale.getDefault(),"%+.1f%%",percent);
+    trendToggle.setText(prefix+"  "+value+" ↻");
+    trendToggle.setTextColor(PsaDesign.ORANGE);
+    trendToggle.setContentDescription(tr("与前"+compareDays+"天相同长度区间比较，点击切换；","Compared to preceding "+compareDays+"-day window, tap to switch; ")+value);
+  }
+  private void loadTrend(){
+    final int run=++trendRequest,days=compareDays,chosenMetric=metric;
+    if(days==0||vehicle==null){refreshTrendLabel(null);return;}
+    refreshTrendLabel(null);
+    Context app=context.getApplicationContext();
+    EnergyLog.WORK.execute(()->{
+      Double change=null;
+      try{
+        Calendar time=Calendar.getInstance();long end=time.getTimeInMillis();
+        time.add(Calendar.DAY_OF_YEAR,-days);long begin=time.getTimeInMillis();
+        time.add(Calendar.DAY_OF_YEAR,-days);long previous=time.getTimeInMillis();
+        EnergyLog.Report recent=EnergyLog.get(app).readBetween(vehicle,begin,end);
+        EnergyLog.Report before=EnergyLog.get(app).readBetween(vehicle,previous,begin-1);
+        change=EnergyChartSeries.changeMetric(recent,before,chosenMetric,EnergyLog.perPercent(app),EnergyLog.price(app));
+      }catch(Exception ignored){}
+      final Double value=change;
+      post(()->{if(run==trendRequest&&isAttachedToWindow()&&compareDays==days&&metric==chosenMetric)refreshTrendLabel(value);});
+    });
+  }
   private void toggleChart() {
     chartExpanded = !chartExpanded;
-    chart.setVisibility(chartExpanded ? VISIBLE : GONE);
+    chartScroller.setVisibility(chartExpanded ? VISIBLE : GONE);
     chartToggle.setText(chartExpanded ? tr("收起图表  ⌃", "Collapse chart  ⌃")
         : tr("展开图表  ⌄", "Expand chart  ⌄"));
   }
   private void load() {
     int request = ++generation;
+    loadTrend();
     historyTitle.setText(tr("读取本机采样…", "Loading local observations…"));
     if(vehicle == null) {
       historyTitle.setText(tr("未选择车辆，暂无本机历史。", "Select a vehicle to view local history."));
-      historyValues.setText(""); chart.update(null);return;
+      historyValues.setText("");chart.update(null);distanceSummary.setVisibility(GONE);return;
     }
+    final int chosen=range;final long from=customStart,until=customEnd;
+    final long now=System.currentTimeMillis();
+    final long first=chosen==0?now-3L*86400000L:chosen==1?now-7L*86400000L:chosen==2?now-31L*86400000L:from;
+    displayedSpanMillis=Math.max(86400000L,(chosen==3?Math.min(now,until):now)-first);
+    final String periodLabel=chosen==0?tr("最近3天","Last 3 days"):chosen==1?tr("最近7天","Last 7 days"):chosen==2?tr("最近31天","Last 31 days")
+        :tr("自定义 ","Custom ")+formatDay(from)+" — "+formatDay(Math.min(now,until));
     EnergyLog.WORK.execute(() -> {
       try {
-        EnergyLog.Report result=EnergyLog.get(context).read(vehicle,range);
+        EnergyLog.Report result=chosen==3?EnergyLog.get(context).readBetween(vehicle,from,Math.min(until,System.currentTimeMillis()))
+            :EnergyLog.get(context).readRecentDays(vehicle,chosen==0?3:chosen==1?7:31);
+        EnergyLog.Report latest7=chosen==1?result:EnergyLog.get(context).readRecentDays(vehicle,7);
         post(() -> {
           if(request != generation || !isAttachedToWindow())return;
+          currentHistory=result;history7=latest7;
           double driving=result.drive;
           double climate=result.ac*EnergyLog.perPercent(context);
           double price=EnergyLog.price(context);
-          historyTitle.setText((range == 0 ? tr("最近 7 天", "Last 7 days") : tr("最近 31 天", "Last 31 days"))
-              +tr(" · ", " · ")+result.count+tr(" 次采样", " observations"));
+          historyTitle.setText(periodLabel+tr(" · ", " · ")+result.count+tr(" 次采样", " observations"));
           if(result.count == 0){
             historyValues.setText(tr("曲线随成功同步逐步生成；当前 TM 读数仍可单独查看。", "The chart builds as live refreshes are recorded. Current TM is shown above."));
           }else{
@@ -227,80 +453,71 @@ public final class EnergySummaryPanel extends LinearLayout {
                 tr("采样里程", "Sampled km"),result.distanceKm,tr("费用", "Cost"),cost));
           }
           chart.update(result);
+          updateDistanceSummary();
+          chartScroller.post(()->chartScroller.fullScroll(View.FOCUS_RIGHT));
           note.setText(tr("区间里程仅统计连续、合理的里程表增量；行驶与驻车空调电耗为估算值，费用按设置电价计算。", "Sampled distance counts plausible consecutive odometer changes. Driving and parked climate energy are estimates; cost uses your tariff."));
         });
       } catch(Exception e) {
         post(() -> {if(request!=generation||!isAttachedToWindow())return;
           historyTitle.setText(tr("本机历史读取失败，可刷新后重试", "Local history could not load; retry after refresh"));
-          historyValues.setText(""); chart.update(null);
+          historyValues.setText(""); chart.update(null);distanceSummary.setVisibility(GONE);
         });
       }
     });
   }
+  private void updateDistanceSummary(){
+    if(distanceSummary==null)return;
+    if(metric!=2){distanceSummary.setVisibility(GONE);return;}
+    distanceSummary.setVisibility(VISIBLE);
+    if(currentHistory==null||currentHistory.count<2){
+      distanceSummary.setText(tr("本区间缺少连续里程采样，暂不能估算行驶趋势。","Insufficient consecutive mileage samples for this interval."));return;
+    }
+    Double weekly=history7==null||history7.count<2?null:history7.distanceKm;
+    double dayCount=Math.max(1d,displayedSpanMillis/86400000d);
+    double averageDay=currentHistory.distanceKm/dayCount;
+    double averageMonth=averageDay*30.4375;
+    distanceSummary.setText(tr("近7日采样里程 ","Last 7d sampled: ")
+        +(weekly==null?"--":String.format(Locale.getDefault(),"%.1f km",weekly))
+        +tr("  ·  日均 ","  ·  daily avg ")+String.format(Locale.getDefault(),"%.1f km",averageDay)
+        +tr("  ·  月均 ","  ·  monthly avg ")+String.format(Locale.getDefault(),"%.1f km",averageMonth)
+        +tr("（按区间天数折算）"," (normalized by period days)"));
+  }
   @Override protected void onAttachedToWindow(){super.onAttachedToWindow();if(historyTitle!=null)load();}
-  @Override protected void onDetachedFromWindow(){generation++;super.onDetachedFromWindow();}
+  @Override protected void onDetachedFromWindow(){generation++;trendRequest++;super.onDetachedFromWindow();}
 
   private final class Trend extends View {
-    private final Paint p=new Paint(3);
     private EnergyLog.Report report;
-    private int selection;
-    Trend(Context c) {super(c);setTag("energy_history_chart");}
-    void update(EnergyLog.Report value) {report=value;invalidate();}
-    void setMetric(int value) {selection=value;invalidate();}
-    @Override protected void onDraw(Canvas canvas) {
+    private int selection,step=groupStep,style=chartStyle;
+    Trend(Context c){super(c);setTag("energy_chart_canvas");setMinimumWidth(dp(270));}
+    void update(EnergyLog.Report value){report=value;resize();invalidate();}
+    void setMetric(int index){selection=index;invalidate();}
+    void setGrouping(int index){step=index;resize();invalidate();}
+    void setStyle(int index){style=index;invalidate();}
+    private void resize(){
+      int count=report==null?0:EnergyChartSeries.aggregate(report.points,step).size();
+      int minWidth=Math.max(dp(270),dp(Math.min(4800,Math.max(1,count)*12)));
+      setMinimumWidth(minWidth);android.view.ViewGroup.LayoutParams lp=getLayoutParams();
+      if(lp!=null&&lp.width!=minWidth){lp.width=minWidth;setLayoutParams(lp);}
+    }
+    @Override protected void onDraw(Canvas canvas){
       super.onDraw(canvas);
-      float d=getResources().getDisplayMetrics().density;
-      float left=dp(43),top=dp(19),width=Math.max(1,getWidth()-left-dp(12)),height=Math.max(1,getHeight()-top-dp(38));
-      p.setColor(muted);p.setStrokeWidth(d);p.setStyle(Paint.Style.STROKE);
-      canvas.drawLine(left,top,left,top+height,p);canvas.drawLine(left,top+height,left+width,top+height,p);p.setStyle(Paint.Style.FILL);
-      List<EnergyLog.Point> points=report==null?null:report.points;
-      if(points==null||points.isEmpty()){
-        if(selection==0&&currentTmEnergy!=null){
-          // A single current TM estimate is a reference bar, not fabricated history.
-          double value=Math.max(0,currentTmEnergy);
-          float barHeight=value<=0?0:height*.73f;
-          float middle=left+width*.5f,half=Math.min(dp(45),width*.16f);
-          p.setColor(PsaDesign.ORANGE);
-          canvas.drawRoundRect(middle-half,top+height-barHeight,middle+half,top+height,dp(5),dp(5),p);
-          p.setColor(muted);p.setTextSize(11*d);
-          canvas.drawText(tr("当前 TM · 估算", "Current TM · estimate"),left+dp(6),top+dp(13),p);
-          canvas.drawText(String.format(Locale.getDefault(),"%.1f kWh",value),middle-dp(26),top+height-barHeight-dp(6),p);
-          setContentDescription(tr("当前 TM 总能耗参考柱，非历史趋势","Current TM reference bar, not historical trend"));
-          return;
-        }
-        p.setTextSize(12*d);canvas.drawText(tr("等待历史采样", "Awaiting samples"),left+dp(12),top+height/2,p);return;
+      List<EnergyChartSeries.Bin> bins=report==null?null:EnergyChartSeries.aggregate(report.points,step);
+      double tariff=EnergyLog.price(context),unit=EnergyLog.perPercent(context);
+      if((bins==null||bins.isEmpty())&&selection==0&&currentTmEnergy!=null){
+        Paint paint=new Paint(3);float density=getResources().getDisplayMetrics().density;
+        float h=getHeight()*.57f,cx=getWidth()*.5f,bottom=getHeight()*.78f;
+        paint.setColor(PsaDesign.ORANGE);paint.setAlpha(220);
+        canvas.drawRoundRect(cx-dp(25),bottom-h,cx+dp(25),bottom,dp(4),dp(4),paint);
+        paint.setColor(muted);paint.setAlpha(255);paint.setTextSize(11*density);
+        canvas.drawText(tr("当前TM（非历史）","Current TM (not history)"),dp(8),dp(22),paint);
+        canvas.drawText(String.format(Locale.getDefault(),"%.1f kWh",currentTmEnergy),cx-dp(26),bottom-h-dp(7),paint);
+        setContentDescription(tr("TM估算参考柱，非历史采样","TM estimate reference, not history"));return;
       }
-      double tariff=EnergyLog.price(context), perPercent=EnergyLog.perPercent(context);
-      if(selection==3&&tariff<=0){p.setTextSize(12*d);canvas.drawText(tr("请先设置电价", "Set electricity tariff"),left+dp(12),top+height/2,p);return;}
-      double max=0;
-      double[] values=new double[points.size()];
-      for(int i=0;i<values.length;i++){
-        EnergyLog.Point point=points.get(i);
-        double energy=point.drive+point.ac*perPercent;
-        values[i]=selection==0?point.drive:selection==1?point.ac*perPercent:selection==2?point.distanceKm:energy*tariff;
-        max=Math.max(max,values[i]);
-      }
-      if(max<=0){p.setTextSize(12*d);canvas.drawText(tr("已有采样，尚无可计算区间", "Samples exist; no estimated interval yet"),left+dp(6),top+height/2,p);return;}
-      double scale=max*1.08;
-      p.setColor(muted);p.setTextSize(10*d);
-      canvas.drawText(String.format(Locale.getDefault(),"%.1f",max),dp(2),top+dp(6),p);
-      canvas.drawText("0",dp(22),top+height,p);
-      float step=width/values.length;
-      p.setColor(PsaDesign.ORANGE);
-      for(int i=0;i<values.length;i++){
-        float bar=Math.max(0,(float)(values[i]/scale*height));
-        float x=left+i*step+step*.2f;
-        canvas.drawRoundRect(x,top+height-bar,x+step*.6f,top+height,Math.min(dp(3),step*.15f),Math.min(dp(3),step*.15f),p);
-      }
-      p.setColor(muted);p.setTextSize(10*d);
-      int[] labels={0,points.size()/2,points.size()-1};
-      for(int index:labels){
-        if(index<0||index>=points.size())continue;
-        String name=android.text.format.DateFormat.format("MM-dd",points.get(index).t).toString();
-        float x=left+(index+.5f)*step-p.measureText(name)/2;
-        canvas.drawText(name,Math.max(left,Math.min(left+width-p.measureText(name),x)),top+height+dp(19),p);
-      }
-      setContentDescription(tr("本机能耗图表，", "Local energy chart, ")+String.format(Locale.getDefault(),"%.2f",max));
+      EnergyChartPainter.draw(canvas,bins,selection,style,unit,tariff,ink,muted,step,false,
+          getResources().getDisplayMetrics().density);
+      setContentDescription(tr("能耗图：","Energy chart: ")+(step==0?tr("天","day"):step==1?tr("周","week"):tr("月","month"))
+          +tr("；仅有效历史采样","; sampled local history only"));
     }
   }
+
 }

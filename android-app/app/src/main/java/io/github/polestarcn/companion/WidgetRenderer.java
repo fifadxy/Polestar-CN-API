@@ -221,7 +221,7 @@ public final class WidgetRenderer {
     // Prefer the actual cached time (HH:mm) or date (MM-dd) on narrow widgets.
     boolean compactStamp=horizontal||width<225||font>1.35f&&width<340;
     if(compactStamp)
-      updated=compactCheckTimestamp(updated,java.util.Calendar.getInstance());
+      updated=WidgetTimestampFormat.compactText(updated).replaceFirst("\\s*·\\s*\\+\\d+$","");
     int checkVisibility=check?android.view.View.VISIBLE:android.view.View.GONE;
     views.setViewVisibility(R.id.widget_check_icon,checkVisibility);
     views.setViewVisibility(R.id.widget_check_text,checkVisibility);
@@ -235,7 +235,7 @@ public final class WidgetRenderer {
     widgetText(views,c,R.id.widget_region, updated);
     views.setTextColor(R.id.widget_region, secondary);
     views.setTextViewTextSize(R.id.widget_region, android.util.TypedValue.COMPLEX_UNIT_SP,
-        compactStamp?Math.min(9f,8f*font):10*font);
+        compactStamp?Math.min(8.2f,7.6f*font):10*font);
     views.setContentDescription(R.id.widget_region, fullUpdated+(check?AppPreferences.widgetTr(c," · 车辆异常 Check"," · Vehicle Check"):"")+AppPreferences.widgetTr(c, "，点击刷新", ". Tap to refresh"));
     views.setOnClickPendingIntent(R.id.widget_region, pending(c, id, size, "refresh"));
     views.setOnClickPendingIntent(R.id.widget_refresh_row,pending(c,id,size,"refresh"));
@@ -432,11 +432,7 @@ public final class WidgetRenderer {
     }
     if (metrics.isEmpty()) at = s.timestampMillis;
     if (unknown || at == Long.MAX_VALUE || at <= 0) return AppPreferences.widgetTr(c, "更新时间未知", "Update time unknown");
-    java.util.Calendar now = java.util.Calendar.getInstance(), measured = java.util.Calendar.getInstance();
-    measured.setTimeInMillis(at);
-    String format = measured.get(java.util.Calendar.YEAR) != now.get(java.util.Calendar.YEAR) ? "yyyy-MM-dd"
-        : size == Size.MINI ? (measured.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR) ? "HH:mm" : "MM-dd") : "MM-dd HH:mm";
-    return AppPreferences.widgetTr(c, "更新 ", "Upd ") + DateFormat.format(format, at);
+    return WidgetTimestampFormat.text(c,at,false);
   }
 
   private static CharSequence metricText(Context c, DisplayMetric metric, VehicleSnapshot s,

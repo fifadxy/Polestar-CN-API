@@ -62,23 +62,37 @@ public class ParkingMapV079Test {
    UiSkin.set(activity,skin);AppPreferences.set(activity,"language",lang);AppPreferences.set(activity,"theme",theme);Configuration config=new Configuration(activity.getResources().getConfiguration());config.fontScale=1.3f;config.screenWidthDp=size[0];config.screenHeightDp=size[1];activity.getResources().updateConfiguration(config,activity.getResources().getDisplayMetrics());render.invoke(activity);show.invoke(activity,point(true));
    AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertTrue(dialog.isShowing());View decor=dialog.getWindow().getDecorView();
     android.util.DisplayMetrics display=activity.getResources().getDisplayMetrics();
-    int[] expected=DialogWindowGeometry.map(display.widthPixels,display.heightPixels,display.density);
+    boolean portrait=size[0]<=size[1]&&size[1]>=480;
+    int[] expected=portrait
+        ?DialogWindowGeometry.parkingPreview(display.widthPixels,display.heightPixels,display.density)
+        :DialogWindowGeometry.map(display.widthPixels,display.heightPixels,display.density);
     // First layout is established by the window pre-draw correction, before
     // the map becomes visible in a real OPPO host.
     decor.getViewTreeObserver().dispatchOnPreDraw();
     android.view.WindowManager.LayoutParams attrs=dialog.getWindow().getAttributes();
     assertEquals(android.view.Gravity.CENTER,attrs.gravity);
     assertEquals(expected[0],attrs.width);assertEquals(expected[1],attrs.height);
-    assertTrue((double)attrs.width*attrs.height<=display.widthPixels*display.heightPixels*.5d);
+    if(portrait){
+      assertTrue(attrs.width>=display.widthPixels*.88);
+      assertTrue(attrs.height>=display.heightPixels*.78);
+    }else assertTrue((double)attrs.width*attrs.height<=display.widthPixels*display.heightPixels*.5d);
     int w=attrs.width,h=attrs.height;
     decor.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));decor.layout(0,0,w,h);
-   View entry=decor.findViewWithTag("parking_web_preview");assertNotNull(entry);assertEquals(1,count(decor,android.webkit.WebView.class));assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));fitText(decor);
-    assertNotNull(decor.findViewWithTag("parking_open_map"));
+   View entry=decor.findViewWithTag("parking_web_preview");assertNotNull(entry);
+   int required=ParkingPreviewLayout.mapHeightDp(size[1],portrait);
+   assertEquals(required,entry.getLayoutParams().height);
+   assertTrue("Map preview must exceed the old 90dp thumbnail",entry.getLayoutParams().height>=145||!portrait);assertEquals(1,count(decor,android.webkit.WebView.class));assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));fitText(decor);
+    View externalMap=decor.findViewWithTag("parking_open_map");
+    assertNotNull("Keep compact optional external Open map action",externalMap);
+    assertTrue("Open map is a smaller accessory button",externalMap.getLayoutParams().height<=Math.round(34*display.density));
+    assertNotNull(decor.findViewWithTag("parking_zoom_in"));
+    assertNotNull(decor.findViewWithTag("parking_zoom_out"));
+    assertNotNull(decor.findViewWithTag("parking_center_vehicle"));
     assertNotNull(decor.findViewWithTag("parking_refresh_position"));
-    assertNotNull(decor.findViewWithTag("parking_phone_settings"));
+    assertNotNull(decor.findViewWithTag("parking_phone_location_toggle"));
     View panel=decor.findViewWithTag("parking_location_panel");
     assertNotNull(panel);
-    if(size[0]<=size[1]&&size[1]>=480)assertFalse("Portrait parking panel must not have an internal scroll container",panel.getParent() instanceof ScrollView);
+    if(portrait)assertFalse("Portrait parking panel must not have an internal scroll container",panel.getParent() instanceof ScrollView);
     assertTrue(dialog.getButton(AlertDialog.BUTTON_NEGATIVE).getHeight()>0);
    if(skin.equals(UiSkin.NIO_LIKE_2)&&lang.equals("zh")&&size[0]==360){File file=new File("build/reports/previews/v079/parking-"+theme+".png");file.getParentFile().mkdirs();Bitmap bitmap=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);canvas.scale(2,2);removeTestScrollIndicators(decor);decor.draw(canvas);try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}
    dialog.dismiss();
@@ -87,8 +101,49 @@ public class ParkingMapV079Test {
  @Test public void embeddedPreviewUsesOfficialKeylessPageWithRestrictedCapabilities(){
   ParkingWebPreview map=new ParkingWebPreview(activity,point(false),false,()->{});android.webkit.WebView web=(android.webkit.WebView)map.view.findViewWithTag("parking_webview");assertNotNull(web);
   assertTrue(web.getSettings().getJavaScriptEnabled());assertFalse(web.getSettings().getAllowFileAccess());assertFalse(web.getSettings().getAllowContentAccess());assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW,web.getSettings().getMixedContentMode());assertEquals(android.webkit.WebSettings.LOAD_NO_CACHE,web.getSettings().getCacheMode());assertFalse(web.isSaveEnabled());
-  String url=Shadows.shadowOf(web).getLastLoadedUrl();assertTrue(url.startsWith("https://uri.amap.com/marker?"));assertFalse(url.contains("key="));assertFalse(url.contains("vin"));
+  String url=Shadows.shadowOf(web).getLastLoadedUrl();assertTrue(url.startsWith("https://www.amap.com/ssr/embed/place?"));assertFalse(url.contains("key="));assertFalse(url.contains("vin"));
   android.webkit.WebChromeClient chrome=Shadows.shadowOf(web).getWebChromeClient();final boolean[] allowed={true};chrome.onGeolocationPermissionsShowPrompt("https://m.amap.com",(origin,grant,retain)->allowed[0]=grant);assertFalse(allowed[0]);map.close();
+ }
+ @Test public void embeddedInteractiveMapUsesRealCoordinatesAndZoomWithoutApiKey(){
+  LocationSnapshot parked=point(false);
+  android.net.Uri url=ParkingMapLinks.embeddedPlaceUri(parked,"停车点",14);
+  assertEquals("https",url.getScheme());assertEquals("www.amap.com",url.getHost());
+  assertEquals("/ssr/embed/place",url.getPath());
+  assertEquals("120.500000",url.getQueryParameter("lng"));
+  assertEquals("30.250000",url.getQueryParameter("lat"));
+  assertEquals("14",url.getQueryParameter("zoom"));
+  assertEquals("pc",url.getQueryParameter("platform"));
+  assertNull(url.getQueryParameter("key"));assertFalse(url.toString().toLowerCase(Locale.ROOT).contains("vin"));
+  ParkingWebPreview map=new ParkingWebPreview(activity,parked,false,()->fail("Must not launch another map window"));
+  android.webkit.WebView web=map.view.findViewWithTag("parking_webview");
+  assertNotNull(web);
+  assertTrue(web.getSettings().supportZoom());
+  assertEquals(14,map.zoomLevel());
+  assertEquals(15,map.adjustZoom(1));
+  assertTrue(Shadows.shadowOf(web).getLastLoadedUrl().contains("zoom=15"));
+  map.recenter();assertTrue(Shadows.shadowOf(web).getLastLoadedUrl().contains("zoom=15"));
+  map.adjustZoom(25);
+  assertEquals(19,map.zoomLevel());
+  map.close();
+ }
+ @Test public void mapBrowsingIsInTheSameSecondaryDialogWithoutTertiaryActions() throws Exception {
+  Method show=MainActivity.class.getDeclaredMethod("showParkingLocation",LocationSnapshot.class);show.setAccessible(true);
+  show.invoke(activity,point(false));
+  AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+  View decor=dialog.getWindow().getDecorView();
+  assertNotNull(decor.findViewWithTag("parking_webview"));
+  View externalMap=decor.findViewWithTag("parking_open_map");
+  assertNotNull("Optional external map action stays available",externalMap);
+  assertTrue("External map button remains compact",externalMap.getLayoutParams().height<=Math.round(34*activity.getResources().getDisplayMetrics().density));
+  assertNull(decor.findViewWithTag("parking_phone_settings"));
+  assertNotNull(decor.findViewWithTag("parking_zoom_in"));
+  assertNotNull(decor.findViewWithTag("parking_zoom_out"));
+  assertNotNull(decor.findViewWithTag("parking_center_vehicle"));
+  assertNotNull(decor.findViewWithTag("parking_refresh_position"));
+  assertNotNull(decor.findViewWithTag("parking_phone_location_toggle"));
+  assertTrue(dialog.isShowing());
+  assertTrue(decor.findViewWithTag("parking_zoom_in").performClick());
+  assertSame("Zoom stays in the same dialog",dialog,org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
  }
  @Test public void navigationAllowlistRejectsSpoofedHostsAndUnsafeSchemes(){
   for(String url:new String[]{"https://uri.amap.com/marker","https://m.amap.com/","https://www.autonavi.com/"})assertTrue(ParkingWebPreview.allowedPage(android.net.Uri.parse(url)));

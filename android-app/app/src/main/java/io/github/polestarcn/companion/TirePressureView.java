@@ -4,8 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 
@@ -27,12 +25,7 @@ public final class TirePressureView extends View {
     muted = PsaDesign.muted(dark);
     surface = PsaDesign.surface(dark);
     line = PsaDesign.line(dark);
-    vehicle = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.vehicle_top);
-    if (dark && vehicle != null) {
-      ColorMatrix m = new ColorMatrix(new float[] {
-          .4f,0,0,0,10, 0,.4f,0,0,10, 0,0,.4f,0,10, 0,0,0,1,0});
-      vehicle.setColorFilter(new ColorMatrixColorFilter(m));
-    }
+    vehicle = androidx.core.content.ContextCompat.getDrawable(context, VehicleArt.conditionTopDrawable(context));
     paint.setTypeface(PsaDesign.regular());
     setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     StringBuilder a = new StringBuilder(english ? "Tire status. " : "胎压状态。");
@@ -66,7 +59,8 @@ public final class TirePressureView extends View {
 
     canvas.save(); canvas.translate(mid, cy); canvas.rotate(-90);
     int half = (int)Math.min(h * .45f, w * .50f);
-    vehicle.setBounds(-half, (int)(-half * .5625f), half, (int)(half * .5625f));
+    float artRatio=vehicle.getIntrinsicHeight()>0&&vehicle.getIntrinsicWidth()>0?vehicle.getIntrinsicHeight()/(float)vehicle.getIntrinsicWidth():.53f;
+      vehicle.setBounds(-half, (int)(-half * artRatio), half, (int)(half * artRatio));
     vehicle.draw(canvas); canvas.restore();
 
     float cw = w * .31f, ch = 58 * scale;

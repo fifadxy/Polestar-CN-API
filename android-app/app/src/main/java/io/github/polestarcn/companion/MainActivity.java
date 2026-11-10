@@ -1904,32 +1904,45 @@ public final class MainActivity extends FragmentActivity {
     parkingVin=model.selected==null?null:model.selected.vin;parkingPoint=location;
     String time=location.reportedAt>0?android.text.format.DateFormat.format("yyyy-MM-dd HH:mm",location.reportedAt).toString():"--";
     LinearLayout panel=detailPanel();panel.setTag("parking_location_panel");
+    panel.setPadding(dp(7),dp(2),dp(7),dp(2));
     // A short header leaves more room for the actual parked-point map.
     TextView report=text(tr("车辆位置更新 ","Vehicle position updated ")+time,11,muted,false);
     report.setTag("parking_report_time");report.setGravity(Gravity.CENTER_VERTICAL);
     panel.addView(report);
-    if(location.stale){TextView stale=text(tr("位置可能不是最新，请以车辆上报时间为准。","This position may be out of date. Check the vehicle report time."),13,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
-    gap(panel,6);
+    if(location.stale){TextView stale=text(tr("停车位置可能过期 · 以车辆时间为准","Parking location may be stale"),11,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
     ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));parkingPreview=map;
-    int mapHeight=Math.max(132,Math.min(210,(int)(getResources().getConfiguration().screenHeightDp*.27f)));
-    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,5);
+    // Compact map and a single action area fit inside the 60%-height window without scrolling.
+    int mapHeight=Math.max(62,Math.min(112,(int)(getResources().getConfiguration().screenHeightDp*.16f)));
+    panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,2);
     TextView coordinates=text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.5f",location.latitude)
         +"  /  "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.5f",location.longitude),10,muted,false);
-    coordinates.setGravity(Gravity.CENTER);coordinates.setMaxLines(2);panel.addView(coordinates);gap(panel,5);
+    coordinates.setGravity(Gravity.CENTER);coordinates.setMaxLines(1);coordinates.setSingleLine(true);coordinates.setTextSize(10);panel.addView(coordinates);gap(panel,2);
     LinearLayout actions=row();actions.setGravity(Gravity.CENTER);
     TextView open=button(tr("打开地图","Open map"),()->openLocation(location));open.setTag("parking_open_map");
     TextView refresh=button(tr("更新位置","Refresh"),()->locationDialog(true));refresh.setTag("parking_refresh_position");
     open.setTextSize(12);refresh.setTextSize(12);
-    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(48),1f);
+    open.setMinHeight(dp(36));refresh.setMinHeight(dp(36));
+    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(37),1f);
     actions.addView(open,actionCell);
-    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(48),1f);second.leftMargin=dp(6);
-    actions.addView(refresh,second);panel.addView(actions);gap(panel,4);
-    TextView mapOptions=text(tr("手机定位权限与刷新设置","Phone location permissions and refresh"),11,muted,false);
-    mapOptions.setGravity(Gravity.CENTER);mapOptions.setMinHeight(dp(36));click(mapOptions,this::mapLocationDialog);
-    panel.addView(mapOptions);
-    if(MapLocationPermission.enabled(this))setting(panel,tr("刷新手机位置 · 本次预览","Refresh phone position in this preview"),()->map.requestPhoneLocation());
-    note(panel,tr("说明","Info"),tr("仅显示车辆最后上报的停车点，不代表实时定位。","Displays the last reported parking position, not live vehicle tracking."));
-    HapticDialogBuilder builder=new HapticDialogBuilder(this).compactMapWindow();
+    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(37),1f);second.leftMargin=dp(4);
+    actions.addView(refresh,second);panel.addView(actions);gap(panel,2);
+    LinearLayout phone=row();phone.setGravity(Gravity.CENTER_VERTICAL);
+    TextView mapOptions=button(tr("手机定位设置","Phone location settings"),this::mapLocationDialog);
+    mapOptions.setTag("parking_phone_settings");mapOptions.setTextSize(11);mapOptions.setMinHeight(dp(31));
+    phone.addView(mapOptions,new LinearLayout.LayoutParams(0,dp(33),1));
+    if(MapLocationPermission.enabled(this)){
+      TextView phoneRefresh=button(tr("刷新手机位置","Refresh phone location"),()->map.requestPhoneLocation());
+      phoneRefresh.setTag("parking_refresh_phone_location");phoneRefresh.setTextSize(11);phoneRefresh.setMinHeight(dp(31));
+      LinearLayout.LayoutParams phoneRefreshCell=new LinearLayout.LayoutParams(0,dp(33),1);
+      phoneRefreshCell.leftMargin=dp(4);phone.addView(phoneRefresh,phoneRefreshCell);
+    }
+    panel.addView(phone);
+    note(panel,tr("说明","Info"),tr("车辆最后上报的停车点 · 非实时追踪","Last vehicle parking report · not live tracking"));
+    HapticDialogBuilder builder=new HapticDialogBuilder(this);
+    if(getResources().getConfiguration().screenHeightDp>=480
+        &&getResources().getConfiguration().screenWidthDp<=getResources().getConfiguration().screenHeightDp)
+      builder.singlePageMap();
+    else builder.compactMapWindow();
     AlertDialog dialog=builder.setTitle(tr("最后停车位置","Last parked location")).setView(panel)
         .setNegativeButton(tr("关闭","Close"),null).create();
     parkingDialog=dialog;dialog.setOnDismissListener(d->{map.close();if(parkingDialog==dialog){parkingDialog=null;parkingVin=null;parkingPoint=null;parkingPreview=null;}});dialog.show();
@@ -2085,7 +2098,7 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout panel=detailPanel();ScrollView scroll=new ScrollView(this);
     scroll.setTag("energy_summary_popup");scroll.addView(panel);
     android.widget.FrameLayout viewport=new android.widget.FrameLayout(this);
-    int size=Math.max(260,Math.min(540,(int)(getResources().getConfiguration().screenHeightDp*.63f)));
+    int size=Math.max(260,Math.min(580,(int)(getResources().getConfiguration().screenHeightDp*.70f)));
     viewport.addView(scroll,new android.widget.FrameLayout.LayoutParams(-1,dp(size)));
     energySummaryContents(panel);
     new HapticDialogBuilder(this).setTitle(tr("平均能耗与费用","Average consumption & cost"))
@@ -2093,35 +2106,35 @@ public final class MainActivity extends FragmentActivity {
   }
 
   private void detailSection(LinearLayout parent, String title) {
-    gap(parent,16); TextView label=text(title,13,ink,false);label.setTag("detail_section");label.setPadding(dp(2),0,0,dp(7));parent.addView(label);
+    gap(parent,Math.max(5,MenuSpacing.dp(this)+2)); TextView label=text(title,13,ink,false);label.setTag("detail_section");label.setPadding(dp(2),0,0,dp(7));parent.addView(label);
     View rule=new View(this);rule.setBackgroundColor(line);parent.addView(rule,new LinearLayout.LayoutParams(-1,dp(1)));gap(parent,6);
   }
 
   private void detailRow(LinearLayout p, String key, String value) {
     LinearLayout r = row();r.setTag("detail_row");
-    r.setPadding(dp(12), dp(12), dp(12), dp(12));
+    r.setPadding(dp(9), dp(6), dp(9), dp(6));
     r.setBackground(bg(surface, 4));
     TextView a = text(key, 14, muted, false), b = text(value==null||value.trim().isEmpty()?"--":value, 14, ink, false);
     b.setGravity(Gravity.END);a.setMaxLines(2);b.setMaxLines(2);a.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setTypeface(AppPreferences.visible(this,"ui_data_bold",false)?bold:regular);
     r.addView(a, new LinearLayout.LayoutParams(0, -2, 1));
     r.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
     p.addView(r);
-    gap(p, 3);
+    gap(p, MenuSpacing.dp(this));
   }
 
   private void disclosure(LinearLayout parent,String key,String title,boolean initiallyOpen,java.util.function.Consumer<LinearLayout> fill){
     LinearLayout frame=column();frame.setTag("disclosure_"+key);GradientDrawable outline=bg(surface,8);outline.setStroke(dp(1),line);frame.setBackground(outline);
-    LinearLayout header=row();header.setTag("disclosure_header_"+key);header.setPadding(dp(12),dp(6),dp(10),dp(6));header.setMinimumHeight(dp(48));header.setFocusable(true);
+    LinearLayout header=row();header.setTag("disclosure_header_"+key);header.setPadding(dp(10),dp(4),dp(8),dp(4));header.setMinimumHeight(dp(42));header.setFocusable(true);
     TextView label=text(title,14,ink,false);label.setSingleLine(true);label.setEllipsize(android.text.TextUtils.TruncateAt.END);header.addView(label,new LinearLayout.LayoutParams(0,-2,1));
     TextView arrow=text("",16,ink,false);arrow.setGravity(Gravity.CENTER);header.addView(arrow,new LinearLayout.LayoutParams(dp(26),Math.max(dp(32),textLineHeight(16)+dp(4))));frame.addView(header);
-    LinearLayout content=column();content.setTag("disclosure_content_"+key);content.setPadding(dp(8),0,dp(8),dp(8));frame.addView(content);final boolean[] built={false};
+    LinearLayout content=column();content.setTag("disclosure_content_"+key);content.setPadding(dp(5),0,dp(5),dp(MenuSpacing.dp(this)));frame.addView(content);final boolean[] built={false};
     java.util.function.Consumer<Boolean> show=open->{if(open&&!built[0]){fill.accept(content);disableSystemHaptics(content);built[0]=true;}content.setVisibility(open?View.VISIBLE:View.GONE);arrow.setText(open?"⌄":"›");header.setContentDescription(title+tr(open?"，已展开，点击收起":"，已收起，点击展开",open?", expanded. Collapse":", collapsed. Expand"));};
     if(indexSettings&&key.startsWith("settings_")){String old=settingsGroup;settingsGroup=title;fill.accept(content);settingsGroup=old;built[0]=true;}
     show.accept(AppPreferences.visible(this,"expand_"+key,initiallyOpen));click(header,()->{boolean open=content.getVisibility()!=View.VISIBLE;AppPreferences.set(this,"expand_"+key,open?"on":"off");show.accept(open);});
-    parent.addView(frame,new LinearLayout.LayoutParams(-1,-2));gap(parent,8);
+    parent.addView(frame,new LinearLayout.LayoutParams(-1,-2));gap(parent,MenuSpacing.dp(this));
   }
 
-  private LinearLayout detailPanel(){LinearLayout p=column();p.setPadding(dp(12),dp(8),dp(12),dp(8));return p;}
+  private LinearLayout detailPanel(){LinearLayout p=column();p.setPadding(dp(9),dp(5),dp(9),dp(5));return p;}
   private void openDataSection(String key){AppPreferences.set(this,"expand_"+key,"on");page=1;render();}
   private void tripDialog(){openDataSection("data_trips");}
   private void airDetailsDialog(){openDataSection("data_air");}
@@ -2401,10 +2414,17 @@ public final class MainActivity extends FragmentActivity {
       }).setNegativeButton(tr("取消","Cancel"),null).show();
   }
 
-  private void setting(LinearLayout parent,String title,Runnable action){if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,settingsAliases(title),action);TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);GradientDrawable frame=bg(surface,12);frame.setStroke(dp(1),line);entry.setBackground(frame);entry.setPadding(dp(14),dp(12),dp(14),dp(12));entry.setMinHeight(dp(52));entry.setSingleLine(false);entry.setMaxLines(3);parent.addView(entry);gap(parent,6);}
+  private void menuSpacingDialog(){
+    choice(tr("菜单栏目间距","Menu row spacing"),"menu_spacing_dp",
+        new String[]{"2","4","6","8","12"},
+        new String[]{tr("极紧凑 · 2dp","Extra compact · 2dp"),tr("紧凑（默认）· 4dp","Compact (default) · 4dp"),
+            tr("适中 · 6dp","Comfortable · 6dp"),tr("宽松 · 8dp","Roomy · 8dp"),tr("最大 · 12dp","Maximum · 12dp")},
+        "4",this::render);
+  }
+  private void setting(LinearLayout parent,String title,Runnable action){if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,settingsAliases(title),action);TextView entry=button(title,action);entry.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);GradientDrawable frame=bg(surface,12);frame.setStroke(dp(1),line);entry.setBackground(frame);entry.setPadding(dp(11),dp(7),dp(11),dp(7));entry.setMinHeight(dp(45));entry.setSingleLine(false);entry.setMaxLines(3);parent.addView(entry);gap(parent,MenuSpacing.dp(this));}
   private void settingToggle(LinearLayout parent,String key,String title,boolean fallback,boolean widget){
-    SwitchCompat toggle=new SwitchCompat(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(52));toggle.setPadding(dp(12),dp(8),dp(12),dp(8));GradientDrawable tf=bg(surface,12);tf.setStroke(dp(1),line);toggle.setBackground(tf);toggle.setThumbTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{orange,muted}));toggle.setTrackTintList(android.content.res.ColorStateList.valueOf(line));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
-    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)||key.startsWith("oppo_")){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();if(key.startsWith("oppo_"))OppoCardSummarySettings.changed(this);}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);
+    SwitchCompat toggle=new SwitchCompat(this);toggle.setTag(key);toggle.setText(title);toggle.setTypeface(regular);toggle.setTextColor(ink);toggle.setMinHeight(dp(46));toggle.setPadding(dp(10),dp(5),dp(10),dp(5));GradientDrawable tf=bg(surface,12);tf.setStroke(dp(1),line);toggle.setBackground(tf);toggle.setThumbTintList(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{orange,muted}));toggle.setTrackTintList(android.content.res.ColorStateList.valueOf(line));toggle.setHapticFeedbackEnabled(false);toggle.setChecked(AppPreferences.visible(this,key,fallback));
+    toggle.setOnCheckedChangeListener((view,on)->{Haptics.tap(this);AppPreferences.set(this,key,on?"on":"off");if(widget)WidgetRenderer.refreshAll(this);if(key.equals("immersive")||key.equals("ui_all_bold")||key.equals("minimal_mode"))render();if(key.equals("notification_status_icon"))ResidentService.update(this);if(key.equals(OppoWatchIndicatorLab.PREF_ENABLED)){if(!on)OppoWatchIndicatorLab.cancel(this);ResidentService.update(this);}if(key.equals(OppoWatchIndicatorLab.PREF_RESIDENT))ResidentService.update(this);if(key.equals("app_background_enabled")||key.equals("refresh_wifi_only")||key.equals("refresh_only_charging")||key.equals("map_refresh_background")||key.equals(VehiclePowerPolicy.KEY)||key.startsWith("oppo_")){ResidentService.scheduleUpdates(this);scheduleForeground();scheduleMapRefresh();if(key.startsWith("oppo_"))OppoCardSummarySettings.changed(this);}});if(indexSettings&&settingsSearch!=null)settingsSearch.add(settingsGroup+" · "+title,key,()->toggle.setChecked(!toggle.isChecked()));parent.addView(toggle);gap(parent,MenuSpacing.dp(this));
   }
   private void themeChoice(){new HapticDialogBuilder(this).setTitle(tr("日夜模式","Day / night mode")).setItems(new String[]{tr("跟随系统","System"),tr("浅色","Light"),tr("深色","Dark")},(d,w)->{AppPreferences.set(this,"theme",new String[]{"system","light","dark"}[w]);WidgetRenderer.refreshAll(this);render();}).show();}
   private void widgetFields(){String[] labels={"4×2 · 8","2×2 · 4","4×1 · 4","5×1 · 4","2×1 · 2","Data 4×4 · 8"};WidgetRenderer.Size[] sizes={WidgetRenderer.Size.LARGE,WidgetRenderer.Size.SQUARE,WidgetRenderer.Size.WIDE,WidgetRenderer.Size.EXTRA_WIDE,WidgetRenderer.Size.MINI,WidgetRenderer.Size.DATA};new HapticDialogBuilder(this).setTitle(tr("Widget 尺寸与数据","Widget size and data")).setItems(labels,(d,w)->metricDialog(WidgetRenderer.selectionKey(this,sizes[w]),WidgetRenderer.capacity(sizes[w]),WidgetRenderer.selectionDefaults(this,sizes[w]))).show();}
@@ -2468,6 +2488,7 @@ public final class MainActivity extends FragmentActivity {
       settingToggle(p,"immersive",tr("沉浸模式 · 背景延伸至状态栏","Immersive · background behind status bar"),true,false);
       settingToggle(p,"ui_all_bold",tr("所有UI文字加粗","Bold text across all UI"),false,false);
       setting(p,tr("字体、按钮图标与文字大小","Font, button icons and labels"),this::fontDialog);
+      setting(p,tr("菜单栏目间距 · ","Menu row spacing · ")+MenuSpacing.dp(this)+" dp",this::menuSpacingDialog);
       setting(p,tr("各皮肤按钮布局 · 逐皮肤逐按钮微调","Per-skin layout · customize every control"),this::skinButtonLayoutDialog);
       setting(p,tr("各皮肤极简图标 · 大小与粗细","Per-skin minimal icons · size and weight"),this::minimalIconDialog);
       settingToggle(p,"minimal_mode",tr("极简模式 · 隐藏按钮名称并放大图标","Minimal mode · hide button names and enlarge icons"),false,false);
@@ -3049,8 +3070,14 @@ public final class MainActivity extends FragmentActivity {
   }
   private void healthRow(LinearLayout panel,HealthRow row){detailRow(panel,row.label,row.reported?row.value:"--");View view=panel.getChildAt(panel.getChildCount()-2);view.setTag("health_row_"+row.label);view.setContentDescription(row.label+" · "+(row.reported?row.value:tr("未上报","Not reported")));if(row.warning&&view instanceof ViewGroup){TextView value=(TextView)((ViewGroup)view).getChildAt(1);value.setTextColor(accentText());}}
   private void healthOverview(LinearLayout panel){
-    java.util.List<HealthRow> known=new ArrayList<>(),missing=new ArrayList<>();for(HealthRow row:healthRows(model.snapshot))(row.reported?known:missing).add(row);
-    if(known.isEmpty())panel.addView(text(tr("暂无已上报的检查项目，请刷新车辆。","No reported checks yet. Refresh the vehicle."),13,muted,false));
+    java.util.List<HealthRow> known=new ArrayList<>(),missing=new ArrayList<>();HealthRow oil=null;
+    for(HealthRow row:healthRows(model.snapshot)){
+      if(row.label.equals(tr("机油（适用时）","Oil (if applicable)")))oil=row;
+      else (row.reported?known:missing).add(row);
+    }
+    // Oil is a vehicle health check, never a maintenance-interval measurement. Show even if unknown.
+    if(oil!=null)healthRow(panel,oil);
+    if(known.isEmpty()&&oil==null)panel.addView(text(tr("暂无已上报的检查项目，请刷新车辆。","No reported checks yet. Refresh the vehicle."),13,muted,false));
     for(int i=0;i<Math.min(5,known.size());i++)healthRow(panel,known.get(i));
     if(known.size()>5)disclosure(panel,"status_more_reported",tr("其他已上报项目","More reported checks")+" · "+(known.size()-5),false,p->{for(int i=5;i<known.size();i++)healthRow(p,known.get(i));});
     if(!missing.isEmpty())disclosure(panel,"status_missing",tr("未上报 / 不适用项目","Not reported / not applicable")+" · "+missing.size(),false,p->{for(HealthRow row:missing)healthRow(p,row);});

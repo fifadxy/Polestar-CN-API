@@ -3,6 +3,7 @@ package io.github.polestarcn.companion;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -16,9 +17,12 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final String vehicle;
   private final int ink, muted;
   private final TextView historyTitle, historyValues, note, chartToggle;
+  private TextView rateToggle;
+  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[2];
+  private boolean showPer100Km=true;
   private final Trend chart;
   private int range = 0, metric = 0;
-  private Double currentTmEnergy;
+  private Double currentTmEnergy,tmAverage;
   private boolean chartExpanded = true;
   private int generation;
 
@@ -31,8 +35,8 @@ public final class EnergySummaryPanel extends LinearLayout {
     muted = PsaDesign.muted(dark);
     setOrientation(VERTICAL);
     setTag("energy_summary_panel");
-    setPadding(dp(6), dp(4), dp(6), dp(8));
-    addView(title(tr("本次 TM 行程（上次清零至今）", "Current TM trip (since reset)"), 17));
+    setPadding(dp(4), dp(2), dp(4), dp(4));
+    addView(title(tr("TM 行程与费用估算", "TM trip & cost estimates"), 16));
     currentTrip(snapshot);
     TextView heading=title(tr("能耗图表 · 本机历史", "Energy chart · local history"), 15);
     heading.setTag("energy_chart_heading");addView(heading);
@@ -44,7 +48,9 @@ public final class EnergySummaryPanel extends LinearLayout {
     String[] en = {"Driving", "Climate", "Distance", "Cost"};
     for (int i = 0; i < 4; i++) {
       final int selected = i;
-      tabs.addView(action(tr(zh[i], en[i]), () -> changeMetric(selected)), new LayoutParams(0, dp(42), 1));
+      metricTabs[i]=modeTab(tr(zh[i],en[i]),()->changeMetric(selected));
+      LayoutParams cell=new LayoutParams(0,dp(38),1);cell.setMargins(dp(2),0,dp(2),0);
+      tabs.addView(metricTabs[i],cell);
     }
     addView(tabs);
     chartToggle = action(tr("收起图表  ⌃", "Collapse chart  ⌃"), this::toggleChart);
@@ -54,8 +60,9 @@ public final class EnergySummaryPanel extends LinearLayout {
     row(tr("本机历史采样", "Local recorded history"), "");
     LinearLayout periods = new LinearLayout(context);
     periods.setOrientation(HORIZONTAL);
-    periods.addView(action(tr("最近 7 天", "Last 7 days"), () -> changeRange(0)), new LayoutParams(0, dp(42), 1));
-    periods.addView(action(tr("最近 31 天", "Last 31 days"), () -> changeRange(1)), new LayoutParams(0, dp(42), 1));
+    rangeTabs[0]=modeTab(tr("最近 7 天", "Last 7 days"), () -> changeRange(0));
+    rangeTabs[1]=modeTab(tr("最近 31 天", "Last 31 days"), () -> changeRange(1));
+    for(int i=0;i<2;i++){LayoutParams cell=new LayoutParams(0,dp(36),1);cell.setMargins(dp(2),0,dp(2),0);periods.addView(rangeTabs[i],cell);}
     addView(periods);
     historyTitle = title(tr("读取本机采样…", "Loading local observations…"), 13);
     addView(historyTitle);
@@ -63,11 +70,13 @@ public final class EnergySummaryPanel extends LinearLayout {
     addView(historyValues);
     note = title(tr("历史为本机有效采样的估算值，并非充电账单。", "History estimates use local samples, not charging invoices."), 12);
     note.setTextColor(muted);addView(note);
-    addView(action(tr("电价 / 电池容量 / 保存期限设置", "Tariff / capacity / retention settings"), () -> {
+    addView(action(tr("设置电价 / 电池容量 / 保存期限", "Tariff / capacity / retention"), () -> {
       android.content.Intent intent = new android.content.Intent(context, EnergyActivity.class);
       if(vehicle != null)intent.putExtra("vehicle", vehicle);
+      intent.putExtra("open_energy_settings",true);
       context.startActivity(intent);
     }), new LayoutParams(-1, dp(44)));
+    refreshTabStyles();
     load();
   }
 
@@ -76,7 +85,7 @@ public final class EnergySummaryPanel extends LinearLayout {
   private TextView title(String value, int sp) {
     TextView t = new TextView(context);
     t.setText(value);t.setTextSize(sp);t.setTextColor(ink);
-    t.setPadding(dp(5),dp(5),dp(5),dp(5));
+    t.setPadding(dp(4),dp(2),dp(4),dp(2));
     return t;
   }
   private TextView action(String name, Runnable click) {
@@ -85,6 +94,26 @@ public final class EnergySummaryPanel extends LinearLayout {
     b.setBackgroundColor(PsaDesign.surface(AppPreferences.dark(context)));
     b.setOnClickListener(v -> {Haptics.tap(context);click.run();});
     return b;
+  }
+  private TextView modeTab(String name,Runnable callback){
+    TextView tab=action(name,callback);
+    tab.setTag("energy_switch_"+name);
+    tab.setTextSize(13);
+    tab.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);
+    return tab;
+  }
+  private void highlight(TextView tab,boolean selected){
+    if(tab==null)return;
+    GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(7));
+    shape.setColor(selected?PsaDesign.ORANGE:PsaDesign.surface(AppPreferences.dark(context)));
+    shape.setStroke(dp(selected?2:1),selected?PsaDesign.ORANGE:PsaDesign.line(AppPreferences.dark(context)));
+    tab.setBackground(shape);
+    tab.setTextColor(selected?android.graphics.Color.BLACK:ink);
+    tab.setSelected(selected);
+  }
+  private void refreshTabStyles(){
+    for(int i=0;i<metricTabs.length;i++)highlight(metricTabs[i],metric==i);
+    for(int i=0;i<rangeTabs.length;i++)highlight(rangeTabs[i],range==i);
   }
   private void row(String label, String value) {
     LinearLayout r = new LinearLayout(context);r.setOrientation(HORIZONTAL);
@@ -98,8 +127,8 @@ public final class EnergySummaryPanel extends LinearLayout {
   }
   private void kpi(String key, String value, String tag) {
     LinearLayout item=new LinearLayout(context);item.setOrientation(HORIZONTAL);
-    item.setTag("energy_kpi_"+tag);item.setMinimumHeight(dp(45));
-    TextView name=title(key,15);TextView number=title(value,17);
+    item.setTag("energy_kpi_"+tag);item.setMinimumHeight(dp(32));
+    TextView name=title(key,14);TextView number=title(value,16);
     number.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
     number.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);
     item.addView(name,new LayoutParams(0,-2,1));
@@ -110,6 +139,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     MileageSnapshot m=s==null||s.isDemo?null:s.mileage;
     Double distance=m==null?null:m.manualKm;
     Double average=m==null?null:m.manualConsumption;
+    tmAverage=average;
     currentTmEnergy=TmCost.kwh(distance,average);
     double tariff=EnergyLog.price(context);
     kpi(tr("TM 里程","TM distance"),fmt(distance,"km"),"tm_distance");
@@ -117,6 +147,32 @@ public final class EnergySummaryPanel extends LinearLayout {
     kpi(tr("估算费用","Estimated cost"),currentTmEnergy==null?"--"
         :tariff<=0?tr("未设电价","No tariff")
         :String.format(Locale.getDefault(),"%.2f %s",currentTmEnergy*tariff,tr("元","CNY")),"tm_cost");
+    rateToggle=title("",13);
+    rateToggle.setTag("energy_cost_rate_toggle");rateToggle.setGravity(Gravity.CENTER_VERTICAL);
+    rateToggle.setPadding(dp(10),dp(4),dp(8),dp(4));rateToggle.setMinHeight(dp(34));
+    GradientDrawable rateOutline=new GradientDrawable();rateOutline.setCornerRadius(dp(7));
+    rateOutline.setStroke(dp(1),PsaDesign.ORANGE);rateOutline.setColor(PsaDesign.surface(AppPreferences.dark(context)));
+    rateToggle.setBackground(rateOutline);rateToggle.setOnClickListener(v->{Haptics.tap(context);showPer100Km=!showPer100Km;updateRate();});
+    addView(rateToggle,new LayoutParams(-1,-2));updateRate();
+    Double taKm=m==null?null:m.automaticKm;
+    Double taKwh=TmCost.kwh(taKm,tmAverage);
+    String taCost=taKwh==null?"--":tariff<=0?tr("未设电价","No tariff")
+        :String.format(Locale.getDefault(),"%.2f %s",taKwh*tariff,tr("元","CNY"));
+    kpi(tr("TA 费用推算（按 TM 均耗）","TA estimated cost (TM average)"),taCost,"ta_cost");
+    TextView taDetail=title(tr("TA 里程：","TA distance: ")+fmt(taKm,"km")
+        +tr(" · 估算电量："," · estimated energy: ")+fmt(taKwh,"kWh"),12);
+    taDetail.setTag("energy_ta_estimation_details");taDetail.setTextColor(muted);addView(taDetail);
+  }
+  private void updateRate(){
+    if(rateToggle==null)return;
+    double tariff=EnergyLog.price(context);
+    Double value=showPer100Km?TmCost.yuanPer100Km(tmAverage,tariff):TmCost.yuanPerKm(tmAverage,tariff);
+    String unit=showPer100Km?tr("元/百公里","CNY/100 km"):tr("元/公里","CNY/km");
+    String number=value==null?(tariff<=0?tr("请设置电价","Set tariff"):"--")
+        :String.format(Locale.getDefault(),"%.2f %s",value,unit);
+    rateToggle.setText(tr("行驶单价：","Driving rate: ")+number
+        +tr("    点击切换 ↔","    Tap to switch ↔"));
+    rateToggle.setContentDescription(rateToggle.getText());
   }
   private void tripDetails(VehicleSnapshot s) {
     MileageSnapshot m=s==null||s.isDemo?null:s.mileage;
@@ -136,8 +192,8 @@ public final class EnergySummaryPanel extends LinearLayout {
       message.setTextColor(muted);addView(message);
     }
   }
-  private void changeRange(int value) { range = value; load(); }
-  private void changeMetric(int value) { metric = value; chart.setMetric(metric); }
+  private void changeRange(int value) { range = value; refreshTabStyles(); load(); }
+  private void changeMetric(int value) { metric = value; refreshTabStyles(); chart.setMetric(metric); }
   private void toggleChart() {
     chartExpanded = !chartExpanded;
     chart.setVisibility(chartExpanded ? VISIBLE : GONE);

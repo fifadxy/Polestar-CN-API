@@ -18,12 +18,14 @@ import android.widget.TextView;
 final class HapticDialogBuilder extends AlertDialog.Builder {
   private final Context context;
   private boolean mapCompact;
+  private boolean singlePageMap;
   HapticDialogBuilder(Context context){super(context);this.context=context;}
   HapticDialogBuilder compactMapWindow(){mapCompact=true;return this;}
+  HapticDialogBuilder singlePageMap(){mapCompact=true;singlePageMap=true;return this;}
   @Override public AlertDialog.Builder setView(View view){
     // Style once BEFORE first attachment/measurement to avoid font-induced layout jumps.
     UiTypography.applyTree(view);
-    if(view instanceof android.widget.LinearLayout){
+    if(view instanceof android.widget.LinearLayout&&!singlePageMap){
       ScrollView sc=new ScrollView(context);
       sc.setFillViewport(false);
       sc.setVerticalScrollBarEnabled(false);

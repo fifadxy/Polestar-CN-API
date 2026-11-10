@@ -75,6 +75,10 @@ public class ParkingMapV079Test {
    View entry=decor.findViewWithTag("parking_web_preview");assertNotNull(entry);assertEquals(1,count(decor,android.webkit.WebView.class));assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));fitText(decor);
     assertNotNull(decor.findViewWithTag("parking_open_map"));
     assertNotNull(decor.findViewWithTag("parking_refresh_position"));
+    assertNotNull(decor.findViewWithTag("parking_phone_settings"));
+    View panel=decor.findViewWithTag("parking_location_panel");
+    assertNotNull(panel);
+    if(size[0]<=size[1]&&size[1]>=480)assertFalse("Portrait parking panel must not have an internal scroll container",panel.getParent() instanceof ScrollView);
     assertTrue(dialog.getButton(AlertDialog.BUTTON_NEGATIVE).getHeight()>0);
    if(skin.equals(UiSkin.NIO_LIKE_2)&&lang.equals("zh")&&size[0]==360){File file=new File("build/reports/previews/v079/parking-"+theme+".png");file.getParentFile().mkdirs();Bitmap bitmap=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);canvas.scale(2,2);removeTestScrollIndicators(decor);decor.draw(canvas);try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}
    dialog.dismiss();

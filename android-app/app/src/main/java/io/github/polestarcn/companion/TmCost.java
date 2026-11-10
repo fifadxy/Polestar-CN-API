@@ -15,6 +15,15 @@ public final class TmCost {
         ||Math.abs(trip.reportedAt-trip.consumptionReportedAt)>120_000L)return null;
     return kwh(trip.manualKm,trip.manualConsumption);
   }
+  /** Rates are per driven distance and use the chosen electricity tariff, not a charging invoice. */
+  public static Double yuanPer100Km(Double averageKwhPer100Km,double yuanPerKwh) {
+    if(kwh(100.0,averageKwhPer100Km)==null||!Double.isFinite(yuanPerKwh)||yuanPerKwh<=0||yuanPerKwh>100)return null;
+    return averageKwhPer100Km*yuanPerKwh;
+  }
+  public static Double yuanPerKm(Double averageKwhPer100Km,double yuanPerKwh) {
+    Double per100=yuanPer100Km(averageKwhPer100Km,yuanPerKwh);
+    return per100==null?null:per100/100.0;
+  }
   public static double cost(double kwh,double currencyPerKwh) {
     if(!Double.isFinite(kwh)||kwh<0||!Double.isFinite(currencyPerKwh)||currencyPerKwh<0)return 0;
     return kwh*currencyPerKwh;

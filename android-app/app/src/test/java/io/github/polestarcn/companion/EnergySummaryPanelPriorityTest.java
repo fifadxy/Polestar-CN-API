@@ -28,9 +28,12 @@ public class EnergySummaryPanelPriorityTest {
     assertEquals("energy_kpi_tm_distance",p.getChildAt(1).getTag());
     assertEquals("energy_kpi_tm_total_energy",p.getChildAt(2).getTag());
     assertEquals("energy_kpi_tm_cost",p.getChildAt(3).getTag());
-    assertEquals("energy_chart_heading",p.getChildAt(4).getTag());
-    assertEquals("energy_history_chart",p.getChildAt(5).getTag());
-    assertEquals("tm_average_consumption_secondary",p.getChildAt(8).getTag());
+    assertEquals("energy_cost_rate_toggle",p.getChildAt(4).getTag());
+    assertEquals("energy_kpi_ta_cost",p.getChildAt(5).getTag());
+    assertEquals("energy_ta_estimation_details",p.getChildAt(6).getTag());
+    assertEquals("energy_chart_heading",p.getChildAt(7).getTag());
+    assertEquals("energy_history_chart",p.getChildAt(8).getTag());
+    assertEquals("tm_average_consumption_secondary",p.getChildAt(11).getTag());
     TextView distance=(TextView)((LinearLayout)p.getChildAt(1)).getChildAt(1);
     TextView energy=(TextView)((LinearLayout)p.getChildAt(2)).getChildAt(1);
     TextView cost=(TextView)((LinearLayout)p.getChildAt(3)).getChildAt(1);
@@ -38,11 +41,32 @@ public class EnergySummaryPanelPriorityTest {
     assertTrue(energy.getText().toString().contains("24"));
     assertTrue(cost.getText().toString().contains("29"));
   }
+  @Test public void costPerHundredAndPerKmSwitchWithTapAndTaUsesTmAverage() {
+    Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"energy_price","1.2");
+    EnergySummaryPanel p=new EnergySummaryPanel(c,trip(c),null);
+    TextView rate=(TextView)p.findViewWithTag("energy_cost_rate_toggle");
+    assertNotNull(rate);assertTrue(rate.getText().toString().contains("24.00"));
+    assertTrue(rate.getText().toString().contains("百公里"));
+    assertTrue(rate.performClick());
+    assertTrue(rate.getText().toString().contains("0.24"));
+    assertTrue(rate.getText().toString().contains("公里"));
+    TextView ta=(TextView)((LinearLayout)p.findViewWithTag("energy_kpi_ta_cost")).getChildAt(1);
+    assertTrue(ta.getText().toString().contains("4.32"));
+  }
+  @Test public void activeMetricTabHasVisibleState() {
+    Context c=RuntimeEnvironment.getApplication();EnergySummaryPanel p=new EnergySummaryPanel(c,trip(c),null);
+    LinearLayout tabs=(LinearLayout)p.getChildAt(9);
+    assertTrue(tabs.getChildAt(0).isSelected());
+    assertFalse(tabs.getChildAt(1).isSelected());
+    assertTrue(tabs.getChildAt(2).performClick());
+    assertTrue(tabs.getChildAt(2).isSelected());
+    assertFalse(tabs.getChildAt(0).isSelected());
+  }
   @Test public void chartIsVisibleInitiallyAndCanBeCollapsed() {
     Context c=RuntimeEnvironment.getApplication();
     EnergySummaryPanel p=new EnergySummaryPanel(c,null,null);
-    View chart=p.getChildAt(5);
-    View toggle=p.getChildAt(7);
+    View chart=p.getChildAt(8);
+    View toggle=p.getChildAt(10);
     assertEquals(View.VISIBLE,chart.getVisibility());
     assertTrue(toggle.performClick());
     assertEquals(View.GONE,chart.getVisibility());

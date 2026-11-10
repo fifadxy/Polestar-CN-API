@@ -18,6 +18,7 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final TextView historyTitle, historyValues, note, chartToggle;
   private final Trend chart;
   private int range = 0, metric = 0;
+  private Double currentTmEnergy;
   private boolean chartExpanded = true;
   private int generation;
 
@@ -33,6 +34,23 @@ public final class EnergySummaryPanel extends LinearLayout {
     setPadding(dp(6), dp(4), dp(6), dp(8));
     addView(title(tr("本次 TM 行程（上次清零至今）", "Current TM trip (since reset)"), 17));
     currentTrip(snapshot);
+    TextView heading=title(tr("能耗图表 · 本机历史", "Energy chart · local history"), 15);
+    heading.setTag("energy_chart_heading");addView(heading);
+    chart = new Trend(context);
+    addView(chart, new LayoutParams(-1, dp(165)));
+    LinearLayout tabs = new LinearLayout(context);
+    tabs.setOrientation(HORIZONTAL);
+    String[] zh = {"行驶", "空调", "里程", "费用"};
+    String[] en = {"Driving", "Climate", "Distance", "Cost"};
+    for (int i = 0; i < 4; i++) {
+      final int selected = i;
+      tabs.addView(action(tr(zh[i], en[i]), () -> changeMetric(selected)), new LayoutParams(0, dp(42), 1));
+    }
+    addView(tabs);
+    chartToggle = action(tr("收起图表  ⌃", "Collapse chart  ⌃"), this::toggleChart);
+    chartToggle.setGravity(Gravity.CENTER_VERTICAL);
+    addView(chartToggle);
+    tripDetails(snapshot);
     row(tr("本机历史采样", "Local recorded history"), "");
     LinearLayout periods = new LinearLayout(context);
     periods.setOrientation(HORIZONTAL);
@@ -43,23 +61,8 @@ public final class EnergySummaryPanel extends LinearLayout {
     addView(historyTitle);
     historyValues = title("", 14);
     addView(historyValues);
-    LinearLayout tabs = new LinearLayout(context);
-    tabs.setOrientation(HORIZONTAL);
-    String[] zh = {"行驶电耗", "空调电耗", "采样里程", "估算费用"};
-    String[] en = {"Driving", "Climate", "Distance", "Cost"};
-    for (int i = 0; i < 4; i++) {
-      final int selected = i;
-      tabs.addView(action(tr(zh[i], en[i]), () -> changeMetric(selected)), new LayoutParams(0, dp(46), 1));
-    }
-    addView(tabs);
-    chartToggle = action(tr("收起图表  ⌃", "Collapse chart  ⌃"), this::toggleChart);
-    chartToggle.setGravity(Gravity.CENTER_VERTICAL);
-    addView(chartToggle);
-    chart = new Trend(context);
-    addView(chart, new LayoutParams(-1, dp(165)));
     note = title(tr("历史为本机有效采样的估算值，并非充电账单。", "History estimates use local samples, not charging invoices."), 12);
-    note.setTextColor(muted);
-    addView(note);
+    note.setTextColor(muted);addView(note);
     addView(action(tr("电价 / 电池容量 / 保存期限设置", "Tariff / capacity / retention settings"), () -> {
       android.content.Intent intent = new android.content.Intent(context, EnergyActivity.class);
       if(vehicle != null)intent.putExtra("vehicle", vehicle);
@@ -93,28 +96,44 @@ public final class EnergySummaryPanel extends LinearLayout {
   private String fmt(Double number, String unit) {
     return number == null ? "--" : String.format(Locale.getDefault(),"%.1f %s",number,unit);
   }
+  private void kpi(String key, String value, String tag) {
+    LinearLayout item=new LinearLayout(context);item.setOrientation(HORIZONTAL);
+    item.setTag("energy_kpi_"+tag);item.setMinimumHeight(dp(45));
+    TextView name=title(key,15);TextView number=title(value,17);
+    number.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+    number.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);
+    item.addView(name,new LayoutParams(0,-2,1));
+    item.addView(number,new LayoutParams(0,-2,1));
+    addView(item);
+  }
   private void currentTrip(VehicleSnapshot s) {
-    MileageSnapshot m = s == null || s.isDemo ? null : s.mileage;
-    Double distance = m == null ? null : m.manualKm;
-    Double average = m == null ? null : m.manualConsumption;
-    Double energy = TmCost.kwh(distance,average);
-    double tariff = EnergyLog.price(context);
-    row(tr("TM 行驶里程", "TM trip distance"), fmt(distance,"km"));
-    row(tr("平均电耗", "Average consumption"),fmt(average,"kWh/100km"));
-    row(tr("本次行驶用电（估算）", "Trip energy (estimate)"),fmt(energy,"kWh"));
-    row(tr("本次费用（估算）", "Trip cost (estimate)"),
-        energy == null || tariff <= 0 ? "--" : String.format(Locale.getDefault(),"%.2f %s",energy*tariff,tr("元","CNY")));
-    if (s != null && m != null && s.timestampMillis > 0) {
+    MileageSnapshot m=s==null||s.isDemo?null:s.mileage;
+    Double distance=m==null?null:m.manualKm;
+    Double average=m==null?null:m.manualConsumption;
+    currentTmEnergy=TmCost.kwh(distance,average);
+    double tariff=EnergyLog.price(context);
+    kpi(tr("TM 里程","TM distance"),fmt(distance,"km"),"tm_distance");
+    kpi(tr("TM 总能耗（估算）","TM energy (estimate)"),fmt(currentTmEnergy,"kWh"),"tm_total_energy");
+    kpi(tr("估算费用","Estimated cost"),currentTmEnergy==null?"--"
+        :tariff<=0?tr("未设电价","No tariff")
+        :String.format(Locale.getDefault(),"%.2f %s",currentTmEnergy*tariff,tr("元","CNY")),"tm_cost");
+  }
+  private void tripDetails(VehicleSnapshot s) {
+    MileageSnapshot m=s==null||s.isDemo?null:s.mileage;
+    Double average=m==null?null:m.manualConsumption;
+    TextView averageLabel=title(tr("TM 平均电耗（参考）","TM average consumption (reference)")+" · "+fmt(average,"kWh/100km"),12);
+    averageLabel.setTextColor(muted);averageLabel.setTag("tm_average_consumption_secondary");addView(averageLabel);
+    if(s!=null&&m!=null&&s.timestampMillis>0) {
       String when=android.text.format.DateFormat.format("MM-dd HH:mm",s.timestampMillis).toString();
-      TextView provenance=title(tr("最近车辆数据：", "Vehicle report: ")+when+tr(" · 非实时电表", " · not a live energy meter"),11);
-      provenance.setTextColor(muted);addView(provenance);
+      TextView stamp=title(tr("最近车辆数据：","Vehicle report: ")+when+tr(" · 非实时电表"," · not a live energy meter"),11);
+      stamp.setTextColor(muted);addView(stamp);
     }
-    if (energy == null) {
-      TextView explanation=title(tr("已显示可用里程及电耗；两项均上报后自动计算费用。", "Available trip readings are shown; the estimate appears when both fields are reported."),12);
-      explanation.setTextColor(muted);addView(explanation);
-    } else if (tariff <= 0) {
-      TextView price=title(tr("电价未设置，暂不显示费用。可在能耗记录设置中填写。", "Set an electricity tariff in energy history settings to see cost."),12);
-      price.setTextColor(muted);addView(price);
+    if(currentTmEnergy==null) {
+      TextView message=title(tr("里程或均耗未同时上报，不计算总能耗及费用。","TM estimate needs both trip distance and consumption."),12);
+      message.setTextColor(muted);addView(message);
+    } else if(EnergyLog.price(context)<=0) {
+      TextView message=title(tr("设置电价后可显示估算费用。","Set a tariff to show estimated cost."),12);
+      message.setTextColor(muted);addView(message);
     }
   }
   private void changeRange(int value) { range = value; load(); }
@@ -180,6 +199,19 @@ public final class EnergySummaryPanel extends LinearLayout {
       canvas.drawLine(left,top,left,top+height,p);canvas.drawLine(left,top+height,left+width,top+height,p);p.setStyle(Paint.Style.FILL);
       List<EnergyLog.Point> points=report==null?null:report.points;
       if(points==null||points.isEmpty()){
+        if(selection==0&&currentTmEnergy!=null){
+          // A single current TM estimate is a reference bar, not fabricated history.
+          double value=Math.max(0,currentTmEnergy);
+          float barHeight=value<=0?0:height*.73f;
+          float middle=left+width*.5f,half=Math.min(dp(45),width*.16f);
+          p.setColor(PsaDesign.ORANGE);
+          canvas.drawRoundRect(middle-half,top+height-barHeight,middle+half,top+height,dp(5),dp(5),p);
+          p.setColor(muted);p.setTextSize(11*d);
+          canvas.drawText(tr("当前 TM · 估算", "Current TM · estimate"),left+dp(6),top+dp(13),p);
+          canvas.drawText(String.format(Locale.getDefault(),"%.1f kWh",value),middle-dp(26),top+height-barHeight-dp(6),p);
+          setContentDescription(tr("当前 TM 总能耗参考柱，非历史趋势","Current TM reference bar, not historical trend"));
+          return;
+        }
         p.setTextSize(12*d);canvas.drawText(tr("等待历史采样", "Awaiting samples"),left+dp(12),top+height/2,p);return;
       }
       double tariff=EnergyLog.price(context), perPercent=EnergyLog.perPercent(context);

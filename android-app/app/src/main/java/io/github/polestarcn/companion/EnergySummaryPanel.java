@@ -12,6 +12,10 @@ import java.text.SimpleDateFormat;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import android.text.TextUtils;
+import android.view.MotionEvent;
+import android.view.ViewConfiguration;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -27,7 +31,9 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final TextView historyTitle, historyValues, distanceSummary, note, chartToggle, trendToggle;
   private final HorizontalScrollView chartScroller;
   private final TextView[] groupTabs=new TextView[3], styleTabs=new TextView[3];
-  private int groupStep, chartStyle, compareDays;
+  private TextView valueLabelsToggle;
+  private int groupStep, chartStyle, compareDays, valueLabelsMode;
+  private static final String LABELS_KEY="energy_chart_value_labels";
   private int trendRequest;
   private static final String GROUP_KEY="energy_chart_step",STYLE_KEY="energy_chart_style",TREND_KEY="energy_chart_compare_days";
   private TextView rateToggle;
@@ -53,6 +59,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     groupStep=EnergyChartSeries.granularity(AppPreferences.get(context,GROUP_KEY,"day"));
     chartStyle=EnergyChartSeries.style(AppPreferences.get(context,STYLE_KEY,"bars"));
     compareDays=readCompareDays();
+    valueLabelsMode=EnergyChartDisplay.mode(AppPreferences.get(context,LABELS_KEY,"latest"));
     boolean dark = AppPreferences.dark(context);
     ink = PsaDesign.ink(dark);
     muted = PsaDesign.muted(dark);
@@ -70,8 +77,8 @@ public final class EnergySummaryPanel extends LinearLayout {
     chart = new Trend(context);
     chartScroller=new HorizontalScrollView(context);chartScroller.setTag("energy_history_chart");
     chartScroller.setHorizontalScrollBarEnabled(false);chartScroller.setFillViewport(true);
-    chartScroller.addView(chart,new android.widget.FrameLayout.LayoutParams(-2,dp(165)));
-    addView(chartScroller, new LayoutParams(-1, dp(165)));
+    chartScroller.addView(chart,new android.widget.FrameLayout.LayoutParams(-2,dp(190)));
+    addView(chartScroller, new LayoutParams(-1, dp(190)));
     LinearLayout tabs = new LinearLayout(context);
     tabs.setOrientation(HORIZONTAL);
     String[] zh = {"行驶能耗", "驻车空调", "行驶里程", "能耗费"};
@@ -103,6 +110,12 @@ public final class EnergySummaryPanel extends LinearLayout {
       styleTabs[i].setTag("energy_style_"+i);
       LayoutParams item=new LayoutParams(0,dp(34),1);item.setMargins(dp(2),0,dp(2),0);byStyle.addView(styleTabs[i],item);
     }
+    valueLabelsToggle=modeTab("",this::cycleValueLabels);
+    valueLabelsToggle.setTextSize(11);
+    valueLabelsToggle.setTag("energy_value_labels_toggle");
+    LayoutParams labelCell=new LayoutParams(0,dp(34),1.18f);
+    labelCell.setMargins(dp(2),0,dp(2),0);
+    byStyle.addView(valueLabelsToggle,labelCell);
     addView(byStyle);
     tripDetails(snapshot);
     row(tr("本机历史采样", "Local recorded history"), "");
@@ -153,7 +166,10 @@ public final class EnergySummaryPanel extends LinearLayout {
   private TextView modeTab(String name,Runnable callback){
     TextView tab=action(name,callback);
     tab.setTag("energy_switch_"+name);
-    tab.setTextSize(13);
+    tab.setTextSize(12);
+    tab.setSingleLine(true);tab.setEllipsize(TextUtils.TruncateAt.END);
+    tab.setIncludeFontPadding(false);
+    tab.setPadding(dp(4),0,dp(4),0);
     tab.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);
     return tab;
   }
@@ -161,8 +177,10 @@ public final class EnergySummaryPanel extends LinearLayout {
     if(tab==null)return;
     GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(7));
     shape.setColor(selected?PsaDesign.ORANGE:PsaDesign.surface(AppPreferences.dark(context)));
-    shape.setStroke(dp(selected?2:1),selected?PsaDesign.ORANGE:PsaDesign.line(AppPreferences.dark(context)));
-    tab.setBackground(shape);
+    shape.setStroke(dp(1),selected?PsaDesign.ORANGE:PsaDesign.line(AppPreferences.dark(context)));
+    // Inset each colored surface INSIDE its cell. Selected backgrounds never touch
+    // neighboring buttons, including at larger Android font and display scales.
+    tab.setBackground(new InsetDrawable(shape,dp(3),dp(2),dp(3),dp(2)));
     tab.setTextColor(selected?android.graphics.Color.BLACK:ink);
     tab.setSelected(selected);
   }
@@ -171,6 +189,14 @@ public final class EnergySummaryPanel extends LinearLayout {
     for(int i=0;i<rangeTabs.length;i++)highlight(rangeTabs[i],range==i);
     for(int i=0;i<groupTabs.length;i++)highlight(groupTabs[i],groupStep==i);
     for(int i=0;i<styleTabs.length;i++)highlight(styleTabs[i],chartStyle==i);
+    if(valueLabelsToggle!=null){
+      valueLabelsToggle.setText(valueLabelsMode==EnergyChartDisplay.ALL?tr("数值·全部","Values: all")
+          :valueLabelsMode==EnergyChartDisplay.HIDDEN?tr("数值·隐藏","Values: off")
+          :tr("数值·最新","Values: latest"));
+      valueLabelsToggle.setContentDescription(tr("数值标签显示方式，点击切换：","Value labels, tap to switch: ")
+          +valueLabelsToggle.getText());
+      highlight(valueLabelsToggle,valueLabelsMode!=EnergyChartDisplay.HIDDEN);
+    }
   }
   private void row(String label, String value) {
     LinearLayout r = new LinearLayout(context);r.setOrientation(HORIZONTAL);
@@ -364,6 +390,25 @@ public final class EnergySummaryPanel extends LinearLayout {
   }
   private void changeMetric(int value) { metric = value; refreshTabStyles(); chart.setMetric(metric);
     updateDistanceSummary();loadTrend(); }
+  private void cycleValueLabels(){
+    valueLabelsMode=EnergyChartDisplay.next(valueLabelsMode);
+    AppPreferences.set(context,LABELS_KEY,EnergyChartDisplay.preference(valueLabelsMode));
+    chart.setLabels(valueLabelsMode,-1);
+    refreshTabStyles();
+    chartScroller.post(()->chartScroller.fullScroll(View.FOCUS_RIGHT));
+  }
+  private void selectChartBar(int index){
+    valueLabelsMode=EnergyChartDisplay.LATEST;
+    AppPreferences.set(context,LABELS_KEY,EnergyChartDisplay.preference(valueLabelsMode));
+    chart.setLabels(valueLabelsMode,index);
+    refreshTabStyles();
+  }
+  private void hideChartLabels(){
+    valueLabelsMode=EnergyChartDisplay.HIDDEN;
+    AppPreferences.set(context,LABELS_KEY,EnergyChartDisplay.preference(valueLabelsMode));
+    chart.setLabels(valueLabelsMode,-1);
+    refreshTabStyles();
+  }
   private void setGroupStep(int value) {
     groupStep=value;
     AppPreferences.set(context,GROUP_KEY,value==0?"day":value==1?"week":"month");
@@ -488,14 +533,20 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final class Trend extends View {
     private EnergyLog.Report report;
     private int selection,step=groupStep,style=chartStyle;
-    Trend(Context c){super(c);setTag("energy_chart_canvas");setMinimumWidth(dp(270));}
-    void update(EnergyLog.Report value){report=value;resize();invalidate();}
-    void setMetric(int index){selection=index;invalidate();}
-    void setGrouping(int index){step=index;resize();invalidate();}
+    private int labels=valueLabelsMode,focusedBar=-1;
+    private float downX,downY;
+    Trend(Context c){super(c);setTag("energy_chart_canvas");setMinimumWidth(dp(270));setClickable(true);}
+    void update(EnergyLog.Report value){report=value;focusedBar=-1;resize();invalidate();}
+    void setMetric(int index){selection=index;focusedBar=-1;invalidate();}
+    void setGrouping(int index){step=index;focusedBar=-1;resize();invalidate();}
     void setStyle(int index){style=index;invalidate();}
+    void setLabels(int value,int focus){labels=value;focusedBar=focus;resize();invalidate();}
     private void resize(){
       int count=report==null?0:EnergyChartSeries.aggregate(report.points,step).size();
-      int minWidth=Math.max(dp(270),dp(Math.min(4800,Math.max(1,count)*12)));
+      // When every bar has a numeric callout, give the labels enough real width
+      // instead of allowing them to overlap. Horizontal scrolling preserves all bins.
+      int perBar=labels==EnergyChartDisplay.ALL?72:23;
+      int minWidth=Math.max(dp(290),dp(Math.min(16000,Math.max(1,count)*perBar+72)));
       setMinimumWidth(minWidth);android.view.ViewGroup.LayoutParams lp=getLayoutParams();
       if(lp!=null&&lp.width!=minWidth){lp.width=minWidth;setLayoutParams(lp);}
     }
@@ -510,14 +561,53 @@ public final class EnergySummaryPanel extends LinearLayout {
         canvas.drawRoundRect(cx-dp(25),bottom-h,cx+dp(25),bottom,dp(4),dp(4),paint);
         paint.setColor(muted);paint.setAlpha(255);paint.setTextSize(11*density);
         canvas.drawText(tr("当前TM（非历史）","Current TM (not history)"),dp(8),dp(22),paint);
-        canvas.drawText(String.format(Locale.getDefault(),"%.1f kWh",currentTmEnergy),cx-dp(26),bottom-h-dp(7),paint);
+        if(labels!=EnergyChartDisplay.HIDDEN)
+          canvas.drawText(String.format(Locale.getDefault(),"%.1f kWh",currentTmEnergy),cx-dp(26),bottom-h-dp(7),paint);
         setContentDescription(tr("TM估算参考柱，非历史采样","TM estimate reference, not history"));return;
       }
       EnergyChartPainter.draw(canvas,bins,selection,style,unit,tariff,ink,muted,step,false,
-          getResources().getDisplayMetrics().density);
-      setContentDescription(tr("能耗图：","Energy chart: ")+(step==0?tr("天","day"):step==1?tr("周","week"):tr("月","month"))
-          +tr("；仅有效历史采样","; sampled local history only"));
+          getResources().getDisplayMetrics().density,labels,focusedBar);
+      setContentDescription(tr("历史统计图，","Historical statistics, ")
+          +(step==0?tr("按天","daily"):step==1?tr("按周","weekly"):tr("按月","monthly"))
+          +tr("；点击柱子显示/隐藏数值；仅有效历史采样","; tap a bar to show or hide its value; actual observations only"));
+    }
+    @Override public boolean onTouchEvent(MotionEvent event){
+      int action=event.getActionMasked();
+      if(action==MotionEvent.ACTION_DOWN){downX=event.getX();downY=event.getY();return true;}
+      if(action==MotionEvent.ACTION_MOVE){
+        int slop=ViewConfiguration.get(context).getScaledTouchSlop();
+        if(Math.abs(event.getX()-downX)>slop||Math.abs(event.getY()-downY)>slop){
+          if(getParent()!=null)getParent().requestDisallowInterceptTouchEvent(false);
+          return false; // Leave horizontal panning to the chart's scroll container.
+        }
+        return true;
+      }
+      if(action==MotionEvent.ACTION_UP){
+        int slop=ViewConfiguration.get(context).getScaledTouchSlop();
+        if(Math.abs(event.getX()-downX)>slop||Math.abs(event.getY()-downY)>slop)return false;
+        performClick();return true;
+      }
+      return action==MotionEvent.ACTION_CANCEL||super.onTouchEvent(event);
+    }
+    @Override public boolean performClick(){
+      super.performClick();
+      List<EnergyChartSeries.Bin> bins=report==null?null:EnergyChartSeries.aggregate(report.points,step);
+      if(bins==null||bins.isEmpty()){
+        if(labels==EnergyChartDisplay.HIDDEN)selectChartBar(-1);else hideChartLabels();
+        return true;
+      }
+      float density=getResources().getDisplayMetrics().density;
+      float left=EnergyChartPainter.plotLeft(density);
+      float width=Math.max(1,getWidth()-left-EnergyChartPainter.plotRight(density));
+      int hit=(int)Math.floor((downX-left)/width*bins.size());
+      if(hit<0||hit>=bins.size())return true;
+      if(!EnergyChartDisplay.valid(bins.get(hit).amount(selection,EnergyLog.perPercent(context),EnergyLog.price(context))))return true;
+      double[] amounts=new double[bins.size()];
+      for(int i=0;i<amounts.length;i++)amounts[i]=bins.get(i).amount(selection,EnergyLog.perPercent(context),EnergyLog.price(context));
+      int[] currently=EnergyChartDisplay.annotated(amounts,labels,focusedBar);
+      if(labels==EnergyChartDisplay.LATEST&&currently.length==1&&currently[0]==hit)hideChartLabels();
+      else selectChartBar(hit);
+      return true;
     }
   }
-
 }

@@ -28,8 +28,13 @@ public final class EnergySummaryV124IntegratedTest {
     assertNotNull(granularity);assertEquals(3,granularity.getChildCount());
     assertTrue(granularity.getChildAt(1).performClick());assertTrue(granularity.getChildAt(1).isSelected());
     LinearLayout styles=(LinearLayout)panel.findViewWithTag("energy_style_controls");
-    assertNotNull(styles);assertEquals(3,styles.getChildCount());
+    assertNotNull(styles);assertEquals(4,styles.getChildCount());
     assertTrue(styles.getChildAt(2).performClick());assertTrue(styles.getChildAt(2).isSelected());
+    TextView values=(TextView)panel.findViewWithTag("energy_value_labels_toggle");
+    assertNotNull(values);assertTrue(values.getText().toString().contains("最新"));
+    assertTrue(values.performClick());assertTrue(values.getText().toString().contains("全部"));
+    assertTrue(values.performClick());assertTrue(values.getText().toString().contains("隐藏"));
+    assertTrue(values.performClick());assertTrue(values.getText().toString().contains("最新"));
     assertTrue(SettingsBackup.allowed(EnergyBackdropView.METRIC));
   }
   @Test public void comparisonCyclesThrough7_31_3AndOff(){

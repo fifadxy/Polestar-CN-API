@@ -1,5 +1,20 @@
 # PsAssistant 1.2.8 / OPPO Bridge 2.7.0 — 双路径融合记录
 
+## 最终交付（已合入 main）
+
+- 集成源码 SHA：`b140856099ff260b38a4c39ae576ff5efebd4213`，已快进合入 `main`。
+- [Android Companion APK 工作流](https://github.com/fifadxy/Polestar-CN-API/actions/runs/42793497363)：成功。
+- [Android 1.2.8 Stable Regression](https://github.com/fifadxy/Polestar-CN-API/actions/runs/42793497393)：成功，JUnit 汇总 **654 测试 / 0 失败 / 0 错误**。
+- 1.2.8 / VersionCode 173 的离线签名 FULL：`PsAssistant-v1.2.8-CN-Standalone-FULL-MD.apk`，大小 **9,686,620 bytes**。
+- APK SHA-256：`a27e392dcba3093ca076c61c732f982a9107da383e25ae03f1b3589bca7e6b35`。
+- 与历史 FULL 相同的签名证书 SHA-256：`d4cd1b06701f9a8829c5ecc5bbee1398a0f8a655703b6cc356398efa30218a7e`。
+- APK 签名 v2/v3、Manifest 版本、`debuggable=false`、原始 DEX/resource 一致性和独立登录兼容资源均已通过离线验证。
+- 独立 OPPO Bridge 模块仍保留，版本 2.7.0 / 40，包含 LibXposed API 102 元数据和用户选定的三模式。
+- FULL 和原签名密钥只在私有交付中使用，不写入 GitHub 公共仓库。
+- **验收边界：** 仅代表离线包内容和自动化测试通过；Polestar 中国区账号登录、ColorOS 17 上的 Hook 激活、OPPO 官方商业授权及实车控制未在该构建环境中实测。
+
+
+
 日期：2026-11-10；基线：主线 1.2.7 / Bridge 2.6.0；代码工作分支：`feature/psassistant-128-oppo-dualpath-confirmed-20261110`。
 
 ## 用户确认的全部 9 项（严格原样）

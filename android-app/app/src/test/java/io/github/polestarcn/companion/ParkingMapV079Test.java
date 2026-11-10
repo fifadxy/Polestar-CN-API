@@ -86,7 +86,15 @@ public class ParkingMapV079Test {
    assertNotNull("Parking coordinates remain visible as a map overlay",coordinatesOverlay);
    assertSame("Coordinates must not consume a separate dialog row",entry,
        ((ViewGroup)coordinatesOverlay.getParent()).getParent());
-   assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));fitText(decor);
+   assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));
+   try {fitText(decor);} catch(AssertionError clipped){
+     throw new AssertionError("Parking UI clipped: skin="+skin+" lang="+lang+" theme="+theme
+       +" viewport="+Arrays.toString(size)+" display="+display.widthPixels+"x"+display.heightPixels
+       +" density="+display.density+" dialog="+w+"x"+h
+       +" mapActual="+entry.getHeight()+" coordsActual="+coordinatesOverlay.getHeight()
+       +" panelActual="+decor.findViewWithTag("parking_location_panel").getHeight()
+       +" cause="+clipped.getMessage(),clipped);
+   }
     View externalMap=decor.findViewWithTag("parking_open_map");
     assertNotNull("Keep compact optional external Open map action",externalMap);
     assertTrue("Open map is a smaller accessory button",externalMap.getLayoutParams().height<=Math.round(34*display.density));
@@ -97,7 +105,11 @@ public class ParkingMapV079Test {
     assertNotNull(decor.findViewWithTag("parking_phone_location_toggle"));
     View panel=decor.findViewWithTag("parking_location_panel");
     assertNotNull(panel);
-    if(portrait)assertFalse("Portrait parking panel must not have an internal scroll container",panel.getParent() instanceof ScrollView);
+    if(portrait){
+      boolean requiresOverflow=expected[1]/Math.max(.1f,display.density)<required+232f;
+      assertEquals("Only space-constrained portrait dialogs may use overflow fallback",
+          requiresOverflow,panel.getParent() instanceof ScrollView);
+    }
     assertTrue(dialog.getButton(AlertDialog.BUTTON_NEGATIVE).getHeight()>0);
    if(skin.equals(UiSkin.NIO_LIKE_2)&&lang.equals("zh")&&size[0]==360){File file=new File("build/reports/previews/v079/parking-"+theme+".png");file.getParentFile().mkdirs();Bitmap bitmap=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);canvas.scale(2,2);removeTestScrollIndicators(decor);decor.draw(canvas);try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}
    dialog.dismiss();

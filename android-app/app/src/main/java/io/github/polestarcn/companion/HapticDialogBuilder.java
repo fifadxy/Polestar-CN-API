@@ -24,6 +24,10 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
   HapticDialogBuilder compactMapWindow(){mapCompact=true;return this;}
   HapticDialogBuilder singlePageMap(){mapCompact=true;singlePageMap=true;return this;}
   HapticDialogBuilder parkingPreviewWindow(){mapCompact=true;singlePageMap=true;largeParkingPreview=true;return this;}
+  /** Preserve one-page layout when space permits. On unusually short viewports,
+   * use a non-bouncing overflow shell rather than collapsing the embedded map.
+   * This is decided before the dialog is shown, so it introduces no animation. */
+  HapticDialogBuilder allowParkingOverflowScroll(){singlePageMap=false;return this;}
   @Override public AlertDialog.Builder setView(View view){
     // Style once BEFORE first attachment/measurement to avoid font-induced layout jumps.
     UiTypography.applyTree(view);

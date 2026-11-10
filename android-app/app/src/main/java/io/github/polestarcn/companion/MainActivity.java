@@ -2030,10 +2030,16 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(phone);
 
     HapticDialogBuilder builder=new HapticDialogBuilder(this);
-    if(getResources().getConfiguration().screenHeightDp>=480
-        &&getResources().getConfiguration().screenWidthDp<=getResources().getConfiguration().screenHeightDp)
+    if(portrait&&getResources().getConfiguration().screenHeightDp>=480){
       builder.parkingPreviewWindow();
-    else builder.compactMapWindow();
+      // In production, the display and dp viewport agree. A constrained split-screen
+      // or accessibility-font viewport can be shorter than the fixed map + controls.
+      // Keep the one-page layout normally; permit scrolling only if it cannot fit.
+      android.util.DisplayMetrics dm=getResources().getDisplayMetrics();
+      int[] bounds=DialogWindowGeometry.parkingPreview(dm.widthPixels,dm.heightPixels,dm.density);
+      float usableDp=bounds[1]/Math.max(.1f,dm.density);
+      if(usableDp<mapHeight+232f)builder.allowParkingOverflowScroll();
+    }else builder.compactMapWindow();
     AlertDialog dialog=builder.setTitle(tr("最后停车位置","Last parked location")).setView(panel)
         .setNegativeButton(tr("关闭","Close"),null).create();
     parkingDialog=dialog;dialog.setOnDismissListener(d->{map.close();if(parkingDialog==dialog){parkingDialog=null;parkingVin=null;parkingPoint=null;parkingPreview=null;}});dialog.show();

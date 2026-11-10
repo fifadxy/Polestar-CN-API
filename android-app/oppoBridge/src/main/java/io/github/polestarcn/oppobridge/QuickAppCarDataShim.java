@@ -50,8 +50,15 @@ final class QuickAppCarDataShim {
               if(!session.getBoolean("active",false))return raw;
 
               QuickAppCarCapability.Result capability=QuickAppCarCapability.detect(app);
-              if(!capability.routeSafe()) {
-                report(app,module,false,capability,"route-not-safe");
+              // A feature-only RPK must be running in NEW + feature mode;
+              // stable/exact mode cannot claim to have patched a newer host.
+              boolean needsNewPatch=capability.featurePatchSupported
+                  &&!capability.eventSummaryCar&&!capability.exactPatchSupported;
+              boolean patchModeReady=!needsNewPatch
+                  ||(BridgeSettings.MODE_NEW.equals(BridgeSettings.modeForCurrentHost())
+                     &&BridgeSettings.RPK_FEATURE.equals(BridgeSettings.rpkModeForCurrentHost()));
+              if(!capability.routeSafe()||!patchModeReady) {
+                report(app,module,false,capability,"route-or-patch-mode-not-safe");
                 return raw;
               }
 

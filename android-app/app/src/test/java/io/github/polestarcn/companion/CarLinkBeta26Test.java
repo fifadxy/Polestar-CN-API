@@ -24,7 +24,7 @@ public class CarLinkBeta26Test {
   }
   @Test public void missingOfficialConfigIsExplicitAndMockIdentityIsIsolated(){
     if(BuildConfig.OPPO_SDK_MOCK) assertTrue(OppoCarLinkConfig.load(c).missing().isEmpty());
-    else assertTrue(OppoCarLinkConfig.load(c).missing().size()>=3);
+    else assertTrue(OppoCarLinkConfig.load(c).missing().size()>=2);
     OppoCarLinkConfig conf=new OppoCarLinkConfig(0,"PSASSISTANT_UNCONFIGURED","","Polestar 2","android.resource://local/car");assertEquals(4,conf.missing().size());
     assertFalse(OppoCarLinkConfig.httpsImage("https://user:secret@example.test/car.png"));
   }

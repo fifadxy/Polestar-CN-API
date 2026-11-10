@@ -53,9 +53,8 @@ final class QuickAppCarCapability {
     }
 
     boolean routeSafe() {
-      // Newer hosts may expose the CAR path natively. Unknown builds are accepted only when the
-      // inspected RPK itself proves that all four CAR event IDs are present. Memory patching stays
-      // restricted to the legacy exact SHA below.
+      // Preserve exact-gated Stable mode, while allowing structurally verified New-mode RPK
+      // routes. Actual patch-mode compatibility is checked by QuickAppCarDataShim.
       return rpkPresent && carRegistry && (eventSummaryCar || exactPatchSupported);
     }
 

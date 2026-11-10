@@ -60,8 +60,14 @@ final class QuickAppRpkPatch {
   }
 
   private static boolean experimentEnabled(Application app) {
-    try {return BridgeClient.call(app,"oppo-oem-car-status",null).getBoolean("enabled",false);}
-    catch(Throwable ignored){return false;}
+    // The old optional 'oppo-oem-car-status' experiment flag defaults OFF and
+    // blocks the otherwise selected Stable route. Use the user's module switch
+    // and a real local vehicle session instead; exact SHA verification remains.
+    if(!BridgeSettings.directControlForCurrentHost())return false;
+    try {
+      Bundle session=BridgeClient.virtualSession(app);
+      return session.getBoolean("present",false)&&!session.getBoolean("mock",false);
+    }catch(Throwable ignored){return false;}
   }
 
   private static byte[] readExact(InputStream input,int expected) throws Exception {

@@ -291,9 +291,9 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
         out.putBoolean("accepted",false);out.putString("reason","refresh-cooldown");
         out.putLong("retryAfterMillis",refreshThrottle.retryAfter(now,window));return out;
       }
-      main.post(()->{if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())VehicleRefreshManager.get(context).requestBridge(null);});
-      out.putBoolean("accepted", true);
-      out.putString("reason", "queued");
+      boolean queued=BridgeDemandRefresh.request(context,coordinator);
+      out.putBoolean("accepted",queued);
+      out.putString("reason",queued?"queued":"refresh-not-ready-or-cooled-down");
       return out;
     }
 
@@ -315,12 +315,8 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
       if(!consented||!fresh) {
         // Explicit OEM button click may refresh the vehicle once, but stale data
         // must NEVER authorize a delayed command or guess the toggle direction.
-        boolean refreshRequested=consented&&!fresh&&coordinator.hasSession()
-            &&coordinator.selected!=null&&OppoDeviceIntegration.enabled(context);
-        if(refreshRequested)main.post(()->{
-          if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())
-            VehicleRefreshManager.get(context).requestBridge(null);
-        });
+        boolean refreshRequested=consented&&!fresh
+            &&BridgeDemandRefresh.request(context,coordinator);
         out.putBoolean("accepted",false);
         out.putBoolean("refreshRequested",refreshRequested);
         out.putString("reason","fresh-consented-vehicle-state-required");

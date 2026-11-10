@@ -35,22 +35,48 @@ public final class OppoCarLinkCommandMap {
   }
 
   /** Exact uploaded bridge vocabulary. Never guess an operation from an arbitrary substring. */
+  /** Normalizes the exact MD event vocabulary without guessing a missing target state.
+   * Native SDK actions, local 1001-1004 events, and MyDevices four-button IDs
+   * must converge on the same PsAssistant command and authorization path.
+   */
   public static String bridgeAction(int event,android.os.Bundle extras){
     android.os.Bundle b=extras==null?android.os.Bundle.EMPTY:extras;
-    String name=b.getString("sdk_cmd_name","").trim().toLowerCase(Locale.ROOT).replace('_','-');
+    String raw=b.getString("sdk_cmd_name","");
+    if(raw==null||raw.trim().isEmpty())raw=b.getString("action","");
+    String name=raw==null?"":raw.trim().toLowerCase(Locale.ROOT).replace('_','-');
     if(!name.isEmpty())switch(name){
-      case "lock":return "lock";case "unlock":return "unlock";
-      case "climate-on":case "climate-start":case "hvac-on":return "climate-start";
-      case "climate-off":case "climate-stop":case "hvac-off":return "climate-stop";
-      case "window-close":case "windows-close":return "windows-close";
-      case "window-vent":case "window-open":case "windows-open":return "windows-open";
-      case "find-car":case "honk-flash":return "honk-flash";
-      case "honk":return "honk";case "flash":return "flash";default:return null;
+      case "lock":case "unlock":case "climate-start":case "climate-stop":
+      case "windows-open":case "windows-close":case "trunk-open":case "trunk-close":
+      case "air-start":case "air-stop":case "air-toggle":case "trunk-toggle":
+      case "lock-toggle":case "climate-toggle":case "flash":case "honk":
+      case "honk-flash":return name;
+      case "climate-on":case "hvac-on":return "climate-start";
+      case "climate-off":case "hvac-off":return "climate-stop";
+      case "window-close":case "close-window":return "windows-close";
+      case "window-open":case "window-vent":return "windows-open";
+      case "find-car":return "honk-flash";
+      case "chesuo":return "lock-toggle";
+      case "kongtiao":return "climate-toggle";
+      case "shanguang":return "flash";
+      case "mingdi":return "honk";
+      case "car-horn":return "honk";
+      case "double-flash":return "flash";
+      case "car-horn&&double-flash":case "car-horn-and-flash":return "honk-flash";
+      case "ac-temp":case "lock-car":case "car-door":
+      case "all-window":case "car-boot":
+        if(!b.containsKey("action_target_state")||!(b.get("action_target_state") instanceof Boolean))return null;
+        return toPsAssistantAction(name,b.getBoolean("action_target_state")?"OPEN":"CLOSE");
+      default:return null;
     }
     if(event==1004||event==4)return "honk-flash";
     if(!b.containsKey("action_target_state")||!(b.get("action_target_state") instanceof Boolean))return null;
     boolean on=b.getBoolean("action_target_state");
-    switch(event){case 1:case 1001:return on?"lock":"unlock";case 2:case 1002:return on?"climate-start":"climate-stop";case 3:case 1003:return on?"windows-close":"windows-open";default:return null;}
+    switch(event){
+      case 1:case 1001:return on?"lock":"unlock";
+      case 2:case 1002:return on?"climate-start":"climate-stop";
+      case 3:case 1003:return on?"windows-close":"windows-open";
+      default:return null;
+    }
   }
 
   static String canonical(String instruction){String key=norm(instruction);return "CAR-HORN-AND-FLASH".equals(key)?"CAR-HORN&&DOUBLE-FLASH":key;}

@@ -10,9 +10,12 @@ final class OppoCarLinkConfig {
   static OppoCarLinkConfig load(Context c){
     Bundle meta=null;try{meta=c.getPackageManager().getApplicationInfo(c.getPackageName(),PackageManager.GET_META_DATA).metaData;}catch(Exception ignored){}
     if(meta==null)meta=new Bundle();
-    String defaultType=BuildConfig.OPPO_SDK_MOCK?"POLESTAR_2_TESTLAB":"";
+    // Model-name and artwork defaults are for a usable local Polestar card;
+    // official OPPO partner companyId/AUTH_CODE still require genuine allocation.
+    String defaultType=BuildConfig.OPPO_SDK_MOCK?"POLESTAR_2_TESTLAB":"POLESTAR_2";
     String defaultName=BuildConfig.OPPO_SDK_MOCK?"Polestar 2 TestLab":"Polestar 2";
-    String defaultImage=BuildConfig.OPPO_SDK_MOCK?"https://test.invalid/polestar2-testlab.png":"";
+    String defaultImage=BuildConfig.OPPO_SDK_MOCK?"https://test.invalid/polestar2-testlab.png"
+        :"https://www.polestar.cn/dato-assets/11286/1689079158-polestar-2-my24-snow-side.png";
     return new OppoCarLinkConfig(meta.getInt("oplus.app.carlink.sdk.companyid",0),meta.getString("com.coloros.ocs.car.AUTH_CODE",""),
       AppPreferences.get(c,"carlink_type_code",defaultType),AppPreferences.get(c,"carlink_type_name",defaultName),AppPreferences.get(c,"carlink_image_url",defaultImage));
   }

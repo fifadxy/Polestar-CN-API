@@ -160,7 +160,9 @@ public final class VehicleCoordinator {
     api = new ChinaPolestarApi(c);
     snapshot = VehicleSnapshotStore.loadChina(c);
     signedIn = api.session() != null;
-    if(signedIn&&snapshot!=null&&!snapshot.isDemo){selected=SecureVehicleSelection.load(c,AppPreferences.get(c,"vehicle",""));if(selected!=null)cars.add(selected);}
+    // The encrypted selection remains valid after a provider-only cold start even
+    // when the last snapshot was intentionally cleared or expired.
+    if(signedIn){selected=SecureVehicleSelection.load(c,AppPreferences.get(c,"vehicle",""));if(selected!=null)cars.add(selected);}
   }
 
   public void listen(Runnable r) {

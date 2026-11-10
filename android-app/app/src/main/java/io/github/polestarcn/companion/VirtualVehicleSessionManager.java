@@ -41,7 +41,9 @@ final class VirtualVehicleSessionManager {
     String sessionId=vehicleKey.isEmpty()?"":"psa-session-"+vehicleKey.substring(0,Math.min(16,vehicleKey.length()));
     String carId=selected?OppoCarLinkModels.carId(vin):"";
     long age=state==null||state.timestampMillis<=0?Long.MAX_VALUE:Math.max(0L,now-state.timestampMillis);
-    boolean present=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected&&live;
+    // Keep the local card visible for a securely selected, signed-in car.
+    // Missing/old telemetry never makes that car command-ready or online.
+    boolean present=requested&&OppoDeviceIntegration.enabled(context)&&signedIn&&selected;
     // Display cached vehicle identity/status even if stale. Staleness MUST NOT grant
     // command authorization: writes still require a recent, verified snapshot.
     boolean active=present;

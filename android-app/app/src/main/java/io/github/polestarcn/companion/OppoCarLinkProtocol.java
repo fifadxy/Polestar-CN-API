@@ -91,9 +91,7 @@ final class OppoCarLinkProtocol {
    // A stale cache keeps the vehicle card visible but MUST NOT dispatch a
    // command. Request one real refresh; the next user action is revalidated.
    if("fresh-vehicle-state-required".equals(gate.getString("reason",""))){
-    MAIN.post(()->{if(OppoDeviceIntegration.enabled(c)&&model.hasSession())
-     VehicleRefreshManager.get(c).requestBridge(null);});
-    gate.putBoolean("refreshRequested",true);
+    gate.putBoolean("refreshRequested",BridgeDemandRefresh.request(c,model));
    }
    return gate;
   }

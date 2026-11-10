@@ -57,6 +57,18 @@ Mock 模式仍只用于 Dry-run；任何成功提示分开“触发按钮、桥�
 2. 是否同意测试后将此分支合并 main，并继续使用既有私有登录资源与原签名打包 FULL（不提交密钥/个人信息到公开仓库）？
 3. PsAssistant 是否拥有 OPPO 官方签发并匹配包名/签名的 CarLink SDK 接入资格？没有也可测试本地桥接路径，但不能宣布官方授权成功。
 
+## 本轮构建及候选安装包校验（代码提交 ef510b39）
+
+- [Android Companion APK](https://github.com/fifadxy/Polestar-CN-API/actions/runs/42788411155)：通过
+- [Android 1.2.8 Stable Regression](https://github.com/fifadxy/Polestar-CN-API/actions/runs/42788410978)：通过
+- 私有离线候选 FULL：PsAssistant-v1.2.8-CN-Standalone-FULL-candidate.apk（未上传 GitHub）
+- 版本 1.2.8 / code 173，包大小 9,686,619 bytes
+- SHA-256 `dc7ab40bdf70048073f39d20d555190256d8b4451017a3970f2b36ac0b288b3b`
+- 历史 FULL 证书 SHA-256 `d4cd1b06701f9a8829c5ecc5bbee1398a0f8a655703b6cc356398efa30218a7e`，APK v2/v3 已验证
+- 独立中国区登录兼容资源经过校验并内置，且未写入 GitHub。此处仅表示安装包配置完整，不代表已实机登录成功。
+- 本分支公共 CI 不包含 OPPO 商用 SDK AAR 与正式 companyId/AUTH_CODE，因此该候选包 **不能标记为 OPPO 官方认证或已完成实车远控验证**。
+- 代码、资源与已测试的 VALIDATION APK 一致；仅非调试 Manifest、原签名与兼容资源作离线封装变更。
+
 ## 本轮自动化测试
 
 - 独立验证官方、本地状态不互相伪造

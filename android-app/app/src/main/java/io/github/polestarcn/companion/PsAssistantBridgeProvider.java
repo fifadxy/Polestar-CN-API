@@ -310,9 +310,23 @@ public final class PsAssistantBridgeProvider extends ContentProvider {
         OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,result.getBoolean("accepted",false),false,result.getString("reason",""));
         return result;
       }
-      if(!FirstUseConsent.accepted(context)||!commandStateReady(coordinator.snapshot,System.currentTimeMillis())) {
-        out.putBoolean("accepted",false);out.putString("reason","fresh-consented-vehicle-state-required");
-        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,false,false,"fresh-consented-vehicle-state-required");return out;
+      boolean consented=FirstUseConsent.accepted(context);
+      boolean fresh=commandStateReady(coordinator.snapshot,System.currentTimeMillis());
+      if(!consented||!fresh) {
+        // Explicit OEM button click may refresh the vehicle once, but stale data
+        // must NEVER authorize a delayed command or guess the toggle direction.
+        boolean refreshRequested=consented&&!fresh&&coordinator.hasSession()
+            &&coordinator.selected!=null&&OppoDeviceIntegration.enabled(context);
+        if(refreshRequested)main.post(()->{
+          if(OppoDeviceIntegration.enabled(context)&&coordinator.hasSession())
+            VehicleRefreshManager.get(context).requestBridge(null);
+        });
+        out.putBoolean("accepted",false);
+        out.putBoolean("refreshRequested",refreshRequested);
+        out.putString("reason","fresh-consented-vehicle-state-required");
+        OppoQuickAppRuntimeDiagnostics.recordCommand(context,action,false,false,
+            "fresh-consented-vehicle-state-required");
+        return out;
       }
       if (!coordinator.canCommand(action)) {
         out.putBoolean("accepted", false);

@@ -54,6 +54,22 @@ public class BridgeAuthorizationBeta27Test {
     OppoDeviceIntegration.reconcile(c);assertEquals(PackageManager.COMPONENT_ENABLED_STATE_ENABLED,c.getPackageManager().getComponentEnabledSetting(component));
     OppoDeviceIntegration.setEnabled(c,false);OppoDeviceIntegration.reconcile(c);assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED,c.getPackageManager().getComponentEnabledSetting(component));
   }
+  @Test public void staleOemCommandRequestsRefreshWithoutQueuingVehicleWrite(){
+    PsAssistantBridgeProvider provider=new PsAssistantBridgeProvider();
+    ProviderInfo info=new ProviderInfo();info.authority=PsAssistantBridgeProvider.AUTHORITY;
+    provider.attachInfo(c,info);
+    model.snapshot=new VehicleSnapshot("fixture","masked",64,270,1234,
+        "空闲","全部关闭","全部关闭","已关闭","已锁",
+        System.currentTimeMillis()-11*60_000L,"LIVE",false,"关闭","关闭");
+    Bundle req=new Bundle();req.putString("action","unlock");
+    Bundle status=provider.call("command",null,req);
+    assertFalse(status.getBoolean("accepted"));
+    assertFalse(status.getBoolean("commandSent"));
+    assertFalse(model.commandPending);
+    if(!BuildConfig.OPPO_SDK_MOCK)
+      assertTrue("A user click starts a refresh, not a write",status.getBoolean("refreshRequested"));
+  }
+
   @Test public void staleSnapshotCannotQueueAnApproval(){
     assertFalse(PsAssistantBridgeProvider.commandStateReady(model.snapshot,model.snapshot.timestampMillis+6*60_000L));
     assertTrue(PsAssistantBridgeProvider.commandStateReady(model.snapshot,model.snapshot.timestampMillis));

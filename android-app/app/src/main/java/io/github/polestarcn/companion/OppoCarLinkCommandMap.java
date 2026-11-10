@@ -47,7 +47,7 @@ public final class OppoCarLinkCommandMap {
     if(!name.isEmpty())switch(name){
       case "lock":case "unlock":case "climate-start":case "climate-stop":
       case "windows-open":case "windows-close":case "trunk-open":case "trunk-close":
-      case "air-start":case "air-stop":case "air-toggle":case "trunk-toggle":
+      case "trunk-toggle":
       case "lock-toggle":case "climate-toggle":case "flash":case "honk":
       case "honk-flash":return name;
       case "climate-on":case "hvac-on":return "climate-start";

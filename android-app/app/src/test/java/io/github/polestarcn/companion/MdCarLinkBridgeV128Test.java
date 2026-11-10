@@ -3,7 +3,11 @@ package io.github.polestarcn.companion;
 import static org.junit.Assert.*;
 import android.os.Bundle;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
 public final class MdCarLinkBridgeV128Test {
   private Bundle input(String value){
     Bundle b=new Bundle();b.putString("sdk_cmd_name",value);return b;

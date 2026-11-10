@@ -1990,7 +1990,10 @@ public final class MainActivity extends FragmentActivity {
     TextView mapHint=text(tr("拖动 / 双指缩放","Drag / pinch to zoom"),10,muted,false);
     mapHint.setTag("parking_map_gesture_hint");mapHint.setSingleLine(true);
     coordinatesRow.addView(mapHint,new LinearLayout.LayoutParams(-2,-2));
-    panel.addView(coordinatesRow);
+    // Coordinate and gesture guidance float inside the map; no extra vertical row is consumed.
+    coordinatesRow.setPadding(dp(6),0,dp(6),0);
+    coordinatesRow.setBackgroundColor(AppPreferences.dark(this)?0xD3192026:0xDDF5F7F9);
+    map.view.addView(coordinatesRow,new FrameLayout.LayoutParams(-1,dp(26),Gravity.BOTTOM));
     LinearLayout phone=row();phone.setGravity(Gravity.CENTER_VERTICAL);
     mapLocationSwitch=new SwitchCompat(this);mapLocationSwitch.setTag("parking_phone_location_toggle");
     mapLocationSwitch.setText(tr("手机定位","Phone location"));mapLocationSwitch.setTextColor(ink);

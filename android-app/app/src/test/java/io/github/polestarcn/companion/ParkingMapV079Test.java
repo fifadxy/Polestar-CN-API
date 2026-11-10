@@ -81,7 +81,12 @@ public class ParkingMapV079Test {
    View entry=decor.findViewWithTag("parking_web_preview");assertNotNull(entry);
    int required=ParkingPreviewLayout.mapHeightDp(size[1],portrait);
    assertEquals(required,entry.getLayoutParams().height);
-   assertTrue("Map preview must exceed the old 90dp thumbnail",entry.getLayoutParams().height>=145||!portrait);assertEquals(1,count(decor,android.webkit.WebView.class));assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));fitText(decor);
+   assertTrue("Map preview must exceed the old 90dp thumbnail",entry.getLayoutParams().height>=145||!portrait);assertEquals(1,count(decor,android.webkit.WebView.class));
+   View coordinatesOverlay=decor.findViewWithTag("parking_coordinates");
+   assertNotNull("Parking coordinates remain visible as a map overlay",coordinatesOverlay);
+   assertSame("Coordinates must not consume a separate dialog row",entry,
+       ((ViewGroup)coordinatesOverlay.getParent()).getParent());
+   assertNotNull(decor.findViewWithTag("parking_stale"));assertEquals(0,count(decor,EditText.class));fitText(decor);
     View externalMap=decor.findViewWithTag("parking_open_map");
     assertNotNull("Keep compact optional external Open map action",externalMap);
     assertTrue("Open map is a smaller accessory button",externalMap.getLayoutParams().height<=Math.round(34*display.density));

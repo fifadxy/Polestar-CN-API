@@ -31,18 +31,27 @@ final class QuickAppCarCapability {
     final boolean smartHomeDefaultCar;
     final boolean eventSummaryCar;
     final boolean exactPatchSupported;
+    final boolean featurePatchSupported;
     final String indexSha256;
     final String reason;
 
     Result(String hostVersion,boolean rpkPresent,boolean carRegistry,
         boolean smartHomeDefaultCar,boolean eventSummaryCar,boolean exactPatchSupported,
         String indexSha256,String reason) {
+      this(hostVersion,rpkPresent,carRegistry,smartHomeDefaultCar,eventSummaryCar,
+          exactPatchSupported,false,indexSha256,reason);
+    }
+
+    Result(String hostVersion,boolean rpkPresent,boolean carRegistry,
+        boolean smartHomeDefaultCar,boolean eventSummaryCar,boolean exactPatchSupported,
+        boolean featurePatchSupported,String indexSha256,String reason) {
       this.hostVersion=hostVersion;
       this.rpkPresent=rpkPresent;
       this.carRegistry=carRegistry;
       this.smartHomeDefaultCar=smartHomeDefaultCar;
       this.eventSummaryCar=eventSummaryCar;
       this.exactPatchSupported=exactPatchSupported;
+      this.featurePatchSupported=featurePatchSupported;
       this.indexSha256=indexSha256;
       this.reason=reason;
     }
@@ -55,13 +64,15 @@ final class QuickAppCarCapability {
     boolean routeSafe() {
       // Preserve exact-gated Stable mode, while allowing structurally verified New-mode RPK
       // routes. Actual patch-mode compatibility is checked by QuickAppCarDataShim.
-      return rpkPresent && carRegistry && (eventSummaryCar || exactPatchSupported);
+      return rpkPresent && carRegistry
+          && (eventSummaryCar || exactPatchSupported || featurePatchSupported);
     }
 
     String mode() {
       if(!routeSafe())return "fallback-native-home";
       return eventSummaryCar ? "event-summary-oem-shortcuts"
-          : exactPatchSupported ? "exact-rpk-memory-patch" : "fallback-native-home";
+          : exactPatchSupported ? "exact-rpk-memory-patch"
+          : featurePatchSupported ? "feature-verified-rpk" : "fallback-native-home";
     }
   }
 
@@ -107,9 +118,11 @@ final class QuickAppCarCapability {
         boolean exact=HOST_VERSION.equals(version)&&INDEX_ENTRY.equals(indexEntry)
             &&INDEX_SIZE==index.length&&INDEX_SHA256.equals(sha)
             &&occurrences(text,PATCH_ANCHOR)==1&&!event;
+        boolean feature=patchFeature(index)!=null;
         String reason="entry="+indexEntry+" indexSize="+index.length+" sha="+sha+" registry="+registry
-            +" smartHomeDefault="+smart+" eventSummary="+event+" exactPatch="+exact;
-        return new Result(version,true,registry,smart,event,exact,sha,reason);
+            +" smartHomeDefault="+smart+" eventSummary="+event+" exactPatch="+exact
+            +" featurePatch="+feature;
+        return new Result(version,true,registry,smart,event,exact,feature,sha,reason);
       }
     } catch(Throwable failure) {
       return new Result(version,false,false,false,false,false,"",

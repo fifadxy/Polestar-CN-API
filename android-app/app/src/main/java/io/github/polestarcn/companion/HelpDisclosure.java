@@ -5,9 +5,6 @@ import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
-import android.text.style.ImageSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -39,10 +36,13 @@ public final class HelpDisclosure {
     String heading=title==null||title.trim().isEmpty()?AppPreferences.tr(c,"说明","Info"):title;
     LinearLayout group=new LinearLayout(c);group.setOrientation(LinearLayout.VERTICAL);
     TextView question=new TextView(c);
-    SpannableStringBuilder label=new SpannableStringBuilder(heading+"  ￼");
-    int iconAt=label.length()-1;
-    label.setSpan(new ImageSpan(new QuestionDrawable(c),ImageSpan.ALIGN_BASELINE),iconAt,iconAt+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    question.setText(label);question.setTag("help_explanation_trigger");question.setTextSize(13);
+    // A trailing compound drawable does not enlarge the font layout metrics as ImageSpan can.
+    // WRAP_CONTENT keeps the orange circled question directly beside the label.
+    question.setText(heading);
+    question.setCompoundDrawablesWithIntrinsicBounds(null,null,new QuestionDrawable(c),null);
+    question.setCompoundDrawablePadding(dp(c,5));
+    question.setIncludeFontPadding(false);
+    question.setTag("help_explanation_trigger");question.setTextSize(13);
     question.setTypeface(PsaDesign.regular());question.setTextColor(PsaDesign.muted(AppPreferences.dark(c)));
     question.setMinHeight(dp(c,MenuSpacing.dp(c)<=2?30:32));
     question.setGravity(Gravity.CENTER_VERTICAL);
@@ -53,6 +53,7 @@ public final class HelpDisclosure {
     question.setOnClickListener(v->{Haptics.tap(c);boolean open=body.getVisibility()!=View.VISIBLE;
       body.setVisibility(open?View.VISIBLE:View.GONE);
       question.setContentDescription(heading+"？ · "+AppPreferences.tr(c,open?"已展开":"已收起",open?"expanded":"collapsed"));});
-    group.addView(question);group.addView(body);parent.addView(group);
+    group.addView(question,new LinearLayout.LayoutParams(-2,-2));
+    group.addView(body);parent.addView(group);
   }
 }

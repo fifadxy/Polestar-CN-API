@@ -1996,8 +1996,13 @@ public final class MainActivity extends FragmentActivity {
     map.view.addView(coordinatesRow,new FrameLayout.LayoutParams(-1,dp(26),Gravity.BOTTOM));
     LinearLayout phone=row();phone.setGravity(Gravity.CENTER_VERTICAL);
     mapLocationSwitch=new SwitchCompat(this);mapLocationSwitch.setTag("parking_phone_location_toggle");
-    mapLocationSwitch.setText(tr("手机定位","Phone location"));mapLocationSwitch.setTextColor(ink);
-    mapLocationSwitch.setTextSize(11);mapLocationSwitch.setChecked(MapLocationPermission.enabled(this));
+    // Narrow landscape windows cannot fit a multi-line label beside the switch thumb.
+    // Keep the full meaning in accessibility while showing a concise single-line label.
+    mapLocationSwitch.setText(tr("定位","GPS"));mapLocationSwitch.setTextColor(ink);
+    mapLocationSwitch.setContentDescription(tr("手机定位开关","Phone location toggle"));
+    mapLocationSwitch.setSingleLine(true);
+    mapLocationSwitch.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    mapLocationSwitch.setTextSize(10);mapLocationSwitch.setChecked(MapLocationPermission.enabled(this));
     mapLocationSwitch.setOnCheckedChangeListener((button,on)->{
       Haptics.tap(this);
       if(on&&!MapLocationPermission.granted(this)){

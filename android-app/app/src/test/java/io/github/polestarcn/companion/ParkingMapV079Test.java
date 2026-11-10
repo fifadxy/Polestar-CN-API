@@ -102,7 +102,12 @@ public class ParkingMapV079Test {
     assertNotNull(decor.findViewWithTag("parking_zoom_out"));
     assertNotNull(decor.findViewWithTag("parking_center_vehicle"));
     assertNotNull(decor.findViewWithTag("parking_refresh_position"));
-    assertNotNull(decor.findViewWithTag("parking_phone_location_toggle"));
+    View phoneToggle=decor.findViewWithTag("parking_phone_location_toggle");
+    assertTrue("Phone location toggle stays visible",phoneToggle instanceof androidx.appcompat.widget.SwitchCompat);
+    assertEquals("Compact GPS switch label must not wrap",1,
+        ((androidx.appcompat.widget.SwitchCompat)phoneToggle).getMaxLines());
+    assertTrue("GPS accessibility label remains descriptive",
+        String.valueOf(phoneToggle.getContentDescription()).length()>3);
     View panel=decor.findViewWithTag("parking_location_panel");
     assertNotNull(panel);
     if(portrait){

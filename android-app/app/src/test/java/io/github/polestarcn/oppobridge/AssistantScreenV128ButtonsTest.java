@@ -25,8 +25,8 @@ public final class AssistantScreenV128ButtonsTest {
     state.putString("climate","运行中");
     Constructor<Menu> ctor=Menu.class.getConstructor(
         String.class,String.class,String.class,int.class,int.class,boolean.class,String.class);
-    Method method=AssistantScreenNativeVehicleHook.class.getDeclaredMethod(
-        "menus",Constructor.class,Bundle.class,String.class);
+    Method method=AssistantScreenMenuSpec.class.getDeclaredMethod(
+        "build",Constructor.class,Bundle.class,String.class);
     method.setAccessible(true);
     @SuppressWarnings("unchecked")
     List<Menu> menus=(List<Menu>)method.invoke(null,ctor,state,"psassistant-companion");

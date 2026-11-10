@@ -1912,7 +1912,7 @@ public final class MainActivity extends FragmentActivity {
     if(location.stale){TextView stale=text(tr("停车位置可能过期 · 以车辆时间为准","Parking location may be stale"),11,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
     ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));parkingPreview=map;
     // Compact map and a single action area fit inside the 60%-height window without scrolling.
-    int mapHeight=Math.max(62,Math.min(112,(int)(getResources().getConfiguration().screenHeightDp*.16f)));
+    int mapHeight=Math.max(54,Math.min(104,(int)(getResources().getConfiguration().screenHeightDp*.125f)));
     panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,2);
     TextView coordinates=text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.5f",location.latitude)
         +"  /  "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.5f",location.longitude),10,muted,false);

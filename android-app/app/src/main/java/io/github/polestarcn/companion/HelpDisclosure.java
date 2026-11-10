@@ -19,7 +19,7 @@ public final class HelpDisclosure {
   private static final class QuestionDrawable extends Drawable {
     private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
     private final int px;
-    QuestionDrawable(Context c){px=dp(c,18);setBounds(0,0,px,px);}
+    QuestionDrawable(Context c){px=dp(c,14);setBounds(0,0,px,px);}
     @Override public void draw(Canvas canvas){
       float cx=getBounds().centerX(),cy=getBounds().centerY(),radius=px*.43f;
       p.setColor(PsaDesign.ORANGE);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,px*.09f));
@@ -44,7 +44,7 @@ public final class HelpDisclosure {
     label.setSpan(new ImageSpan(new QuestionDrawable(c),ImageSpan.ALIGN_BASELINE),iconAt,iconAt+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     question.setText(label);question.setTag("help_explanation_trigger");question.setTextSize(13);
     question.setTypeface(PsaDesign.regular());question.setTextColor(PsaDesign.muted(AppPreferences.dark(c)));
-    question.setMinHeight(dp(c,MenuSpacing.dp(c)<=2?34:38));
+    question.setMinHeight(dp(c,MenuSpacing.dp(c)<=2?30:32));
     question.setGravity(Gravity.CENTER_VERTICAL);
     question.setContentDescription(heading+"？");
     TextView body=new TextView(c);body.setText(detail);body.setTextSize(12);body.setTag("help_explanation_body");

@@ -42,7 +42,7 @@ public class EnergySummaryPanelPriorityTest {
     assertTrue(cost.getText().toString().contains("29"));
   }
   @Test public void costPerHundredAndPerKmSwitchWithTapAndTaUsesTmAverage() {
-    Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"energy_price","1.2");
+    Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_price","1.2");
     EnergySummaryPanel p=new EnergySummaryPanel(c,trip(c),null);
     TextView rate=(TextView)p.findViewWithTag("energy_cost_rate_toggle");
     assertNotNull(rate);assertTrue(rate.getText().toString().contains("24.00"));

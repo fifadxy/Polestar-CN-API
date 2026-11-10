@@ -12,7 +12,9 @@ final class ExteriorCalloutLayout {
     float lane = Math.max(2 * d, width - 2 * cardWidth - 18 * d);
     float sideLimit = lane / (2 * ratio);
     float verticalLimit = Math.max(2 * d, height * .5f - 24 * Math.max(d, textScale));
-    return Math.max(1f, Math.min(Math.min(height * .33f, width * .38f),
+    // Increase the art by ~20% while enforcing side-card and text-label clearance.
+    float original = Math.min(height * .33f, width * .38f);
+    return Math.max(1f, Math.min(original * 1.20f,
         Math.min(sideLimit, verticalLimit)));
   }
 

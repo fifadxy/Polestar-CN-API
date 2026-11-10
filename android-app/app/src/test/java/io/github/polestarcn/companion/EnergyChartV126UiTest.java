@@ -24,7 +24,7 @@ public final class EnergyChartV126UiTest {
     Context c=RuntimeEnvironment.getApplication();
     AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_chart_value_labels","latest");
     EnergySummaryPanel panel=new EnergySummaryPanel(c,null,null);
-    LinearLayout metrics=(LinearLayout)panel.getChildAt(9);
+    LinearLayout metrics=(LinearLayout)panel.getChildAt(10);
     assertEquals(4,metrics.getChildCount());
     for(int i=0;i<4;i++){
       TextView tab=(TextView)metrics.getChildAt(i);

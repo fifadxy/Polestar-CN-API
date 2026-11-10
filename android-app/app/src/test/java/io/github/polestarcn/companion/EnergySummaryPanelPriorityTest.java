@@ -23,6 +23,7 @@ public class EnergySummaryPanelPriorityTest {
   }
   @Test public void popupPrioritizesThreeTmKpisThenChart() {
     Context c=RuntimeEnvironment.getApplication();
+    AppPreferences.set(c,"language","zh");
     AppPreferences.set(c,"energy_price","1.2");
     EnergySummaryPanel p=new EnergySummaryPanel(c,trip(c),null);
     assertEquals("energy_kpi_tm_distance",p.getChildAt(1).getTag());

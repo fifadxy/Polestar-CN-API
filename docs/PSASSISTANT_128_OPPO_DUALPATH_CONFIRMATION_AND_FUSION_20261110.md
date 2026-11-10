@@ -30,7 +30,7 @@
 | OppoCarLinkProtocol | 合入过期请求触发一次真实刷新；未刷新完成拒发，刷新后用户重试仍重新核验 |
 | VirtualVehicleSessionManager | 合入缓存可展示、真实在线/可控分别判定，不因 10 分钟过期直接隐藏卡片 |
 | VehicleProtocolGateway | 保留实时状态安全门禁、精确 toggle 和车辆身份验证；过期不利用历史状态猜测解锁 |
-| PsAssistantBridgeProvider | 保留包/UID 调用者验证、原始车辆命令与验证；没有扩大暴露接口 |
+| PsAssistantBridgeProvider | 保留包/UID 调用者验证、原始车辆命令与验证；过期时仅按用户点击申请刷新并返回未受理，不补发指令；没有扩大暴露接口 |
 | VehicleCoordinator | 保留原始中国区账号 Session、VIN 绑定、命令发出及实车回读机制 |
 | OppoBridgeModule | 已有 API 102 模块入口、Stable/New/Mock 分流；保留 |
 | PsAssistantRuntimeHook | 已有独立运行状态探测、诊断及防越权校验；保留 |

@@ -1906,13 +1906,19 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout panel=detailPanel();panel.setTag("parking_location_panel");
     panel.setPadding(dp(7),dp(2),dp(7),dp(2));
     // A short header leaves more room for the actual parked-point map.
+    LinearLayout locationHeader=row();locationHeader.setGravity(Gravity.CENTER_VERTICAL);
     TextView report=text(tr("车辆位置更新 ","Vehicle position updated ")+time,11,muted,false);
     report.setTag("parking_report_time");report.setGravity(Gravity.CENTER_VERTICAL);
-    panel.addView(report);
+    report.setSingleLine(true);report.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    locationHeader.addView(report,new LinearLayout.LayoutParams(0,-2,1));
+    // Explanation shares the first row, never a clipped last row on compact screens.
+    HelpDisclosure.add(locationHeader,this,tr("说明","Info"),
+        tr("车辆最后上报的停车点 · 非实时追踪","Last vehicle parking report · not live tracking"));
+    panel.addView(locationHeader);
     if(location.stale){TextView stale=text(tr("停车位置可能过期 · 以车辆时间为准","Parking location may be stale"),11,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
     ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->openLocation(location));parkingPreview=map;
-    // Compact map and a single action area fit inside the 60%-height window without scrolling.
-    int mapHeight=Math.max(54,Math.min(104,(int)(getResources().getConfiguration().screenHeightDp*.125f)));
+    // Compact map and a single action area fit inside the half-area window without scrolling.
+    int mapHeight=Math.max(50,Math.min(90,(int)(getResources().getConfiguration().screenHeightDp*.112f)));
     panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));gap(panel,2);
     TextView coordinates=text(tr("纬度 ","Lat ")+String.format(java.util.Locale.US,"%.5f",location.latitude)
         +"  /  "+tr("经度 ","Lon ")+String.format(java.util.Locale.US,"%.5f",location.longitude),10,muted,false);
@@ -1921,23 +1927,23 @@ public final class MainActivity extends FragmentActivity {
     TextView open=button(tr("打开地图","Open map"),()->openLocation(location));open.setTag("parking_open_map");
     TextView refresh=button(tr("更新位置","Refresh"),()->locationDialog(true));refresh.setTag("parking_refresh_position");
     open.setTextSize(12);refresh.setTextSize(12);
-    open.setMinHeight(dp(36));refresh.setMinHeight(dp(36));
-    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(37),1f);
+    open.setMinHeight(dp(32));refresh.setMinHeight(dp(32));
+    LinearLayout.LayoutParams actionCell=new LinearLayout.LayoutParams(0,dp(34),1f);
     actions.addView(open,actionCell);
-    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(37),1f);second.leftMargin=dp(4);
+    LinearLayout.LayoutParams second=new LinearLayout.LayoutParams(0,dp(34),1f);second.leftMargin=dp(4);
     actions.addView(refresh,second);panel.addView(actions);gap(panel,2);
     LinearLayout phone=row();phone.setGravity(Gravity.CENTER_VERTICAL);
     TextView mapOptions=button(tr("手机定位设置","Phone location settings"),this::mapLocationDialog);
     mapOptions.setTag("parking_phone_settings");mapOptions.setTextSize(11);mapOptions.setMinHeight(dp(31));
-    phone.addView(mapOptions,new LinearLayout.LayoutParams(0,dp(33),1));
+    phone.addView(mapOptions,new LinearLayout.LayoutParams(0,dp(31),1));
     if(MapLocationPermission.enabled(this)){
       TextView phoneRefresh=button(tr("刷新手机位置","Refresh phone location"),()->map.requestPhoneLocation());
       phoneRefresh.setTag("parking_refresh_phone_location");phoneRefresh.setTextSize(11);phoneRefresh.setMinHeight(dp(31));
-      LinearLayout.LayoutParams phoneRefreshCell=new LinearLayout.LayoutParams(0,dp(33),1);
+      LinearLayout.LayoutParams phoneRefreshCell=new LinearLayout.LayoutParams(0,dp(31),1);
       phoneRefreshCell.leftMargin=dp(4);phone.addView(phoneRefresh,phoneRefreshCell);
     }
     panel.addView(phone);
-    note(panel,tr("说明","Info"),tr("车辆最后上报的停车点 · 非实时追踪","Last vehicle parking report · not live tracking"));
+
     HapticDialogBuilder builder=new HapticDialogBuilder(this);
     if(getResources().getConfiguration().screenHeightDp>=480
         &&getResources().getConfiguration().screenWidthDp<=getResources().getConfiguration().screenHeightDp)

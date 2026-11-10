@@ -47,23 +47,33 @@ public final class TirePressureView extends View {
     paint.setColor(color); paint.setStyle(Paint.Style.FILL); paint.setTextAlign(align);
     paint.setTextSize(size); c.drawText(text, x, y, paint);
   }
+  private void fittedWord(Canvas c,String value,float maxWidth,float size,float x,float y,int color) {
+    paint.setTextSize(size);
+    String label=android.text.TextUtils.ellipsize(value,new android.text.TextPaint(paint),
+        Math.max(1f,maxWidth),android.text.TextUtils.TruncateAt.END).toString();
+    word(c,label,size,x,y,color,Paint.Align.LEFT);
+  }
 
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
     float w = getWidth(), h = getHeight(), d = getResources().getDisplayMetrics().density;
     float scale = d * Math.min(1.25f, getResources().getConfiguration().fontScale);
-    float mid = w / 2f, cy = h * .51f;
+    float mid = w / 2f, cy = h * .50f;
+    float cw = w * .31f, ch = 58 * scale;
+    float ratio=vehicle!=null&&vehicle.getIntrinsicHeight()>0&&vehicle.getIntrinsicWidth()>0
+        ?vehicle.getIntrinsicHeight()/(float)vehicle.getIntrinsicWidth():.53f;
+    float half=ExteriorCalloutLayout.carHalfLength(w,h,d,ratio,cw,scale);
     String summary = tyres.summary(english);
     word(canvas, summary, 13 * scale, mid, 18 * scale,
         tyres.hasProblem() || tyres.allGood() ? orange : muted, Paint.Align.CENTER);
 
-    canvas.save(); canvas.translate(mid, cy); canvas.rotate(-90);
-    int half = (int)Math.min(h * .45f, w * .50f);
-    float artRatio=vehicle.getIntrinsicHeight()>0&&vehicle.getIntrinsicWidth()>0?vehicle.getIntrinsicHeight()/(float)vehicle.getIntrinsicWidth():.53f;
-      vehicle.setBounds(-half, (int)(-half * artRatio), half, (int)(half * artRatio));
-    vehicle.draw(canvas); canvas.restore();
-
-    float cw = w * .31f, ch = 58 * scale;
+    canvas.save();canvas.translate(mid,cy);canvas.rotate(VehicleArt.conditionTopRotationDegrees());
+    if(vehicle!=null){
+      int length=Math.round(half),width=Math.round(half*ratio);
+      vehicle.setBounds(-length,-width,length,width);
+      vehicle.draw(canvas);
+    }
+    canvas.restore();
     for (int i = 0; i < 4; i++) {
       boolean left = i % 2 == 0, front = i < 2;
       float x = left ? 0 : w - cw, y = h * (front ? .22f : .59f);
@@ -74,16 +84,16 @@ public final class TirePressureView extends View {
       paint.setColor(warn ? orange : line);
       canvas.drawRoundRect(x, y, x + cw, y + ch, 8*d, 8*d, paint);
 
-      float anchorX = mid + (left ? -1 : 1) * half * .30f;
-      float anchorY = cy + (front ? -.25f : .25f) * half;
+      float anchorX = mid + (left ? -1 : 1) * half * ratio * .72f;
+      float anchorY = cy + (front ? -.40f : .40f) * half;
       canvas.drawLine(left ? cw : w-cw, y + ch/2, anchorX, anchorY, paint);
       paint.setStyle(Paint.Style.FILL); paint.setColor(warn ? orange : line);
       canvas.drawCircle(anchorX, anchorY, 4*d, paint);
 
-      word(canvas, position(i) + (warn ? " !" : ""), 10 * scale, x + 7*d, y + 17*scale,
-          warn ? orange : muted, Paint.Align.LEFT);
-      word(canvas, tyres.label(i, english), 11 * scale, x + 7*d, y + 40*scale,
-          warn ? orange : ink, Paint.Align.LEFT);
+      fittedWord(canvas,position(i) + (warn ? " !" : ""),cw-14*d,10*scale,x+7*d,y+17*scale,
+          warn?orange:muted);
+      fittedWord(canvas,tyres.label(i,english),cw-14*d,11*scale,x+7*d,y+40*scale,
+          warn?orange:ink);
     }
   }
 }

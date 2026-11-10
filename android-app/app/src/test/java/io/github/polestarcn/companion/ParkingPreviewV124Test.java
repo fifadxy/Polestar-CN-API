@@ -8,7 +8,7 @@ public final class ParkingPreviewV124Test {
       int map=ParkingPreviewLayout.mapHeightDp(screen[1],true);
       assertTrue(viewport[0]>screen[0]*.88);
       assertEquals("No fixed-height lower blank region",android.view.ViewGroup.LayoutParams.WRAP_CONTENT,viewport[1]);
-      assertTrue("Main map is not a thumbnail",map>=145);
+      assertTrue("Interactive map viewport must remain available",map>=52);
       assertTrue("Map remains useful without inflating the window",map<=320);
     }
   }

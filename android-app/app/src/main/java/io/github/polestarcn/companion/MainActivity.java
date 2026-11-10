@@ -1959,10 +1959,11 @@ public final class MainActivity extends FragmentActivity {
     panel.addView(locationHeader);
     if(location.stale){TextView stale=text(tr("停车位置可能过期 · 以车辆时间为准","Parking location may be stale"),11,PsaDesign.accentText(AppPreferences.dark(this)),false);stale.setTag("parking_stale");panel.addView(stale);}
     ParkingWebPreview map=new ParkingWebPreview(this,location,AppPreferences.dark(this),()->{});parkingPreview=map;
-    // Use the actual map as the primary content, not the old 50-90dp thumbnail strip.
-    // Compact landscape still has a scroll fallback; normal portrait fits on one page.
+    // One fixed, non-scrolling dialog in portrait, landscape and split-screen.
     boolean portrait=getResources().getConfiguration().screenWidthDp<=getResources().getConfiguration().screenHeightDp;
-    int mapHeight=ParkingPreviewLayout.mapHeightDp(getResources().getConfiguration().screenHeightDp,portrait);
+    int screenHeight=getResources().getConfiguration().screenHeightDp;
+    boolean compactControls=ParkingPreviewLayout.compactControls(screenHeight);
+    int mapHeight=ParkingPreviewLayout.mapHeightDp(screenHeight,portrait);
     panel.addView(map.view,new LinearLayout.LayoutParams(-1,dp(mapHeight)));
     final TextView[] coordinatesRef={null};
     // Inline toolbar avoids tertiary windows; gestures directly operate the embedded Amap.
@@ -1975,8 +1976,8 @@ public final class MainActivity extends FragmentActivity {
     for(int i=0;i<captions.length;i++){
       TextView action=button(captions[i],callbacks[i]);
       action.setTag(new String[]{"parking_zoom_out","parking_zoom_in","parking_center_vehicle","parking_refresh_position"}[i]);
-      action.setTextSize(i<2?17:11);action.setMinHeight(dp(32));
-      toolCell=new LinearLayout.LayoutParams(0,dp(36),i<2?.65f:1.15f);
+      action.setTextSize(i<2?17:11);action.setMinHeight(dp(compactControls?28:32));
+      toolCell=new LinearLayout.LayoutParams(0,dp(compactControls?30:36),i<2?.65f:1.15f);
       if(i>0)toolCell.leftMargin=dp(3);
       mapTools.addView(action,toolCell);
     }
@@ -2012,14 +2013,14 @@ public final class MainActivity extends FragmentActivity {
         if(parkingPreview!=null)parkingPreview.refreshPhoneLocation();
       }
     });
-    phone.addView(mapLocationSwitch,new LinearLayout.LayoutParams(0,dp(48),1.3f));
+    phone.addView(mapLocationSwitch,new LinearLayout.LayoutParams(0,dp(compactControls?36:48),1.3f));
     TextView phoneRefresh=button(tr("刷新手机位置","Refresh phone"),()->{
       if(MapLocationPermission.enabled(this))map.requestPhoneLocation();
       else toast(tr("请先开启手机定位","Enable phone location first"));
     });
     phoneRefresh.setTag("parking_refresh_phone_location");phoneRefresh.setTextSize(11);
     phoneRefresh.setSingleLine(true);phoneRefresh.setPadding(dp(4),0,dp(4),0);
-    phone.addView(phoneRefresh,new LinearLayout.LayoutParams(0,dp(35),1));
+    phone.addView(phoneRefresh,new LinearLayout.LayoutParams(0,dp(compactControls?30:35),1));
     // Optional external navigation stays available as a SMALL accessory action.
     // The actual map above is fully browsable; opening a map app is never required.
     TextView externalMap=button(tr("打开地图","Open map"),
@@ -2034,18 +2035,8 @@ public final class MainActivity extends FragmentActivity {
     phone.addView(externalMap,compactMapButton);
     panel.addView(phone);
 
-    HapticDialogBuilder builder=new HapticDialogBuilder(this);
-    if(portrait&&getResources().getConfiguration().screenHeightDp>=480){
-      builder.parkingPreviewWindow();
-      // In production, the display and dp viewport agree. A constrained split-screen
-      // or accessibility-font viewport can be shorter than the fixed map + controls.
-      // Keep the one-page layout normally; permit scrolling only if it cannot fit.
-      android.util.DisplayMetrics dm=getResources().getDisplayMetrics();
-      // Only a genuinely short viewport needs scroll protection. The normal parking
-      // window wraps its map and controls instead of reserving 88% screen height.
-      float usableDp=dm.heightPixels*.88f/Math.max(.1f,dm.density);
-      if(usableDp<mapHeight+232f)builder.allowParkingOverflowScroll();
-    }else builder.compactMapWindow();
+    // Always use the single-page popup. The WebView handles map gestures itself.
+    HapticDialogBuilder builder=new HapticDialogBuilder(this).parkingPreviewWindow();
     AlertDialog dialog=builder.setTitle(tr("最后停车位置","Last parked location")).setView(panel)
         .setNegativeButton(tr("关闭","Close"),null).create();
     parkingDialog=dialog;dialog.setOnDismissListener(d->{map.close();if(parkingDialog==dialog){parkingDialog=null;parkingVin=null;parkingPoint=null;parkingPreview=null;}});dialog.show();
@@ -3283,24 +3274,64 @@ public final class MainActivity extends FragmentActivity {
     new HapticDialogBuilder(this).setTitle(tr("保养","Service")).setView(panel).setNegativeButton(tr("关闭","Close"),null).show();
   }
   private void carStatusDialog(){
-    if(carDialog!=null)carDialog.dismiss();final View animationRoot=findViewById(android.R.id.content);AllGoodTextView.host(animationRoot,false);
-    LinearLayout panel=detailPanel();ScrollView scroll=new ScrollView(this);
-    scroll.setTag("car_condition_popup");scroll.setVerticalScrollBarEnabled(false);scroll.setFillViewport(true);
-    scroll.addView(panel);
-    // Keep the dialog viewport stable when subsequent live vehicle snapshots arrive.
+    if(carDialog!=null)carDialog.dismiss();
+    final View animationRoot=findViewById(android.R.id.content);
+    AllGoodTextView.host(animationRoot,false);
+    // No ScrollView: the four exterior status cards stay stationary and readable.
+    LinearLayout panel=detailPanel();panel.setTag("car_condition_popup");
+    int screenHeight=getResources().getConfiguration().screenHeightDp;
+    int viewportDp=CarStatusPopupLayout.viewportHeightDp(screenHeight);
+    int artHeightDp=CarStatusPopupLayout.diagramHeightDp(screenHeight);
     android.widget.FrameLayout fixedViewport=new android.widget.FrameLayout(this);
-    int viewportDp=Math.max(190,Math.min(440,(int)(getResources().getConfiguration().screenHeightDp*.52f)));
-    fixedViewport.addView(scroll,new android.widget.FrameLayout.LayoutParams(-1,dp(viewportDp)));
+    fixedViewport.addView(panel,new android.widget.FrameLayout.LayoutParams(-1,dp(viewportDp)));
     String vin=model.selected==null?null:model.selected.vin;
-    Runnable fill=()->{panel.removeAllViews();VehicleSnapshot v=model.snapshot;
-      panel.addView(goodText(VehicleCondition.summary(this,v,showTires()),16,VehicleCondition.reported(v,showTires())?accentText():ink,false));
-      TextView stamp=text(dashboardStamp(),10,muted,false);stamp.setSingleLine(true);stamp.setEllipsize(android.text.TextUtils.TruncateAt.END);panel.addView(stamp);
-      if(v==null){note(panel,tr("说明","Info"),tr("暂无门窗数据，请刷新车辆。","No exterior data. Refresh the vehicle."));return;}
-      panel.addView(new ExteriorView(this,v),new LinearLayout.LayoutParams(-1,dp(Math.max(205,Math.min(250,getResources().getConfiguration().screenHeightDp/3)))));
-      disclosure(panel,"popup_health",tr("车辆检查","Vehicle checks"),false,this::healthOverview);disclosure(panel,"popup_service",tr("保养周期","Service cycle"),false,this::serviceContents);
-      if(showTires())disclosure(panel,"popup_tyres",tr("胎压状态","Tyre status"),false,this::tyreContents);
-    };final VehicleSnapshot[] displayed={model.snapshot};fill.run();AlertDialog dialog=new HapticDialogBuilder(this).setTitle(tr("车辆状况 · 门窗","Vehicle condition · exterior")).setView(fixedViewport).setNegativeButton(tr("关闭","Close"),null).create();carDialog=dialog;
-    Runnable update=()->{if(model.selected==null||!java.util.Objects.equals(vin,model.selected.vin)){dialog.dismiss();return;}if(!model.progressOnly&&model.snapshot!=displayed[0]){displayed[0]=model.snapshot;int y=scroll.getScrollY();fill.run();scroll.post(()->scroll.scrollTo(0,y));}};model.listen(update);dialog.setOnDismissListener(d->{model.remove(update);if(carDialog==dialog)carDialog=null;AllGoodTextView.host(animationRoot,getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED));});dialog.show();
+    Runnable fill=()->{
+      panel.removeAllViews();
+      VehicleSnapshot v=model.snapshot;
+      TextView summary=goodText(VehicleCondition.summary(this,v,showTires()),15,
+          VehicleCondition.reported(v,showTires())?accentText():ink,false);
+      summary.setSingleLine(true);summary.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      summary.setContentDescription(VehicleCondition.summary(this,v,showTires()));
+      panel.addView(summary);
+      TextView stamp=text(dashboardStamp(),10,muted,false);
+      stamp.setSingleLine(true);stamp.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      panel.addView(stamp);
+      if(v==null){
+        TextView unavailable=text(tr("暂无门窗数据，请刷新车辆。","No exterior data. Refresh the vehicle."),
+            12,muted,false);
+        panel.addView(unavailable,new LinearLayout.LayoutParams(-1,dp(artHeightDp)));
+      }else{
+        ExteriorView diagram=new ExteriorView(this,v);
+        diagram.setTag("car_condition_exterior_diagram");
+        panel.addView(diagram,new LinearLayout.LayoutParams(-1,dp(artHeightDp)));
+      }
+      TextView details=button(tr("查看完整车况","View full vehicle condition"),
+          ()->{if(carDialog!=null)carDialog.dismiss();vehicleStatusDialog();});
+      details.setTag("car_condition_full_details");
+      details.setSingleLine(true);details.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      panel.addView(details,new LinearLayout.LayoutParams(-1,dp(34)));
+    };
+    final VehicleSnapshot[] displayed={model.snapshot};
+    fill.run();
+    AlertDialog dialog=new HapticDialogBuilder(this)
+        .setTitle(tr("车辆状况 · 门窗","Vehicle condition · exterior"))
+        .setView(fixedViewport).setNegativeButton(tr("关闭","Close"),null).create();
+    carDialog=dialog;
+    Runnable update=()->{
+      if(model.selected==null||!java.util.Objects.equals(vin,model.selected.vin)){dialog.dismiss();return;}
+      if(!model.progressOnly&&model.snapshot!=displayed[0]){
+        displayed[0]=model.snapshot;
+        fill.run(); // Replace in-place without preserving, adding or scrolling a viewport.
+      }
+    };
+    model.listen(update);
+    dialog.setOnDismissListener(d->{
+      model.remove(update);
+      if(carDialog==dialog)carDialog=null;
+      AllGoodTextView.host(animationRoot,
+          getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED));
+    });
+    dialog.show();
   }
 
   private void exteriorDialog(){openStatusSection("status_exterior");}

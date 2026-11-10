@@ -66,7 +66,11 @@ final class ParkingWebPreview {
         }
         @Override public void onPageStarted(WebView v,String url,Bitmap icon){if(!closed){failed=false;status.setVisibility(backdrop?View.GONE:View.VISIBLE);status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));}}
         @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){if(!backdrop)handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
-          if(allowedPage(Uri.parse(url))){if(backdrop)v.evaluateJavascript(compactScript(context),null);
+          if(allowedPage(Uri.parse(url))){
+            if(!backdrop)v.evaluateJavascript("(function(){document.documentElement.style.overflow='hidden';"
+                +"document.documentElement.style.overscrollBehavior='none';if(document.body){"
+                +"document.body.style.overflow='hidden';document.body.style.overscrollBehavior='none';}})();",null);
+            if(backdrop)v.evaluateJavascript(compactScript(context),null);
             if(MapAppearance.dark(context)&&!backdrop)v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='html{background:#151a20!important}canvas,.amap-layer{filter:invert(.88) hue-rotate(180deg) brightness(.72) saturate(.55)!important}.common_bottom{background:#20262c!important;color:#dce2e7!important}';document.head.appendChild(s);})();",null);
             if(backdrop){styleBackdrop(.5f,.42f);startMapProbe();return;}
 

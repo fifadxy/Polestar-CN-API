@@ -64,19 +64,21 @@ public final class ExteriorView extends View {
     super.onDraw(canvas);
     float w = getWidth(), h = getHeight(), d = getResources().getDisplayMetrics().density;
     float text = d * Math.min(1.25f, getResources().getConfiguration().fontScale);
-    float mid = w / 2, cy = h * .51f;
-    word(canvas, english ? "FRONT ↑" : "车头 ↑", 11 * text, mid, 18 * text, muted, Paint.Align.CENTER);
-    canvas.save(); canvas.translate(mid, cy); canvas.rotate(-90);
-    int half = (int) Math.min(h * .46f, w * .53f);
-    if (vehicle != null) {
-      float artRatio=vehicle.getIntrinsicHeight()>0&&vehicle.getIntrinsicWidth()>0?vehicle.getIntrinsicHeight()/(float)vehicle.getIntrinsicWidth():.53f;
-      vehicle.setBounds(-half, (int)(-half * artRatio), half, (int)(half * artRatio));
-      vehicle.draw(canvas);
-    }
-    canvas.restore();
+    float mid = w / 2f, cy = h * .50f;
     float[] callout = ExteriorCalloutLayout.rows(h, d, getResources().getConfiguration().fontScale);
     float cw = Math.min(w * .42f, Math.max(68 * d, Math.min(116 * d, w * .30f)));
     float ch = callout[2];
+    float ratio=vehicle!=null&&vehicle.getIntrinsicHeight()>0&&vehicle.getIntrinsicWidth()>0
+        ?vehicle.getIntrinsicHeight()/(float)vehicle.getIntrinsicWidth():.53f;
+    float half=ExteriorCalloutLayout.carHalfLength(w,h,d,ratio,cw,text);
+    word(canvas, english ? "FRONT ↑" : "车头 ↑", 11 * text, mid, 18 * text, muted, Paint.Align.CENTER);
+    canvas.save();canvas.translate(mid,cy);canvas.rotate(VehicleArt.conditionTopRotationDegrees());
+    if(vehicle!=null){
+      int length=Math.round(half),width=Math.round(half*ratio);
+      vehicle.setBounds(-length,-width,length,width);
+      vehicle.draw(canvas);
+    }
+    canvas.restore();
     for (int i = 0; i < 4; i++) {
       boolean left = i % 2 == 0, front = i < 2;
       float x = left ? 0 : w - cw, y = front ? callout[0] : callout[1];
@@ -86,8 +88,8 @@ public final class ExteriorView extends View {
       canvas.drawRoundRect(x, y, x + cw, y + ch, 8 * d, 8 * d, paint);
       paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(d); paint.setColor(open ? orange : line);
       canvas.drawRoundRect(x, y, x + cw, y + ch, 8 * d, 8 * d, paint);
-      float anchorX = mid + (left ? -1 : 1) * half * .205f;
-      float anchorY = cy + (front ? -.12f : .15f) * half;
+      float anchorX = mid + (left ? -1 : 1) * half * ratio * .66f;
+      float anchorY = cy + (front ? -.40f : .40f) * half;
       canvas.drawLine(left ? cw : w - cw, y + ch / 2, anchorX, anchorY, paint);
       paint.setStyle(Paint.Style.FILL); paint.setColor(open ? orange : line);
       canvas.drawCircle(anchorX, anchorY, 3 * d, paint);

@@ -12,6 +12,16 @@ public class ExteriorCalloutLayoutTest {
       }
     }
   }
+  @Test public void uprightCarClearsCalloutsAndFrontRearLabels(){
+    for(float width:new float[]{272f,320f,420f})for(float height:new float[]{150f,190f,240f,320f}){
+      float card=Math.min(width*.42f,Math.max(68f,Math.min(116f,width*.30f)));
+      float half=ExteriorCalloutLayout.carHalfLength(width,height,1f,.53f,card,1.25f);
+      assertTrue("Car must fit in center lane",2*half*.53f<=width-2*card-17f);
+      assertTrue("Front marker must clear roof artwork",height*.5f-half>=25f);
+      assertTrue("Rear marker must clear roof artwork",height*.5f+half<=height-25f);
+      assertTrue("A visible car is still required",half>0f);
+    }
+  }
   @Test public void pixelDensityScalesProportionally(){
     float[] a=ExteriorCalloutLayout.rows(150,1f,1f);
     float[] b=ExteriorCalloutLayout.rows(450,3f,1f);

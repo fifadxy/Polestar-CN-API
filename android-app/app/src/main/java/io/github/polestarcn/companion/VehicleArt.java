@@ -111,6 +111,8 @@ public final class VehicleArt {
   public static boolean isTop(String key){return "auto".equals(key)||key.startsWith("top_");}
   /** Condition-only top view: day = white, night = black. Does not change the home/gallery art. */
   static int conditionTopDrawable(Context c){return AppPreferences.dark(c)?R.drawable.psa_vehicle_top_dark:R.drawable.psa_vehicle_top_white;}
+  /** The condition art has its front at the left; +90 degrees points it upward. */
+  static int conditionTopRotationDegrees(){return 90;}
   public static int dashboard(Context c){
     if(UiSkin.PS_DEFAULT.equals(UiSkin.get(c))&&"auto".equals(key(c)))return R.drawable.vehicle_top;
     if(UiSkin.SIMPLE_2.equals(UiSkin.get(c))&&"auto".equals(key(c)))return R.drawable.official_p2_side_snow;

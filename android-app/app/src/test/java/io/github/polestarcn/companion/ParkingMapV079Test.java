@@ -63,33 +63,29 @@ public class ParkingMapV079Test {
    AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertTrue(dialog.isShowing());View decor=dialog.getWindow().getDecorView();
     android.util.DisplayMetrics display=activity.getResources().getDisplayMetrics();
     boolean portrait=size[0]<=size[1]&&size[1]>=480;
-    int[] expected=portrait
-        ?DialogWindowGeometry.parkingPreview(display.widthPixels,display.heightPixels,display.density)
-        :DialogWindowGeometry.map(display.widthPixels,display.heightPixels,display.density);
+    int[] expected=DialogWindowGeometry.parkingPreview(
+        display.widthPixels,display.heightPixels,display.density);
     // First layout is established by the window pre-draw correction, before
     // the map becomes visible in a real OPPO host.
     decor.getViewTreeObserver().dispatchOnPreDraw();
     android.view.WindowManager.LayoutParams attrs=dialog.getWindow().getAttributes();
     assertEquals(android.view.Gravity.CENTER,attrs.gravity);
     assertEquals(expected[0],attrs.width);assertEquals(expected[1],attrs.height);
-    if(portrait){
-      assertTrue(attrs.width>=display.widthPixels*.88);
-      assertEquals("Parking popup must wrap content to avoid blank space",
-          ViewGroup.LayoutParams.WRAP_CONTENT,attrs.height);
-    }else assertTrue((double)attrs.width*attrs.height<=display.widthPixels*display.heightPixels*.5d);
+    assertTrue(attrs.width>=display.widthPixels*.88);
+    assertEquals("Parking popup must wrap content without scrolling",
+        ViewGroup.LayoutParams.WRAP_CONTENT,attrs.height);
     int w=attrs.width;
     int maxPortraitHeight=Math.max(1,Math.round(display.heightPixels*.88f));
-    int heightSpec=portrait?View.MeasureSpec.makeMeasureSpec(maxPortraitHeight,View.MeasureSpec.AT_MOST)
-        :View.MeasureSpec.makeMeasureSpec(attrs.height,View.MeasureSpec.EXACTLY);
+    int heightSpec=View.MeasureSpec.makeMeasureSpec(maxPortraitHeight,View.MeasureSpec.AT_MOST);
     decor.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),heightSpec);
-    int h=portrait?decor.getMeasuredHeight():attrs.height;
+    int h=decor.getMeasuredHeight();
     assertTrue("Popup must measure within available height",h>0);
-    if(portrait)assertTrue("Popup must not exceed the viewport cap",h<=maxPortraitHeight);
+    assertTrue("Popup must not exceed the viewport cap",h<=maxPortraitHeight);
     decor.layout(0,0,w,h);
    View entry=decor.findViewWithTag("parking_web_preview");assertNotNull(entry);
    int required=ParkingPreviewLayout.mapHeightDp(size[1],portrait);
    assertEquals(required,entry.getLayoutParams().height);
-   assertTrue("Map preview must exceed the old 90dp thumbnail",entry.getLayoutParams().height>=145||!portrait);assertEquals(1,count(decor,android.webkit.WebView.class));
+   assertTrue("Interactive map viewport must remain visible",entry.getLayoutParams().height>=52);assertEquals(1,count(decor,android.webkit.WebView.class));
    View coordinatesOverlay=decor.findViewWithTag("parking_coordinates");
    assertNotNull("Parking coordinates remain visible as a map overlay",coordinatesOverlay);
    assertSame("Coordinates must not consume a separate dialog row",entry,
@@ -118,11 +114,8 @@ public class ParkingMapV079Test {
         String.valueOf(phoneToggle.getContentDescription()).length()>3);
     View panel=decor.findViewWithTag("parking_location_panel");
     assertNotNull(panel);
-    if(portrait){
-      boolean requiresOverflow=display.heightPixels*.88f/Math.max(.1f,display.density)<required+232f;
-      assertEquals("Only space-constrained portrait dialogs may use overflow fallback",
-          requiresOverflow,panel.getParent() instanceof ScrollView);
-    }
+    assertFalse("The parking dialog must not wrap the map in a ScrollView",
+        panel.getParent() instanceof ScrollView);
     assertTrue(dialog.getButton(AlertDialog.BUTTON_NEGATIVE).getHeight()>0);
    if(skin.equals(UiSkin.NIO_LIKE_2)&&lang.equals("zh")&&size[0]==360){File file=new File("build/reports/previews/v079/parking-"+theme+".png");file.getParentFile().mkdirs();Bitmap bitmap=Bitmap.createBitmap(w*2,h*2,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(bitmap);canvas.scale(2,2);removeTestScrollIndicators(decor);decor.draw(canvas);try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}
    dialog.dismiss();

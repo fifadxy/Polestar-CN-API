@@ -13,6 +13,7 @@ public final class ConditionTopViewV124Test {
    AppPreferences.set(c,"theme","light");
    assertEquals(R.drawable.psa_vehicle_top_white,VehicleArt.conditionTopDrawable(c));
    assertNotEquals(R.drawable.vehicle_top,VehicleArt.conditionTopDrawable(c));
+   assertEquals("Source front faces left; positive rotation points it upward",90,VehicleArt.conditionTopRotationDegrees());
    assertNotNull(new ExteriorView(c));assertNotNull(new TirePressureView(c));
    AppPreferences.set(c,"theme","dark");
    assertEquals(R.drawable.psa_vehicle_top_dark,VehicleArt.conditionTopDrawable(c));

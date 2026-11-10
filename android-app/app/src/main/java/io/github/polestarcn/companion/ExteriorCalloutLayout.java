@@ -4,6 +4,18 @@ package io.github.polestarcn.companion;
 final class ExteriorCalloutLayout {
   private ExteriorCalloutLayout() {}
 
+  /** Fit the upright vehicle between callout columns and clear front/rear labels. */
+  static float carHalfLength(float width, float height, float density, float aspectRatio,
+      float cardWidth, float textScale) {
+    float d = Math.max(.1f, density);
+    float ratio = Math.max(.1f, aspectRatio);
+    float lane = Math.max(2 * d, width - 2 * cardWidth - 18 * d);
+    float sideLimit = lane / (2 * ratio);
+    float verticalLimit = Math.max(2 * d, height * .5f - 28 * Math.max(d, textScale));
+    return Math.max(1f, Math.min(Math.min(height * .33f, width * .38f),
+        Math.min(sideLimit, verticalLimit)));
+  }
+
   /** Returns front-row top, rear-row top and card height in pixels. */
   static float[] rows(float height, float density, float fontScale) {
     float d = Math.max(0.1f, density);

@@ -46,7 +46,7 @@ final class EnergyChartDisplay {
   }
   static String value(int metric,double amount,Locale locale){
     if(!valid(amount))return "--";
-    String digits=amount>=1000?"%.0f":amount>=100?"%.1f":amount>=1?"%.2f":amount>=.01?"%.3f":"%.4f";
+    String digits=amount>=1000?"%.0f":amount>=100?"%.1f":amount>=.01?"%.2f":amount>=.001?"%.3f":"%.4f";
     String number=String.format(locale,digits,amount);
     if(metric==2)return number+" km";
     if(metric==3)return "\u00a5"+number;

@@ -3,8 +3,11 @@ package io.github.polestarcn.companion;
 /** Separate from the compact location-settings window: prioritize a readable real map viewport. */
 final class ParkingPreviewLayout {
   private ParkingPreviewLayout(){}
+  /** Reserve space for dialog title/close control, map toolbar and GPS row.
+   * Keeping everything in one fixed layout prevents outer-window swiping. */
   static int mapHeightDp(int screenHeightDp,boolean portrait) {
-    if(portrait) return Math.max(180,Math.min(320,Math.round(screenHeightDp*.35f)));
-    return Math.max(55,Math.min(94,Math.round(screenHeightDp*.20f)));
+    int available=Math.round(Math.max(0,screenHeightDp)*.86f)-260;
+    return Math.max(52,Math.min(portrait?320:170,available));
   }
+  static boolean compactControls(int screenHeightDp){return screenHeightDp<410;}
 }

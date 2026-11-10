@@ -1,13 +1,17 @@
 package io.github.polestarcn.companion;
 
-/** Stable one-page vehicle condition dialog sizing; never needs a ScrollView. */
+/**
+ * A compact, scroll-capable condition dialog. Primary summary, timestamp,
+ * vehicle diagram and the collapsed "more" disclosure fit on its first screen;
+ * opening a detail section enables normal vertical scrolling.
+ */
 final class CarStatusPopupLayout {
   private CarStatusPopupLayout(){}
   static int viewportHeightDp(int screenHeightDp) {
-    return Math.max(188,Math.min(355,Math.round(screenHeightDp*.52f)));
+    return Math.max(205,Math.min(355,Math.round(screenHeightDp*.52f)));
   }
-  /** Leave room for summary, timestamp, full-details action and panel padding. */
+  /** Reserve 110dp for status labels, padding and the collapsed details header. */
   static int diagramHeightDp(int screenHeightDp) {
-    return Math.max(96,Math.min(236,viewportHeightDp(screenHeightDp)-110));
+    return Math.max(95,Math.min(236,viewportHeightDp(screenHeightDp)-110));
   }
 }

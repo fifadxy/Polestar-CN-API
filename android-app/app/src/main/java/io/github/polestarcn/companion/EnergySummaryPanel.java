@@ -241,9 +241,10 @@ public final class EnergySummaryPanel extends LinearLayout {
     Double taKwh=TmCost.kwh(taKm,tmAverage);
     String taCost=taKwh==null?"--":tariff<=0?tr("未设电价","No tariff")
         :String.format(Locale.getDefault(),"%.2f %s",taKwh*tariff,tr("元","CNY"));
-    kpi(tr("TA 费用推算（按 TM 均耗）","TA estimated cost (TM average)"),taCost,"ta_cost");
-    TextView taDetail=title(tr("TA 里程：","TA distance: ")+fmt(taKm,"km")
-        +tr(" · 估算电量："," · estimated energy: ")+fmt(taKwh,"kWh"),12);
+    // Preserve the existing TM-based estimation rule; distinguish kWh from money.
+    kpi(tr("TA能耗估算","TA energy estimate"),fmt(taKwh,"kWh"),"ta_energy_estimate");
+    kpi(tr("TA费用估算","TA estimated cost"),taCost,"ta_cost");
+    TextView taDetail=title(tr("TA 里程：","TA distance: ")+fmt(taKm,"km"),12);
     taDetail.setTag("energy_ta_estimation_details");taDetail.setTextColor(muted);addView(taDetail);
   }
   private void updateRate(){

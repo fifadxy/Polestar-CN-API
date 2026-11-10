@@ -2263,6 +2263,11 @@ public final class MainActivity extends FragmentActivity {
     LinearLayout panel=scrollBody();((ScrollView)panel.getParent()).setTag("data_scroll");VehicleSnapshot v=model.snapshot;
     panel.addView(text(tr("车辆数据","Vehicle data"),24,ink,false));if(v==null){panel.addView(text(tr("暂无车况，请连接车辆后刷新。","No vehicle snapshot. Connect and refresh first."),14,muted,false));setting(panel,tr("刷新车辆","Refresh vehicle"),()->model.refreshUser(null));return;}
     detailSection(panel,tr("基础数据","Overview"));metricRows(panel,DisplayMetric.BATTERY,DisplayMetric.RANGE,DisplayMetric.ODOMETER,DisplayMetric.BATTERY_12V,DisplayMetric.SERVICE_CYCLE);if(v.chargingDetails.targetPercent!=null)metricRows(panel,DisplayMetric.CHARGE_LIMIT);
+    // TA is a first-class vehicle data metric, not only a hidden trip disclosure.
+    LinearLayout taOverview=column();taOverview.setTag("data_ta_overview");
+    detailSection(taOverview,tr("TA 行程数据","TA trip metrics"));
+    metricRows(taOverview,DisplayMetric.TA_DISTANCE,DisplayMetric.TA_SPEED,DisplayMetric.TA_CONSUMPTION);
+    panel.addView(taOverview);
     disclosure(panel,"data_energy",tr("行驶与能耗费用统计","Driving & Energy Cost Statistics"),true,this::energySummaryContents);
     disclosure(panel,"data_health",tr("车辆状况 · 已上报项目优先","Vehicle condition · reported checks first"),true,this::healthOverview);
     disclosure(panel,"data_exterior",tr("车门 / 车窗 / 尾箱","Doors / windows / tailgate"),false,this::exteriorContents);
@@ -3277,23 +3282,33 @@ public final class MainActivity extends FragmentActivity {
     if(carDialog!=null)carDialog.dismiss();
     final View animationRoot=findViewById(android.R.id.content);
     AllGoodTextView.host(animationRoot,false);
-    // No ScrollView: the four exterior status cards stay stationary and readable.
-    LinearLayout panel=detailPanel();panel.setTag("car_condition_popup");
+    // Restore the old scrollable surface, but collapse optional details on every
+    // new opening so the summary and full four-door vehicle image appear first.
+    AppPreferences.set(this,"expand_popup_more","off");
+    LinearLayout panel=detailPanel();
+    ScrollView scroll=new ScrollView(this);
+    scroll.setTag("car_condition_popup");
+    scroll.setVerticalScrollBarEnabled(false);
+    scroll.setFillViewport(false);
+    scroll.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    scroll.addView(panel,new ScrollView.LayoutParams(-1,-2));
     int screenHeight=getResources().getConfiguration().screenHeightDp;
     int viewportDp=CarStatusPopupLayout.viewportHeightDp(screenHeight);
     int artHeightDp=CarStatusPopupLayout.diagramHeightDp(screenHeight);
-    android.widget.FrameLayout fixedViewport=new android.widget.FrameLayout(this);
-    fixedViewport.addView(panel,new android.widget.FrameLayout.LayoutParams(-1,dp(viewportDp)));
+    android.widget.FrameLayout viewport=new android.widget.FrameLayout(this);
+    viewport.addView(scroll,new android.widget.FrameLayout.LayoutParams(-1,dp(viewportDp)));
     String vin=model.selected==null?null:model.selected.vin;
     Runnable fill=()->{
       panel.removeAllViews();
       VehicleSnapshot v=model.snapshot;
       TextView summary=goodText(VehicleCondition.summary(this,v,showTires()),15,
           VehicleCondition.reported(v,showTires())?accentText():ink,false);
+      summary.setTag("car_condition_primary_summary");
       summary.setSingleLine(true);summary.setEllipsize(android.text.TextUtils.TruncateAt.END);
       summary.setContentDescription(VehicleCondition.summary(this,v,showTires()));
       panel.addView(summary);
       TextView stamp=text(dashboardStamp(),10,muted,false);
+      stamp.setTag("car_condition_timestamp");
       stamp.setSingleLine(true);stamp.setEllipsize(android.text.TextUtils.TruncateAt.END);
       panel.addView(stamp);
       if(v==null){
@@ -3305,23 +3320,30 @@ public final class MainActivity extends FragmentActivity {
         diagram.setTag("car_condition_exterior_diagram");
         panel.addView(diagram,new LinearLayout.LayoutParams(-1,dp(artHeightDp)));
       }
-      TextView details=button(tr("查看完整车况","View full vehicle condition"),
-          ()->{if(carDialog!=null)carDialog.dismiss();vehicleStatusDialog();});
-      details.setTag("car_condition_full_details");
-      details.setSingleLine(true);details.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      panel.addView(details,new LinearLayout.LayoutParams(-1,dp(34)));
+      disclosure(panel,"popup_more",tr("更多车辆检查与详情","More vehicle checks and details"),false,extra->{
+        disclosure(extra,"popup_health",tr("车辆检查","Vehicle checks"),false,this::healthOverview);
+        disclosure(extra,"popup_service",tr("保养周期","Service cycle"),false,this::serviceContents);
+        if(showTires())disclosure(extra,"popup_tyres",tr("胎压状态","Tyre status"),false,this::tyreContents);
+        TextView details=button(tr("查看完整车况","View full vehicle condition"),
+            ()->{if(carDialog!=null)carDialog.dismiss();vehicleStatusDialog();});
+        details.setTag("car_condition_full_details");
+        details.setSingleLine(true);details.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        extra.addView(details,new LinearLayout.LayoutParams(-1,dp(34)));
+      });
     };
     final VehicleSnapshot[] displayed={model.snapshot};
     fill.run();
     AlertDialog dialog=new HapticDialogBuilder(this)
         .setTitle(tr("车辆状况 · 门窗","Vehicle condition · exterior"))
-        .setView(fixedViewport).setNegativeButton(tr("关闭","Close"),null).create();
+        .setView(viewport).setNegativeButton(tr("关闭","Close"),null).create();
     carDialog=dialog;
     Runnable update=()->{
       if(model.selected==null||!java.util.Objects.equals(vin,model.selected.vin)){dialog.dismiss();return;}
       if(!model.progressOnly&&model.snapshot!=displayed[0]){
         displayed[0]=model.snapshot;
-        fill.run(); // Replace in-place without preserving, adding or scrolling a viewport.
+        int y=scroll.getScrollY();
+        fill.run();
+        scroll.post(()->scroll.scrollTo(0,y));
       }
     };
     model.listen(update);

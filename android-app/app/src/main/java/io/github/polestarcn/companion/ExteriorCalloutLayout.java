@@ -11,7 +11,7 @@ final class ExteriorCalloutLayout {
     float ratio = Math.max(.1f, aspectRatio);
     float lane = Math.max(2 * d, width - 2 * cardWidth - 18 * d);
     float sideLimit = lane / (2 * ratio);
-    float verticalLimit = Math.max(2 * d, height * .5f - 28 * Math.max(d, textScale));
+    float verticalLimit = Math.max(2 * d, height * .5f - 24 * Math.max(d, textScale));
     return Math.max(1f, Math.min(Math.min(height * .33f, width * .38f),
         Math.min(sideLimit, verticalLimit)));
   }

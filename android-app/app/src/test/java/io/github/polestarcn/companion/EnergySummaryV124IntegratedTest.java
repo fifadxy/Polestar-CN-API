@@ -17,7 +17,7 @@ public final class EnergySummaryV124IntegratedTest {
     Context c=RuntimeEnvironment.getApplication();
     AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_chart_compare_days","7");
     EnergySummaryPanel panel=new EnergySummaryPanel(c,null,null);
-    LinearLayout metrics=(LinearLayout)panel.getChildAt(9);
+    LinearLayout metrics=(LinearLayout)panel.getChildAt(10);
     String[] expected={"行驶能耗","驻车空调","行驶里程","能耗费"};
     for(int i=0;i<4;i++)assertEquals(expected[i],((TextView)metrics.getChildAt(i)).getText().toString());
     View mileStats=panel.findViewWithTag("energy_mileage_statistics");

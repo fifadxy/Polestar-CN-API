@@ -22,6 +22,13 @@ public class ExteriorCalloutLayoutTest {
       assertTrue("A visible car is still required",half>0f);
     }
   }
+  @Test public void vehicleBodyIsApproximatelyTwentyPercentLargerWhenSpacePermits(){
+    float w=360f,h=236f,ratio=.53f;
+    float card=Math.min(w*.42f,Math.max(68f,Math.min(116f,w*.30f)));
+    float original=Math.min(h*.33f,w*.38f);
+    float current=ExteriorCalloutLayout.carHalfLength(w,h,1f,ratio,card,1f);
+    assertEquals("Normal portrait view has room for the full 20% zoom",original*1.2f,current,.1f);
+  }
   @Test public void pixelDensityScalesProportionally(){
     float[] a=ExteriorCalloutLayout.rows(150,1f,1f);
     float[] b=ExteriorCalloutLayout.rows(450,3f,1f);

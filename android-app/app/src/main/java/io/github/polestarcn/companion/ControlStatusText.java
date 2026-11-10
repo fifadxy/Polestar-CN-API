@@ -7,11 +7,12 @@ public final class ControlStatusText {
   private ControlStatusText() {}
 
   public static String value(Context c,String control,VehicleSnapshot s,String fallback){
+    if("signal".equals(control))return AppPreferences.tr(c,"鸣闪","Horn / flash");
     if("camp".equals(control)){
       if(CampModeManager.active(c)||"STOPPING".equals(CampModeManager.phase(c)))
         return CampModeManager.remainingCaption(c);
       if(CampModeManager.pendingStop(c))return AppPreferences.tr(c,"待确认","Verify");
-      return AppPreferences.tr(c,"未托管","Not managed");
+      return AppPreferences.tr(c,"关闭","Off");
     }
     if(s==null)return fallback==null||fallback.isEmpty()?"--":fallback;
     String raw=controlRaw(control,s);
@@ -25,6 +26,11 @@ public final class ControlStatusText {
       if("全部关闭".equals(raw)||"已关闭".equals(raw))return AppPreferences.tr(c,"已关","Closed");
       if("已打开".equals(raw)||"未关严".equals(raw)||raw!=null&&raw.contains("个开启"))
         return AppPreferences.tr(c,"未关","Open");
+    }
+    if("trunk".equals(control)){
+      // The exterior RPC reports only open/closed/ajar; it has no independent tailgate-lock bit.
+      if("已关闭".equals(raw)||"全部关闭".equals(raw))return AppPreferences.tr(c,"已关","Closed");
+      if("已打开".equals(raw))return AppPreferences.tr(c,"已开","Open");
     }
     return AppPreferences.status(c,raw);
   }

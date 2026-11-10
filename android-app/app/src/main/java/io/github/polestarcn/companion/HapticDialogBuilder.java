@@ -47,7 +47,7 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
       window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
       window.setDimAmount(.24f);
       window.setWindowAnimations(R.style.PsaDialogFadeAnimation);
-      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
           |WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
       android.util.DisplayMetrics dm=context.getResources().getDisplayMetrics();
       int width=Math.min((int)(360*density),(int)(dm.widthPixels*.86f));
@@ -60,38 +60,32 @@ final class HapticDialogBuilder extends AlertDialog.Builder {
       attrs.width=width;attrs.height=height;attrs.gravity=Gravity.CENTER;
       window.setAttributes(attrs);
       final int initialWidth=width,initialHeight=height;
-      // AlertDialog.show() may restore WRAP_CONTENT while installing the decor.
-      // Reapply geometry synchronously in OnShow, before the first display frame.
-      // Typography, lists, paint and animation are already fixed before show.
-      dialog.setOnShowListener(shown->{
-        Window actual=dialog.getWindow();
-        if(actual==null)return;
-        WindowManager.LayoutParams live=actual.getAttributes();
-        if(live.width!=initialWidth||live.height!=initialHeight||live.gravity!=Gravity.CENTER){
-          actual.setGravity(Gravity.CENTER);
-          actual.setLayout(initialWidth,initialHeight);
+      // The framework may replace the requested width during AlertDialog.show().
+      // Never change window geometry in OnShow: that can move an already-visible
+      // center-gravity dialog horizontally (a small left-to-right wobble).
+      // Stabilize ALL secondary dialogs before the very first rendered frame.
+      final View decor=window.getDecorView();
+      decor.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){
+        private int corrections;
+        @Override public boolean onPreDraw(){
+          if(!decor.getViewTreeObserver().isAlive())return true;
+          Window actual=dialog.getWindow();
+          if(actual!=null){
+            WindowManager.LayoutParams live=actual.getAttributes();
+            if(live.width!=initialWidth||live.height!=initialHeight||live.gravity!=Gravity.CENTER){
+              if(corrections++<3){
+                live.width=initialWidth;
+                live.height=initialHeight;
+                live.gravity=Gravity.CENTER;
+                actual.setAttributes(live);
+                return false; // No frame is shown using intermediate geometry.
+              }
+            }
+          }
+          decor.getViewTreeObserver().removeOnPreDrawListener(this);
+          return true;
         }
       });
-      if(mapCompact){
-        // AlertDialog may replace the window layout AFTER its OnShow callback.
-        // Correct on pre-draw, before anything reaches the visible first frame.
-        final android.view.View decor=window.getDecorView();
-        decor.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener(){
-          @Override public boolean onPreDraw(){
-            if(!decor.getViewTreeObserver().isAlive())return true;
-            decor.getViewTreeObserver().removeOnPreDrawListener(this);
-            Window shown=dialog.getWindow();
-            if(shown==null)return true;
-            WindowManager.LayoutParams now=shown.getAttributes();
-            if(now.width!=initialWidth||now.height!=initialHeight||now.gravity!=Gravity.CENTER){
-              shown.setGravity(Gravity.CENTER);
-              shown.setLayout(initialWidth,initialHeight);
-              return false; // Re-measure with correct geometry before showing.
-            }
-            return true;
-          }
-        });
-      }
     }
     return dialog;
   }

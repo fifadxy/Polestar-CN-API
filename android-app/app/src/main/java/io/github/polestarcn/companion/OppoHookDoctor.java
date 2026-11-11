@@ -34,6 +34,8 @@ final class OppoHookDoctor {
     text=text.replaceAll("(?i)\\b[A-HJ-NPR-Z0-9]{17}\\b","[VEHICLE-REDACTED]");
     text=text.replaceAll("(?i)\\b1[3-9][0-9]{9}\\b","[PHONE-REDACTED]");
     text=text.replaceAll("(?i)(virtualCarId|vehicleId|vin)\\s*[=:]\\s*[^\\s;,]+","$1=[REDACTED]");
+    text=text.replaceAll("(?m)(Virtual Vehicle Session[^\\n]*?age=[^\\n]*?s)\\s*·[^\\n]*","$1 · [VEHICLE-ID-REDACTED]");
+    text=text.replaceAll("(?m)(真实车辆只读状态\\s*·)\\s*[^\\n]*","$1 [VEHICLE-NAME-REDACTED]");
     return text.length()>REPORT_LIMIT?text.substring(0,REPORT_LIMIT)+"\\n[TRUNCATED]":text;
   }
   private static String version(Context c,String pkg){
@@ -69,6 +71,14 @@ final class OppoHookDoctor {
     out.append("\nBridge self-test (read-only):\n");
     try {out.append(io.github.polestarcn.oppobridge.BridgeTestOrchestrator.runReport(c));}
     catch(Exception ex){out.append("probe_error=").append(ex.getClass().getSimpleName());}
+    String observed=OppoBridgeModeDiagnostics.description(c,selectedMode(c));
+    out.append("\\nActionable diagnosis:\\n");
+    if(!"ROOT_GRANTED".equals(OppoHookProcessManager.rootProbe()))
+      out.append("[CHECK] Root unavailable; allow PsAssistant in Magisk only for authorized process management.\\n");
+    if(observed.contains("尚无宿主加载回报"))
+      out.append("[CHECK] Enable one LSPosed module, select OPPO host scopes, restart hosts and open MyDevices/CarLink.\\n");
+    else if(observed.contains("需重启宿主"))
+      out.append("[CHECK] Selected and installed Hook modes differ; restart the listed hosts.\\n");
     out.append("\nOfficial-vs-local path (separate evidence):\n");
     try{
       android.os.Bundle b=OppoDualPathStatus.snapshot(c);
@@ -76,6 +86,15 @@ final class OppoHookDoctor {
           "localCommandReady","cachedOnly","localLifecycle"})
         out.append(key).append('=').append(b.get(key)).append('\n');
     }catch(RuntimeException error){out.append("path_error=").append(error.getClass().getSimpleName()).append('\n');}
+    try{
+      android.os.Bundle path=OppoDualPathStatus.snapshot(c);
+      if(!path.getBoolean("localVisible",false))
+        out.append("[CHECK] Sign in to PsAssistant, select vehicle and enable OPPO integration.\\n");
+      else if(!path.getBoolean("localCommandReady",false))
+        out.append("[CHECK] Refresh real vehicle telemetry; cached state cannot authorize writes.\\n");
+      if(!path.getBoolean("officialAuthorized",false))
+        out.append("[INFO] OPPO official SDK authorization not confirmed; a local card is not OEM binding.\\n");
+    }catch(RuntimeException ignored){}
     out.append("\nOperational checks:\n")
         .append("Fluid default=").append(OppoFluidPolicy.enabled(c))
         .append(" notification scenes=").append(OppoFluidPolicy.notify(c,"charging")).append('\n')

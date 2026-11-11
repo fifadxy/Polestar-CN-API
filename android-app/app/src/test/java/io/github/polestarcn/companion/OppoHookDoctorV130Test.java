@@ -13,6 +13,8 @@ public final class OppoHookDoctorV130Test {
   @Test public void restartTargetsOnlyFixedAllowlistAndNeverSystemUiOrOurApp(){
     String script=OppoHookProcessManager.command();
     assertTrue(script.contains("pidof com.heytap.mydevices"));
+    assertTrue(script.contains("pidof com.heytap.mydevices:cards"));
+    assertTrue(script.contains("pidof com.coloros.assistantscreen:widget"));
     assertTrue(script.contains("pidof com.coloros.assistantscreen"));
     assertTrue(script.contains("kill -TERM"));
     assertFalse(script.contains("com.android.systemui"));

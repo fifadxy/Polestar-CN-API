@@ -15,10 +15,22 @@ final class OppoHookProcessManager {
     StringBuilder b=new StringBuilder("changed=0; ");
     for(String host:OppoHookDoctor.HOSTS){
       if(!OppoHookDoctor.allowed(host))throw new IllegalStateException("Unlisted host");
-      // Fixed app package names, no user-controlled shell argument or wildcards.
-      b.append("for p in $(pidof ").append(host).append(" 2>/dev/null); do ")
-          .append("case \"$p\" in *[!0-9]*|'') continue;; esac; ")
-          .append("kill -TERM \"$p\" 2>/dev/null && changed=$((changed+1)); done; ");
+      // Exact names only, including a small fixed set of known OPPO card
+      // processes. Never match by wildcard, UID, arbitrary process-name input,
+      // pidgrep, SystemUI or android system server.
+      String[] processNames;
+      if(host.equals("com.heytap.mydevices"))
+        processNames=new String[]{host,host+":cards",host+":card",host+":quickapp"};
+      else if(host.equals("com.coloros.assistantscreen")||host.equals("com.oplus.assistantscreen"))
+        processNames=new String[]{host,host+":cards",host+":widget"};
+      else if(host.equals("com.heytap.opluscarlink"))
+        processNames=new String[]{host,host+":remote"};
+      else processNames=new String[]{host};
+      for(String name:processNames){
+        b.append("for p in $(pidof ").append(name).append(" 2>/dev/null); do ")
+            .append("case \"$p\" in *[!0-9]*|'') continue;; esac; ")
+            .append("kill -TERM \"$p\" 2>/dev/null && changed=$((changed+1)); done; ");
+      }
     }
     b.append("echo restarted_processes=$changed");
     return b.toString();

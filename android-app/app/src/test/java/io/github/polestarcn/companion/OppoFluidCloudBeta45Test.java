@@ -13,15 +13,20 @@ import org.robolectric.annotation.Config;
 @Config(sdk=33)
 public class OppoFluidCloudBeta45Test {
   private Context c(){Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("preferences",0).edit().clear().commit();return c;}
-  @Test public void masterOffByDefaultAndEventsIndependent(){
-    Context c=c();assertFalse(OppoFluidPolicy.enabled(c));assertFalse(OppoFluidPolicy.notify(c,"lock"));
+  @Test public void activeScenesAreOnByDefaultAndExplicitOffIsRespected(){
+    Context c=c();assertTrue(OppoFluidPolicy.enabled(c));assertTrue(OppoFluidPolicy.notify(c,"lock"));
+    assertTrue(OppoFluidPolicy.notify(c,"charging"));assertTrue(OppoFluidPolicy.cloud(c,"charging"));
+    assertTrue(OppoFluidPolicy.cloud(c,"climate"));assertTrue(OppoFluidPolicy.cloud(c,"air"));
+    assertTrue(OppoFluidPolicy.cloud(c,"camp"));
+    AppPreferences.set(c,OppoFluidPolicy.MASTER,"off");
+    assertFalse(OppoFluidPolicy.enabled(c));assertFalse(OppoFluidPolicy.notify(c,"charging"));
     AppPreferences.set(c,OppoFluidPolicy.MASTER,"on");
-    assertTrue(OppoFluidPolicy.notify(c,"lock"));assertFalse(OppoFluidPolicy.notify(c,"charging"));
+    assertTrue(OppoFluidPolicy.notify(c,"lock"));
     assertFalse(OppoFluidPolicy.actions(c));
     AppPreferences.set(c,OppoFluidPolicy.LEVEL,"2");AppPreferences.set(c,OppoFluidPolicy.ACTIONS,"on");
     AppPreferences.set(c,"oppo_compat_action_lock","on");assertTrue(OppoFluidPolicy.action(c,"lock"));
     AppPreferences.set(c,"oppo_compat_notify_lock","off");assertFalse(OppoFluidPolicy.notify(c,"lock"));
-    OppoFluidPolicy.reset(c);assertFalse(OppoFluidPolicy.enabled(c));
+    OppoFluidPolicy.reset(c);assertTrue(OppoFluidPolicy.enabled(c));
   }
   @Test public void allSupportedScenariosAndEachTemplateBuildWithoutCommands(){
     Context c=c();assertEquals(11,OppoFluidPolicy.SCENES.length);

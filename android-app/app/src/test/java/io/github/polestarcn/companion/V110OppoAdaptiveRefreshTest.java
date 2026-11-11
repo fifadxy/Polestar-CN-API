@@ -52,13 +52,29 @@ public final class V110OppoAdaptiveRefreshTest {
     assertEquals(600_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CORE,true,
         vehicle("关闭","关闭",now),"CAR-A",600_000L,now+10_000L));
   }
-  @Test public void activeClimateAndAirUseTwoMinuteForegroundFifteenMinuteBackground(){
+  @Test public void activeClimateAndAirUseOneMinuteForegroundTenMinuteBackground(){
     Context c=context();long now=System.currentTimeMillis();
     VehicleSnapshot s=vehicle("开启","开启",now);
-    assertEquals(120_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CORE,true,s,"CAR",600_000L,now));
-    assertEquals(120_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.AIR,true,s,"CAR",0L,now));
-    assertEquals(900_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CLIMATE,false,s,"CAR",3_600_000L,now));
-    assertEquals(15,OppoAdaptiveRefresh.backgroundMinutes(c,s,60));
+    assertEquals(60_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CORE,true,s,"CAR",600_000L,now));
+    assertEquals(60_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.AIR,true,s,"CAR",0L,now));
+    assertEquals(600_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CLIMATE,false,s,"CAR",3_600_000L,now));
+    assertEquals(10,OppoAdaptiveRefresh.backgroundMinutes(c,s,60));
+  }
+  @Test public void chargingAloneBoostsCoreAndChargeWithoutOppoBridge() {
+    Context c=context();long now=System.currentTimeMillis();
+    c.getSharedPreferences("oppo-device-integration",0).edit().putBoolean("enabled",false).commit();
+    VehicleSnapshot charging=new VehicleSnapshot("Polestar","masked",65,200,30000,
+        "充电中","全部关闭","全部关闭","已关闭","已锁",
+        now,"LIVE",false,"关闭","关闭");
+    assertTrue(ChargingVisibility.shouldShow(charging));
+    assertEquals(180_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CORE,true,
+        charging,"CAR",600_000L,now));
+    assertEquals(1_200_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CHARGING,false,
+        charging,"CAR",1_800_000L,now));
+    assertEquals(20,OppoAdaptiveRefresh.backgroundMinutes(c,charging,60));
+    AppPreferences.set(c,"oppo_dynamic_refresh","off");
+    assertEquals(600_000L,OppoAdaptiveRefresh.ttl(c,RefreshDomain.CORE,true,
+        charging,"CAR",600_000L,now));
   }
   @Test public void synchronizedTtlCoversOnlyActualRpcFamilies() throws Exception{
     Context c=context();String vin="TEST-NO-RAW-VIN";

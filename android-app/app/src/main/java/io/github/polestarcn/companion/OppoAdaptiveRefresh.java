@@ -11,7 +11,7 @@ public final class OppoAdaptiveRefresh {
   private static final String PREF="oppo-adaptive-refresh-v1";
   private OppoAdaptiveRefresh(){}
   public static boolean enabled(Context c){
-    return OppoDeviceIntegration.enabled(c)&&AppPreferences.visible(c,"oppo_dynamic_refresh",true);
+    return AppPreferences.visible(c,"oppo_dynamic_refresh",true);
   }
   static int minute(Context c,String key,int def,int... allowed){
     return RefreshPolicy.minutes(c,key,def,allowed);
@@ -21,8 +21,8 @@ public final class OppoAdaptiveRefresh {
         :minute(c,"oppo_refresh_background_minutes",30,15,30,60,120);
   }
   public static int activeMinutes(Context c,boolean front){
-    return front?minute(c,"oppo_active_foreground_minutes",2,1,2,5,10)
-        :minute(c,"oppo_active_background_minutes",15,15,30,60);
+    return front?minute(c,"oppo_active_foreground_minutes",1,1,2,5,10)
+        :minute(c,"oppo_active_background_minutes",10,10,15,30,60);
   }
   public static int lockBoostMinutes(Context c){
     return minute(c,"oppo_lock_boost_minutes",3,1,3,5,10);
@@ -64,34 +64,57 @@ public final class OppoAdaptiveRefresh {
     return now>0&&until>=now&&until-now<=2*60_000L;
   }
   public static boolean running(Context c,VehicleSnapshot s){
-    return s!=null&&("开启".equals(s.climate)||"开启".equals(s.air)||CampModeManager.active(c));
+    return CampModeManager.active(c)
+        ||s!=null&&("开启".equals(s.climate)||"开启".equals(s.air)
+        ||ChargingVisibility.shouldShow(s));
   }
   /** Milliseconds, allowing sub-minute foreground reads only during a bounded lock boost. */
+  /** Running HVAC/air/camp: 1 min foreground / 10 min requested background.
+   * Charging alone: 3 min foreground / 20 min requested background.
+   * Existing commands and Android Doze policy remain independent.
+   */
   public static long ttl(Context c,RefreshDomain domain,boolean front,VehicleSnapshot state,
       String vin,long configuredMs,long now){
     if(!enabled(c))return configuredMs;
-    long period=configuredMs;
-    if(domain==RefreshDomain.CORE){
-      long requested=regularMinutes(c,front)*60_000L;
-      if(lockBoostActive(c,vin,now))requested=(front?lockBoostSeconds(c):60)*1000L;
-      else if(running(c,state)||featureBoostActive(c,vin,now))
-        requested=activeMinutes(c,front)*60_000L;
-      period=period<=0?requested:Math.min(period,requested);
-    }else if(domain==RefreshDomain.CLIMATE && state!=null&&"开启".equals(state.climate)){
-      long requested=activeMinutes(c,front)*60_000L;
-      period=period<=0?requested:Math.min(period,requested);
-    }else if(domain==RefreshDomain.AIR && state!=null&&"开启".equals(state.air)){
-      long requested=activeMinutes(c,front)*60_000L;
-      period=period<=0?requested:Math.min(period,requested);
-    }else if(domain==RefreshDomain.CLIMATE&&featureBoostActive(c,vin,now)){
-      long requested=activeMinutes(c,front)*60_000L;
-      period=period<=0?requested:Math.min(period,requested);
+    boolean climate=state!=null&&"开启".equals(state.climate);
+    boolean air=state!=null&&"开启".equals(state.air);
+    boolean camp=CampModeManager.active(c);
+    boolean charging=state!=null&&ChargingVisibility.shouldShow(state);
+    boolean highPriority=climate||air||camp;
+    long active=activeMinutes(c,front)*60_000L;
+    long charge=(front?3L:20L)*60_000L;
+    long requested=0;
+    switch(domain){
+      case CORE:
+        if(lockBoostActive(c,vin,now))requested=(front?lockBoostSeconds(c):60)*1000L;
+        else if(highPriority||featureBoostActive(c,vin,now))requested=active;
+        else if(charging)requested=charge;
+        else if(OppoDeviceIntegration.enabled(c))requested=regularMinutes(c,front)*60_000L;
+        break;
+      case CLIMATE:
+        if(highPriority||featureBoostActive(c,vin,now))requested=active;
+        break;
+      case AIR:
+        if(air||camp)requested=active;
+        break;
+      case CHARGING:
+        if(charging)requested=highPriority?active:charge;
+        break;
+      default:break;
     }
-    return period;
+    if(requested<=0)return configuredMs;
+    return configuredMs<=0?requested:Math.min(configuredMs,requested);
   }
   public static int backgroundMinutes(Context c,VehicleSnapshot state,int ordinary){
-    if(!OppoDeviceIntegration.enabled(c))return ordinary;
-    int wanted=(enabled(c)&&running(c,state))?activeMinutes(c,false):regularMinutes(c,false);
+    if(!enabled(c))return ordinary;
+    boolean highPriority=CampModeManager.active(c)
+        ||state!=null&&("开启".equals(state.climate)||"开启".equals(state.air));
+    boolean charging=state!=null&&ChargingVisibility.shouldShow(state);
+    int wanted;
+    if(highPriority)wanted=activeMinutes(c,false);
+    else if(charging)wanted=20;
+    else if(OppoDeviceIntegration.enabled(c))wanted=regularMinutes(c,false);
+    else return ordinary;
     return ordinary<=0?wanted:Math.min(ordinary,wanted);
   }
 }

@@ -13,8 +13,8 @@ android {
         targetSdk 34
         buildConfigField 'boolean', 'OPPO_SDK_PACKAGED', (privateOppoSdk || mockOppoSdk).toString()
         buildConfigField 'boolean', 'OPPO_SDK_MOCK', mockOppoSdk.toString()
-        versionCode 174
-        versionName '1.2.9'
+        versionCode 175
+        versionName '1.2.10'
         def oppoCompany = System.getenv('PSA_OPPO_COMPANY_ID') ?: (mockOppoSdk ? '990001' : '0')
         def oppoAuth = System.getenv('PSA_OPPO_AUTH_CODE') ?: (mockOppoSdk ? 'TESTLAB_MOCK_AUTH_20261103' : 'PSASSISTANT_UNCONFIGURED')
         if (!(oppoCompany ==~ /[0-9]{1,9}/) || !(oppoAuth ==~ /[A-Za-z0-9_+\/=.-]{1,4096}/))

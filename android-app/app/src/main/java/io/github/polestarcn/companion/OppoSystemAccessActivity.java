@@ -13,7 +13,7 @@ public final class OppoSystemAccessActivity extends Activity {
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
   private TextView status;private Switch master;
   private final OppoResearchExportJob.Listener exportListener=s->{if(!isFinishing()&&!isDestroyed())show(s.message);};
-  @Override public void onCreate(Bundle b){super.onCreate(b);setTitle("系统车辆接入 · 2.3");
+  @Override public void onCreate(Bundle b){super.onCreate(b);setTitle("系统车辆接入 · 2.7.1");
     LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);int p=(int)(18*getResources().getDisplayMetrics().density);page.setPadding(p,p,p,p);
     TextView title=new TextView(this);title.setText("OPPO 系统车辆接入");title.setTextSize(24);page.addView(title);
     TextView intro=new TextView(this);intro.setText("Beta41 将当前真实 Polestar 会话投影为 CarLink 本地已绑定车辆，并让 PsAssistant 进入支持程序校验。先登录、选车并刷新一次，再执行“一键准备 CarLink 测试”。本地已绑定显示不等于 OPPO 云端车企认证。");page.addView(intro);

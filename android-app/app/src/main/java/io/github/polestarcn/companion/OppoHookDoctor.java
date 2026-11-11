@@ -72,13 +72,13 @@ final class OppoHookDoctor {
     try {out.append(io.github.polestarcn.oppobridge.BridgeTestOrchestrator.runReport(c));}
     catch(Exception ex){out.append("probe_error=").append(ex.getClass().getSimpleName());}
     String observed=OppoBridgeModeDiagnostics.description(c,selectedMode(c));
-    out.append("\\nActionable diagnosis:\\n");
+    out.append("\nActionable diagnosis:\n");
     if(!"ROOT_GRANTED".equals(OppoHookProcessManager.rootProbe()))
-      out.append("[CHECK] Root unavailable; allow PsAssistant in Magisk only for authorized process management.\\n");
+      out.append("[CHECK] Root unavailable; allow PsAssistant in Magisk only for authorized process management.\n");
     if(observed.contains("尚无宿主加载回报"))
-      out.append("[CHECK] Enable one LSPosed module, select OPPO host scopes, restart hosts and open MyDevices/CarLink.\\n");
+      out.append("[CHECK] Enable one LSPosed module, select OPPO host scopes, restart hosts and open MyDevices/CarLink.\n");
     else if(observed.contains("需重启宿主"))
-      out.append("[CHECK] Selected and installed Hook modes differ; restart the listed hosts.\\n");
+      out.append("[CHECK] Selected and installed Hook modes differ; restart the listed hosts.\n");
     out.append("\nOfficial-vs-local path (separate evidence):\n");
     try{
       android.os.Bundle b=OppoDualPathStatus.snapshot(c);
@@ -89,11 +89,11 @@ final class OppoHookDoctor {
     try{
       android.os.Bundle path=OppoDualPathStatus.snapshot(c);
       if(!path.getBoolean("localVisible",false))
-        out.append("[CHECK] Sign in to PsAssistant, select vehicle and enable OPPO integration.\\n");
+        out.append("[CHECK] Sign in to PsAssistant, select vehicle and enable OPPO integration.\n");
       else if(!path.getBoolean("localCommandReady",false))
-        out.append("[CHECK] Refresh real vehicle telemetry; cached state cannot authorize writes.\\n");
+        out.append("[CHECK] Refresh real vehicle telemetry; cached state cannot authorize writes.\n");
       if(!path.getBoolean("officialAuthorized",false))
-        out.append("[INFO] OPPO official SDK authorization not confirmed; a local card is not OEM binding.\\n");
+        out.append("[INFO] OPPO official SDK authorization not confirmed; a local card is not OEM binding.\n");
     }catch(RuntimeException ignored){}
     out.append("\nOperational checks:\n")
         .append("Fluid default=").append(OppoFluidPolicy.enabled(c))

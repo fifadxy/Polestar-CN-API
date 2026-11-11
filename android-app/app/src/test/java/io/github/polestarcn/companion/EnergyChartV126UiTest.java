@@ -58,6 +58,11 @@ public final class EnergyChartV126UiTest {
     assertTrue(toggle.performClick());assertTrue(toggle.getText().toString().contains("最新"));
     assertEquals("latest",AppPreferences.get(c,"energy_chart_value_labels",""));
   }
+  @Test public void labelOverlapWithOrangeBarRequiresContrastingText(){
+    assertTrue(EnergyChartPainter.intersects(10,10,75,25,40,0,60,100));
+    assertFalse(EnergyChartPainter.intersects(10,10,30,25,40,0,60,100));
+    assertFalse(EnergyChartPainter.intersects(10,10,40,25,40,0,60,100));
+  }
   @Test public void historyCalloutsChangePaintButNotSampleValues(){
     List<EnergyChartSeries.Bin> bins=new ArrayList<>();
     for(int i=0;i<3;i++){

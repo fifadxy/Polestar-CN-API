@@ -24,6 +24,10 @@ public final class EnergySummaryV124IntegratedTest {
     assertNotNull(mileStats);assertEquals(View.GONE,mileStats.getVisibility());
     assertTrue(metrics.getChildAt(2).performClick());
     assertTrue(metrics.getChildAt(2).isSelected());assertEquals(View.VISIBLE,mileStats.getVisibility());
+    // The full 24-month history is auto-monthly; select 31 days before
+    // asserting that weekly grouping can be requested explicitly.
+    LinearLayout ranges=panel.findViewWithTag("energy_range_periods");
+    assertTrue(ranges.getChildAt(2).performClick());
     LinearLayout granularity=(LinearLayout)panel.findViewWithTag("energy_bucket_controls");
     assertNotNull(granularity);assertEquals(3,granularity.getChildCount());
     assertTrue(granularity.getChildAt(1).performClick());assertTrue(granularity.getChildAt(1).isSelected());

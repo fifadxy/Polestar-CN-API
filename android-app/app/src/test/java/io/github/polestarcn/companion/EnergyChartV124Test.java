@@ -31,6 +31,12 @@ public final class EnergyChartV124Test {
     assertEquals(26d,monthly.get(0).amount(2,.71,1),.001);
     assertEquals(4d,monthly.get(1).amount(0,.71,1),.001);
   }
+  @Test public void groupingBoundsFullRetentionToReadableBins(){
+    assertEquals(EnergyChartSeries.MONTHLY,EnergyChartSeries.effectiveGranularity(0,730));
+    assertEquals(EnergyChartSeries.WEEKLY,EnergyChartSeries.effectiveGranularity(0,90));
+    assertEquals(EnergyChartSeries.DAILY,EnergyChartSeries.effectiveGranularity(0,31));
+    assertEquals(EnergyChartSeries.MONTHLY,EnergyChartSeries.effectiveGranularity(2,7));
+  }
   @Test public void comparisonUsesSelectedMetricAndValidBaseline(){
     EnergyLog.Report previous=new EnergyLog.Report();previous.count=3;previous.drive=2;previous.ac=1;previous.distanceKm=10;
     EnergyLog.Report current=new EnergyLog.Report();current.count=3;current.drive=3;current.ac=2;current.distanceKm=14;

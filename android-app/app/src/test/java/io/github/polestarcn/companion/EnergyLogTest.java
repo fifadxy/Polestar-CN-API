@@ -5,6 +5,32 @@ public class EnergyLogTest {
  Context c;EnergyLog log;long now;
  @Before public void setup(){c=RuntimeEnvironment.getApplication();try{java.lang.reflect.Field f=EnergyLog.class.getDeclaredField("instance");f.setAccessible(true);EnergyLog old=(EnergyLog)f.get(null);if(old!=null)old.close();f.set(null,null);}catch(Exception e){throw new AssertionError(e);}c.deleteDatabase("energy_history.db");c.getSharedPreferences("preferences",0).edit().clear().commit();log=EnergyLog.get(c);now=System.currentTimeMillis();}
  VehicleSnapshot s(long t,int soc,double km,double consumption,String climate,String charge){return new VehicleSnapshot("car","masked",soc,200,10000,charge,"全部关闭","全部关闭","已关闭","已上锁",t,"LIVE",false,climate,"关闭").withMileage(new MileageSnapshot((long)(km*1000),km,1.,40.,30.,consumption,18.,t,t));}
+ @Test public void dailyMileagePrefersTmAndRejectsResetEvenWhenOdometerIncreases(){
+   assertEquals(2,EnergyLog.distanceIncrement(11.,13.,100.,109.,600000L),.0001);
+   assertEquals(0,EnergyLog.distanceIncrement(13.,0.,109.,111.,600000L),.0001);
+   assertEquals(3,EnergyLog.distanceIncrement(null,13.,109.,112.,600000L),.0001);
+   assertEquals(0,EnergyLog.distanceIncrement(4.,5.,101.,103.,3600001L),.0001);
+   assertEquals(0,EnergyLog.distanceIncrement(4.,200.,101.,103.,600000L),.0001);
+ }
+ @Test public void fullHistoryIsMonthlyAndKeepsActualTotals(){
+   Calendar old=Calendar.getInstance();old.add(Calendar.MONTH,-11);
+   long earlier=old.getTimeInMillis();
+   android.database.sqlite.SQLiteDatabase db=log.getWritableDatabase();
+   for(int i=0;i<3;i++){
+     android.content.ContentValues values=new android.content.ContentValues();
+     values.put("vehicle","a");values.put("t",earlier+i*300000L);
+     values.put("tm",10.+i*2);values.put("odo",100.+i*3);values.put("soc",70);
+     values.put("cons",18.);values.put("speed",25.);values.put("climate",0);
+     values.put("charge",0);values.put("ac",0.);values.put("drive",1.);values.put("acvalid",0);
+     db.insertOrThrow("samples",null,values);
+   }
+   EnergyLog.Report all=log.readRetention("a");
+   assertEquals(3,all.count);
+   assertEquals(3,all.drive,.001);
+   assertEquals(4,all.distanceKm,.001);
+   assertEquals(1,all.points.size());
+   assertEquals(0,log.readRecentDays("a",7).count);
+ }
  @Test public void stationaryClimateDropsConvertUsingSeventyOneKwhAndDoNotMixVehicles(){log.append("a",s(now-600000,70,100,20,"开启","空闲"));log.append("a",s(now-300000,69,100,20,"开启","空闲"));log.append("a",s(now,68,100,20,"开启","空闲"));EnergyLog.Report r=log.read("a",1);assertEquals(2,r.ac,0);assertEquals(1.42,r.ac*.71,.0001);assertEquals(0,r.drive,0);assertEquals(0,log.read("b",1).count);}
  @Test public void movingAndChargingAndLongGapsDoNotCountAsParkedClimate(){log.append("a",s(now-900000,70,100,20,"开启","空闲"));log.append("a",s(now-600000,69,110,20,"开启","空闲"));log.append("a",s(now,68,110,20,"开启","充电中"));assertEquals(0,log.read("a",1).ac,0);assertEquals(2,log.read("a",1).drive,.001);}
  @Test public void manualResetDoesNotCreateNegativeOrInventedEnergy(){log.append("a",s(now-900000,70,100,20,"关闭","空闲"));log.append("a",s(now-600000,69,110,20,"关闭","空闲"));log.append("a",s(now-300000,69,0,20,"关闭","空闲"));log.append("a",s(now,68,10,20,"关闭","空闲"));assertEquals(4,log.read("a",1).drive,.001);}

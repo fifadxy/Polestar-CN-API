@@ -43,8 +43,8 @@ public final class EnergyHistoryRangeV124Test {
     try{EnergySummaryPanel.startOfDate(2026,2,30);fail("Invalid February date accepted");}catch(IllegalArgumentException expected){}
     EnergySummaryPanel panel=new EnergySummaryPanel(c,null,null);
     LinearLayout ranges=(LinearLayout)panel.findViewWithTag("energy_range_periods");
-    assertNotNull(ranges);assertEquals(4,ranges.getChildCount());
-    assertFalse(ranges.getChildAt(0).isSelected());assertTrue(ranges.getChildAt(1).isSelected());
+    assertNotNull(ranges);assertEquals(5,ranges.getChildCount());
+    assertFalse(ranges.getChildAt(0).isSelected());assertTrue(ranges.getChildAt(4).isSelected());
     assertTrue(ranges.getChildAt(0).performClick());assertTrue(ranges.getChildAt(0).isSelected());
   }
 }

@@ -34,7 +34,7 @@ public final class EnergySummaryPanel extends LinearLayout {
   private TextView valueLabelsToggle;
   private int groupStep, preferredStep, chartStyle, compareDays, valueLabelsMode;
   private static final String LABELS_KEY="energy_chart_value_labels";
-  private int trendRequest;
+  private volatile int trendRequest;
   private static final String GROUP_KEY="energy_chart_step",STYLE_KEY="energy_chart_style",TREND_KEY="energy_chart_compare_days";
   private TextView rateToggle;
   private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[5];
@@ -458,6 +458,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     refreshTrendLabel(null);
     Context app=context.getApplicationContext();
     EnergyLog.WORK.execute(()->{
+      if(run!=trendRequest)return;
       Double change=null;
       try{
         Calendar time=Calendar.getInstance();long end=time.getTimeInMillis();

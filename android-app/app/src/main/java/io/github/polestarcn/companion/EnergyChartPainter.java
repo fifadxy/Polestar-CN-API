@@ -129,28 +129,60 @@ final class EnergyChartPainter {
     c.drawText("--",left+8*d,top+height*.5f,p);
   }
 
-  /** Horizontal 0/25/50/75/100% grid and labelled ticks, plus readable date buckets. */
+  /**
+   * Draw the vertical axis last in the visible chart gutter. Translating by
+   * the scroll offset cancels HorizontalScrollView's child translation, so
+   * unit, tick values, and the vertical axis remain pinned while data moves.
+   */
+  static void drawFloatingYAxis(Canvas canvas,List<EnergyChartSeries.Bin> bins,int metric,
+      double perPercent,double tariff,int muted,float density,int background,int scrollX){
+    float d=Math.max(.5f,density),left=plotLeft(d),top=35*d,bottom=39*d;
+    float chartH=Math.max(1f,canvas.getHeight()-top-bottom);
+    Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+    canvas.save();
+    canvas.translate(scrollX,0);
+    p.setStyle(Paint.Style.FILL);p.setColor(background);
+    canvas.drawRect(0,0,left+2*d,canvas.getHeight(),p);
+    if(bins==null||bins.isEmpty()||(metric==3&&tariff<=0)){canvas.restore();return;}
+    double max=0;boolean observed=false;
+    for(EnergyChartSeries.Bin bin:bins){
+      if(bin==null)continue;
+      double value=bin.amount(metric,perPercent,tariff);
+      if(EnergyChartDisplay.valid(value)){observed=true;max=Math.max(max,value);}
+    }
+    if(observed){
+      double interval=EnergyChartDisplay.tickStep(max);
+      p.setColor(muted);p.setAlpha(255);p.setTextSize(9*d);
+      p.setTextAlign(Paint.Align.LEFT);
+      canvas.drawText(EnergyChartDisplay.unit(metric),4*d,16*d,p);
+      p.setTextAlign(Paint.Align.RIGHT);
+      for(int n=0;n<=4;n++){
+        float y=top+chartH-n*chartH/4f;
+        canvas.drawText(EnergyChartDisplay.tick(interval*n,interval,Locale.getDefault()),left-6*d,y+3*d,p);
+      }
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(.7f*d);p.setAlpha(130);
+      canvas.drawLine(left,top,left,top+chartH,p);
+    }
+    canvas.restore();
+  }
+
+  /** Scrolling horizontal grid and date labels; vertical ticks use the pinned gutter. */
   private static void drawAxes(Canvas canvas,Paint p,List<EnergyChartSeries.Bin> bins,
       int grouping,int metric,int muted,float d,float left,float top,float chartW,float chartH,double interval){
-    p.setStyle(Paint.Style.FILL);p.setColor(muted);p.setTextSize(9*d);
-    canvas.drawText(EnergyChartDisplay.unit(metric),4*d,16*d,p);
+    p.setColor(muted);
     for(int n=0;n<=4;n++){
       float y=top+chartH-n*chartH/4f;
-      p.setColor(muted);p.setAlpha(n==0?150:55);p.setStyle(Paint.Style.STROKE);
+      p.setAlpha(n==0?150:55);p.setStyle(Paint.Style.STROKE);
       p.setStrokeWidth(n==0?1f*d:.65f*d);
       canvas.drawLine(left,y,left+chartW,y,p);
-      p.setStyle(Paint.Style.FILL);p.setAlpha(255);p.setTextAlign(Paint.Align.RIGHT);
-      p.setTextSize(9*d);
-      canvas.drawText(EnergyChartDisplay.tick(interval*n,interval,Locale.getDefault()),left-6*d,y+3*d,p);
     }
+    p.setStyle(Paint.Style.FILL);p.setColor(muted);p.setAlpha(255);p.setTextSize(9*d);
     p.setTextAlign(Paint.Align.LEFT);
-    p.setStyle(Paint.Style.STROKE);p.setColor(muted);p.setAlpha(130);p.setStrokeWidth(.7f*d);
-    canvas.drawLine(left,top,left,top+chartH,p);
-    p.setStyle(Paint.Style.FILL);p.setAlpha(255);p.setTextSize(9*d);
     // Labels are sampled from actual bins. Throttle density to keep adjacent labels apart.
     int count=bins.size();
-    int maxLabels=Math.max(2,Math.min(9,(int)(chartW/(54*d))));
-    int stride=Math.max(1,(int)Math.ceil(Math.max(0,count-1)/(double)(maxLabels-1)));
+    // Sample dates by physical spacing, not a fixed total count: long daily
+    // history remains identifiable as the user pans across the chart.
+    int stride=Math.max(1,(int)Math.ceil(68*d/Math.max(1f,chartW/count)));
     float previousRight=-1000f;
     for(int i=0;i<count;i++){
       if(i!=count-1&&i%stride!=0)continue;

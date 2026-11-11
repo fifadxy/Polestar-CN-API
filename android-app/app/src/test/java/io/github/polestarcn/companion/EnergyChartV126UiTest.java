@@ -80,4 +80,33 @@ public final class EnergyChartV126UiTest {
     assertEquals(3d,bins.get(2).drive,.0001);
     latest.recycle();hidden.recycle();
   }
+  @Test public void floatingYAxisRemainsStationaryWhenChartIsPanned(){
+    List<EnergyChartSeries.Bin> bins=new ArrayList<>();
+    for(int i=0;i<15;i++){
+      EnergyChartSeries.Bin bin=new EnergyChartSeries.Bin(1735689600000L+i*86400000L);
+      bin.count=1;bin.drive=i+1;bins.add(bin);
+    }
+    Bitmap first=drawAtScroll(bins,0),panned=drawAtScroll(bins,160);
+    int axisRight=(int)EnergyChartPainter.plotLeft(1f);
+    for(int x=0;x<axisRight;x++)for(int y=0;y<190;y++)
+      assertEquals("Floating Y-axis must not scroll with the plot at x="+x+" y="+y,
+          first.getPixel(x,y),panned.getPixel(x,y));
+    boolean seriesMoved=false;
+    for(int x=axisRight+20;x<400&&!seriesMoved;x+=8)for(int y=40;y<155;y+=8)
+      if(first.getPixel(x,y)!=panned.getPixel(x,y)){seriesMoved=true;break;}
+    assertTrue("Chart bars should scroll independently of the pinned axis",seriesMoved);
+    first.recycle();panned.recycle();
+  }
+  private static Bitmap drawAtScroll(List<EnergyChartSeries.Bin> bins,int offset){
+    Bitmap image=Bitmap.createBitmap(440,190,Bitmap.Config.ARGB_8888);
+    Canvas canvas=new Canvas(image);
+    canvas.drawColor(Color.WHITE);
+    canvas.save();canvas.translate(-offset,0);
+    EnergyChartPainter.draw(canvas,bins,0,EnergyChartSeries.BARS,.7,1,Color.BLACK,Color.GRAY,
+        EnergyChartSeries.DAILY,false,1f,EnergyChartDisplay.HIDDEN,-1);
+    EnergyChartPainter.drawFloatingYAxis(canvas,bins,0,.7,1,Color.GRAY,1f,Color.WHITE,offset);
+    canvas.restore();
+    return image;
+  }
+
 }

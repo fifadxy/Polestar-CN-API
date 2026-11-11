@@ -57,7 +57,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     customStart=readCustomStart();
     customEnd=readCustomEnd();
     preferredStep=EnergyChartSeries.granularity(AppPreferences.get(context,GROUP_KEY,"day"));
-    groupStep=EnergyChartSeries.effectiveGranularity(preferredStep,Math.max(1,EnergyLog.months(context)*31L));
+    groupStep=preferredStep;
     chartStyle=EnergyChartSeries.style(AppPreferences.get(context,STYLE_KEY,"bars"));
     compareDays=readCompareDays();
     valueLabelsMode=EnergyChartDisplay.mode(AppPreferences.get(context,LABELS_KEY,"latest"));
@@ -78,6 +78,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     chart = new Trend(context);
     chartScroller=new HorizontalScrollView(context);chartScroller.setTag("energy_history_chart");
     chartScroller.setHorizontalScrollBarEnabled(false);chartScroller.setFillViewport(true);
+    chartScroller.setOnScrollChangeListener((v,x,y,oldX,oldY)->chart.invalidate());
     chartScroller.addView(chart,new android.widget.FrameLayout.LayoutParams(-2,dp(190)));
     addView(chartScroller, new LayoutParams(-1, dp(190)));
     LinearLayout tabs = new LinearLayout(context);
@@ -286,7 +287,7 @@ public final class EnergySummaryPanel extends LinearLayout {
   }
   private void changeRange(int value) {
     range=value;
-    groupStep=EnergyChartSeries.effectiveGranularity(preferredStep,daysShown());
+    groupStep=preferredStep;
     chart.setGrouping(groupStep);
     refreshTabStyles();load();
   }
@@ -426,7 +427,7 @@ public final class EnergySummaryPanel extends LinearLayout {
   private void setGroupStep(int value) {
     preferredStep=value;
     AppPreferences.set(context,GROUP_KEY,value==0?"day":value==1?"week":"month");
-    groupStep=EnergyChartSeries.effectiveGranularity(value,daysShown());
+    groupStep=value; // Manual day/week/month choice is never overridden by range.
     refreshTabStyles();chart.setGrouping(groupStep);
   }
   private void setChartStyle(int value) {
@@ -525,7 +526,7 @@ public final class EnergySummaryPanel extends LinearLayout {
           chart.update(result);
           updateDistanceSummary();
           chartScroller.post(()->chartScroller.fullScroll(View.FOCUS_RIGHT));
-          note.setText(tr("每日里程优先统计 TM 连续有效增量；重置、异常跳变和长时间缺测不补算。长区间自动按月/周汇总以减少资源开销。", "Daily mileage uses plausible consecutive TM changes; resets, jumps and gaps are excluded. Long ranges auto-group monthly/weekly for efficiency."));
+          note.setText(tr("每日里程仅统计 TM 连续有效增量；缺测不补算。全部历史可自由切换按天、按周或按月查看。", "Daily mileage uses valid consecutive TM changes; missing samples are not invented. Day/week/month grouping remains selectable for all history."));
         });
       } catch(Exception e) {
         post(() -> {if(request!=generation||!isAttachedToWindow())return;
@@ -572,8 +573,8 @@ public final class EnergySummaryPanel extends LinearLayout {
     void setLabels(int value,int focus){labels=value;focusedBar=focus;resize();invalidate();}
     private void resize(){
       int count=bins.size();
-      // ALL labels reserve a separate horizontal cell; the effective grouping
-      // bounds the bin count, while 8192 physical pixels caps GPU allocation.
+      // Reserve horizontal space for annotations while capping total width;
+      // manual daily grouping stays available for long retained histories.
       int perBar=labels==EnergyChartDisplay.ALL?80:23;
       int target=dp(Math.max(1,count)*perBar+72);
       int maxPixels=Math.max(getResources().getDisplayMetrics().widthPixels,8192);
@@ -597,6 +598,9 @@ public final class EnergySummaryPanel extends LinearLayout {
       }
       EnergyChartPainter.draw(canvas,bins,selection,style,unit,tariff,ink,muted,step,false,
           getResources().getDisplayMetrics().density,labels,focusedBar);
+      EnergyChartPainter.drawFloatingYAxis(canvas,bins,selection,unit,tariff,muted,
+          getResources().getDisplayMetrics().density,PsaDesign.canvas(AppPreferences.dark(context)),
+          chartScroller.getScrollX());
       setContentDescription(tr("历史统计图，","Historical statistics, ")
           +(step==0?tr("按天","daily"):step==1?tr("按周","weekly"):tr("按月","monthly"))
           +tr("；点击柱子显示/隐藏数值；仅有效历史采样","; tap a bar to show or hide its value; actual observations only"));

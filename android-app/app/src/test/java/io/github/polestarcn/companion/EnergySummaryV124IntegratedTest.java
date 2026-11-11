@@ -24,13 +24,20 @@ public final class EnergySummaryV124IntegratedTest {
     assertNotNull(mileStats);assertEquals(View.GONE,mileStats.getVisibility());
     assertTrue(metrics.getChildAt(2).performClick());
     assertTrue(metrics.getChildAt(2).isSelected());assertEquals(View.VISIBLE,mileStats.getVisibility());
-    // The full 24-month history is auto-monthly; select 31 days before
-    // asserting that weekly grouping can be requested explicitly.
+    // All retained history must not force monthly aggregation: explicit day,
+    // week and month selections remain active and visually selected.
     LinearLayout ranges=panel.findViewWithTag("energy_range_periods");
-    assertTrue(ranges.getChildAt(2).performClick());
+    assertTrue(ranges.getChildAt(4).isSelected());
     LinearLayout granularity=(LinearLayout)panel.findViewWithTag("energy_bucket_controls");
     assertNotNull(granularity);assertEquals(3,granularity.getChildCount());
-    assertTrue(granularity.getChildAt(1).performClick());assertTrue(granularity.getChildAt(1).isSelected());
+    for(int index:new int[]{0,1,2,0,1}){
+      assertTrue(granularity.getChildAt(index).performClick());
+      assertTrue("Selected grouping must survive the All range",granularity.getChildAt(index).isSelected());
+    }
+    assertTrue(ranges.getChildAt(1).performClick());
+    assertTrue(ranges.getChildAt(4).performClick());
+    assertTrue("Week selection persists after returning to All",granularity.getChildAt(1).isSelected());
+    assertEquals("week",AppPreferences.get(c,"energy_chart_step",""));
     LinearLayout styles=(LinearLayout)panel.findViewWithTag("energy_style_controls");
     assertNotNull(styles);assertEquals(4,styles.getChildCount());
     assertTrue(styles.getChildAt(2).performClick());assertTrue(styles.getChildAt(2).isSelected());

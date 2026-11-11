@@ -48,7 +48,7 @@ final class ParkingWebPreview {
         settings.setUseWideViewPort(true);settings.setLoadWithOverviewMode(true);
         web.setFocusableInTouchMode(true);
       }
-      settings.setCacheMode(backdrop?WebSettings.LOAD_DEFAULT:WebSettings.LOAD_NO_CACHE);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+      settings.setCacheMode(WebSettings.LOAD_DEFAULT);settings.setSaveFormData(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
       settings.setSupportMultipleWindows(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setMediaPlaybackRequiresUserGesture(true);
       settings.setSafeBrowsingEnabled(true);if(Build.VERSION.SDK_INT>=33)settings.setAlgorithmicDarkeningAllowed(false);
       CookieManager.getInstance().setAcceptCookie(false);CookieManager.getInstance().setAcceptThirdPartyCookies(web,false);
@@ -67,9 +67,7 @@ final class ParkingWebPreview {
         @Override public void onPageStarted(WebView v,String url,Bitmap icon){if(!closed){failed=false;status.setVisibility(backdrop?View.GONE:View.VISIBLE);status.setText(AppPreferences.tr(context,"正在加载高德地图…","Loading Amap…"));}}
         @Override public void onPageFinished(WebView v,String url){if(!closed&&!failed){if(!backdrop)handler.removeCallbacks(timeout);status.setVisibility(View.GONE);
           if(allowedPage(Uri.parse(url))){
-            if(!backdrop)v.evaluateJavascript("(function(){document.documentElement.style.overflow='hidden';"
-                +"document.documentElement.style.overscrollBehavior='none';if(document.body){"
-                +"document.body.style.overflow='hidden';document.body.style.overscrollBehavior='none';}})();",null);
+            if(!backdrop)v.evaluateJavascript(compactScript(context),null);
             if(backdrop)v.evaluateJavascript(compactScript(context),null);
             if(MapAppearance.dark(context)&&!backdrop)v.evaluateJavascript("(function(){var s=document.createElement('style');s.textContent='html{background:#151a20!important}canvas,.amap-layer{filter:invert(.88) hue-rotate(180deg) brightness(.72) saturate(.55)!important}.common_bottom{background:#20262c!important;color:#dce2e7!important}';document.head.appendChild(s);})();",null);
             if(backdrop){styleBackdrop(.5f,.42f);startMapProbe();return;}
@@ -152,6 +150,7 @@ final class ParkingWebPreview {
   void close(){
     if(closed)return;closed=true;phoneRequestAllowed=false;handler.removeCallbacksAndMessages(null);
     if(web!=null){web.stopLoading();web.setWebChromeClient(null);web.setWebViewClient(new WebViewClient());web.loadUrl("about:blank");web.clearHistory();web.clearFormData();view.removeView(web);web.destroy();web=null;}
-    try{WebStorage.getInstance().deleteAllData();}catch(RuntimeException unavailable){/* Missing WebView provider keeps external links available. */}
+    // Per-page WebView is destroyed above; avoid globally clearing WebStorage
+    // on every map close, which blocked other web surfaces and caused I/O churn.
   }
 }

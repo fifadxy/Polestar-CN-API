@@ -35,25 +35,31 @@
     const precision = Number.isFinite(accuracy)&&accuracy>0 ? ' · ±'+Math.ceil(accuracy)+' m' : '';
     return (english?'Car ~':'距车约 ')+amount+precision;
   }
+  let activeRequest = 0;
   function show(parkLat,parkLon,english,enabled) {
+    const request = ++activeRequest;
     function label(message,attempt) {
-      // New keyless embed pages have no share-card. Show optional phone-distance
-      // as a small non-interactive overlay on the map, never above provider attribution.
-      const card=root.document.querySelector('.common_bottom .gallery_card_outer');
-      const box=card||root.document.querySelector('.amap-container')||root.document.body;
-      if (!box) { if(attempt<10)root.setTimeout(function(){label(message,attempt+1);},250);return; }
-      const old=card&&card.querySelector('.distance');if(old)old.style.display='none';
-      let text=box.querySelector('.psa-phone-distance');
-      if(!text){text=root.document.createElement('div');text.className='psa-phone-distance';box.appendChild(text);}
-      text.style.cssText=(card?'':'position:absolute;top:46px;left:8px;z-index:10;max-width:80%;background:#ffffffde;border-radius:5px;padding:0 5px;pointer-events:none;')+'font-size:11px;line-height:16px;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#626560';
+      if(request!==activeRequest)return;
+      const box=root.document.querySelector('.amap-container')||root.document.body;
+      if(!box){if(attempt<10)root.setTimeout(function(){label(message,attempt+1);},250);return;}
+      // No "location enabled/off" or locating banner: it obscured distance
+      // and sometimes overwrote a completed geolocation callback.
+      root.document.querySelectorAll('.psa-phone-distance').forEach(function(v){v.remove();});
+      if(message===null||message==='')return;
+      const text=root.document.createElement('div');
+      text.className='psa-phone-distance';
       text.textContent=message;
+      text.style.cssText='position:absolute;top:6px;right:8px;z-index:4000;max-width:calc(100% - 16px);'
+        +'background:#191d22ed;color:#fff;border-radius:6px;padding:4px 7px;'
+        +'font-size:12px;line-height:16px;white-space:nowrap;pointer-events:none;';
+      box.appendChild(text);
     }
-    if(!enabled){label(english?'Phone location off':'手机定位未开启',0);return;}
-    label(english?'Locating phone…':'正在定位手机…',0);
-    if(!root.navigator || !root.navigator.geolocation){label(format(null,null,english),0);return;}
+    label(null,0);
+    if(!enabled||!root.navigator||!root.navigator.geolocation)return;
     root.navigator.geolocation.getCurrentPosition(function(position){
-      label(format(measure(position.coords,{latitude:parkLat,longitude:parkLon}),position.coords.accuracy,english),0);
-    },function(){label(format(null,null,english),0);},{enableHighAccuracy:false,maximumAge:30000,timeout:8000});
+      const distance=measure(position.coords,{latitude:parkLat,longitude:parkLon});
+      if(Number.isFinite(distance))label(format(distance,position.coords.accuracy,english),0);
+    },function(){label(null,0);},{enableHighAccuracy:false,maximumAge:30000,timeout:8000});
   }
   const api={phoneToMap:phoneToMap,metres:metres,measure:measure,format:format,show:show};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PsaParkingDistance=api;

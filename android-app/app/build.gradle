@@ -51,6 +51,14 @@ android {
             applicationIdSuffix '.preview'
             matchingFallbacks = ['release']
         }
+        // Minify + shrink exactly as release, but keep the client asset out of
+        // public CI. Offline FULL signing inserts the private client resource.
+        optimizedValidation {
+            initWith release
+            debuggable true
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
     sourceSets {
         main.java.srcDir("../bridge-contract/src/main/java")

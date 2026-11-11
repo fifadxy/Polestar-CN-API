@@ -117,6 +117,30 @@ jobs:
           cp android-app/app/build/outputs/apk/debug/app-debug.apk PsAssistant-v1.2.9-VALIDATION-debug.apk
           cp android-app/oppoBridge/build/outputs/apk/debug/oppoBridge-debug.apk PsAssistant-OPPO-Bridge-1.2.9-debug.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" android-apksigner.jar
+      - name: Build minified and resource-shrunk validation package
+        working-directory: android-app
+        run: gradle --no-daemon --stacktrace :app:assembleOptimizedValidation
+      - name: Check optimized package size and no private client data
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          debug=Path('PsAssistant-v1.2.9-VALIDATION-debug.apk')
+          opt=Path('android-app/app/build/outputs/apk/optimizedValidation/app-optimizedValidation.apk')
+          assert opt.is_file(), 'Missing optimized APK'
+          assert opt.stat().st_size<debug.stat().st_size, 'Optimized APK is not smaller'
+          assert opt.stat().st_size<10_000_000, 'Optimized APK exceeds target'
+          with ZipFile(opt) as z:
+              assert z.testzip() is None
+              assert 'assets/client-signing.bin' not in z.namelist()
+              assert 'META-INF/xposed/java_init.list' in z.namelist(), 'LSPosed metadata missing'
+          print(f'Optimized: {opt.stat().st_size:,} bytes; reduction: {debug.stat().st_size-opt.stat().st_size:,} bytes')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PsAssistant-v1.2.9-OPTIMIZED-VALIDATION
+          path: android-app/app/build/outputs/apk/optimizedValidation/app-optimizedValidation.apk
+          if-no-files-found: error
       - name: Verify integrated module packaging
         run: |
           python3 - <<'PYCODE'

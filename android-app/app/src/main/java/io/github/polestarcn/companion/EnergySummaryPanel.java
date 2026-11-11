@@ -32,15 +32,15 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final HorizontalScrollView chartScroller;
   private final TextView[] groupTabs=new TextView[3], styleTabs=new TextView[3];
   private TextView valueLabelsToggle;
-  private int groupStep, chartStyle, compareDays, valueLabelsMode;
+  private int groupStep, preferredStep, chartStyle, compareDays, valueLabelsMode;
   private static final String LABELS_KEY="energy_chart_value_labels";
   private int trendRequest;
   private static final String GROUP_KEY="energy_chart_step",STYLE_KEY="energy_chart_style",TREND_KEY="energy_chart_compare_days";
   private TextView rateToggle;
-  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[4];
+  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[5];
   private boolean showPer100Km=true;
   private final Trend chart;
-  private int range = 1, metric = 0; // default: 7 days
+  private int range = 4, metric = 0; // default: all retained local observations
   private EnergyLog.Report currentHistory, history7;
   private long displayedSpanMillis=7L*86400000L;
   private long customStart, customEnd;
@@ -48,7 +48,7 @@ public final class EnergySummaryPanel extends LinearLayout {
   private static final String CUSTOM_DATE_KEY="energy_custom_start";
   private Double currentTmEnergy,tmAverage;
   private boolean chartExpanded = true;
-  private int generation;
+  private volatile int generation;
 
   public EnergySummaryPanel(Context context, VehicleSnapshot snapshot, String vehicleId) {
     super(context);
@@ -56,7 +56,8 @@ public final class EnergySummaryPanel extends LinearLayout {
     vehicle = EnergyLog.validVehicle(vehicleId) ? vehicleId : null;
     customStart=readCustomStart();
     customEnd=readCustomEnd();
-    groupStep=EnergyChartSeries.granularity(AppPreferences.get(context,GROUP_KEY,"day"));
+    preferredStep=EnergyChartSeries.granularity(AppPreferences.get(context,GROUP_KEY,"day"));
+    groupStep=EnergyChartSeries.effectiveGranularity(preferredStep,Math.max(1,EnergyLog.months(context)*31L));
     chartStyle=EnergyChartSeries.style(AppPreferences.get(context,STYLE_KEY,"bars"));
     compareDays=readCompareDays();
     valueLabelsMode=EnergyChartDisplay.mode(AppPreferences.get(context,LABELS_KEY,"latest"));
@@ -125,6 +126,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     rangeTabs[1]=modeTab(tr("7天", "7d"), () -> changeRange(1));
     rangeTabs[2]=modeTab(tr("31天", "31d"), () -> changeRange(2));
     rangeTabs[3]=modeTab(tr("自定义", "Custom"), this::customRangeDialog);
+    rangeTabs[4]=modeTab(tr("全部", "All"), () -> changeRange(4));
     for(int i=0;i<rangeTabs.length;i++){LayoutParams cell=new LayoutParams(0,dp(38),1);cell.setMargins(dp(2),0,dp(2),0);periods.addView(rangeTabs[i],cell);}
     periods.setTag("energy_range_periods");
     addView(periods);
@@ -276,7 +278,18 @@ public final class EnergySummaryPanel extends LinearLayout {
       message.setTextColor(muted);addView(message);
     }
   }
-  private void changeRange(int value) { range = value; refreshTabStyles(); load(); }
+  private long daysShown(){
+    if(range==0)return 3L;if(range==1)return 7L;if(range==2)return 31L;
+    if(range==4)return Math.max(31L,EnergyLog.months(context)*31L);
+    long now=System.currentTimeMillis();
+    return Math.max(1L,(Math.min(now,customEnd)-customStart)/86400000L+1);
+  }
+  private void changeRange(int value) {
+    range=value;
+    groupStep=EnergyChartSeries.effectiveGranularity(preferredStep,daysShown());
+    chart.setGrouping(groupStep);
+    refreshTabStyles();load();
+  }
   static long startOfDate(int year,int month,int day) {
     Calendar cal=Calendar.getInstance();cal.setLenient(false);cal.clear();cal.set(year,month-1,day,0,0,0);
     if(year<2000||year>2100)throw new IllegalArgumentException("year");
@@ -411,9 +424,10 @@ public final class EnergySummaryPanel extends LinearLayout {
     refreshTabStyles();
   }
   private void setGroupStep(int value) {
-    groupStep=value;
+    preferredStep=value;
     AppPreferences.set(context,GROUP_KEY,value==0?"day":value==1?"week":"month");
-    refreshTabStyles();chart.setGrouping(value);
+    groupStep=EnergyChartSeries.effectiveGranularity(value,daysShown());
+    refreshTabStyles();chart.setGrouping(groupStep);
   }
   private void setChartStyle(int value) {
     chartStyle=value;
@@ -473,14 +487,23 @@ public final class EnergySummaryPanel extends LinearLayout {
     }
     final int chosen=range;final long from=customStart,until=customEnd;
     final long now=System.currentTimeMillis();
-    final long first=chosen==0?now-3L*86400000L:chosen==1?now-7L*86400000L:chosen==2?now-31L*86400000L:from;
+    Calendar earliest=Calendar.getInstance();earliest.setTimeInMillis(now);
+    earliest.add(Calendar.MONTH,-EnergyLog.months(context));
+    final long first=chosen==0?now-3L*86400000L:chosen==1?now-7L*86400000L
+        :chosen==2?now-31L*86400000L:chosen==4?earliest.getTimeInMillis():from;
     displayedSpanMillis=Math.max(86400000L,(chosen==3?Math.min(now,until):now)-first);
-    final String periodLabel=chosen==0?tr("最近3天","Last 3 days"):chosen==1?tr("最近7天","Last 7 days"):chosen==2?tr("最近31天","Last 31 days")
+    final String periodLabel=chosen==0?tr("最近3天","Last 3 days"):chosen==1?tr("最近7天","Last 7 days")
+        :chosen==2?tr("最近31天","Last 31 days")
+        :chosen==4?tr("保留期内全部历史","All retained observations")
         :tr("自定义 ","Custom ")+formatDay(from)+" — "+formatDay(Math.min(now,until));
     EnergyLog.WORK.execute(() -> {
+      // Skip queued requests made obsolete by taps before starting a heavy scan.
+      if(request!=generation)return;
       try {
-        EnergyLog.Report result=chosen==3?EnergyLog.get(context).readBetween(vehicle,from,Math.min(until,System.currentTimeMillis()))
+        EnergyLog.Report result=chosen==4?EnergyLog.get(context).readRetention(vehicle)
+            :chosen==3?EnergyLog.get(context).readBetween(vehicle,from,Math.min(until,System.currentTimeMillis()))
             :EnergyLog.get(context).readRecentDays(vehicle,chosen==0?3:chosen==1?7:31);
+        if(request!=generation)return;
         EnergyLog.Report latest7=chosen==1?result:EnergyLog.get(context).readRecentDays(vehicle,7);
         post(() -> {
           if(request != generation || !isAttachedToWindow())return;
@@ -501,7 +524,7 @@ public final class EnergySummaryPanel extends LinearLayout {
           chart.update(result);
           updateDistanceSummary();
           chartScroller.post(()->chartScroller.fullScroll(View.FOCUS_RIGHT));
-          note.setText(tr("区间里程仅统计连续、合理的里程表增量；行驶与驻车空调电耗为估算值，费用按设置电价计算。", "Sampled distance counts plausible consecutive odometer changes. Driving and parked climate energy are estimates; cost uses your tariff."));
+          note.setText(tr("每日里程优先统计 TM 连续有效增量；重置、异常跳变和长时间缺测不补算。长区间自动按月/周汇总以减少资源开销。", "Daily mileage uses plausible consecutive TM changes; resets, jumps and gaps are excluded. Long ranges auto-group monthly/weekly for efficiency."));
         });
       } catch(Exception e) {
         post(() -> {if(request!=generation||!isAttachedToWindow())return;
@@ -533,27 +556,32 @@ public final class EnergySummaryPanel extends LinearLayout {
 
   private final class Trend extends View {
     private EnergyLog.Report report;
+    private List<EnergyChartSeries.Bin> bins=java.util.Collections.emptyList();
     private int selection,step=groupStep,style=chartStyle;
     private int labels=valueLabelsMode,focusedBar=-1;
     private float downX,downY;
     Trend(Context c){super(c);setTag("energy_chart_canvas");setMinimumWidth(dp(270));setClickable(true);}
-    void update(EnergyLog.Report value){report=value;focusedBar=-1;resize();invalidate();}
+    private void prepareBins(){
+      bins=report==null?java.util.Collections.emptyList():EnergyChartSeries.aggregate(report.points,step);
+    }
+    void update(EnergyLog.Report value){report=value;focusedBar=-1;prepareBins();resize();invalidate();}
     void setMetric(int index){selection=index;focusedBar=-1;invalidate();}
-    void setGrouping(int index){step=index;focusedBar=-1;resize();invalidate();}
+    void setGrouping(int index){step=index;focusedBar=-1;prepareBins();resize();invalidate();}
     void setStyle(int index){style=index;invalidate();}
     void setLabels(int value,int focus){labels=value;focusedBar=focus;resize();invalidate();}
     private void resize(){
-      int count=report==null?0:EnergyChartSeries.aggregate(report.points,step).size();
-      // When every bar has a numeric callout, give the labels enough real width
-      // instead of allowing them to overlap. Horizontal scrolling preserves all bins.
-      int perBar=labels==EnergyChartDisplay.ALL?72:23;
-      int minWidth=Math.max(dp(290),dp(Math.min(16000,Math.max(1,count)*perBar+72)));
+      int count=bins.size();
+      // ALL labels reserve a separate horizontal cell; the effective grouping
+      // bounds the bin count, while 8192 physical pixels caps GPU allocation.
+      int perBar=labels==EnergyChartDisplay.ALL?80:23;
+      int target=dp(Math.max(1,count)*perBar+72);
+      int maxPixels=Math.max(getResources().getDisplayMetrics().widthPixels,8192);
+      int minWidth=Math.max(dp(290),Math.min(maxPixels,target));
       setMinimumWidth(minWidth);android.view.ViewGroup.LayoutParams lp=getLayoutParams();
       if(lp!=null&&lp.width!=minWidth){lp.width=minWidth;setLayoutParams(lp);}
     }
     @Override protected void onDraw(Canvas canvas){
       super.onDraw(canvas);
-      List<EnergyChartSeries.Bin> bins=report==null?null:EnergyChartSeries.aggregate(report.points,step);
       double tariff=EnergyLog.price(context),unit=EnergyLog.perPercent(context);
       if((bins==null||bins.isEmpty())&&selection==0&&currentTmEnergy!=null){
         Paint paint=new Paint(3);float density=getResources().getDisplayMetrics().density;
@@ -592,7 +620,6 @@ public final class EnergySummaryPanel extends LinearLayout {
     }
     @Override public boolean performClick(){
       super.performClick();
-      List<EnergyChartSeries.Bin> bins=report==null?null:EnergyChartSeries.aggregate(report.points,step);
       if(bins==null||bins.isEmpty()){
         if(labels==EnergyChartDisplay.HIDDEN)selectChartBar(-1);else hideChartLabels();
         return true;

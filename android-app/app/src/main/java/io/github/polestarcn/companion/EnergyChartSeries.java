@@ -29,6 +29,12 @@ final class EnergyChartSeries {
   private EnergyChartSeries(){}
   static int granularity(String value){return "week".equals(value)?WEEKLY:"month".equals(value)?MONTHLY:DAILY;}
   static int style(String value){return "curve".equals(value)?CURVE:"both".equals(value)?BOTH:BARS;}
+  /** Bound on-screen bins to ~31 slots for legible ALL-value labels and GPU safety.
+   * Full retained history is monthly, medium custom ranges are weekly. */
+  static int effectiveGranularity(int requested,long days){
+    int minimum=days>210?MONTHLY:days>31?WEEKLY:DAILY;
+    return Math.max(minimum,Math.max(DAILY,Math.min(MONTHLY,requested)));
+  }
   static long key(long timestamp,int granularity){
     Calendar c=Calendar.getInstance();c.setTimeInMillis(timestamp);
     c.set(Calendar.HOUR_OF_DAY,0);c.set(Calendar.MINUTE,0);c.set(Calendar.SECOND,0);c.set(Calendar.MILLISECOND,0);

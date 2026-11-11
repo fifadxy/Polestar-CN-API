@@ -34,6 +34,13 @@ public final class EnergyLog extends SQLiteOpenHelper {
  public synchronized void prune(){prune(getWritableDatabase());}public synchronized void clear(){getWritableDatabase().delete("samples",null,null);getWritableDatabase().execSQL("VACUUM");try(Cursor checkpoint=getWritableDatabase().rawQuery("PRAGMA wal_checkpoint(TRUNCATE)",null)){checkpoint.moveToFirst();}}
  public static final class Point{public long t;public Double soc,cons,speed;public double ac,drive,distanceKm;public int count;}
  public static final class Report{public final List<Point> points=new ArrayList<>();public double ac,drive,distanceKm;public int count;}
+ /** The full retained interval is the default chart range. Returns at most 24 monthly
+  * points while streaming raw rows on the single background worker; no UI row list. */
+ public synchronized Report readRetention(String vehicle){
+  long now=System.currentTimeMillis();Calendar first=Calendar.getInstance();
+  first.setTimeInMillis(now);first.add(Calendar.MONTH,-months(c));
+  return readWindow(vehicle,2,first.getTimeInMillis(),now,2678400000L);
+ }
  public synchronized Report read(String vehicle,int range){return read(vehicle,range,System.currentTimeMillis());}
  public synchronized Report read(String vehicle,int range,long until){long now=Math.min(until,System.currentTimeMillis());Calendar cal=Calendar.getInstance();cal.setTimeInMillis(now);long bucket;
   if(range==0){cal.add(Calendar.DAY_OF_YEAR,-7);bucket=43200000L;}else if(range==1){cal.add(Calendar.DAY_OF_YEAR,-31);bucket=86400000L;}else if(range==2){cal.add(Calendar.MONTH,-12);bucket=2678400000L;}else{cal.add(Calendar.MONTH,-24);bucket=31622400000L;}
@@ -51,21 +58,68 @@ public final class EnergyLog extends SQLiteOpenHelper {
   start=Math.max(start,retained.getTimeInMillis());
   if(start<=0||start>now)return new Report();
   long span=now-start;
-  return readWindow(vehicle,-1,start,now,span<=7L*86400000L?43200000L:86400000L);
+  // Long custom ranges are summarized by month, rather than materializing
+  // hundreds of daily buckets before the chart's own grouping pass.
+  return span>210L*86400000L
+      ?readWindow(vehicle,2,start,now,2678400000L)
+      :readWindow(vehicle,-1,start,now,span<=7L*86400000L?43200000L:86400000L);
  }
+
+ /** TM odometer is the primary source for daily distance. Never count trip resets
+  * as negative mileage or backfill an unknown gap. Fallback to total odometer
+  * only if either TM reading is absent. */
+ static double distanceIncrement(Double lastTm,Double tm,Double lastOdo,Double odo,long intervalMillis){
+  if(intervalMillis<=0||intervalMillis>3600000L)return 0;
+  Double delta=null;
+  if(lastTm!=null&&tm!=null&&Double.isFinite(lastTm)&&Double.isFinite(tm))
+    delta=tm-lastTm;
+  else if(lastOdo!=null&&odo!=null&&Double.isFinite(lastOdo)&&Double.isFinite(odo))
+    delta=odo-lastOdo;
+  if(delta==null||!Double.isFinite(delta)||delta<=0)return 0;
+  double plausible=200.0*intervalMillis/3600000.0+0.1;
+  return delta<=plausible?delta:0;
+ }
+
  private Report readWindow(String vehicle,int range,long start,long now,long bucket){
-  prune(getWritableDatabase());
-  Report out=new Report();Map<Long,Point> grouped=new LinkedHashMap<>();Double lastOdo=null,lastTm=null;long lastSampleAt=0;try(Cursor r=getReadableDatabase().rawQuery("SELECT t,soc,cons,speed,ac,drive,acvalid,odo,tm FROM samples WHERE vehicle=? AND t>=? AND t<=? ORDER BY t",new String[]{vehicle,""+start,""+now})){while(r.moveToNext()){long t=r.getLong(0);long key;
-    if(range>=2){Calendar date=Calendar.getInstance();date.setTimeInMillis(t);key=range==2?date.get(Calendar.YEAR)*12L+date.get(Calendar.MONTH):date.get(Calendar.YEAR);}else key=(t+TimeZone.getDefault().getOffset(t))/bucket;
-     Double currentOdo=number(r,7),currentTm=number(r,8);
-     double increment=0;
-     if(lastSampleAt>0&&t>lastSampleAt&&t-lastSampleAt<=3600000L){
-       Double delta=currentOdo!=null&&lastOdo!=null?currentOdo-lastOdo:
-           currentTm!=null&&lastTm!=null?currentTm-lastTm:null;
-       double plausibleLimit=200.0*(t-lastSampleAt)/3600000.0+0.1;
-       if(delta!=null&&Double.isFinite(delta)&&delta>0&&delta<=plausibleLimit)increment=delta;
-     }
-     lastOdo=currentOdo;lastTm=currentTm;lastSampleAt=t;
-     Point p=grouped.get(key);if(p==null){p=new Point();grouped.put(key,p);}p.t=t;p.distanceKm+=increment;out.distanceKm+=increment;if(r.getInt(6)==1)p.soc=number(r,1);p.cons=number(r,2);p.speed=number(r,3);p.ac+=r.getDouble(4);p.drive+=r.getDouble(5);p.count++;out.ac+=r.getDouble(4);out.drive+=r.getDouble(5);out.count++;}}
-  out.points.addAll(grouped.values());return out;}
+  Report out=new Report();
+  if(vehicle==null||vehicle.isEmpty()||start>now)return out;
+  // Reads never prune the database: daily/288-insertion maintenance already does
+  // that in append(). Avoid a blocking write-lock/VACUUM on every graph tap.
+  SQLiteDatabase db=getReadableDatabase();
+  Map<Long,Point> grouped=new LinkedHashMap<>();
+  Double lastOdo=null,lastTm=null;long lastSampleAt=0;
+  // Seed the first boundary from a preceding sample, but only a <=1h gap
+  // can contribute distance. This avoids losing the first leg of a day.
+  try(Cursor prev=db.rawQuery("SELECT t,odo,tm FROM samples WHERE vehicle=? AND t<? ORDER BY t DESC LIMIT 1",
+      new String[]{vehicle,Long.toString(start)})){
+    if(prev.moveToFirst()){lastSampleAt=prev.getLong(0);lastOdo=number(prev,1);lastTm=number(prev,2);}
+  }
+  Calendar month=Calendar.getInstance();TimeZone local=TimeZone.getDefault();
+  try(Cursor rows=db.rawQuery(
+      "SELECT t,soc,cons,speed,ac,drive,acvalid,odo,tm FROM samples "
+      +"WHERE vehicle=? AND t>=? AND t<=? ORDER BY t",
+      new String[]{vehicle,Long.toString(start),Long.toString(now)})){
+    while(rows.moveToNext()){
+      long time=rows.getLong(0),key;
+      if(range>=2){
+        month.setTimeInMillis(time);
+        key=range==2?month.get(Calendar.YEAR)*12L+month.get(Calendar.MONTH):month.get(Calendar.YEAR);
+      }else key=(time+local.getOffset(time))/bucket;
+      Double odo=number(rows,7),tm=number(rows,8);
+      double km=distanceIncrement(lastTm,tm,lastOdo,odo,time-lastSampleAt);
+      lastOdo=odo;lastTm=tm;lastSampleAt=time;
+      Point point=grouped.get(key);
+      if(point==null){point=new Point();grouped.put(key,point);}
+      point.t=time;
+      point.distanceKm+=km;out.distanceKm+=km;
+      if(rows.getInt(6)==1)point.soc=number(rows,1);
+      point.cons=number(rows,2);point.speed=number(rows,3);
+      double air=rows.getDouble(4),drive=rows.getDouble(5);
+      point.ac+=air;point.drive+=drive;point.count++;
+      out.ac+=air;out.drive+=drive;out.count++;
+    }
+  }
+  out.points.addAll(grouped.values());
+  return out;
+ }
 }

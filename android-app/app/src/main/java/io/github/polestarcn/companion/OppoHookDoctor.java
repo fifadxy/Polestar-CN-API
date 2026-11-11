@@ -47,7 +47,7 @@ final class OppoHookDoctor {
   static String diagnosis(Context c){
     StringBuilder out=new StringBuilder("PsAssistant LSPosed Auto Diagnosis v1\n");
     out.append("App=").append(BuildConfig.VERSION_NAME).append(" Bridge=")
-        .append(io.github.polestarcn.oppobridge.BridgeBuild.VERSION_NAME)
+        .append("2.7.1")
         .append(" Android=").append(Build.VERSION.SDK_INT).append('\n');
     out.append("Device=").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append('\n');
     out.append("Mode=").append(io.github.polestarcn.oppobridge.BridgeSettings.localSnapshot(c)

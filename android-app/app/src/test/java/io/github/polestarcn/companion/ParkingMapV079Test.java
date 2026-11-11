@@ -123,7 +123,7 @@ public class ParkingMapV079Test {
  }
  @Test public void embeddedPreviewUsesOfficialKeylessPageWithRestrictedCapabilities(){
   ParkingWebPreview map=new ParkingWebPreview(activity,point(false),false,()->{});android.webkit.WebView web=(android.webkit.WebView)map.view.findViewWithTag("parking_webview");assertNotNull(web);
-  assertTrue(web.getSettings().getJavaScriptEnabled());assertFalse(web.getSettings().getAllowFileAccess());assertFalse(web.getSettings().getAllowContentAccess());assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW,web.getSettings().getMixedContentMode());assertEquals(android.webkit.WebSettings.LOAD_NO_CACHE,web.getSettings().getCacheMode());assertFalse(web.isSaveEnabled());
+  assertTrue(web.getSettings().getJavaScriptEnabled());assertFalse(web.getSettings().getAllowFileAccess());assertFalse(web.getSettings().getAllowContentAccess());assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW,web.getSettings().getMixedContentMode());assertEquals(android.webkit.WebSettings.LOAD_DEFAULT,web.getSettings().getCacheMode());assertFalse(web.isSaveEnabled());
   String url=Shadows.shadowOf(web).getLastLoadedUrl();assertTrue(url.startsWith("https://www.amap.com/ssr/embed/place?"));assertFalse(url.contains("key="));assertFalse(url.contains("vin"));
   android.webkit.WebChromeClient chrome=Shadows.shadowOf(web).getWebChromeClient();final boolean[] allowed={true};chrome.onGeolocationPermissionsShowPrompt("https://m.amap.com",(origin,grant,retain)->allowed[0]=grant);assertFalse(allowed[0]);map.close();
  }

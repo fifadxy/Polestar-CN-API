@@ -27,16 +27,26 @@ public final class RefreshPolicy {
  public static boolean mapBackground(Context c){return AppPreferences.visible(c,"map_refresh_background",false)&&VehiclePowerPolicy.automaticReads(c);}
  public static int activeMinutes(Context c,RefreshDomain group,boolean foreground,VehicleSnapshot state){
    switch(group){
-     case CORE: return foreground?foreground(c):minutes(c,"app_background_minutes",60,0,15,30,60,120,240);
+     case CORE:
+       int normal=foreground?foreground(c):minutes(c,"app_background_minutes",60,0,15,30,60,120,240);
+       if(normal<=0)return 0;
+       if(ActiveVehicleRuntime.working(c,state)){
+         int boost=ActiveVehicleRuntime.charging(state)?(foreground?5:30):(foreground?2:15);
+         // Multiple active scenes use the faster climate/purifier/camp cadence.
+         if(state!=null&&(ActiveVehicleRuntime.climate(state.climate)||ActiveVehicleRuntime.air(state.air))
+             ||CampModeManager.active(c))boost=foreground?2:15;
+         return Math.min(normal,boost);
+       }
+       return normal;
      case CLIMATE:
-       return state!=null&&"开启".equals(state.climate)?
+       return state!=null&&ActiveVehicleRuntime.climate(state.climate)?
            (foreground?minutes(c,"refresh_climate_foreground",2,0,1,2,5,10,15):minutes(c,"refresh_climate_background",15,0,15,30,60,120)):0;
      case CHARGING:
        return state!=null&&ChargingVisibility.shouldShow(state)?
            (foreground?minutes(c,"refresh_charge_foreground",5,0,2,5,10,15):minutes(c,"refresh_charge_background",30,0,15,30,60,120)):0;
      case AIR:
        if(!"periodic".equals(AppPreferences.get(c,"refresh_air_policy","event")))return 0;
-       return state!=null&&"开启".equals(state.air)?(foreground?5:30):0;
+       return state!=null&&ActiveVehicleRuntime.air(state.air)?(foreground?5:30):0;
      case HEALTH: return foreground?minutes(c,"refresh_health_foreground",30,0,10,30,60,120):minutes(c,"refresh_health_background",120,0,60,120,240,720);
      case MAINTENANCE: return foreground?minutes(c,"refresh_maintenance_foreground",120,0,60,120,360,720):minutes(c,"refresh_maintenance_background",720,0,120,360,720,1440);
      case MILEAGE: return foreground?minutes(c,"refresh_mileage_foreground",10,0,5,10,15,30,60):minutes(c,"refresh_mileage_background",60,0,30,60,120,240);

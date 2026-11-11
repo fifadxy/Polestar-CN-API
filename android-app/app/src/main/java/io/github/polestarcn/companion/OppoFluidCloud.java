@@ -257,7 +257,7 @@ public final class OppoFluidCloud {
   }
   private static void syncOngoing(Context c,VehicleSnapshot s,boolean genuine){
     String vehicle=AppPreferences.get(c,"vehicle","");long now=System.currentTimeMillis();
-    if("开启".equals(s.climate)){
+    if(ActiveVehicleRuntime.climate(s.climate)){
       Integer remaining=ClimateRuntime.remainingMinutes(s,now);
       if(remaining==null){long local=ClimateRuntime.estimatedRemaining(c,vehicle,now);if(local>0)remaining=(int)((local+59999)/60000);}
       boolean valid=remaining!=null&&remaining>0;
@@ -265,7 +265,7 @@ public final class OppoFluidCloud {
       showActive(c,"climate",true,valid?tr(c,"空调剩余 ","Climate left ")+remaining+"m":tr(c,"空调运行 · 时间待核实","Climate running · time unverified"),
           valid?tr(c,"空调"+remaining+"m","AC "+remaining+"m"):tr(c,"空调","AC"),ends,"climate-stop","climate-start");
     }else showActive(c,"climate",false,"","",0,null,null);
-    if("开启".equals(s.air)){
+    if(ActiveVehicleRuntime.air(s.air)){
       Long left=AirRuntime.remaining(c,s,vehicle,now);int minutes=left==null?-1:(int)((left+59999)/60_000L);
       showActive(c,"air",true,minutes>0?tr(c,"净化剩余 ","Purification left ")+minutes+"m":tr(c,"净化运行 · 时间待核实","Purification active · time unverified"),
           minutes>0?tr(c,"净化"+minutes+"m","AIR "+minutes+"m"):tr(c,"净化","AIR"),
@@ -280,7 +280,7 @@ public final class OppoFluidCloud {
       OppoFluidScene status=new OppoFluidScene("status",tr(c,"Polestar 车况","Polestar status"),
           VehicleSnapshot.metric(s.batteryPercent,"%")+" · "+VehicleSnapshot.metric(s.rangeKm,"km"),tr(c,"车况","STATUS"),false,0,
           "已上锁".equals(s.lock)||"已锁".equals(s.lock)?"unlock":"lock",
-          "开启".equals(s.climate)?"climate-stop":"climate-start",false);
+          ActiveVehicleRuntime.climate(s.climate)?"climate-stop":"climate-start",false);
       maybeNotify(c,status);
     }
   }
@@ -317,14 +317,12 @@ public final class OppoFluidCloud {
   private static void maybeNotify(Context c,OppoFluidScene scene){
     if(!OppoFluidPolicy.notify(c,scene.id))return;
     String path="v1";
-    if(OppoFluidPolicy.cloud(c,scene.id)){
-      if(scene.synthetic)path=OppoFluidPolicy.path(c);
-      else if("camp".equals(scene.id)&&CampModeManager.active(c))path=OppoFluidPolicy.path(c);
-      else if("climate".equals(scene.id)||"air".equals(scene.id)){
-        long started=store(c).getLong("self_started_"+scene.id,0),now=System.currentTimeMillis();
-        if(started>0&&now>=started&&now-started<120*60_000L)path=OppoFluidPolicy.path(c);
-      }
-    }
+    // Any *live* running climate, purifier, camping or charging state requests
+    // a fluid-compatible ongoing display. This does not claim OEM serviceId approval.
+    if(OppoFluidPolicy.cloud(c,scene.id)
+        &&(scene.synthetic||"climate".equals(scene.id)||"air".equals(scene.id)
+            ||"camp".equals(scene.id)||"charging".equals(scene.id)))
+      path=OppoFluidPolicy.path(c);
     String signature=scene.title+"|"+scene.detail+"|"+scene.firstAction+"|"+scene.secondAction+"|"+
         OppoFluidPolicy.level(c)+"|"+OppoFluidPolicy.style(c)+"|"+path+"|"+OppoFluidPolicy.action(c,scene.id);
     String key="active_sig_"+scene.id;

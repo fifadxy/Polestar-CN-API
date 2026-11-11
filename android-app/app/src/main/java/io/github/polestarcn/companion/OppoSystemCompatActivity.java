@@ -214,9 +214,9 @@ public final class OppoSystemCompatActivity extends Activity {
     button(tr("OPPO Watch 手机端 Indicator 诊断","Phone-side Watch Indicator diagnostics"),
         ()->info("OPPO Watch Indicator · Phone",OppoWatchIndicatorLab.diagnostics(this)
           +"\n\n提示：已按 Beta46 1B 方案仅保留主 APK 手机端通知实验，未在手表安装应用。"));
-    header(tr("流体云实验总设置","Fluid Cloud master controls"),tr("默认关闭；打开后才发送兼容通知。颜色采用主程序 VI 橙色。","Off by default. Compatible notifications use the VI orange accent."));
+    header(tr("流体云自动运行","Automatic Fluid Cloud"),tr("空调制冷/制热、露营、净化、充电默认开启。可单独关闭；系统通知权限与 OPPO 实际支持仍决定是否展示胶囊。","Active climate/camp/purification/charging are on by default. The OS controls capsule availability."));
     toggle(tr("启用 OPPO 流体云与车况通知","Enable Fluid Cloud/vehicle notifications"),
-      tr("关闭将撤销所有本功能产生的通知","Off cancels all notices from this feature"),OppoFluidPolicy.MASTER,false,
+      tr("关闭将撤销所有本功能产生的通知","Off cancels all notices from this feature"),OppoFluidPolicy.MASTER,true,
       ()->{if(!OppoFluidPolicy.enabled(this))OppoFluidCloud.cancelAll(this);draw();});
     choose(tr("兼容通道","Compatibility route"),OppoFluidPolicy.PATH,
       new String[]{"auto","v1","v2"},new String[]{tr("自动选择","Auto"),tr("1.0 标准通知兼容","1.0 notification"),tr("2.0 Android 16 实时动态请求","2.0 Android 16 live update")},"auto");

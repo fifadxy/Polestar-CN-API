@@ -64,7 +64,7 @@ public final class OppoAdaptiveRefresh {
     return now>0&&until>=now&&until-now<=2*60_000L;
   }
   public static boolean running(Context c,VehicleSnapshot s){
-    return s!=null&&("开启".equals(s.climate)||"开启".equals(s.air)||CampModeManager.active(c));
+    return ActiveVehicleRuntime.working(c,s);
   }
   /** Milliseconds, allowing sub-minute foreground reads only during a bounded lock boost. */
   public static long ttl(Context c,RefreshDomain domain,boolean front,VehicleSnapshot state,
@@ -77,11 +77,14 @@ public final class OppoAdaptiveRefresh {
       else if(running(c,state)||featureBoostActive(c,vin,now))
         requested=activeMinutes(c,front)*60_000L;
       period=period<=0?requested:Math.min(period,requested);
-    }else if(domain==RefreshDomain.CLIMATE && state!=null&&"开启".equals(state.climate)){
+    }else if(domain==RefreshDomain.CLIMATE && state!=null&&ActiveVehicleRuntime.climate(state.climate)){
       long requested=activeMinutes(c,front)*60_000L;
       period=period<=0?requested:Math.min(period,requested);
-    }else if(domain==RefreshDomain.AIR && state!=null&&"开启".equals(state.air)){
+    }else if(domain==RefreshDomain.AIR && state!=null&&ActiveVehicleRuntime.air(state.air)){
       long requested=activeMinutes(c,front)*60_000L;
+      period=period<=0?requested:Math.min(period,requested);
+    }else if(domain==RefreshDomain.CHARGING&&ActiveVehicleRuntime.charging(state)){
+      long requested=(front?5:30)*60_000L;
       period=period<=0?requested:Math.min(period,requested);
     }else if(domain==RefreshDomain.CLIMATE&&featureBoostActive(c,vin,now)){
       long requested=activeMinutes(c,front)*60_000L;

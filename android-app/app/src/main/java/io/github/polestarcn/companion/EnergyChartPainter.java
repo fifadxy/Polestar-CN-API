@@ -13,6 +13,12 @@ import java.util.Locale;
 /** VI chart renderer. Unobserved periods stay gaps; axes and callouts are display-only. */
 final class EnergyChartPainter {
   private EnergyChartPainter(){}
+  // Geometry is testable without Canvas. Rectangles sharing only an edge
+  // do not count as occluding each other.
+  static boolean intersects(float ax0,float ay0,float ax1,float ay1,
+      float bx0,float by0,float bx1,float by1){
+    return ax0<bx1&&ax1>bx0&&ay0<by1&&ay1>by0;
+  }
   private static final int ORANGE=PsaDesign.ORANGE, LIGHT=Color.rgb(255,163,85);
   static float plotLeft(float density){return 59f*Math.max(.5f,density);}
   static float plotRight(float density){return 13f*Math.max(.5f,density);}
@@ -73,22 +79,46 @@ final class EnergyChartPainter {
       if(last>=0)canvas.drawPath(path,p);
     }
     if(!backdrop&&labelMode!=EnergyChartDisplay.HIDDEN){
-      // Each label is a real value at its own bucket. A short VI leader makes it readable.
+      // LATEST displays the last truly observed bucket. ALL keeps a label per
+      // observed bar and reserves enough horizontal space in Trend.resize().
       int[] marked=EnergyChartDisplay.annotated(values,labelMode,focusedBar);
-      p.setStyle(Paint.Style.FILL);p.setColor(ORANGE);p.setAlpha(255);
-      p.setTextSize(9*d);p.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+      p.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+      p.setTextSize(9*d);
+      RectF previous=null;
       for(int index:marked){
         float x=left+(index+.5f)*cell;
         float topOfBar=top+chartH-(float)(values[index]/axisMax*chartH);
-        float textY=Math.max(11*d,topOfBar-17*d);
-        float tipY=Math.max(textY+4*d,topOfBar-2*d);
-        p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.1f*d);
-        canvas.drawLine(x,tipY,x,topOfBar,p);
-        p.setStyle(Paint.Style.FILL);canvas.drawCircle(x,topOfBar,1.8f*d,p);
         String value=EnergyChartDisplay.value(metric,values[index],Locale.getDefault());
         float width=p.measureText(value);
         float labelX=Math.max(left,Math.min(left+chartW-width,x-width*.5f));
-        canvas.drawText(value,labelX,textY,p);
+        float baseline=Math.max(12*d,topOfBar-12*d);
+        RectF label=new RectF(labelX-2*d,baseline-10*d,labelX+width+2*d,baseline+3*d);
+        if(previous!=null&&RectF.intersects(label,previous)){
+          // Fallback lanes live above the plot; no bar or prior label hides them.
+          baseline=(index%2==0?13f:28f)*d;
+          label.set(labelX-2*d,baseline-10*d,labelX+width+2*d,baseline+3*d);
+        }
+        boolean barOverlap=false;
+        if(chartStyle!=EnergyChartSeries.CURVE){
+          for(int j=0;j<values.length;j++){
+            if(!EnergyChartDisplay.valid(values[j])||values[j]<=0)continue;
+            float hBar=(float)(values[j]/axisMax*chartH),barX=left+(j+.15f)*cell;
+            if(intersects(label.left,label.top,label.right,label.bottom,
+                barX,top+chartH-hBar,barX+cell*.7f,top+chartH)){barOverlap=true;break;}
+          }
+        }
+        // A dark opaque pill + white text is readable above *any* VI orange
+        // bar. Non-overlapping labels use the specified VI orange.
+        p.setStyle(Paint.Style.STROKE);p.setColor(ORANGE);p.setAlpha(255);p.setStrokeWidth(1.1f*d);
+        if(baseline+3*d<topOfBar-2*d)canvas.drawLine(x,baseline+3*d,x,topOfBar-2*d,p);
+        p.setStyle(Paint.Style.FILL);
+        if(barOverlap){
+          p.setColor(Color.rgb(32,35,39));
+          canvas.drawRoundRect(label,2*d,2*d,p);
+          p.setColor(Color.WHITE);
+        }else p.setColor(ORANGE);
+        canvas.drawText(value,labelX,baseline,p);
+        previous=label;
       }
       p.setTypeface(null);
     }

@@ -145,6 +145,62 @@ public final class OppoSystemCompatActivity extends Activity {
         .setSingleChoiceItems(titles,index(values,now),(d,w)->{d.dismiss();updateBridgeMode("rpkCompatibilityMode",values[w]);})
         .setNegativeButton(tr("取消","Cancel"),null).show();
   }
+  private void autoDiagnoseAndShare(){
+    final android.app.ProgressDialog progress=new android.app.ProgressDialog(this);
+    progress.setMessage(tr("正在检测 Hook、Host、RPK 与桥接状态…","Checking hooks, hosts and RPK…"));
+    progress.setCancelable(false);progress.show();
+    new Thread(()->{
+      String result;java.io.File file=null;
+      try{
+        result=OppoHookDoctor.diagnosis(getApplicationContext());
+        file=OppoHookDoctor.export(getApplicationContext(),result);
+      }catch(Exception error){result="自动诊断失败："+error.getClass().getSimpleName();}
+      final java.io.File report=file;
+      final String text=result;
+      runOnUiThread(()->{
+        if(isFinishing()||isDestroyed())return;
+        progress.dismiss();
+        if(report==null){info(tr("诊断失败","Diagnosis failed"),text);return;}
+        new AlertDialog.Builder(this)
+            .setTitle(tr("诊断完成 · 已脱敏","Redacted diagnosis ready"))
+            .setMessage(text.length()>9500?text.substring(0,9500)+"\n…":text)
+            .setPositiveButton(tr("导出给 ChatGPT","Share to ChatGPT"),(d,w)->{
+              try{
+                android.net.Uri uri=androidx.core.content.FileProvider.getUriForFile(this,
+                    getPackageName()+".oppoexports",report);
+                Intent send=new Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_STREAM,uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(Intent.createChooser(send,tr("分享 LSPosed 诊断报告","Share LSPosed diagnosis")));
+              }catch(RuntimeException ex){info(tr("分享失败","Share unavailable"),ex.getClass().getSimpleName());}
+            }).setNegativeButton(tr("关闭","Close"),null).show();
+      });
+    },"psa-oppo-diagnostic").start();
+  }
+  private void restartRelatedHosts(){
+    StringBuilder names=new StringBuilder();
+    for(String name:OppoHookDoctor.HOSTS)names.append("• ").append(name).append('\n');
+    new AlertDialog.Builder(this)
+      .setTitle(tr("一键重启 OPPO 相关进程","Restart selected OPPO hosts"))
+      .setMessage(tr("仅向以下实际运行的宿主进程发送 TERM；不会重启整台手机、SystemUI 或 PsAssistant，也不会删除用户数据。Root 管理器可能弹出授权。\n\n",
+          "Only running allowlisted host processes receive TERM; no device/SystemUI/app reboot and no data deletion. Root permission may be requested.\n\n")+names)
+      .setPositiveButton(tr("确认重启","Restart"),(d,w)->{
+        final android.app.ProgressDialog progress=new android.app.ProgressDialog(this);
+        progress.setCancelable(false);
+        progress.setMessage(tr("正在重启相关进程…","Restarting matching hosts…"));
+        progress.show();
+        new Thread(()->{
+          String status=OppoHookProcessManager.restart();
+          runOnUiThread(()->{
+            if(isFinishing()||isDestroyed())return;
+            progress.dismiss();
+            info(tr("进程重启结果","Restart result"),status+"\n\n"+
+                tr("重新打开设备空间、负一屏、CarLink 后，点击自动诊断即可确认 Hook 是否重新加载。",
+                   "Open MyDevices, AssistantScreen or CarLink and run automatic diagnosis again."));
+          });
+        },"psa-oppo-host-restart").start();
+      }).setNegativeButton(tr("取消","Cancel"),null).show();
+  }
   private void modeDiagnostics(){
     String mode=selectedMode();
     String report="已选择 / Selected: "+mode+"\n"
@@ -199,6 +255,8 @@ public final class OppoSystemCompatActivity extends Activity {
       tr("当前选择与宿主已生效模式分别展示，默认为稳定版。","Selected and actually installed host mode are shown separately."));
     button(tr("模块模式","Module mode")+" · "+selectedMode().toUpperCase(java.util.Locale.ROOT),this::bridgeModeChoice);
     button(tr("MyDevices RPK 校验策略","RPK validation")+" · "+bridgeModeSnapshot().getString("rpkCompatibilityMode","exact"),this::rpkModeChoice);
+    button(tr("自动诊断并导出脱敏报告","Auto diagnosis + export redacted report"),this::autoDiagnoseAndShare);
+    button(tr("一键重启全部相关 OPPO 进程（Root）","Restart related OPPO host processes (Root)"),this::restartRelatedHosts);
     button(tr("查看 Hook 实际生效与重启状态","Show effective modes / restart status"),this::modeDiagnostics);
     button(tr("一键检测 NEW / 稳定 / Mock 各项链路","Run complete read-only mode diagnostics"),this::runModeTest);
     button(tr("单测：设备卡片 / MyDevices","Test: MyDevices host"),()->modePartTest("host-status"));

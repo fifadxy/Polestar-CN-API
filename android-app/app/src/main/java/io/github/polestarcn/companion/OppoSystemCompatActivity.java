@@ -214,10 +214,11 @@ public final class OppoSystemCompatActivity extends Activity {
     button(tr("OPPO Watch 手机端 Indicator 诊断","Phone-side Watch Indicator diagnostics"),
         ()->info("OPPO Watch Indicator · Phone",OppoWatchIndicatorLab.diagnostics(this)
           +"\n\n提示：已按 Beta46 1B 方案仅保留主 APK 手机端通知实验，未在手表安装应用。"));
-    header(tr("流体云实验总设置","Fluid Cloud master controls"),tr("默认关闭；打开后才发送兼容通知。颜色采用主程序 VI 橙色。","Off by default. Compatible notifications use the VI orange accent."));
+    header(tr("流体云运行态默认设置","Fluid Cloud running state defaults"),
+      tr("制冷/制热、净化、露营、充电时默认启用；手动关闭和通知权限始终优先。","On for HVAC, air, camping and charging; explicit off and notification permission win."));
     toggle(tr("启用 OPPO 流体云与车况通知","Enable Fluid Cloud/vehicle notifications"),
-      tr("关闭将撤销所有本功能产生的通知","Off cancels all notices from this feature"),OppoFluidPolicy.MASTER,false,
-      ()->{if(!OppoFluidPolicy.enabled(this))OppoFluidCloud.cancelAll(this);draw();});
+      tr("关闭将撤销所有本功能产生的通知","Off cancels all notices from this feature"),OppoFluidPolicy.MASTER,true,
+      ()->{if(!OppoFluidPolicy.enabled(this))OppoFluidCloud.cancelAll(this);else OppoFluidCloud.updateFromCache(this);draw();});
     choose(tr("兼容通道","Compatibility route"),OppoFluidPolicy.PATH,
       new String[]{"auto","v1","v2"},new String[]{tr("自动选择","Auto"),tr("1.0 标准通知兼容","1.0 notification"),tr("2.0 Android 16 实时动态请求","2.0 Android 16 live update")},"auto");
     choose(tr("显示密度","Display density"),OppoFluidPolicy.STYLE,new String[]{"simple","full"},
@@ -265,7 +266,7 @@ public final class OppoSystemCompatActivity extends Activity {
     });
     button(tr("恢复 OPPO 流体云默认设置","Restore Fluid Cloud defaults"),()->new AlertDialog.Builder(this)
       .setTitle(tr("恢复默认","Reset defaults"))
-      .setMessage(tr("这会关闭本功能并清除本功能的通知，不会删除账号、车辆或 LSPosed 设置。","Disables Fluid Cloud and clears its notifications without affecting account, vehicle or LSPosed settings."))
+      .setMessage(tr("恢复运行中场景的默认流体云设置；不会删除账号、车辆或 LSPosed 配置。","Restores active-scene cloud defaults without changing account, vehicle or LSPosed settings."))
       .setPositiveButton(tr("恢复","Reset"),(d,w)->{OppoFluidPolicy.reset(this);OppoFluidCloud.cancelAll(this);draw();})
       .setNegativeButton(tr("取消","Cancel"),null).show());
     header(tr("平台边界","Platform limits"),tr("OPPO 官方潘塔纳尔流体云仍需要业务审核和 serviceId。2.0 使用 Android 16 实时动态请求，系统决定是否显示胶囊；1.0 为标准通知兼容，不冒充官方模板。",

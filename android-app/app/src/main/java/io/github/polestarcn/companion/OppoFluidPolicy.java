@@ -13,7 +13,7 @@ public final class OppoFluidPolicy {
   public static final String WARNING_COOLDOWN="oppo_compat_issue_cooldown";
   public static final String[] SCENES={"lock","unlock","climate","air","camp","charging","fault","status","trunk","windows","find"};
   private OppoFluidPolicy(){}
-  public static boolean enabled(Context c){return AppPreferences.visible(c,MASTER,false);}
+  public static boolean enabled(Context c){return AppPreferences.visible(c,MASTER,true);}
   public static String path(Context c){String x=AppPreferences.get(c,PATH,"auto");return "v1".equals(x)||"v2".equals(x)?x:"auto";}
   public static String style(Context c){return "full".equals(AppPreferences.get(c,STYLE,"simple"))?"full":"simple";}
   public static int level(Context c){return "2".equals(AppPreferences.get(c,LEVEL,"1"))?2:1;}
@@ -22,7 +22,7 @@ public final class OppoFluidPolicy {
   public static boolean notify(Context c,String scene){return enabled(c)&&allowed(scene)&&AppPreferences.visible(c,"oppo_compat_notify_"+scene,defaultEnabled(scene));}
   public static boolean cloud(Context c,String scene){return enabled(c)&&allowed(scene)&&AppPreferences.visible(c,"oppo_compat_cloud_"+scene,defaultEnabled(scene));}
   public static boolean action(Context c,String scene){return actions(c)&&allowed(scene)&&AppPreferences.visible(c,"oppo_compat_action_"+scene,false);}
-  public static boolean defaultEnabled(String scene){return "lock".equals(scene)||"unlock".equals(scene)||"climate".equals(scene)||"air".equals(scene)||"camp".equals(scene)||"fault".equals(scene);}
+  public static boolean defaultEnabled(String scene){return "lock".equals(scene)||"unlock".equals(scene)||"climate".equals(scene)||"air".equals(scene)||"camp".equals(scene)||"charging".equals(scene)||"fault".equals(scene);}
   public static int lockSeconds(Context c){return ranged(c,LOCK_SECONDS,10,5,30);}
   public static int warningCooldown(Context c){return ranged(c,WARNING_COOLDOWN,60,15,1440);}
   private static int ranged(Context c,String key,int fallback,int min,int max){try{return Math.max(min,Math.min(max,Integer.parseInt(AppPreferences.get(c,key,""+fallback))));}catch(Exception ignored){return fallback;}}

@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * ColorOS Fluid Cloud / Android live-update compatibility layer. OFF by default.
+ * ColorOS Fluid Cloud / Android live-update compatibility layer.
+ * Live HVAC, purification, camping and charging are enabled by default;
+ * explicit user off and notification-permission denial always take precedence.
  *
  * Genuine OPPO Pantanal IntelligentIntent requires approved service IDs and a
  * registered business; this class NEVER pretends to send that private payload.
@@ -316,15 +318,11 @@ public final class OppoFluidCloud {
   }
   private static void maybeNotify(Context c,OppoFluidScene scene){
     if(!OppoFluidPolicy.notify(c,scene.id))return;
-    String path="v1";
-    if(OppoFluidPolicy.cloud(c,scene.id)){
-      if(scene.synthetic)path=OppoFluidPolicy.path(c);
-      else if("camp".equals(scene.id)&&CampModeManager.active(c))path=OppoFluidPolicy.path(c);
-      else if("climate".equals(scene.id)||"air".equals(scene.id)){
-        long started=store(c).getLong("self_started_"+scene.id,0),now=System.currentTimeMillis();
-        if(started>0&&now>=started&&now-started<120*60_000L)path=OppoFluidPolicy.path(c);
-      }
-    }
+    // An actually running scene can start inside the vehicle or the app.
+    // Request the configured live route for all genuine active scenes; the
+    // Android/ColorOS notification service still decides capsule visibility.
+    String path=OppoFluidPolicy.cloud(c,scene.id)&&scene.ongoing
+        ?OppoFluidPolicy.path(c):"v1";
     String signature=scene.title+"|"+scene.detail+"|"+scene.firstAction+"|"+scene.secondAction+"|"+
         OppoFluidPolicy.level(c)+"|"+OppoFluidPolicy.style(c)+"|"+path+"|"+OppoFluidPolicy.action(c,scene.id);
     String key="active_sig_"+scene.id;

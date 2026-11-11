@@ -2802,18 +2802,18 @@ public final class MainActivity extends FragmentActivity {
       }));
     setting(p,tr("OPPO 插件 · 动态刷新 / 操作后加速","OPPO cards · dynamic polling / command boost"),()->
       refreshGroup(tr("OPPO 原生卡片刷新","OPPO native card refresh"),panel->{
-        settingToggle(panel,"oppo_dynamic_refresh",tr("根据门锁 / 空调 / 净化 / 托管自动加速刷新（默认开）","Adaptive reads during locks / HVAC / camping (on)"),true,false);
+        settingToggle(panel,"oppo_dynamic_refresh",tr("运行中加快刷新：空调 / 净化 / 露营 / 充电（默认开）","Adaptive reads: HVAC / air / camping / charging (on)"),true,false);
         refreshSetting(panel,tr("OPPO 常规 · 前台","OPPO normal · foreground"),"oppo_refresh_foreground_minutes",10,new int[]{2,5,10,15,30});
         refreshSetting(panel,tr("OPPO 常规 · 后台","OPPO normal · background"),"oppo_refresh_background_minutes",30,new int[]{15,30,60,120});
-        refreshSetting(panel,tr("运行中 · 前台","Active · foreground"),"oppo_active_foreground_minutes",2,new int[]{1,2,5,10});
-        refreshSetting(panel,tr("运行中 · 后台","Active · background"),"oppo_active_background_minutes",15,new int[]{15,30,60});
+        refreshSetting(panel,tr("运行中 · 前台","Active · foreground"),"oppo_active_foreground_minutes",1,new int[]{1,2,5,10});
+        refreshSetting(panel,tr("运行中 · 后台","Active · background"),"oppo_active_background_minutes",10,new int[]{10,15,30,60});
         refreshSetting(panel,tr("开锁 / 关锁后加速时长","Lock / unlock boost window"),"oppo_lock_boost_minutes",3,new int[]{1,3,5,10});
         refreshSecondsSetting(panel,tr("加速窗口前台间隔","Foreground boost interval"),"oppo_lock_boost_seconds",30,new int[]{30,60,120});
         refreshSecondsSetting(panel,tr("OPPO 卡片手动刷新冷却","OPPO manual refresh cooldown"),"oppo_refresh_cooldown_seconds",60,new int[]{30,60,120,300});
         settingToggle(panel,"oppo_dynamic_status",tr("动态状态 · 空调30m / 净化4m / 托管45m（默认开）","Dynamic timer labels: climate / air / camp (on)"),true,false);
         setting(panel,tr("自定义 OPPO 卡片数据和实时预览","Edit OPPO fields and live preview"),
           ()->startActivity(new Intent(this,OppoCardDisplaySettingsActivity.class)));
-        note(panel,tr("边界","Limits"),tr("控制指令仍先完成真实车端确认。30s只用于短暂前台加速，后台按Android最短15分钟调度；剩余时间本地计算，不增加网络请求。","Confirmed controls keep independent readback. 30s boost is foreground-only; Android may defer background jobs. Timer redraw is local."));
+        note(panel,tr("运行中策略","Active policy"),tr("空调（制冷/制热）、净化、露营默认前台1分钟/后台10分钟；充电前台3分钟/后台20分钟。后台任务受 Android 调度限制，剩余时间本地更新。","HVAC, purification, camping: 1m/10m; charging: 3m/20m. Android can defer background jobs; remaining time is local."));
       }));
     setting(p,tr("停车位置 · 前台阈值 / 地图 / 后台","Parking location · TTL / map / background"),this::mapRefreshDialog);
     setting(p,tr("普通请求合并窗口","Coalescing window")+" · "+RefreshPolicy.mergeSeconds(this)+"s",()->

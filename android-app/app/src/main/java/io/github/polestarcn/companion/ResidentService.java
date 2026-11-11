@@ -43,22 +43,28 @@ public final class ResidentService extends Service {
     scheduleUpdates(c);
   }
 
+  /** JobScheduler periodic minimum is 15 minutes. Clamp before comparing
+   * pending jobs, otherwise an active 10-minute request causes the same job
+   * to be pointlessly rescheduled after every UI or telemetry update.
+   */
+  static int schedulerMinutes(int requested){return Math.max(15,requested);}
   public static void scheduleUpdates(Context c) {
     JobScheduler jobs = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
     int minutes=RefreshPolicy.background(c,AppPreferences.enabled(c),WidgetRenderer.hasWidgets(c));
+    int scheduled=minutes>0?schedulerMinutes(minutes):0;
     ParkingRefreshJob.schedule(c);
     if (minutes>0) {
       JobInfo pending=jobs==null?null:jobs.getPendingJob(41);
       int network=AppPreferences.visible(c,"refresh_wifi_only",false)?JobInfo.NETWORK_TYPE_UNMETERED:JobInfo.NETWORK_TYPE_ANY;
       boolean plugged=AppPreferences.visible(c,"refresh_only_charging",false);
-      if (jobs != null && (pending==null||pending.getIntervalMillis()!=minutes*60_000L||pending.getNetworkType()!=network||pending.isRequireCharging()!=plugged))
+      if (jobs != null && (pending==null||pending.getIntervalMillis()!=scheduled*60_000L||pending.getNetworkType()!=network||pending.isRequireCharging()!=plugged))
         jobs.schedule(
             new JobInfo.Builder(41, new ComponentName(c, VehicleRefreshJob.class))
                 .setPersisted(true)
                 .setRequiredNetworkType(network)
                 .setRequiresCharging(plugged)
                 .setRequiresBatteryNotLow(true)
-                .setPeriodic(minutes * 60_000L, 5 * 60_000L)
+                .setPeriodic(scheduled * 60_000L, 5 * 60_000L)
                 .build());
     } else {
       if (jobs != null) jobs.cancel(41);

@@ -73,12 +73,16 @@ public final class VehicleSnapshotStore {
       o.put("tailgate", snapshot.tailgate);
       o.put("lock", snapshot.lock);
       o.put("capturedAt", snapshot.timestampMillis);
-      context
-          .getSharedPreferences(PREF, Context.MODE_PRIVATE)
-          .edit()
-          .putString(KEY, o.toString())
-          .apply();
-      if("LIVE".equals(snapshot.source))OppoFluidCloud.onLiveSnapshot(context,snapshot);
+      SharedPreferences state=context.getSharedPreferences(PREF,Context.MODE_PRIVATE);
+      boolean priorActive=state.getBoolean("adaptive_active",false);
+      boolean active=OppoAdaptiveRefresh.running(context,snapshot);
+      state.edit().putString(KEY,o.toString()).putBoolean("adaptive_active",active).apply();
+      if("LIVE".equals(snapshot.source)){
+        OppoFluidCloud.onLiveSnapshot(context,snapshot);
+        // Reschedule only when entering/exiting an active scene, not on every
+        // sample; this keeps background work stable even at fast foreground TTLs.
+        if(priorActive!=active)ResidentService.scheduleUpdates(context);
+      }
     } catch (Exception e) {
       DiagnosticLog.add("Display snapshot cache write failed");
     }

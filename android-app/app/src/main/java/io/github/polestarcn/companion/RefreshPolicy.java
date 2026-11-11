@@ -46,8 +46,11 @@ public final class RefreshPolicy {
  public static int background(Context c,boolean resident,boolean widgets){
    if(!VehiclePowerPolicy.automaticReads(c))return 0;
    boolean consumer=resident||widgets||OppoDeviceIntegration.enabled(c)||AppPreferences.visible(c,"app_background_enabled",false);
-   if(!consumer)return minutes(c,"refresh_idle_minutes",120,0,60,120,240);
    VehicleSnapshot state=VehicleSnapshotStore.loadChina(c);
+   // Even with no widget or resident notification, a genuinely running car
+   // task is an active telemetry consumer. User's long-parking saver still wins.
+   if(!consumer&&!(OppoAdaptiveRefresh.enabled(c)&&OppoAdaptiveRefresh.running(c,state)))
+     return minutes(c,"refresh_idle_minutes",120,0,60,120,240);
    int base=activeMinutes(c,RefreshDomain.CORE,false,state);
    for(RefreshDomain d:RefreshDomain.values()){
      if(d==RefreshDomain.CORE)continue;

@@ -57,7 +57,7 @@ public final class CampModeManager {
     SecureCampStore.save(c, s);
     c.getSharedPreferences(PREF, 0).edit().putString("phase", "ACTIVE")
         .putString("result", "QUEUED").putLong("checked_at", 0).commit();
-    try { schedule(c);OppoFluidCloud.syncCamp(c); }
+    try { schedule(c);OppoFluidCloud.syncCamp(c);ResidentService.scheduleUpdates(c); }
     catch (RuntimeException e) { deactivate(c, s.id, "SCHEDULE_FAILED"); finishCheck(c, s.id); throw e; }
   }
   public static synchronized boolean requestStop(Context c) {
@@ -74,7 +74,7 @@ public final class CampModeManager {
       .putLong("next_recovery_at",0).commit();
     cancelTasks(c);
     try{schedule(c);}catch(RuntimeException e){DiagnosticLog.add("Camping local stop persisted; network task pending");}
-    ResidentService.update(c);OppoFluidCloud.syncCamp(c);
+    ResidentService.update(c);OppoFluidCloud.syncCamp(c);ResidentService.scheduleUpdates(c);
     return true;
   }
   public static synchronized boolean protectBattery(Context c, String vin, VehicleSnapshot state) {

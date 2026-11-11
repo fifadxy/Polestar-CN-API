@@ -44,21 +44,28 @@ final class OppoHookDoctor {
       return "not-installed-or-not-visible";
     }
   }
+  private static String selectedMode(Context c){
+    try{
+      android.os.Bundle mode=c.getContentResolver().call(
+          android.net.Uri.parse("content://io.github.polestarcn.companion.bridge-settings"),
+          "snapshot",null,null);
+      if(mode!=null)return mode.getString("compatibilityMode","stable");
+    }catch(RuntimeException ignored){}
+    return "unknown";
+  }
   static String diagnosis(Context c){
     StringBuilder out=new StringBuilder("PsAssistant LSPosed Auto Diagnosis v1\n");
     out.append("App=").append(BuildConfig.VERSION_NAME).append(" Bridge=")
         .append("2.7.1")
         .append(" Android=").append(Build.VERSION.SDK_INT).append('\n');
     out.append("Device=").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append('\n');
-    out.append("Mode=").append(io.github.polestarcn.oppobridge.BridgeSettings.localSnapshot(c)
-        .getString("compatibilityMode","stable")).append('\n');
+    out.append("Mode=").append(selectedMode(c)).append('\n');
     out.append("Root=").append(OppoHookProcessManager.rootProbe()).append('\n');
     for(String host:HOSTS)out.append("HOST ").append(host).append(" version=")
         .append(version(c,host)).append('\n');
     out.append("\nHOOK mode observations (historical observations may be stale):\n")
         .append(OppoBridgeModeDiagnostics.description(c,
-            io.github.polestarcn.oppobridge.BridgeSettings.localSnapshot(c)
-                .getString("compatibilityMode","stable"))).append('\n');
+            selectedMode(c))).append('\n');
     out.append("\nBridge self-test (read-only):\n");
     try {out.append(io.github.polestarcn.oppobridge.BridgeTestOrchestrator.runReport(c));}
     catch(Exception ex){out.append("probe_error=").append(ex.getClass().getSimpleName());}

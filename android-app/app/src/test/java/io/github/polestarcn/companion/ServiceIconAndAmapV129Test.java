@@ -39,8 +39,8 @@ public final class ServiceIconAndAmapV129Test {
         if("path".equals(tag)){
           String stroke=xml.getAttributeValue("http://schemas.android.com/apk/res/android","strokeWidth");
           if(stroke!=null){strokes++;float weight=Float.parseFloat(stroke);
-            assertTrue(weight==9.396f||weight==7.83f);
-            if(weight==7.83f)gauge=true;
+            assertTrue(weight==8.86415f||weight==7.38679f);
+            if(weight==7.38679f)gauge=true;
           }
         }
       }

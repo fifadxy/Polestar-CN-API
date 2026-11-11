@@ -2010,7 +2010,11 @@ public final class MainActivity extends FragmentActivity {
         requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,Manifest.permission.ACCESS_FINE_LOCATION},MAP_LOCATION);
       }else{
         AppPreferences.set(this,MapLocationPermission.KEY,on?"on":"off");
-        if(parkingPreview!=null)parkingPreview.refreshPhoneLocation();
+        if(parkingPreview!=null){
+          parkingPreview.refreshPhoneLocation();
+          if(on&&!"on_open".equals(AppPreferences.get(this,"phone_location_refresh","manual")))
+            parkingPreview.requestPhoneLocation();
+        }
       }
     });
     phone.addView(mapLocationSwitch,new LinearLayout.LayoutParams(0,dp(compactControls?36:48),1.3f));
@@ -3502,8 +3506,13 @@ public final class MainActivity extends FragmentActivity {
       boolean allowed=false;for(int result:g)if(result==PackageManager.PERMISSION_GRANTED)allowed=true;
       AppPreferences.set(this,MapLocationPermission.KEY,allowed?"on":"off");
       if(mapLocationSwitch!=null)mapLocationSwitch.setChecked(allowed);
-      if(parkingPreview!=null)parkingPreview.refreshPhoneLocation();
-      toast(allowed?tr("已允许地图使用手机位置","Map phone location allowed"):tr("未授权，仍可查看停车点","Not allowed; parked point is still available"));
+      if(parkingPreview!=null){
+        parkingPreview.refreshPhoneLocation();
+        if(allowed&&!"on_open".equals(AppPreferences.get(this,"phone_location_refresh","manual")))
+          parkingPreview.requestPhoneLocation();
+      }
+      // Do not obscure the distance chip with a location-enabled toast.
+      if(!allowed)toast(tr("未授权，仍可查看停车点","Not allowed; parked point is still available"));
     }
     if (r == NOTIFICATIONS) {
       setResident(g.length > 0 && g[0] == PackageManager.PERMISSION_GRANTED);

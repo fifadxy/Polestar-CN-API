@@ -44,15 +44,21 @@
       if(!box){if(attempt<10)root.setTimeout(function(){label(message,attempt+1);},250);return;}
       // No "location enabled/off" or locating banner: it obscured distance
       // and sometimes overwrote a completed geolocation callback.
-      root.document.querySelectorAll('.psa-phone-distance').forEach(function(v){v.remove();});
-      if(message===null||message==='')return;
-      const text=root.document.createElement('div');
-      text.className='psa-phone-distance';
+      let text=box.querySelector('.psa-phone-distance');
+      if(message===null||message===''){
+        if(text){text.textContent='';text.style.display='none';}
+        return;
+      }
+      if(!text){
+        text=root.document.createElement('div');
+        text.className='psa-phone-distance';
+        box.appendChild(text);
+      }
+      text.style.display='';
       text.textContent=message;
       text.style.cssText='position:absolute;top:6px;right:8px;z-index:4000;max-width:calc(100% - 16px);'
         +'background:#191d22ed;color:#fff;border-radius:6px;padding:4px 7px;'
         +'font-size:12px;line-height:16px;white-space:nowrap;pointer-events:none;';
-      box.appendChild(text);
     }
     label(null,0);
     if(!enabled||!root.navigator||!root.navigator.geolocation)return;

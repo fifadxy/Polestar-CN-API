@@ -12,9 +12,9 @@ assert.equal(distance.measure({latitude:NaN,longitude:120},{latitude:30,longitud
 assert.ok(distance.format(125,30,true).includes('125 m'));
 assert.ok(distance.format(2345,50,false).includes('2.3 km'));
 let calls=0;
-const text={style:{},textContent:''},old={style:{}},box={querySelector:s=>s==='.distance'?old:text};
-const sandbox={window:{document:{querySelector:()=>box},setTimeout:()=>{},navigator:{geolocation:{getCurrentPosition:success=>{calls++;success({coords:{latitude:31.2346,longitude:121.2877,accuracy:20}})}}}}};
+const text={style:{},textContent:''},box={querySelector:()=>text,appendChild:()=>{}};
+const sandbox={window:{document:{querySelector:()=>box,createElement:()=>({style:{}})},setTimeout:()=>{},navigator:{geolocation:{getCurrentPosition:success=>{calls++;success({coords:{latitude:31.2346,longitude:121.2877,accuracy:20}})}}}}};
 vm.createContext(sandbox);vm.runInContext(source,sandbox);
-sandbox.window.PsaParkingDistance.show(mapped[0],mapped[1],true,false);assert.equal(calls,0);assert.equal(text.textContent,'Phone location off');
-sandbox.window.PsaParkingDistance.show(mapped[0],mapped[1],true,true);assert.equal(calls,1);assert.ok(text.textContent.includes('Car ~0 m'));assert.equal(old.style.display,'none');
-console.log('PASS: one-shot optional phone distance, coordinate handling, precision label and off-state privacy');
+sandbox.window.PsaParkingDistance.show(mapped[0],mapped[1],true,false);assert.equal(calls,0);assert.equal(text.textContent,'');
+sandbox.window.PsaParkingDistance.show(mapped[0],mapped[1],true,true);assert.equal(calls,1);assert.ok(text.textContent.includes('Car ~0 m'));assert.equal(text.style.display,'');
+console.log('PASS: no location-on overlay and one-shot distance after consent');

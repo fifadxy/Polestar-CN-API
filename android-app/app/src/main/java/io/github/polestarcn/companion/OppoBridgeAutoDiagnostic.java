@@ -28,7 +28,7 @@ final class OppoBridgeAutoDiagnostic {
     if(!carAuthorized)return "LOCAL_ONLY：本地桥接可用，但 OPPO 官方 SDK 授权未获真实回调；不能将本地绑定标为 OEM 认证成功。";
     return "READY_FOR_DEVICE_TEST：仅表明模块、宿主回报与本地桥接条件具备；请通过明确授权的操作验证实车回读。";
   }
-  private static JSONObject host(Context c,String pkg,long now){
+  private static JSONObject host(Context c,String pkg,long now) throws org.json.JSONException{
     JSONObject o=new JSONObject();
     try {
       o.put("package",pkg);

@@ -77,6 +77,10 @@ final class OppoLightResearchExport {
       put(zip,"report.json",json);
       put(zip,"provider-diagnostics.json",report.getJSONObject("deviceProvider").toString(2).getBytes(StandardCharsets.UTF_8));
       put(zip,"system-access.txt",OppoSystemAccess.summary(context).getBytes(StandardCharsets.UTF_8));
+      // Diagnostic JSON is constructed from fixed boolean/timestamp/version keys.
+      // It never reads system logcat, app databases, OAuth values or vehicle ID.
+      put(zip,"lsposed-autodiagnosis.json",
+          OppoBridgeAutoDiagnostic.export(context).getBytes(StandardCharsets.UTF_8));
       put(zip,"carlink-sdk-status.txt",OppoCarLinkRuntime.get(context).describe().getBytes(StandardCharsets.UTF_8));
       File contract=OppoCarLinkRoot.report(context);
       if(contract.isFile()&&contract.length()<=200_000)put(zip,"carlink-root-contract.txt",java.nio.file.Files.readAllBytes(contract.toPath()));

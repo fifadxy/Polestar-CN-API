@@ -44,7 +44,7 @@ public final class BridgeSettings {
     return out;
   }
 
-  static Bundle snapshot(Context context) {
+  public static Bundle snapshot(Context context) {
     if (BridgeIdentity.isBridgePackage(context.getPackageName()))
       return localSnapshot(context);
     try {

@@ -24,7 +24,9 @@ public final class OppoSystemAccessActivity extends Activity {
     button(page,"一键准备 CarLink 已绑定测试",()->prepareCarLinkTest());
     button(page,"真车控制测试",()->startActivity(new Intent().setClassName(getPackageName(),"io.github.polestarcn.oppobridge.VehicleCardDetailActivity")));
     button(page,"CarLink 本机面板（Root）",()->{show("正在请求 Root 启动 CarLink…");worker.execute(()->{try{String result=OppoCarLinkRoot.openPanel(this);runOnUiThread(()->show(result));}catch(Exception e){runOnUiThread(()->show("Root 入口失败："+e.getClass().getSimpleName()));}});});
-    button(page,"重载系统组件（Root）",()->reloadHosts());
+    button(page,"一键自动诊断 LSPosed / Root / 桥接",this::diagnoseBridge);
+    button(page,"导出脱敏诊断 ZIP（≤2 MB）",()->OppoResearchExportJob.start(this,false));
+    button(page,"确认后一键重启相关宿主进程（Root）",this::reloadHosts);
     button(page,"诊断与导出",()->new AlertDialog.Builder(this).setItems(new String[]{"复制文字摘要","生成轻量 ZIP（≤2MB）","分享已生成 ZIP"},(d,n)->{
       if(n==0){((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("PsAssistant 真机诊断",OppoSystemAccess.summary(this)));show("诊断已复制");}
       else if(n==1)OppoResearchExportJob.start(this,true);else shareExport();
@@ -49,16 +51,27 @@ public final class OppoSystemAccessActivity extends Activity {
     }catch(RuntimeException e){show("准备失败："+e.getClass().getSimpleName());}
   }
   private void show(String note){if(status!=null&&!isFinishing()&&!isDestroyed())status.setText(note+"\n\n"+OppoSystemAccess.summary(this));}
-  private void reloadHosts(){show("正在请求 Root 重载已安装的系统组件…");worker.execute(()->{
-    StringBuilder result=new StringBuilder();for(String pkg:new String[]{"com.heytap.mydevices","com.coloros.assistantscreen","com.oplus.assistantscreen",
-        "com.oplus.smartengine","com.oplus.cardservice","com.nearme.instant.platform",
-        "com.oplus.sceneservice","com.coloros.sceneservice",
-        "com.heytap.opluscarlink","com.oplus.carlink","com.oppo.carlink","com.oplus.ocar"}){
-      try{getPackageManager().getPackageInfo(pkg,0);OppoCarLinkRoot.run("am force-stop --user current "+OppoCarLinkRoot.quote(pkg));result.append(pkg).append("：已停止，请重新打开\n");}
-      catch(android.content.pm.PackageManager.NameNotFoundException missing){result.append(pkg).append("：未安装或不可见\n");}
-      catch(Exception e){result.append(pkg).append("：未完成 ").append(e.getClass().getSimpleName()).append('\n');}
-    }runOnUiThread(()->show(result.toString()));
-  });}
+  private void diagnoseBridge(){
+    show("正在只读检查 Root、LSPosed 宿主回报及车辆桥接…");
+    worker.execute(()->{
+      String result=OppoBridgeAutoDiagnostic.run(getApplicationContext());
+      runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())status.setText(result);});
+    });
+  }
+  private void reloadHosts(){
+    new AlertDialog.Builder(this).setTitle("确认重启 OPPO 相关进程")
+      .setMessage("仅重载设备空间、负一屏、CarLink 及 QuickApp 白名单宿主。"
+          +"不重启 SystemUI、桌面、Magisk、LSPosed 或 PsAssistant 本身；"
+          +"需要 Root。没有公开启动入口的宿主只发送温和进程重载请求。")
+      .setNegativeButton("取消",null)
+      .setPositiveButton("重启",(d,w)->{
+        show("正在按白名单逐项重载相关进程…");
+        worker.execute(()->{
+          String result=io.github.polestarcn.oppobridge.BridgeHostRestarter.restart(this);
+          runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())status.setText(result);});
+        });
+      }).show();
+  }
   private void shareExport(){OppoResearchExportJob.State s=OppoResearchExportJob.current();if(s.running||s.file==null||!s.file.isFile()){show("请先生成资料包");return;}
     android.net.Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".oppoexports",s.file);
     startActivity(Intent.createChooser(OppoWidgetSetupActivity.shareIntent(uri),"分享真机诊断"));}

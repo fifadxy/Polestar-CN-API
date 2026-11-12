@@ -43,7 +43,13 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
   void setFloorPreview(boolean on,boolean charging){floorPreview=on;floorPreviewCharging=charging;sync();invalidate();}
   private boolean floorCharging(){return preview?(floorPreview?floorPreviewCharging:testMode==EffectStateController.Mode.CHARGING)
       :coordinator!=null&&ChargingVisibility.shouldShow(coordinator.snapshot);}
-  private Integer floorSoc(){return preview?81:coordinator==null||coordinator.snapshot==null?null:coordinator.snapshot.batteryPercent;}
+  private Integer floorSoc(){
+    // Keep the nullable telemetry result boxed: a mixed int/Integer ternary
+    // unboxes null even when the floor experiment is disabled.
+    if(preview)return Integer.valueOf(81);
+    if(coordinator==null||coordinator.snapshot==null)return null;
+    return coordinator.snapshot.batteryPercent;
+  }
   private boolean hasFloor(){if(floorSettings==null)return false;Integer soc=floorSoc();
     return soc!=null&&soc>=0&&soc<=100&&((floorPreview&&(floorCharging()||floorSettings.idle))
         ||floorSettings.visible(floorCharging(),soc));}

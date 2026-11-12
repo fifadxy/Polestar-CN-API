@@ -18,14 +18,15 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
   private final android.graphics.Rect visibleRect=new android.graphics.Rect();
   private final boolean preview,lowRam;
   private final int art;
-  private boolean hostActive=true,queued,registered;
+  private boolean hostActive=true,queued,registered,floorPreview,floorPreviewCharging=true;
+  private BatteryFloor.Settings floorSettings;
   private long epoch,checkedAt,lastFrameNanos;
   private int previewAirDirection=-1;private int previewStyle=-1;private boolean previewAbsorb;
   private EffectSettings settings;
   private EffectStateController.Mode testMode=EffectStateController.Mode.CHARGING,mode=EffectStateController.Mode.OFF;
   private VehicleCoordinator coordinator;
   private final Runnable changed=()->sync();
-  private final SharedPreferences.OnSharedPreferenceChangeListener preferences=(p,key)->{settings=new EffectSettings(getContext());if(previewStyle>=0)settings=settings.previewCharge(previewStyle,previewAbsorb);if(previewAirDirection>=0)settings=settings.previewAir(previewAirDirection==1);sync();invalidate();};
+  private final SharedPreferences.OnSharedPreferenceChangeListener preferences=(p,key)->{floorSettings=new BatteryFloor.Settings(getContext());settings=new EffectSettings(getContext());if(previewStyle>=0)settings=settings.previewCharge(previewStyle,previewAbsorb);if(previewAirDirection>=0)settings=settings.previewAir(previewAirDirection==1);sync();invalidate();};
   private final BroadcastReceiver power=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){sync();}};
 
   VehicleHeroView(Context context){this(context,false);}
@@ -33,11 +34,19 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     super(context);preview=simulation;art=VehicleArt.dashboard(context);
     setImageResource(art);setScaleType(ScaleType.FIT_CENTER);setAdjustViewBounds(false);
     settings=new EffectSettings(context);
+    floorSettings=new BatteryFloor.Settings(context);
     ActivityManager am=(ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
     lowRam=am!=null&&am.isLowRamDevice();
   }
   void setSnapshot(VehicleSnapshot snapshot){sync();invalidate();}
   void setPreviewMode(EffectStateController.Mode value){testMode=value;epoch=SystemClock.uptimeMillis();sync();invalidate();}
+  void setFloorPreview(boolean on,boolean charging){floorPreview=on;floorPreviewCharging=charging;sync();invalidate();}
+  private boolean floorCharging(){return preview?(floorPreview?floorPreviewCharging:testMode==EffectStateController.Mode.CHARGING)
+      :coordinator!=null&&ChargingVisibility.shouldShow(coordinator.snapshot);}
+  private Integer floorSoc(){return preview?81:coordinator==null||coordinator.snapshot==null?null:coordinator.snapshot.batteryPercent;}
+  private boolean hasFloor(){if(floorSettings==null)return false;Integer soc=floorSoc();
+    return soc!=null&&soc>=0&&soc<=100&&((floorPreview&&(floorCharging()||floorSettings.idle))
+        ||floorSettings.visible(floorCharging(),soc));}
   void setPreviewCharge(int style,boolean absorb){previewStyle=style;previewAbsorb=absorb;settings=new EffectSettings(getContext());if(style>=0)settings=settings.previewCharge(style,absorb);setPreviewMode(EffectStateController.Mode.CHARGING);}
   void setPreviewAir(int direction){previewAirDirection=direction;settings=new EffectSettings(getContext());if(direction>=0)settings=settings.previewAir(direction==1);invalidate();}
   void setEffectsHostActive(boolean active){hostActive=active;sync();}
@@ -49,6 +58,7 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
       if(preview){if(settings.master&&settings.enabled(testMode))next=testMode;}
       else if(coordinator!=null)next=EffectStateController.resolve(coordinator.snapshot,settings,System.currentTimeMillis());
     }
+    if(next==EffectStateController.Mode.CHARGING&&hasFloor())next=EffectStateController.Mode.OFF;
     boolean different=mode!=next;mode=next;
     if(mode==EffectStateController.Mode.OFF){Choreographer.getInstance().removeFrameCallback(this);queued=false;if(different)invalidate();}
     else if(!queued){if(epoch==0)epoch=SystemClock.uptimeMillis();queued=true;Choreographer.getInstance().postFrameCallbackDelayed(this,1);}
@@ -76,7 +86,14 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     float time=(SystemClock.uptimeMillis()-epoch)/1000f,density=getResources().getDisplayMetrics().density;
     if(!preview&&coordinator!=null&&"behind".equals(AppPreferences.get(getContext(),"all_good_position","below"))&&!ChargingVisibility.shouldShow(coordinator.snapshot)&&(VehicleCondition.reported(coordinator.snapshot,AppPreferences.visible(getContext(),"show_tire_status",true))||VehicleCondition.problem(coordinator.snapshot,AppPreferences.visible(getContext(),"show_tire_status",true)))){drawGoodBackdrop(canvas);}
 
-    canvas.save();canvas.translate(getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f+(offsetC()?Math.min(getWidth()*.08f,Math.max(0,(getWidth()-imageBounds.width())/2)):0),getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f+verticalOffset(rotation));canvas.rotate(rotation);
+    float x=getPaddingLeft()+(getWidth()-getPaddingLeft()-getPaddingRight())/2f+(offsetC()?Math.min(getWidth()*.08f,Math.max(0,(getWidth()-imageBounds.width())/2)):0);
+    float y=getPaddingTop()+(getHeight()-getPaddingTop()-getPaddingBottom())/2f+verticalOffset(rotation);
+    boolean floor=hasFloor();float floorBottom=0;
+    if(floor){float width=rotation==0?imageBounds.width():imageBounds.height();
+      float height=rotation==0?imageBounds.height():imageBounds.width();
+      RectF displayed=new RectF(x-width*.5f,y-height*.5f,x+width*.5f,y+height*.5f);
+      floorBottom=BatteryFloor.draw(canvas,displayed,floorSettings,floorSoc(),density,AppPreferences.dark(getContext()));}
+    canvas.save();canvas.translate(x,y);canvas.rotate(rotation);
     if(mode==EffectStateController.Mode.CHARGING&&!bounds.isEmpty()){
       boolean right=VehicleArt.frontAtRight(art);float px=bounds.left+bounds.width()*(right?.13f:.87f),py=bounds.top+bounds.height()*.78f;
       particles.drawLayer(canvas,bounds,px,py,time,density,settings,lowRam?45:150,1,0);
@@ -87,7 +104,11 @@ final class VehicleHeroView extends androidx.appcompat.widget.AppCompatImageView
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&!bounds.isEmpty())airflow.drawLayer(canvas,bounds,VehicleArt.frontAtRight(art),time,density,settings,mode,lowRam?24:120,1,1);
     if(mode!=EffectStateController.Mode.OFF&&mode!=EffectStateController.Mode.CHARGING&&settings.windowGlow)windows.draw(canvas,imageBounds,art,time,mode,settings.windowStrength,1f,settings.windowRange,settings.windowPeriod,settings.windowFeather);
     canvas.restore();
-
+    if(floor&&floorCharging()&&floorSettings.status){
+      String[] description=preview?new String[]{AppPreferences.tr(getContext(),"正在充电 · 81%","Charging · 81%"),"12.8 kW"}
+          :BatteryFloor.message(getContext(),coordinator==null?null:coordinator.snapshot,floorSoc());
+      BatteryFloor.status(canvas,x,floorBottom,description[0],description[1],density,PsaDesign.ink(AppPreferences.dark(getContext())));
+    }
   }
   private final Handler touchHandler=new Handler(Looper.getMainLooper());private float downX,downY;private boolean holdFired,moved;private Runnable holdAction;
   void setVehicleHold(Runnable action){holdAction=action;}

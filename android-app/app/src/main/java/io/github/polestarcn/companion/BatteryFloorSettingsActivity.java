@@ -27,7 +27,11 @@ public final class BatteryFloorSettingsActivity extends Activity {
     b.setBackgroundTintList(ColorStateList.valueOf(PsaDesign.surface(AppPreferences.dark(this))));
     b.setOnClickListener(v->{Haptics.tap(this);action.run();});return b;
   }
-  private void save(String key,String value){AppPreferences.set(this,key,value);if(preview!=null)preview.invalidate();}
+  private void save(String key,String value){
+    AppPreferences.set(this,key,value);
+    // Force immediate preview refresh, independent of asynchronous preference notifications.
+    if(preview!=null)preview.refreshFloorSettings();
+  }
   private void section(String label){TextView t=text(label,16);t.setTextColor(PsaDesign.ORANGE);
     t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);root.addView(t);}
   private void toggle(String key,String title,boolean defaultValue){
@@ -73,21 +77,38 @@ public final class BatteryFloorSettingsActivity extends Activity {
     });
   }
   private void build(){
-    ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
-    root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(dp(12),dp(7),dp(12),dp(22));
-    root.setBackgroundColor(PsaDesign.canvas(AppPreferences.dark(this)));
-    scroll.addView(root);setContentView(scroll);AppWindow.apply(this,null);
-    root.addView(button(tr("返回设置","Back to settings"),this::finish));
-    root.addView(text(tr("试验功能 · 车辆底部电量地板条 P2","Experimental · under-car battery floor P2"),20));
+    // Fixed upper preview + independently scrolling controls: no nested whole-page scroll.
+    LinearLayout screen=new LinearLayout(this);screen.setOrientation(LinearLayout.VERTICAL);
+    screen.setTag("battery_floor_screen");screen.setBackgroundColor(PsaDesign.canvas(AppPreferences.dark(this)));
+    LinearLayout pinned=new LinearLayout(this);pinned.setOrientation(LinearLayout.VERTICAL);
+    pinned.setTag("battery_floor_pinned_preview");
+    pinned.setPadding(dp(12),dp(4),dp(12),dp(6));
+    pinned.setBackgroundColor(PsaDesign.surface(AppPreferences.dark(this)));
+    pinned.addView(button(tr("返回设置","Back to settings"),this::finish),
+        new LinearLayout.LayoutParams(-1,dp(38)));
+    TextView title=text(tr("试验功能 · 车辆底部电量地板条 P2","Experimental · under-car battery floor P2"),17);
+    pinned.addView(title);
     preview=new VehicleHeroView(this,true);preview.setTag("battery_floor_preview");
     preview.setFloorPreview(true,chargingPreview);
-    root.addView(preview,new LinearLayout.LayoutParams(-1,dp(205)));
-    root.addView(button(tr("预览：切换充电 / 未充电","Preview: charging / idle"),()->{
+    int screenDp=getResources().getConfiguration().screenHeightDp;
+    int previewDp=Math.max(132,Math.min(190,Math.round(screenDp*.25f)));
+    pinned.addView(preview,new LinearLayout.LayoutParams(-1,dp(previewDp)));
+    pinned.addView(button(tr("预览：切换充电 / 未充电","Preview: charging / idle"),()->{
       chargingPreview=!chargingPreview;preview.setFloorPreview(true,chargingPreview);
-    }));
-    TextView note=text(tr("81% 为模拟预览值，不发送车控指令。","81% is a local preview; no remote commands."),11);
-    note.setTextColor(muted);root.addView(note);
+    }),new LinearLayout.LayoutParams(-1,dp(39)));
+    TextView hint=text(tr("固定预览 · 模拟 81% 电量；实际车辆仅启用后显示。","Pinned live preview · mock 81% SOC; enable to show on the vehicle."),11);
+    hint.setTextColor(muted);pinned.addView(hint);
+    screen.addView(pinned,new LinearLayout.LayoutParams(-1,-2));
+
+    ScrollView scroll=new ScrollView(this);scroll.setTag("battery_floor_settings_scroll");
+    scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(false);
+    scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+    root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
+    root.setTag("battery_floor_settings_body");
+    root.setPadding(dp(12),dp(8),dp(12),dp(22));
+    root.setBackgroundColor(PsaDesign.canvas(AppPreferences.dark(this)));
+    scroll.addView(root);screen.addView(scroll,new LinearLayout.LayoutParams(-1,0,1f));
+    setContentView(screen);AppWindow.apply(this,null);
 
     section(tr("显示模式","Display"));
     toggle(BatteryFloor.PREFIX+"enabled",tr("启用地板条（默认关闭）","Enable battery floor (default off)"),false);

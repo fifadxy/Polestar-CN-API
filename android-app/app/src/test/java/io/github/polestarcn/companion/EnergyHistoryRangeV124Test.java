@@ -41,6 +41,7 @@ public final class EnergyHistoryRangeV124Test {
     Calendar date=Calendar.getInstance();date.setTimeInMillis(EnergySummaryPanel.startOfDate(2026,11,10));
     assertEquals(2026,date.get(Calendar.YEAR));assertEquals(11,date.get(Calendar.MONTH)+1);assertEquals(10,date.get(Calendar.DAY_OF_MONTH));
     try{EnergySummaryPanel.startOfDate(2026,2,30);fail("Invalid February date accepted");}catch(IllegalArgumentException expected){}
+    AppPreferences.set(c,"language","zh");
     EnergySummaryPanel panel=new EnergySummaryPanel(c,null,null);
     LinearLayout ranges=(LinearLayout)panel.findViewWithTag("energy_range_periods");
     assertNotNull(ranges);assertEquals(4,ranges.getChildCount());

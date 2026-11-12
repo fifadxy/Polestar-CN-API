@@ -35,7 +35,9 @@ final class BatteryFloor {
       }
     }
     boolean visible(boolean charging,Integer soc){
-      return enabled&&soc!=null&&soc>=0&&soc<=100&&(charging||idle);
+      // Charging may be confirmed before the battery percentage is available.
+      // Show an empty floor with --%, never fabricate 0% or drop the effect.
+      return enabled&&(charging||(idle&&soc!=null&&soc>=0&&soc<=100));
     }
   }
 
@@ -64,9 +66,11 @@ final class BatteryFloor {
     out[0]=a[0]+(b[0]-a[0])*fraction;out[1]=a[1]+(b[1]-a[1])*fraction;
   }
   static float[][] geometry(RectF car,Settings cfg,float viewBottom,float d){
-    float height=Math.max(8*d,car.height()*.13f*cfg.height/100f);
-    float rear=car.top+car.height()*.73f,front=rear+height;
-    float space=cfg.status?40*d:12*d;
+    float height=Math.max(12*d,Math.min(48*d,car.height()*.19f*cfg.height/100f));
+    // The old .73-.86 image-height band was hidden by opaque vehicle pixels.
+    // Anchor a larger perspective strip at the vehicle ground line instead.
+    float rear=car.top+car.height()*.78f,front=rear+height;
+    float space=cfg.status?38*d:12*d;
     if(front>viewBottom-space){float move=front-(viewBottom-space);front-=move;rear-=move;}
     float[] originalX={.25f,.75f,.10f,.90f};
     float[][] p=new float[4][2];
@@ -77,6 +81,9 @@ final class BatteryFloor {
     }
     float gap=Math.min(p[2][1],p[3][1])-Math.max(p[0][1],p[1][1]);
     if(gap<height*.35f){float correction=height*.35f-gap;p[2][1]+=correction;p[3][1]+=correction;}
+    // Respect the reserved caption area even at maximum corner offsets.
+    float excess=Math.max(p[2][1],p[3][1])-(viewBottom-space);
+    if(excess>0)for(int i=0;i<4;i++)p[i][1]-=excess;
     return p;
   }
   private static Path quad(float[] a,float[] b,float[] c,float[] d){
@@ -146,8 +153,9 @@ final class BatteryFloor {
           Math.min(c.getHeight()-4*d,base+13*d),paint);
     }
   }
-  static String[] message(Context c,VehicleSnapshot snap,int soc){
-    String first=AppPreferences.tr(c,"正在充电","Charging")+" · "+soc+"%";
+  static String[] message(Context c,VehicleSnapshot snap,Integer soc){
+    String socLabel=soc==null||soc<0||soc>100?"--%":soc+"%";
+    String first=AppPreferences.tr(c,"正在充电","Charging")+" · "+socLabel;
     if(snap==null||snap.chargingDetails==null)return new String[]{first,""};
     ChargingSnapshot state=snap.chargingDetails;
     String power=state.powerWatts!=null&&state.powerWatts>0

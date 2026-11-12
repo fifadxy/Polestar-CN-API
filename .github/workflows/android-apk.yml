@@ -99,6 +99,17 @@ jobs:
           else:
               print('No persistent key configured; debug APK is for validation, not a stable update identity')
           PYCODE
+      - name: Verify recovered 1.3.1 signing identity
+        if: env.PSA_SIGNING_KEYSTORE != ''
+        run: |
+          # Public certificate only. The JKS and passwords are GitHub Secrets, not repository files.
+          cert_fingerprint="$(keytool -exportcert -rfc -keystore "$PSA_SIGNING_KEYSTORE" -alias "${PSA_SIGNING_KEY_ALIAS:-androiddebugkey}" -storepass:env PSA_SIGNING_STORE_PASSWORD 2>/dev/null | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          expected="d4cd1b06701f9a8829c5ecc5bbee1398a0f8a655703b6cc356398efa30218a7e"
+          if [ "$cert_fingerprint" != "$expected" ]; then
+            echo "::error::Persistent signing certificate does not match PsAssistant 1.3.1 historical FULL."
+            exit 1
+          fi
+          echo "Historical PsAssistant signing identity verified."
       - name: Build signed release with persistent identity
         if: env.PSA_SIGNING_KEYSTORE != '' && env.PSA_CLIENT_CONFIG != '' && env.PSA_OPPO_SDK_AVAILABLE == 'true'
         working-directory: android-app

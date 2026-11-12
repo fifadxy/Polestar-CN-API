@@ -35,12 +35,21 @@ public final class EnergyLog extends SQLiteOpenHelper {
  public synchronized void prune(){prune(getWritableDatabase());}public synchronized void clear(){getWritableDatabase().delete("samples",null,null);getWritableDatabase().execSQL("VACUUM");try(Cursor checkpoint=getWritableDatabase().rawQuery("PRAGMA wal_checkpoint(TRUNCATE)",null)){checkpoint.moveToFirst();}}
  public static final class Point{public long t;public Double soc,cons,speed;public double ac,drive,distanceKm;public int count;}
  public static final class Report{public final List<Point> points=new ArrayList<>();public double ac,drive,distanceKm;public int count;}
- /** The full retained interval is the default chart range. Returns at most 24 monthly
-  * points while streaming raw rows on the single background worker; no UI row list. */
+ /** Full history always begins as daily source observations. Every chart
+  * granularity is derived from this common source (never monthly point.t). */
  public synchronized Report readRetention(String vehicle){
   long now=System.currentTimeMillis();Calendar first=Calendar.getInstance();
   first.setTimeInMillis(now);first.add(Calendar.MONTH,-months(c));
-  return readWindow(vehicle,2,first.getTimeInMillis(),now,2678400000L);
+  return readWindow(vehicle,-1,first.getTimeInMillis(),now,86400000L);
+ }
+ /** Last 1, 3 or 6 calendar months, bounded by local retention. */
+ public synchronized Report readRecentMonths(String vehicle,int count){
+  if(count!=1&&count!=3&&count!=6)throw new IllegalArgumentException("months must be 1, 3 or 6");
+  long now=System.currentTimeMillis();Calendar first=Calendar.getInstance();
+  first.setTimeInMillis(now);first.add(Calendar.MONTH,-count);
+  Calendar retained=Calendar.getInstance();retained.setTimeInMillis(now);
+  retained.add(Calendar.MONTH,-months(c));
+  return readWindow(vehicle,-1,Math.max(first.getTimeInMillis(),retained.getTimeInMillis()),now,86400000L);
  }
  public synchronized Report read(String vehicle,int range){return read(vehicle,range,System.currentTimeMillis());}
  public synchronized Report read(String vehicle,int range,long until){long now=Math.min(until,System.currentTimeMillis());Calendar cal=Calendar.getInstance();cal.setTimeInMillis(now);long bucket;
@@ -58,12 +67,9 @@ public final class EnergyLog extends SQLiteOpenHelper {
   long now=Math.min(until,System.currentTimeMillis());Calendar retained=Calendar.getInstance();retained.add(Calendar.MONTH,-months(c));
   start=Math.max(start,retained.getTimeInMillis());
   if(start<=0||start>now)return new Report();
-  long span=now-start;
-  // Long custom ranges are summarized by month, rather than materializing
-  // hundreds of daily buckets before the chart's own grouping pass.
-  return span>210L*86400000L
-      ?readWindow(vehicle,2,start,now,2678400000L)
-      :readWindow(vehicle,-1,start,now,span<=7L*86400000L?43200000L:86400000L);
+  // A daily source even for longer trend windows. Monthly pre-aggregation
+  // made the recorded values appear on the last sampled day of each month.
+  return readWindow(vehicle,-1,start,now,86400000L);
  }
 
  /** TM odometer is the primary source for daily distance. Never count trip resets

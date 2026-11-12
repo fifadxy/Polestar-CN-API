@@ -32,15 +32,16 @@ public final class EnergySummaryPanel extends LinearLayout {
   private final HorizontalScrollView chartScroller;
   private final TextView[] groupTabs=new TextView[3], styleTabs=new TextView[3];
   private TextView valueLabelsToggle;
-  private int groupStep, preferredStep, chartStyle, compareDays, valueLabelsMode;
+  private int groupStep, preferredStep, chartStyle, valueLabelsMode;
+  private String trendMode;
   private static final String LABELS_KEY="energy_chart_value_labels";
   private volatile int trendRequest;
   private static final String GROUP_KEY="energy_chart_step",STYLE_KEY="energy_chart_style",TREND_KEY="energy_chart_compare_days";
   private TextView rateToggle;
-  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[5];
+  private final TextView[] metricTabs=new TextView[4], rangeTabs=new TextView[4];
   private boolean showPer100Km=true;
   private final Trend chart;
-  private int range = 4, metric = 0; // default: all retained local observations
+  private int range = 3, metric = 0; // 1mo / 3mo / 6mo / all
   private EnergyLog.Report currentHistory, history7;
   private long displayedSpanMillis=7L*86400000L;
   private long customStart, customEnd;
@@ -59,7 +60,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     preferredStep=EnergyChartSeries.granularity(AppPreferences.get(context,GROUP_KEY,"day"));
     groupStep=preferredStep;
     chartStyle=EnergyChartSeries.style(AppPreferences.get(context,STYLE_KEY,"bars"));
-    compareDays=readCompareDays();
+    trendMode=readTrendMode();
     valueLabelsMode=EnergyChartDisplay.mode(AppPreferences.get(context,LABELS_KEY,"latest"));
     boolean dark = AppPreferences.dark(context);
     ink = PsaDesign.ink(dark);
@@ -78,6 +79,8 @@ public final class EnergySummaryPanel extends LinearLayout {
     chart = new Trend(context);
     chartScroller=new HorizontalScrollView(context);chartScroller.setTag("energy_history_chart");
     chartScroller.setHorizontalScrollBarEnabled(false);chartScroller.setFillViewport(true);
+    // Transparent drawing surface: the secondary popup owns the glass tint.
+    chartScroller.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     chartScroller.setOnScrollChangeListener((v,x,y,oldX,oldY)->chart.invalidate());
     chartScroller.addView(chart,new android.widget.FrameLayout.LayoutParams(-2,dp(190)));
     addView(chartScroller, new LayoutParams(-1, dp(190)));
@@ -123,11 +126,10 @@ public final class EnergySummaryPanel extends LinearLayout {
     row(tr("本机历史采样", "Local recorded history"), "");
     LinearLayout periods = new LinearLayout(context);
     periods.setOrientation(HORIZONTAL);
-    rangeTabs[0]=modeTab(tr("3天", "3d"), () -> changeRange(0));
-    rangeTabs[1]=modeTab(tr("7天", "7d"), () -> changeRange(1));
-    rangeTabs[2]=modeTab(tr("31天", "31d"), () -> changeRange(2));
-    rangeTabs[3]=modeTab(tr("自定义", "Custom"), this::customRangeDialog);
-    rangeTabs[4]=modeTab(tr("全部", "All"), () -> changeRange(4));
+    rangeTabs[0]=modeTab(tr("1个月","1 month"),()->changeRange(0));
+    rangeTabs[1]=modeTab(tr("3个月","3 months"),()->changeRange(1));
+    rangeTabs[2]=modeTab(tr("半年","6 months"),()->changeRange(2));
+    rangeTabs[3]=modeTab(tr("全部","All"),()->changeRange(3));
     for(int i=0;i<rangeTabs.length;i++){LayoutParams cell=new LayoutParams(0,dp(38),1);cell.setMargins(dp(2),0,dp(2),0);periods.addView(rangeTabs[i],cell);}
     periods.setTag("energy_range_periods");
     addView(periods);
@@ -280,12 +282,11 @@ public final class EnergySummaryPanel extends LinearLayout {
     }
   }
   private long daysShown(){
-    if(range==0)return 3L;if(range==1)return 7L;if(range==2)return 31L;
-    if(range==4)return Math.max(31L,EnergyLog.months(context)*31L);
-    long now=System.currentTimeMillis();
-    return Math.max(1L,(Math.min(now,customEnd)-customStart)/86400000L+1);
+    if(range==0)return 31L;if(range==1)return 92L;if(range==2)return 183L;
+    return Math.max(31L,EnergyLog.months(context)*31L);
   }
   private void changeRange(int value) {
+    if(value<0||value>=rangeTabs.length)return;
     range=value;
     groupStep=preferredStep;
     chart.setGrouping(groupStep);
@@ -412,17 +413,14 @@ public final class EnergySummaryPanel extends LinearLayout {
     refreshTabStyles();
     chartScroller.post(()->chartScroller.fullScroll(View.FOCUS_RIGHT));
   }
-  private void selectChartBar(int index){
-    valueLabelsMode=EnergyChartDisplay.LATEST;
+  private void cycleChartBar(int index){
+    // Focused -> all values with a guide -> hidden -> focused.
+    valueLabelsMode=EnergyChartDisplay.afterBarTap(valueLabelsMode,chart.focusedBar>=0);
     AppPreferences.set(context,LABELS_KEY,EnergyChartDisplay.preference(valueLabelsMode));
-    chart.setLabels(valueLabelsMode,index);
+    int focus=valueLabelsMode==EnergyChartDisplay.HIDDEN?-1:index;
+    chart.setLabels(valueLabelsMode,focus);
     refreshTabStyles();
-  }
-  private void hideChartLabels(){
-    valueLabelsMode=EnergyChartDisplay.HIDDEN;
-    AppPreferences.set(context,LABELS_KEY,EnergyChartDisplay.preference(valueLabelsMode));
-    chart.setLabels(valueLabelsMode,-1);
-    refreshTabStyles();
+    if(focus>=0)chart.scrollFocusIntoView(focus);
   }
   private void setGroupStep(int value) {
     preferredStep=value;
@@ -435,42 +433,63 @@ public final class EnergySummaryPanel extends LinearLayout {
     AppPreferences.set(context,STYLE_KEY,value==0?"bars":value==1?"curve":"both");
     refreshTabStyles();chart.setStyle(value);
   }
-  private int readCompareDays(){String days=AppPreferences.get(context,TREND_KEY,"7");
-    if("31".equals(days))return 31;if("3".equals(days))return 3;
-    if("off".equals(days))return 0;return 7;
+  private String readTrendMode(){
+    String stored=AppPreferences.get(context,TREND_KEY,"auto");
+    // Old 3/7/31-day modes migrate to range-aware auto trend.
+    if("off".equals(stored))return "off";
+    if("rolling7".equals(stored))return "rolling7";
+    if("rolling30".equals(stored))return "rolling30";
+    return "auto";
   }
   private void cycleComparison(){
-    compareDays=compareDays==7?31:compareDays==31?3:compareDays==3?0:7;
-    AppPreferences.set(context,TREND_KEY,compareDays==0?"off":""+compareDays);
+    trendMode="auto".equals(trendMode)?"rolling7"
+        :"rolling7".equals(trendMode)?"rolling30"
+        :"rolling30".equals(trendMode)?"off":"auto";
+    AppPreferences.set(context,TREND_KEY,trendMode);
     refreshTrendLabel(null);loadTrend();
   }
+  private String trendDescription(){
+    if("rolling7".equals(trendMode))return tr("近7天比前7天","7d vs prior 7d");
+    if("rolling30".equals(trendMode))return tr("近30天比前30天","30d vs prior 30d");
+    if(range==0)return tr("近1月比前1月","1mo vs prior 1mo");
+    if(range==1)return tr("近3月比前3月","3mo vs prior 3mo");
+    if(range==2)return tr("近半年比前半年","6mo vs prior 6mo");
+    return tr("近1月比前1月（全部范围）","1mo vs prior 1mo (all history)");
+  }
   private void refreshTrendLabel(Double percent){
-    if(compareDays==0){trendToggle.setText(tr("趋势：不显示 ↻","Trend: off ↻"));return;}
-    String prefix=tr("对比前"+compareDays+"天", "vs prior "+compareDays+"d");
-    String value=percent==null?tr("采样不足","not enough data")
+    if("off".equals(trendMode)){
+      trendToggle.setText(tr("趋势：关闭 ↻","Trend: off ↻"));return;
+    }
+    String value=metric==3&&EnergyLog.price(context)<=0
+        ?tr("未设置电价","tariff not set")
+        :percent==null?tr("有效采样不足","insufficient samples")
         :String.format(Locale.getDefault(),"%+.1f%%",percent);
-    trendToggle.setText(prefix+"  "+value+" ↻");
+    trendToggle.setText(tr("趋势·","Trend · ")+trendDescription()+"  "+value+" ↻");
     trendToggle.setTextColor(PsaDesign.ORANGE);
-    trendToggle.setContentDescription(tr("与前"+compareDays+"天相同长度区间比较，点击切换；","Compared to preceding "+compareDays+"-day window, tap to switch; ")+value);
+    trendToggle.setContentDescription(trendDescription()
+        +tr("；仅比较相邻等长区间真实采样，点击切换；","; compares adjacent like-for-like observation windows; tap to change; ")+value);
   }
   private void loadTrend(){
-    final int run=++trendRequest,days=compareDays,chosenMetric=metric;
-    if(days==0||vehicle==null){refreshTrendLabel(null);return;}
+    final int run=++trendRequest,chosenRange=range,chosenMetric=metric;
+    final String chosenMode=trendMode;
+    if("off".equals(chosenMode)||vehicle==null){refreshTrendLabel(null);return;}
     refreshTrendLabel(null);
     Context app=context.getApplicationContext();
+    EnergyTrendWindow.Window window=EnergyTrendWindow.period(System.currentTimeMillis(),chosenRange,chosenMode);
     EnergyLog.WORK.execute(()->{
       if(run!=trendRequest)return;
       Double change=null;
       try{
-        Calendar time=Calendar.getInstance();long end=time.getTimeInMillis();
-        time.add(Calendar.DAY_OF_YEAR,-days);long begin=time.getTimeInMillis();
-        time.add(Calendar.DAY_OF_YEAR,-days);long previous=time.getTimeInMillis();
-        EnergyLog.Report recent=EnergyLog.get(app).readBetween(vehicle,begin,end);
-        EnergyLog.Report before=EnergyLog.get(app).readBetween(vehicle,previous,begin-1);
-        change=EnergyChartSeries.changeMetric(recent,before,chosenMetric,EnergyLog.perPercent(app),EnergyLog.price(app));
+        EnergyLog.Report current=EnergyLog.get(app).readBetween(vehicle,window.start,window.end);
+        EnergyLog.Report previous=EnergyLog.get(app).readBetween(vehicle,window.previousStart,window.start-1);
+        change=EnergyChartSeries.changeMetric(current,previous,chosenMetric,
+            EnergyLog.perPercent(app),EnergyLog.price(app));
       }catch(Exception ignored){}
-      final Double value=change;
-      post(()->{if(run==trendRequest&&isAttachedToWindow()&&compareDays==days&&metric==chosenMetric)refreshTrendLabel(value);});
+      final Double result=change;
+      post(()->{
+        if(run==trendRequest&&isAttachedToWindow()&&range==chosenRange
+            &&metric==chosenMetric&&trendMode.equals(chosenMode))refreshTrendLabel(result);
+      });
     });
   }
   private void toggleChart() {
@@ -487,26 +506,23 @@ public final class EnergySummaryPanel extends LinearLayout {
       historyTitle.setText(tr("未选择车辆，暂无本机历史。", "Select a vehicle to view local history."));
       historyValues.setText("");chart.update(null);distanceSummary.setVisibility(GONE);return;
     }
-    final int chosen=range;final long from=customStart,until=customEnd;
+    final int chosen=range,months=chosen==3?EnergyLog.months(context):chosen==0?1:chosen==1?3:6;
     final long now=System.currentTimeMillis();
-    Calendar earliest=Calendar.getInstance();earliest.setTimeInMillis(now);
-    earliest.add(Calendar.MONTH,-EnergyLog.months(context));
-    final long first=chosen==0?now-3L*86400000L:chosen==1?now-7L*86400000L
-        :chosen==2?now-31L*86400000L:chosen==4?earliest.getTimeInMillis():from;
-    displayedSpanMillis=Math.max(86400000L,(chosen==3?Math.min(now,until):now)-first);
-    final String periodLabel=chosen==0?tr("最近3天","Last 3 days"):chosen==1?tr("最近7天","Last 7 days")
-        :chosen==2?tr("最近31天","Last 31 days")
-        :chosen==4?tr("保留期内全部历史","All retained observations")
-        :tr("自定义 ","Custom ")+formatDay(from)+" — "+formatDay(Math.min(now,until));
+    Calendar first=Calendar.getInstance();first.setTimeInMillis(now);
+    first.add(Calendar.MONTH,-months);
+    displayedSpanMillis=Math.max(86400000L,now-first.getTimeInMillis());
+    final String periodLabel=chosen==0?tr("最近1个月","Last 1 month")
+        :chosen==1?tr("最近3个月","Last 3 months")
+        :chosen==2?tr("最近半年","Last 6 months")
+        :tr("保留期内全部历史","All retained observations");
     EnergyLog.WORK.execute(() -> {
       // Skip queued requests made obsolete by taps before starting a heavy scan.
       if(request!=generation)return;
       try {
-        EnergyLog.Report result=chosen==4?EnergyLog.get(context).readRetention(vehicle)
-            :chosen==3?EnergyLog.get(context).readBetween(vehicle,from,Math.min(until,System.currentTimeMillis()))
-            :EnergyLog.get(context).readRecentDays(vehicle,chosen==0?3:chosen==1?7:31);
+        EnergyLog.Report result=chosen==3?EnergyLog.get(context).readRetention(vehicle)
+            :EnergyLog.get(context).readRecentMonths(vehicle,chosen==0?1:chosen==1?3:6);
         if(request!=generation)return;
-        EnergyLog.Report latest7=chosen==1?result:EnergyLog.get(context).readRecentDays(vehicle,7);
+        EnergyLog.Report latest7=EnergyLog.get(context).readRecentDays(vehicle,7);
         post(() -> {
           if(request != generation || !isAttachedToWindow())return;
           currentHistory=result;history7=latest7;
@@ -526,7 +542,7 @@ public final class EnergySummaryPanel extends LinearLayout {
           chart.update(result);
           updateDistanceSummary();
           chartScroller.post(()->chartScroller.fullScroll(View.FOCUS_RIGHT));
-          note.setText(tr("每日里程仅统计 TM 连续有效增量；缺测不补算。全部历史可自由切换按天、按周或按月查看。", "Daily mileage uses valid consecutive TM changes; missing samples are not invented. Day/week/month grouping remains selectable for all history."));
+          note.setText(tr("本机有效采样先按日读取，再按天／周／月汇总；总量一致，缺失时段不补算。", "Stored samples use a common daily source regrouped by day/week/month; totals agree and gaps are not fabricated."));
         });
       } catch(Exception e) {
         post(() -> {if(request!=generation||!isAttachedToWindow())return;
@@ -562,7 +578,7 @@ public final class EnergySummaryPanel extends LinearLayout {
     private int selection,step=groupStep,style=chartStyle;
     private int labels=valueLabelsMode,focusedBar=-1;
     private float downX,downY;
-    Trend(Context c){super(c);setTag("energy_chart_canvas");setMinimumWidth(dp(270));setClickable(true);}
+    Trend(Context c){super(c);setTag("energy_chart_canvas");setMinimumWidth(dp(270));setClickable(true);setBackgroundColor(android.graphics.Color.TRANSPARENT);}
     private void prepareBins(){
       bins=report==null?java.util.Collections.emptyList():EnergyChartSeries.aggregate(report.points,step);
     }
@@ -571,6 +587,16 @@ public final class EnergySummaryPanel extends LinearLayout {
     void setGrouping(int index){step=index;focusedBar=-1;prepareBins();resize();invalidate();}
     void setStyle(int index){style=index;invalidate();}
     void setLabels(int value,int focus){labels=value;focusedBar=focus;resize();invalidate();}
+    void scrollFocusIntoView(int index){
+      if(index<0||bins==null||bins.isEmpty())return;
+      chartScroller.post(()->{
+        float d=getResources().getDisplayMetrics().density;
+        float left=EnergyChartPainter.plotLeft(d);
+        float width=Math.max(1,getWidth()-left-EnergyChartPainter.plotRight(d));
+        int center=(int)(left+(index+.5f)*width/bins.size());
+        chartScroller.smoothScrollTo(Math.max(0,center-chartScroller.getWidth()/2),0);
+      });
+    }
     private void resize(){
       int count=bins.size();
       // Reserve horizontal space for annotations while capping total width;
@@ -596,11 +622,9 @@ public final class EnergySummaryPanel extends LinearLayout {
           canvas.drawText(String.format(Locale.getDefault(),"%.1f kWh",currentTmEnergy),cx-dp(26),bottom-h-dp(7),paint);
         setContentDescription(tr("TM估算参考柱，非历史采样","TM estimate reference, not history"));return;
       }
-      EnergyChartPainter.draw(canvas,bins,selection,style,unit,tariff,ink,muted,step,false,
-          getResources().getDisplayMetrics().density,labels,focusedBar);
-      EnergyChartPainter.drawFloatingYAxis(canvas,bins,selection,unit,tariff,muted,
-          getResources().getDisplayMetrics().density,PsaDesign.canvas(AppPreferences.dark(context)),
-          chartScroller.getScrollX());
+      EnergyChartPainter.drawScrollableWithFloatingAxis(canvas,bins,selection,style,
+          unit,tariff,ink,muted,step,getResources().getDisplayMetrics().density,
+          labels,focusedBar,chartScroller.getScrollX(),chartScroller.getWidth());
       setContentDescription(tr("历史统计图，","Historical statistics, ")
           +(step==0?tr("按天","daily"):step==1?tr("按周","weekly"):tr("按月","monthly"))
           +tr("；点击柱子显示/隐藏数值；仅有效历史采样","; tap a bar to show or hide its value; actual observations only"));
@@ -626,8 +650,9 @@ public final class EnergySummaryPanel extends LinearLayout {
     @Override public boolean performClick(){
       super.performClick();
       if(bins==null||bins.isEmpty()){
-        if(labels==EnergyChartDisplay.HIDDEN)selectChartBar(-1);else hideChartLabels();
-        return true;
+        valueLabelsMode=EnergyChartDisplay.next(valueLabelsMode);
+        AppPreferences.set(context,LABELS_KEY,EnergyChartDisplay.preference(valueLabelsMode));
+        setLabels(valueLabelsMode,-1);refreshTabStyles();return true;
       }
       float density=getResources().getDisplayMetrics().density;
       float left=EnergyChartPainter.plotLeft(density);
@@ -637,9 +662,7 @@ public final class EnergySummaryPanel extends LinearLayout {
       if(!EnergyChartDisplay.valid(bins.get(hit).amount(selection,EnergyLog.perPercent(context),EnergyLog.price(context))))return true;
       double[] amounts=new double[bins.size()];
       for(int i=0;i<amounts.length;i++)amounts[i]=bins.get(i).amount(selection,EnergyLog.perPercent(context),EnergyLog.price(context));
-      int[] currently=EnergyChartDisplay.annotated(amounts,labels,focusedBar);
-      if(labels==EnergyChartDisplay.LATEST&&currently.length==1&&currently[0]==hit)hideChartLabels();
-      else selectChartBar(hit);
+      cycleChartBar(hit);
       return true;
     }
   }

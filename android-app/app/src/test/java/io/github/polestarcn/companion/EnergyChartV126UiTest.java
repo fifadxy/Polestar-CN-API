@@ -5,6 +5,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.Shader;
 import android.graphics.drawable.InsetDrawable;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -86,27 +89,60 @@ public final class EnergyChartV126UiTest {
       EnergyChartSeries.Bin bin=new EnergyChartSeries.Bin(1735689600000L+i*86400000L);
       bin.count=1;bin.drive=i+1;bins.add(bin);
     }
-    Bitmap first=drawAtScroll(bins,0),panned=drawAtScroll(bins,160);
-    int axisRight=(int)EnergyChartPainter.plotLeft(1f);
-    for(int x=0;x<axisRight;x++)for(int y=0;y<190;y++)
-      assertEquals("Floating Y-axis must not scroll with the plot at x="+x+" y="+y,
-          first.getPixel(x,y),panned.getPixel(x,y));
-    boolean seriesMoved=false;
-    for(int x=axisRight+20;x<400&&!seriesMoved;x+=8)for(int y=40;y<155;y+=8)
-      if(first.getPixel(x,y)!=panned.getPixel(x,y)){seriesMoved=true;break;}
-    assertTrue("Chart bars should scroll independently of the pinned axis",seriesMoved);
-    first.recycle();panned.recycle();
+    for(boolean dark:new boolean[]{false,true}){
+      Bitmap background=popupGradient(dark);
+      Bitmap first=drawAtScroll(bins,0,dark),panned=drawAtScroll(bins,160,dark);
+      int axisRight=(int)EnergyChartPainter.plotLeft(1f);
+      for(int x=0;x<axisRight;x++)for(int y=0;y<190;y++)
+        assertEquals("Pinned axis must not move at x="+x+" y="+y,
+            first.getPixel(x,y),panned.getPixel(x,y));
+      for(int x:new int[]{0,3,6})for(int y:new int[]{43,88,140,178})
+        assertEquals("Axis gutter should preserve dialog glass gradient",
+            background.getPixel(x,y),panned.getPixel(x,y));
+      boolean moved=false;
+      for(int x=axisRight+20;x<400&&!moved;x+=8)for(int y=40;y<155;y+=8)
+        if(first.getPixel(x,y)!=panned.getPixel(x,y)){moved=true;break;}
+      assertTrue("Bars should scroll independently of the pinned axis",moved);
+      first.recycle();panned.recycle();background.recycle();
+    }
   }
-  private static Bitmap drawAtScroll(List<EnergyChartSeries.Bin> bins,int offset){
+  private static Bitmap popupGradient(boolean dark){
     Bitmap image=Bitmap.createBitmap(440,190,Bitmap.Config.ARGB_8888);
-    Canvas canvas=new Canvas(image);
-    canvas.drawColor(Color.WHITE);
-    canvas.save();canvas.translate(-offset,0);
-    EnergyChartPainter.draw(canvas,bins,0,EnergyChartSeries.BARS,.7,1,Color.BLACK,Color.GRAY,
-        EnergyChartSeries.DAILY,false,1f,EnergyChartDisplay.HIDDEN,-1);
-    EnergyChartPainter.drawFloatingYAxis(canvas,bins,0,.7,1,Color.GRAY,1f,Color.WHITE,offset);
-    canvas.restore();
-    return image;
+    Canvas c=new Canvas(image);Paint p=new Paint();
+    p.setShader(new LinearGradient(0,0,0,190,
+        dark?0xFF2A3036:Color.WHITE,dark?0xFF181D22:0xFFEDF1F4,Shader.TileMode.CLAMP));
+    c.drawRect(0,0,440,190,p);return image;
+  }
+  private static Bitmap drawAtScroll(List<EnergyChartSeries.Bin> bins,int offset,boolean dark){
+    Bitmap bg=popupGradient(dark);Bitmap image=bg.copy(Bitmap.Config.ARGB_8888,true);
+    bg.recycle();Canvas c=new Canvas(image);c.save();c.translate(-offset,0);
+    EnergyChartPainter.drawScrollableWithFloatingAxis(c,bins,0,EnergyChartSeries.BARS,
+        .71,1,Color.BLACK,Color.GRAY,EnergyChartSeries.DAILY,1f,
+        EnergyChartDisplay.HIDDEN,-1,offset,440);
+    c.restore();return image;
+  }
+  @Test public void barTapCyclesFocusedAllGuidedThenHidden(){
+    assertEquals(EnergyChartDisplay.LATEST,
+        EnergyChartDisplay.afterBarTap(EnergyChartDisplay.LATEST,false));
+    assertEquals(EnergyChartDisplay.ALL,
+        EnergyChartDisplay.afterBarTap(EnergyChartDisplay.LATEST,true));
+    assertEquals(EnergyChartDisplay.HIDDEN,
+        EnergyChartDisplay.afterBarTap(EnergyChartDisplay.ALL,true));
+    assertEquals(EnergyChartDisplay.LATEST,
+        EnergyChartDisplay.afterBarTap(EnergyChartDisplay.HIDDEN,false));
+    List<EnergyChartSeries.Bin> bins=new ArrayList<>();
+    for(int i=0;i<8;i++){
+      EnergyChartSeries.Bin b=new EnergyChartSeries.Bin(1735689600000L+i*86400000L);
+      b.count=1;b.drive=i+1;bins.add(b);
+    }
+    Bitmap withGuide=Bitmap.createBitmap(900,190,Bitmap.Config.ARGB_8888);
+    Bitmap noGuide=Bitmap.createBitmap(900,190,Bitmap.Config.ARGB_8888);
+    EnergyChartPainter.draw(new Canvas(withGuide),bins,0,EnergyChartSeries.BARS,.71,1,
+        Color.BLACK,Color.GRAY,EnergyChartSeries.DAILY,false,1f,EnergyChartDisplay.ALL,3);
+    EnergyChartPainter.draw(new Canvas(noGuide),bins,0,EnergyChartSeries.BARS,.71,1,
+        Color.BLACK,Color.GRAY,EnergyChartSeries.DAILY,false,1f,EnergyChartDisplay.ALL,-1);
+    assertFalse("Selected bar should have dashed reference guide",withGuide.sameAs(noGuide));
+    withGuide.recycle();noGuide.recycle();
   }
 
 }

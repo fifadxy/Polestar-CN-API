@@ -1,6 +1,7 @@
 package io.github.polestarcn.companion;
 
 import android.graphics.Canvas;
+import android.graphics.DashPathEffect;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -53,6 +54,10 @@ final class EnergyChartPainter {
     double unit=EnergyChartDisplay.tickStep(max),axisMax=unit*4d;
     if(!backdrop)drawAxes(canvas,p,bins,grouping,metric,muted,d,left,top,chartW,chartH,unit);
     float cell=chartW/values.length;
+    if(!backdrop&&labelMode==EnergyChartDisplay.ALL&&focusedBar>=0
+        &&focusedBar<values.length&&EnergyChartDisplay.valid(values[focusedBar]))
+      drawReference(canvas,p,left,top,chartW,chartH,cell,focusedBar,
+          values[focusedBar],axisMax,d);
     if(chartStyle!=EnergyChartSeries.CURVE){
       p.setStyle(Paint.Style.FILL);p.setColor(ORANGE);
       p.setAlpha(backdrop?48:chartStyle==EnergyChartSeries.BOTH?128:225);
@@ -129,20 +134,28 @@ final class EnergyChartPainter {
     c.drawText("--",left+8*d,top+height*.5f,p);
   }
 
-  /**
-   * Draw the vertical axis last in the visible chart gutter. Translating by
-   * the scroll offset cancels HorizontalScrollView's child translation, so
-   * unit, tick values, and the vertical axis remain pinned while data moves.
-   */
+  /** The moving plot clips at the pinned axis gutter. Transparent chart and
+   * scroller surfaces let the secondary dialog glass show through unchanged. */
+  static void drawScrollableWithFloatingAxis(Canvas canvas,List<EnergyChartSeries.Bin> bins,
+      int metric,int chartStyle,double perPercent,double tariff,int ink,int muted,
+      int grouping,float density,int labelMode,int focusedBar,int scrollX,int viewportWidth){
+    float d=Math.max(.5f,density);
+    int scroll=Math.max(0,scrollX);
+    int width=viewportWidth>0?viewportWidth:canvas.getWidth();
+    canvas.save();
+    canvas.clipRect(scroll+plotLeft(d),0,scroll+width,canvas.getHeight());
+    draw(canvas,bins,metric,chartStyle,perPercent,tariff,ink,muted,grouping,false,
+        density,labelMode,focusedBar);
+    canvas.restore();
+    drawFloatingYAxis(canvas,bins,metric,perPercent,tariff,muted,density,scroll);
+  }
   static void drawFloatingYAxis(Canvas canvas,List<EnergyChartSeries.Bin> bins,int metric,
-      double perPercent,double tariff,int muted,float density,int background,int scrollX){
+      double perPercent,double tariff,int muted,float density,int scrollX){
     float d=Math.max(.5f,density),left=plotLeft(d),top=35*d,bottom=39*d;
     float chartH=Math.max(1f,canvas.getHeight()-top-bottom);
     Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-    canvas.save();
-    canvas.translate(scrollX,0);
-    p.setStyle(Paint.Style.FILL);p.setColor(background);
-    canvas.drawRect(0,0,left+2*d,canvas.getHeight(),p);
+    canvas.save();canvas.translate(scrollX,0);
+    // No opaque rectangle: the dialog's own translucent gradient is visible.
     if(bins==null||bins.isEmpty()||(metric==3&&tariff<=0)){canvas.restore();return;}
     double max=0;boolean observed=false;
     for(EnergyChartSeries.Bin bin:bins){
@@ -164,6 +177,18 @@ final class EnergyChartPainter {
       canvas.drawLine(left,top,left,top+chartH,p);
     }
     canvas.restore();
+  }
+  /** Crosshair guide through the selected bucket, behind the numeric labels. */
+  private static void drawReference(Canvas canvas,Paint p,float left,float top,float width,
+      float height,float cell,int index,double value,double max,float d){
+    float x=left+(index+.5f)*cell,y=top+height-(float)(value/max*height);
+    p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.1f*d);
+    p.setColor(ORANGE);p.setAlpha(165);
+    p.setPathEffect(new DashPathEffect(new float[]{4*d,3*d},0));
+    canvas.drawLine(x,top,x,top+height,p);
+    canvas.drawLine(left,y,left+width,y,p);
+    p.setPathEffect(null);p.setStyle(Paint.Style.FILL);p.setAlpha(255);
+    canvas.drawCircle(x,y,2.7f*d,p);
   }
 
   /** Scrolling horizontal grid and date labels; vertical ticks use the pinned gutter. */

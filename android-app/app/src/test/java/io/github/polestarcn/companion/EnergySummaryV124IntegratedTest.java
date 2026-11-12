@@ -15,7 +15,7 @@ import java.util.Calendar;
 public final class EnergySummaryV124IntegratedTest {
   @Test public void tabsUseApprovedNamesAndThreeChartStyles(){
     Context c=RuntimeEnvironment.getApplication();
-    AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_chart_compare_days","7");
+    AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_chart_compare_days","auto");
     EnergySummaryPanel panel=new EnergySummaryPanel(c,null,null);
     LinearLayout metrics=(LinearLayout)panel.getChildAt(10);
     String[] expected={"行驶能耗","驻车空调","行驶里程","能耗费"};
@@ -27,7 +27,7 @@ public final class EnergySummaryV124IntegratedTest {
     // All retained history must not force monthly aggregation: explicit day,
     // week and month selections remain active and visually selected.
     LinearLayout ranges=panel.findViewWithTag("energy_range_periods");
-    assertTrue(ranges.getChildAt(4).isSelected());
+    assertTrue(ranges.getChildAt(3).isSelected());
     LinearLayout granularity=(LinearLayout)panel.findViewWithTag("energy_bucket_controls");
     assertNotNull(granularity);assertEquals(3,granularity.getChildCount());
     for(int index:new int[]{0,1,2,0,1}){
@@ -35,7 +35,7 @@ public final class EnergySummaryV124IntegratedTest {
       assertTrue("Selected grouping must survive the All range",granularity.getChildAt(index).isSelected());
     }
     assertTrue(ranges.getChildAt(1).performClick());
-    assertTrue(ranges.getChildAt(4).performClick());
+    assertTrue(ranges.getChildAt(3).performClick());
     assertTrue("Week selection persists after returning to All",granularity.getChildAt(1).isSelected());
     assertEquals("week",AppPreferences.get(c,"energy_chart_step",""));
     LinearLayout styles=(LinearLayout)panel.findViewWithTag("energy_style_controls");
@@ -48,14 +48,14 @@ public final class EnergySummaryV124IntegratedTest {
     assertTrue(values.performClick());assertTrue(values.getText().toString().contains("最新"));
     assertTrue(SettingsBackup.allowed(EnergyBackdropView.METRIC));
   }
-  @Test public void comparisonCyclesThrough7_31_3AndOff(){
-    Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_chart_compare_days","7");
+  @Test public void comparisonCyclesThroughAutoSevenThirtyAndOff(){
+    Context c=RuntimeEnvironment.getApplication();AppPreferences.set(c,"language","zh");AppPreferences.set(c,"energy_chart_compare_days","auto");
     EnergySummaryPanel panel=new EnergySummaryPanel(c,null,null);
     TextView control=(TextView)panel.findViewWithTag("energy_compare_toggle");
-    assertTrue(control.getText().toString().contains("前7天"));
-    assertTrue(control.performClick());assertTrue(control.getText().toString().contains("前31天"));
-    assertTrue(control.performClick());assertTrue(control.getText().toString().contains("前3天"));
-    assertTrue(control.performClick());assertTrue(control.getText().toString().contains("不显示"));
+    assertTrue(control.getText().toString().contains("近1月"));
+    assertTrue(control.performClick());assertTrue(control.getText().toString().contains("近7天"));
+    assertTrue(control.performClick());assertTrue(control.getText().toString().contains("近30天"));
+    assertTrue(control.performClick());assertTrue(control.getText().toString().contains("关闭"));
   }
   @Test public void customRangeIncludesEndOfDayAndAllowsMonthAdjustments(){
     long begin=EnergySummaryPanel.startOfDate(2026,11,10);

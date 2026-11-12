@@ -11,6 +11,12 @@ final class EnergyChartDisplay {
   static int mode(String value){return "all".equals(value)?ALL:"off".equals(value)?HIDDEN:LATEST;}
   static String preference(int mode){return mode==ALL?"all":mode==HIDDEN?"off":"latest";}
   static int next(int mode){return mode==LATEST?ALL:mode==ALL?HIDDEN:LATEST;}
+  /** Repeated bar taps: selected -> all + reference -> hidden. */
+  static int afterBarTap(int mode,boolean focused){
+    if(mode==HIDDEN)return LATEST;
+    if(mode==LATEST&&!focused)return LATEST;
+    return mode==LATEST?ALL:HIDDEN;
+  }
 
   static int[] annotated(double[] amounts,int mode,int focusedIndex){
     if(amounts==null||amounts.length==0||mode==HIDDEN)return new int[0];

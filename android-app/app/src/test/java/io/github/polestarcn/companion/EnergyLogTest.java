@@ -12,7 +12,7 @@ public class EnergyLogTest {
    assertEquals(0,EnergyLog.distanceIncrement(4.,5.,101.,103.,3600001L),.0001);
    assertEquals(0,EnergyLog.distanceIncrement(4.,200.,101.,103.,600000L),.0001);
  }
- @Test public void fullHistoryIsMonthlyAndKeepsActualTotals(){
+ @Test public void fullHistoryUsesDailySourceAndKeepsActualTotals(){
    Calendar old=Calendar.getInstance();old.add(Calendar.MONTH,-11);
    long earlier=old.getTimeInMillis();
    android.database.sqlite.SQLiteDatabase db=log.getWritableDatabase();
